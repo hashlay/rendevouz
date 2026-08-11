@@ -137,6 +137,8 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [globalPoints9, setGlobalPoints9] = useState(1);
   const [globalPoints10, setGlobalPoints10] = useState(1);
   const [entityMode, setEntityMode] = useState<'unit' | 'house' | 'team'>('unit');
+  const [autoRemoveLogoBg, setAutoRemoveLogoBg] = useState(false);
+  const [fillLogo, setFillLogo] = useState(false);
 
   // Units / Houses CRUD state
   const [units, setUnits] = useState<any[]>([]);
@@ -192,6 +194,8 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       setGlobalPoints9(data.globalPointsRank9 || 1);
       setGlobalPoints10(data.globalPointsRank10 || 1);
       setEntityMode(data.entityMode || 'unit');
+      setAutoRemoveLogoBg(data.autoRemoveLogoBg ?? false);
+      setFillLogo(data.fillLogo ?? false);
 
       if (uRes.ok) setUnits(await uRes.json());
       if (cRes.ok) setCategories(await cRes.json());
@@ -241,7 +245,9 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
           globalPointsRank9: globalPoints9,
           globalPointsRank10: globalPoints10,
           entityMode,
-          entityLabel: entityMode === 'house' ? 'House' : entityMode === 'team' ? 'Team' : 'Unit'
+          entityLabel: entityMode === 'house' ? 'House' : entityMode === 'team' ? 'Team' : 'Unit',
+          autoRemoveLogoBg,
+          fillLogo
         })
       });
       const responseText = await res.text();
@@ -525,12 +531,16 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                       const file = e.target.files?.[0];
                       if (file) {
                         const reader = new FileReader();
-                        reader.onload = (uploadEvent) => {
+                        reader.onload = async (uploadEvent) => {
                           const rawSrc = uploadEvent.target?.result as string;
-                          removeBackgroundFromLogo(rawSrc).then((transparentPng) => {
+                          if (autoRemoveLogoBg) {
+                            const transparentPng = await removeBackgroundFromLogo(rawSrc);
                             setSsfLogoUrl(transparentPng);
                             setSahityotsavLogoUrl(transparentPng);
-                          });
+                          } else {
+                            setSsfLogoUrl(rawSrc);
+                            setSahityotsavLogoUrl(rawSrc);
+                          }
                         };
                         reader.readAsDataURL(file);
                       }
@@ -538,21 +548,33 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                   />
                 </label>
 
-                {ssfLogoUrl && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const transparentPng = await removeBackgroundFromLogo(ssfLogoUrl);
-                      setSsfLogoUrl(transparentPng);
-                      setSahityotsavLogoUrl(transparentPng);
+                <label className="flex items-center gap-2 px-3 py-1.5 cursor-pointer bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition-colors">
+                  <input 
+                    type="checkbox" 
+                    checked={autoRemoveLogoBg} 
+                    onChange={async (e) => {
+                      const checked = e.target.checked;
+                      setAutoRemoveLogoBg(checked);
+                      if (checked && ssfLogoUrl) {
+                        const transparentPng = await removeBackgroundFromLogo(ssfLogoUrl);
+                        setSsfLogoUrl(transparentPng);
+                        setSahityotsavLogoUrl(transparentPng);
+                      }
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs border border-indigo-200 transition-colors"
-                    title="Remove white/solid background from current logo"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Auto Remove Background</span>
-                  </button>
-                )}
+                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" 
+                  />
+                  <span className="text-xs font-bold text-slate-700">Auto Remove Background</span>
+                </label>
+
+                <label className="flex items-center gap-2 px-3 py-1.5 cursor-pointer bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition-colors">
+                  <input 
+                    type="checkbox" 
+                    checked={fillLogo} 
+                    onChange={(e) => setFillLogo(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500" 
+                  />
+                  <span className="text-xs font-bold text-slate-700">Fill Logo</span>
+                </label>
               </div>
             </div>
           </div>

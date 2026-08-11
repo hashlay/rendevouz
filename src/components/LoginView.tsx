@@ -131,27 +131,42 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         {/* Logo and institution branding centered in place of title */}
-        <div className="flex justify-center items-center gap-4 mb-3">
-          {eventSettings?.ssfLogoUrl ? (
-            <img 
-              src={eventSettings.ssfLogoUrl} 
-              alt="Festival Logo" 
-              className="h-14 w-14 object-contain shrink-0" 
-              onError={(e) => (e.currentTarget.style.display = 'none')}
-            />
-          ) : (
-            <SSFLogo className="h-14 w-14 text-emerald-600 shrink-0" showText={false} />
-          )}
-          <div className="h-10 w-px bg-slate-300" />
-          <div className="flex flex-col items-start text-left">
-            <span className="font-display font-bold text-emerald-800 text-lg tracking-tight leading-none uppercase">
-              {eventSettings?.festivalName || 'ZENITH'}
-            </span>
-            <span className="text-amber-600 font-mono text-xs font-semibold tracking-widest mt-1 uppercase">
-              {eventSettings?.campusName || eventSettings?.sectorName || 'MEELAD SOFTWARE'}
-            </span>
+        {eventSettings?.fillLogo ? (
+          <div className="flex justify-center items-center mb-3">
+            {eventSettings?.ssfLogoUrl ? (
+              <img 
+                src={eventSettings.ssfLogoUrl} 
+                alt="Festival Logo" 
+                className="h-24 object-contain shrink-0" 
+                onError={(e) => (e.currentTarget.style.display = 'none')}
+              />
+            ) : (
+              <SSFLogo className="h-24 text-emerald-600 shrink-0" showText={false} />
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="flex justify-center items-center gap-4 mb-3">
+            {eventSettings?.ssfLogoUrl ? (
+              <img 
+                src={eventSettings.ssfLogoUrl} 
+                alt="Festival Logo" 
+                className="h-14 w-14 object-contain shrink-0" 
+                onError={(e) => (e.currentTarget.style.display = 'none')}
+              />
+            ) : (
+              <SSFLogo className="h-14 w-14 text-emerald-600 shrink-0" showText={false} />
+            )}
+            <div className="h-10 w-px bg-slate-300" />
+            <div className="flex flex-col items-start text-left">
+              <span className="font-display font-bold text-emerald-800 text-lg tracking-tight leading-none uppercase">
+                {eventSettings?.festivalName || 'ZENITH'}
+              </span>
+              <span className="text-amber-600 font-mono text-xs font-semibold tracking-widest mt-1 uppercase">
+                {eventSettings?.campusName || eventSettings?.sectorName || 'MEELAD SOFTWARE'}
+              </span>
+            </div>
+          </div>
+        )}
 
         <p className="text-xs sm:text-sm text-slate-500 font-sans font-medium">
           Festival Management System • {eventSettings?.eventYear || '2026'}

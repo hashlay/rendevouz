@@ -60,27 +60,43 @@ export default function Sidebar({
     <div className="h-full flex flex-col justify-between bg-emerald-950 text-emerald-100 border-r border-emerald-900 font-sans">
       <div className="flex-1 overflow-y-auto min-h-0 sidebar-scroll">
         {/* Logo and Event Header */}
-        <div className="p-6 border-b border-emerald-900 bg-emerald-950/50 flex items-center gap-3">
-          {eventSettings?.ssfLogoUrl && !logoFailed ? (
-            <img
-              src={eventSettings.ssfLogoUrl}
-              alt="SSF Logo"
-              referrerPolicy="no-referrer"
-              onError={() => setLogoFailed(true)}
-              className="h-10 w-10 object-contain shrink-0"
-            />
-          ) : (
-            <SSFLogo className="h-10 w-10 bg-white/10 p-1 rounded-xl text-emerald-400 shrink-0" showText={false} />
-          )}
-          <div className="flex flex-col">
-            <span className="font-display font-extrabold text-amber-400 text-sm tracking-wide leading-none uppercase">
-              {eventSettings?.festivalName || 'SAHITYOTSAV'}
-            </span>
-            <span className="text-emerald-300 text-[10px] font-mono tracking-widest uppercase mt-1">
-              {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'}
-            </span>
+        {eventSettings?.fillLogo ? (
+          <div className="p-6 border-b border-emerald-900 bg-emerald-950/50 flex justify-center items-center">
+            {eventSettings?.ssfLogoUrl && !logoFailed ? (
+              <img
+                src={eventSettings.ssfLogoUrl}
+                alt="SSF Logo"
+                referrerPolicy="no-referrer"
+                onError={() => setLogoFailed(true)}
+                className="h-16 w-auto max-w-full object-contain shrink-0"
+              />
+            ) : (
+              <SSFLogo className="h-16 w-auto max-w-full bg-white/10 p-2 rounded-xl text-emerald-400 shrink-0" showText={false} />
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="p-6 border-b border-emerald-900 bg-emerald-950/50 flex items-center gap-3">
+            {eventSettings?.ssfLogoUrl && !logoFailed ? (
+              <img
+                src={eventSettings.ssfLogoUrl}
+                alt="SSF Logo"
+                referrerPolicy="no-referrer"
+                onError={() => setLogoFailed(true)}
+                className="h-10 w-10 object-contain shrink-0"
+              />
+            ) : (
+              <SSFLogo className="h-10 w-10 bg-white/10 p-1 rounded-xl text-emerald-400 shrink-0" showText={false} />
+            )}
+            <div className="flex flex-col">
+              <span className="font-display font-extrabold text-amber-400 text-sm tracking-wide leading-none uppercase">
+                {eventSettings?.festivalName || 'SAHITYOTSAV'}
+              </span>
+              <span className="text-emerald-300 text-[10px] font-mono tracking-widest uppercase mt-1">
+                {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'}
+              </span>
+            </div>
+          </div>
+        )}
 
         {user.role === UserRole.VIEWER && (
           <div className="mx-3 mt-3 p-2.5 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-300 text-[11px] font-mono font-bold flex items-center gap-2">
