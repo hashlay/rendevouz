@@ -41,6 +41,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const [editDob, setEditDob] = useState('');
   const [editCategoryId, setEditCategoryId] = useState('');
   const [editComps, setEditComps] = useState<string[]>([]);
+  const [editGroupComps, setEditGroupComps] = useState<string[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
 
   // Deletion confirm
@@ -209,21 +210,43 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     setEditDob(p.dob || '');
     setEditCategoryId(p.selectedCategoryId || '');
 
-    // Fetch registered individual competitions
+    // Fetch registered individual & group competitions
     try {
-      const regRes = await fetch('/api/registrations', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const [regRes, teamsRes] = await Promise.all([
+        fetch('/api/registrations', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+
       const regs = await regRes.json();
-      const userReg = regs.find((r: any) => r.participantId === p.id);
+      const teamsList = await teamsRes.json();
+
+      const userReg = Array.isArray(regs) ? regs.find((r: any) => r.participantId === p.id) : null;
       if (userReg) {
         setEditComps(userReg.selectedIndividualCompetitionIds || []);
       } else {
         setEditComps([]);
       }
+
+      // Group competitions from teams & registrations
+      const userGroupCompIds: string[] = [];
+      if (Array.isArray(teamsList)) {
+        teamsList.forEach((t: any) => {
+          if (!t.deletedAt && t.memberIds && t.memberIds.includes(p.id)) {
+            userGroupCompIds.push(t.competitionId);
+          }
+        });
+      }
+      if (userReg && Array.isArray(userReg.selectedGroupCompetitionIds)) {
+        userReg.selectedGroupCompetitionIds.forEach((gId: string) => {
+          if (!userGroupCompIds.includes(gId)) userGroupCompIds.push(gId);
+        });
+      }
+      setEditGroupComps(userGroupCompIds);
+
     } catch (e) {
       console.error(e);
       setEditComps([]);
+      setEditGroupComps([]);
     }
   };
 
@@ -270,7 +293,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
           fullName: editName,
           dob: editDob,
           selectedCategoryId: editCategoryId,
-          selectedCompetitionIds: editComps
+          selectedCompetitionIds: [...editComps, ...editGroupComps]
         })
       });
 
@@ -848,7 +871,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono mb-1.5">Registered Competitions (Individual)</label>
-                <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
+                <div className="space-y-2 max-h-36 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
                   {competitions
                     .filter(c => c.categoryId === editCategoryId && c.participationType === 'individual')
                     .map(comp => {
@@ -871,6 +894,46 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                         </label>
                       );
                     })}
+                  {competitions.filter(c => c.categoryId === editCategoryId && c.participationType === 'individual').length === 0 && (
+                    <span className="text-slate-400 font-mono text-[10px]">No individual competitions available for this category.</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono mb-1.5 flex items-center justify-between">
+                  <span>Registered Competitions (Group)</span>
+                  <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Group Competitions</span>
+                </label>
+                <div className="space-y-2 max-h-36 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
+                  {competitions
+                    .filter(c => c.categoryId === editCategoryId && c.participationType === 'group')
+                    .map(comp => {
+                      const isChecked = editGroupComps.includes(comp.id);
+                      return (
+                        <label key={comp.id} className="flex items-center gap-2.5 cursor-pointer select-none text-slate-700 hover:text-slate-900">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditGroupComps([...editGroupComps, comp.id]);
+                              } else {
+                                setEditGroupComps(editGroupComps.filter(id => id !== comp.id));
+                              }
+                            }}
+                            className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                          />
+                          <span className="font-semibold text-xs">{comp.name}</span>
+                          {comp.teamSize && (
+                            <span className="text-[9px] font-mono text-slate-400 ml-auto">({comp.teamSize} members)</span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  {competitions.filter(c => c.categoryId === editCategoryId && c.participationType === 'group').length === 0 && (
+                    <span className="text-slate-400 font-mono text-[10px]">No group competitions available for this category.</span>
+                  )}
                 </div>
               </div>
 

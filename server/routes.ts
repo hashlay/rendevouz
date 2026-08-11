@@ -1678,7 +1678,50 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
     if (reg) {
       reg.categoryId = finalCat;
       reg.selectedIndividualCompetitionIds = individualCompetitions.map(c => c.id);
+      reg.selectedGroupCompetitionIds = groupCompetitions.map(c => c.id);
       reg.updatedAt = new Date().toISOString();
+    }
+
+    // Sync group team memberships in db.teams
+    const groupCompIds = groupCompetitions.map(c => c.id);
+    if (db.teams) {
+      // 1. Remove participant from any group team where the competition is no longer selected
+      for (const team of db.teams) {
+        if (!team.deletedAt && team.memberIds && team.memberIds.includes(partId) && !groupCompIds.includes(team.competitionId)) {
+          team.memberIds = team.memberIds.filter((mId: string) => mId !== partId);
+          team.updatedAt = new Date().toISOString();
+        }
+      }
+
+      // 2. Link participant to a group team for newly selected group competitions
+      for (const groupComp of groupCompetitions) {
+        const alreadyInTeam = db.teams.some(t => !t.deletedAt && t.competitionId === groupComp.id && t.memberIds && t.memberIds.includes(partId));
+        if (!alreadyInTeam) {
+          const availableTeam = db.teams.find(t => 
+            t.unitId === existingPart.unitId && 
+            t.competitionId === groupComp.id && 
+            !t.deletedAt && 
+            t.memberIds &&
+            t.memberIds.length < groupComp.teamSize
+          );
+
+          if (availableTeam) {
+            availableTeam.memberIds.push(partId);
+            availableTeam.updatedAt = new Date().toISOString();
+          } else {
+            const newTeam: any = {
+              id: `team_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+              teamName: `${existingPart.fullName} & Team`,
+              unitId: existingPart.unitId,
+              competitionId: groupComp.id,
+              memberIds: [partId],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+            db.teams.push(newTeam);
+          }
+        }
+      }
     }
   }
 
