@@ -7,9 +7,13 @@ import { User, UserRole, Category, Unit, Competition, Team, Participant, Partici
 interface TeamsViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
-export default function TeamsView({ user, token }: TeamsViewProps) {
+export default function TeamsView({ user, token, eventSettings }: TeamsViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
+  const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
+
   const [teams, setTeams] = useState<Team[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -48,7 +52,7 @@ export default function TeamsView({ user, token }: TeamsViewProps) {
 
       if (!tRes.ok) {
         const err = await tRes.json();
-        throw new Error(err.error || 'Failed to fetch teams');
+        throw new Error(err.error || 'Failed to load teams');
       }
 
       const [tData, cData, uData, compData, pData] = await Promise.all([tRes.json(), cRes.json(), uRes.json(), compRes.json(), pRes.json()]);
@@ -72,20 +76,12 @@ export default function TeamsView({ user, token }: TeamsViewProps) {
   // Handle Team Creation Submit
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!wizardCategoryId || !wizardCompId || selectedMembers.length === 0) {
-      alert('Please fill in all fields and select team members.');
+    if (!wizardUnitId || !wizardCategoryId || !wizardCompId || selectedMembers.length === 0) {
+      alert('Please fill in all required fields and select team members');
       return;
     }
 
     setSubmitting(true);
-    const payload = {
-      teamName: teamName.trim() || undefined,
-      unitId: wizardUnitId,
-      categoryId: wizardCategoryId,
-      competitionId: wizardCompId,
-      memberIds: selectedMembers
-    };
-
     try {
       const res = await fetch('/api/teams', {
         method: 'POST',
@@ -93,17 +89,22 @@ export default function TeamsView({ user, token }: TeamsViewProps) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          unitId: wizardUnitId,
+          categoryId: wizardCategoryId,
+          competitionId: wizardCompId,
+          teamName: teamName.trim() || undefined,
+          memberIds: selectedMembers
+        })
       });
-      const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || 'Failed to register team');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to register group team');
 
       setCreateOpen(false);
       setTeamName('');
-      setWizardCategoryId('');
-      setWizardCompId('');
       setSelectedMembers([]);
+      setWizardCompId('');
       fetchLists();
       alert('Group team registered successfully!');
     } catch (err: any) {
@@ -115,23 +116,19 @@ export default function TeamsView({ user, token }: TeamsViewProps) {
 
   // Delete Team
   const handleDeleteTeam = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this group team? Related counts will revert.')) return;
-
+    if (!confirm('Are you sure you want to delete this group team?')) return;
     try {
-      const res = await fetch(`/api/teams/${id}/delete`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
+      const res = await fetch(`/api/teams/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete team');
-
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete team');
+      }
       fetchLists();
-      alert('Group team deleted successfully');
-    } catch (err: any) {
-      alert(err.message);
+    } catch (e: any) {
+      alert(e.message);
     }
   };
 
@@ -145,7 +142,7 @@ export default function TeamsView({ user, token }: TeamsViewProps) {
   }
 
   // Filter group competitions
-  const groupComps = competitions.filter(c => c.participationType === ParticipationType.GROUP && c.active);
+  const groupComps = competitions.filter(c => c.participationType === ParticipationType.GROUP);
   // Wizard group comps filtered by selected wizard category
   const wizardGroupComps = groupComps.filter(c => c.categoryId === wizardCategoryId);
   const selectedWizardComp = competitions.find(c => c.id === wizardCompId);
@@ -170,7 +167,7 @@ export default function TeamsView({ user, token }: TeamsViewProps) {
               onChange={(e) => setSelectedUnitId(e.target.value)}
               className="px-3 py-2 border border-slate-300 rounded-xl text-slate-700 focus:outline-none text-xs font-semibold bg-slate-50"
             >
-              <option value="">All Units</option>
+              <option value="">All {entityLabelPlural}</option>
               {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           )}
@@ -208,13 +205,15 @@ export default function TeamsView({ user, token }: TeamsViewProps) {
             const comp = competitions.find(c => c.id === team.competitionId);
             const unit = units.find(u => u.id === team.unitId);
             const cat = categories.find(c => c.id === team.categoryId);
+            const displayTeamName = team.teamName || `${unit?.name} Team`;
+
             return (
               <div key={team.id} className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                 <div>
                   <div className="flex justify-between items-start border-b border-slate-100 pb-3">
                     <div>
-                      <h4 className="font-display font-extrabold text-slate-800 text-base">{team.teamNumber} • {unit?.name}</h4>
-                      <span className="text-xs font-semibold text-emerald-600 font-mono mt-0.5 block">{comp?.name}</span>
+                      <h4 className="font-display font-extrabold text-slate-800 text-base">{displayTeamName}</h4>
+                      <span className="text-xs font-semibold text-emerald-600 font-mono mt-0.5 block">{comp?.name} • {unit?.name}</span>
                     </div>
                     <button
                       onClick={() => handleDeleteTeam(team.id)}

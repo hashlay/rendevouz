@@ -7,9 +7,12 @@ import { User, UserRole, Category, Unit } from '../types';
 interface ScoreboardViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
-export default function ScoreboardView({ user, token }: ScoreboardViewProps) {
+export default function ScoreboardView({ user, token, eventSettings }: ScoreboardViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
+  const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
   const [scoreboard, setScoreboard] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -90,7 +93,7 @@ export default function ScoreboardView({ user, token }: ScoreboardViewProps) {
               onChange={(e) => setSelectedUnitId(e.target.value)}
               className="px-3 py-2 border border-slate-300 rounded-xl text-slate-700 focus:outline-none text-xs font-semibold bg-slate-50"
             >
-              <option value="">All Units</option>
+              <option value="">All {entityLabelPlural}</option>
               {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           )}
@@ -152,7 +155,7 @@ export default function ScoreboardView({ user, token }: ScoreboardViewProps) {
 
                   <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 text-xs">
                     <div className="text-slate-600">
-                      Unit: <span className="font-semibold text-slate-800">{row.unitName}</span>
+                      {entityLabel}: <span className="font-semibold text-slate-800">{row.unitName}</span>
                     </div>
                     <span className="bg-emerald-50 border border-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded-lg">
                       {row.categoryName}
@@ -188,7 +191,7 @@ export default function ScoreboardView({ user, token }: ScoreboardViewProps) {
                   <th className="px-6 py-4 text-left">Standing</th>
                   <th className="px-6 py-4 text-left">Chest No</th>
                   <th className="px-6 py-4 text-left">Candidate Name</th>
-                  <th className="px-6 py-4 text-left">Unit</th>
+                  <th className="px-6 py-4 text-left">{entityLabel}</th>
                   <th className="px-6 py-4 text-left">Category</th>
                   <th className="px-6 py-4 text-center">Event count</th>
                   <th className="px-6 py-4 text-right">Overall Marks</th>

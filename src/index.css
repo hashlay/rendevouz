@@ -11,6 +11,41 @@ body {
   font-family: var(--font-sans);
   background-color: #f8fafc; /* slate-50 */
   color: #0f172a; /* slate-900 */
+  overflow-x: hidden;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile GPU Acceleration & Hardware Rendering Fixes for Scrolling Glitches */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gpu-accelerate {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Mobile backdrop-blur fallback to prevent GPU black striping / cracked screen glitch */
+@media (max-width: 768px) {
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur,
+  .backdrop-blur-sm {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* Responsive Table Horizontal Scroll Wrappers */
+.mobile-scroll-table {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
 }
 
 /* Elegant Print Styles */

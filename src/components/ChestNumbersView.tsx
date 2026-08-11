@@ -8,9 +8,12 @@ import { User, UserRole } from '../types';
 interface ChestNumbersViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
-export default function ChestNumbersView({ user, token }: ChestNumbersViewProps) {
+export default function ChestNumbersView({ user, token, eventSettings }: ChestNumbersViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
+
   const [chestNumbers, setChestNumbers] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -59,6 +62,30 @@ export default function ChestNumbersView({ user, token }: ChestNumbersViewProps)
       }
     } catch (e) {
       setMessage({ type: 'error', text: 'Failed to generate chest numbers' });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleRegenerateAll = async () => {
+    if (!confirm('Are you sure you want to regenerate all chest numbers? This will reset all assigned chest numbers based on CMS category starting settings.')) return;
+    setGenerating(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/chest-numbers/regenerate-all', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ type: 'success', text: data.message });
+        fetchData();
+      } else {
+        setMessage({ type: 'error', text: data.error });
+      }
+    } catch (e) {
+      setMessage({ type: 'error', text: 'Failed to regenerate chest numbers' });
     } finally {
       setGenerating(false);
     }
@@ -130,14 +157,25 @@ export default function ChestNumbersView({ user, token }: ChestNumbersViewProps)
         </div>
         <div className="flex gap-2 flex-wrap">
           {canGenerate && (
-            <button
-              onClick={handleBulkGenerate}
-              disabled={generating}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50"
-            >
-              {generating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              Bulk Generate Missing
-            </button>
+            <>
+              <button
+                onClick={handleBulkGenerate}
+                disabled={generating}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50"
+              >
+                {generating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                Generate Missing
+              </button>
+              <button
+                onClick={handleRegenerateAll}
+                disabled={generating}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg font-semibold text-sm hover:bg-amber-700 transition disabled:opacity-50"
+                title="Reset and recalculate chest numbers for all candidates based on CMS category starting ranges"
+              >
+                {generating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Regenerate All (CMS Ranges)
+              </button>
+            </>
           )}
           <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition">
             <Download className="h-4 w-4" /> Export CSV
@@ -221,7 +259,7 @@ export default function ChestNumbersView({ user, token }: ChestNumbersViewProps)
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search by name, chest number, or unit..."
+            placeholder={`Search by name, chest number, or ${entityLabel.toLowerCase()}...`}
             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
@@ -241,10 +279,21 @@ export default function ChestNumbersView({ user, token }: ChestNumbersViewProps)
       {/* Print Wrapper */}
       <div className="print-sheet print:overflow-visible">
         {/* Print Header */}
-        <div className="hidden print:block text-center mb-4">
-        <h1 className="text-xl font-bold">Sahityotsav — Chest Number List</h1>
-        <p className="text-sm text-slate-600">Ninthikal Sector | Generated: {new Date().toLocaleDateString()}</p>
-      </div>
+        <div className="hidden print:flex items-center justify-between pb-6 border-b border-dashed border-slate-300 mb-6">
+          <div className="flex-shrink-0 w-32 flex justify-start">
+            {eventSettings?.logoUrl && (
+              <img src={eventSettings.logoUrl} alt="Festival Logo" className="max-h-24 object-contain" />
+            )}
+          </div>
+          <div className="flex flex-col items-center text-center flex-1">
+            <span className="font-display font-extrabold text-2xl tracking-wider text-slate-900 uppercase">{eventSettings?.festivalName?.toUpperCase() || 'FESTIVAL'} 2026</span>
+            <span className="font-mono text-xs font-semibold text-emerald-700 tracking-widest uppercase mt-1">{eventSettings?.campusName?.toUpperCase() || 'CAMPUS'} COMMITTEE</span>
+            <h1 className="text-xl font-bold text-center mt-4 uppercase">
+              Chest Number List
+            </h1>
+          </div>
+          <div className="flex-shrink-0 w-32"></div>
+        </div>
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden print:shadow-none print:border print:overflow-visible">
@@ -254,7 +303,7 @@ export default function ChestNumbersView({ user, token }: ChestNumbersViewProps)
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Chest #</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Participant</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600">Unit</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">{entityLabel}</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Category</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 print:hidden">Generated By</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 print:hidden">Date</th>

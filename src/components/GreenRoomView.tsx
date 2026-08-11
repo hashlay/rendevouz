@@ -8,6 +8,7 @@ import { User, UserRole, GreenRoomStatus } from '../types';
 interface GreenRoomViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -26,7 +27,7 @@ const STATUS_LABELS: Record<string, string> = {
   stage_ready: 'Stage Ready'
 };
 
-export default function GreenRoomView({ user, token }: GreenRoomViewProps) {
+export default function GreenRoomView({ user, token, eventSettings }: GreenRoomViewProps) {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [categories, setCategories] = useState<any[]>([]);
@@ -67,6 +68,50 @@ export default function GreenRoomView({ user, token }: GreenRoomViewProps) {
     ? competitions.filter((c: any) => c.categoryId === selectedCategoryId && c.active)
     : [];
 
+  const handleQuickGenerate = async (compId: string) => {
+    if (!confirm('Generate codes for this competition?')) return;
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/green-room/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ competitionId: compId })
+      });
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Codes generated successfully!' });
+        fetchData();
+      } else {
+        const err = await res.json();
+        setMessage({ type: 'error', text: err.error || 'Failed to generate codes' });
+      }
+    } catch (e) {
+      setMessage({ type: 'error', text: 'Failed to generate codes' });
+    }
+    setGenerating(false);
+  };
+
+  const handleQuickRegenerate = async (compId: string) => {
+    if (!confirm('Are you sure you want to regenerate codes? This will replace all existing codes for this competition.')) return;
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/green-room/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ competitionId: compId })
+      });
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Codes regenerated successfully!' });
+        fetchData();
+      } else {
+        const err = await res.json();
+        setMessage({ type: 'error', text: err.error || 'Failed to regenerate codes' });
+      }
+    } catch (e) {
+      setMessage({ type: 'error', text: 'Failed to regenerate codes' });
+    }
+    setGenerating(false);
+  };
+
   const handleGenerate = async () => {
     if (!selectedCompetitionId) return;
     setGenerating(true);
@@ -81,7 +126,7 @@ export default function GreenRoomView({ user, token }: GreenRoomViewProps) {
       const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: data.message });
-        setCompetitionAssignments(data.assignments || []);
+        loadCompetitionAssignments(selectedCompetitionId);
         fetchData();
       } else {
         setMessage({ type: 'error', text: data.error });
@@ -107,7 +152,7 @@ export default function GreenRoomView({ user, token }: GreenRoomViewProps) {
       const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: data.message });
-        setCompetitionAssignments(data.assignments || []);
+        loadCompetitionAssignments(selectedCompetitionId);
         fetchData();
       } else {
         setMessage({ type: 'error', text: data.error });
@@ -170,9 +215,9 @@ export default function GreenRoomView({ user, token }: GreenRoomViewProps) {
         {/* Print Header */}
         <div className="text-center mb-10">
           <div className="flex items-center justify-center mb-4">
-            <img src="/logos/sahityotsav-logo.png" alt="Sahityotsav" className="h-20 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <img src={eventSettings?.sahityotsavLogoUrl || '/logos/sahityotsav-logo.png'} alt="Sahityotsav" className="h-20 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           </div>
-          <h1 className="text-2xl font-normal text-slate-800">Sahityotsav</h1>
+          <h1 className="text-2xl font-normal text-slate-800">{eventSettings?.festivalName || 'Festival'}</h1>
           <h2 className="text-lg font-normal text-slate-600 mt-1">Green Room Sheet</h2>
         </div>
 
@@ -218,7 +263,7 @@ export default function GreenRoomView({ user, token }: GreenRoomViewProps) {
         </div>
 
         <div className="mt-16 text-[11px] text-black flex justify-between">
-          <div>Copyright © 2026-2027 SSF Ninthikal Sector. All rights reserved.</div>
+          <div>Copyright © 2026-2027 {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'}. All rights reserved.</div>
           <div></div>
         </div>
 
@@ -334,12 +379,33 @@ export default function GreenRoomView({ user, token }: GreenRoomViewProps) {
                           )}
                         </td>
                         <td className="px-4 py-2.5">
-                          <button
-                            onClick={() => { setSelectedCategoryId(comp.categoryId); setSelectedCompetitionId(comp.id); setViewMode('generate'); }}
-                            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                          >
-                            {hasAssignment ? 'View' : 'Generate'} →
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => { setSelectedCategoryId(comp.categoryId); setSelectedCompetitionId(comp.id); setViewMode('generate'); }}
+                              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                            >
+                              {hasAssignment ? 'View' : 'Configure'} →
+                            </button>
+                            {canGenerate && (
+                              hasAssignment ? (
+                                <button
+                                  onClick={() => handleQuickRegenerate(comp.id)}
+                                  disabled={generating}
+                                  className="text-xs text-amber-600 hover:text-amber-700 font-medium disabled:opacity-50"
+                                >
+                                  Regenerate
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleQuickGenerate(comp.id)}
+                                  disabled={generating}
+                                  className="text-xs text-emerald-600 hover:text-emerald-700 font-medium disabled:opacity-50"
+                                >
+                                  Generate
+                                </button>
+                              )
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

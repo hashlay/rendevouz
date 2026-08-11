@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/api/(.*)",
-            "destination": "/api/index"
+            "destination": "https://YOUR_RENDER_BACKEND_URL_HERE.onrender.com/api/$1"
         },
         {
             "source": "/(.*)",

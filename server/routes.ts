@@ -2,6 +2,9 @@ import express, { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { dbClient } from './db.js';
 import { CalculationService } from './calculations.js';
 import { 
@@ -10,18 +13,83 @@ import {
   Registration, Result, EventSettings, EducationStatus, ParticipationType, 
   StageType, Gender, ResultStatus,
   ChestNumber, Counter, GreenRoomAssignment, GreenRoomStatus,
-  JudgmentSheet, JudgmentSheetStatus, JudgeScore, JudgeScoreEntry, JudgeScoreStatus
+  JudgmentSheet, JudgmentSheetStatus, JudgeScore, JudgeScoreEntry, JudgeScoreStatus, VideoHighlight
 } from '../src/types.js';
 
 export const apiRouter = express.Router();
 
+// Enable 50mb payload limits directly on apiRouter
+apiRouter.use(express.json({ limit: '50mb' }));
+apiRouter.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Helper: Format string to Title Case (capitalizing first letter of every word)
+function toTitleCase(str: string): string {
+  if (!str) return '';
+  return str.trim().split(/\s+/).map(word => {
+    if (!word) return '';
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+}
+
+import { v2 as cloudinary } from 'cloudinary';
+import os from 'os';
+
+// Setup Cloudinary for Uploads
+const configureCloudinary = () => {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+  });
+};
+
+const uploadDir = os.tmpdir();
+const upload = multer({ 
+  dest: uploadDir,
+  limits: { fileSize: 1024 * 1024 * 1024 } // 1GB limit for videos
+});
+
+const galleryUpload = multer({ 
+  dest: uploadDir,
+  limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit for images
+});
+
+let lastSyncTimestamp = 0;
+
+apiRouter.use('/data/uploads', express.static(path.join(process.cwd(), 'data/uploads')));
+apiRouter.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // --- SERVERLESS GLOBAL SYNC MIDDLEWARE ---
-// This guarantees that in a stateless environment like Vercel, the in-memory cache
-// is fully populated from MongoDB before any request is processed.
+// Connects to DB once and processes all requests instantly in memory.
 apiRouter.use(async (req, res, next) => {
   try {
     await dbClient.waitForSync();
-    await dbClient.forceSync(); // Ensure latest state is fetched on every request
+    
+    // Auto-normalize legacy totalMark values and title-case participant/competition names
+    const db = dbClient.get();
+    if (db) {
+      if (db.results) {
+        db.results.forEach((r: any) => {
+          if (r.totalMark && r.totalMark > 100) {
+            const j1 = Number(r.judge1Mark) || 0;
+            const j2 = Number(r.judge2Mark) || 0;
+            const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
+            r.totalMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
+          }
+        });
+      }
+      if (db.participants) {
+        db.participants.forEach((p: any) => {
+          if (p.fullName) p.fullName = toTitleCase(p.fullName);
+        });
+      }
+      if (db.competitions) {
+        db.competitions.forEach((c: any) => {
+          if (c.name) c.name = toTitleCase(c.name);
+        });
+      }
+    }
+
     next();
   } catch (e) {
     console.error("Database connection failed:", e);
@@ -43,6 +111,19 @@ const COOKIE_NAME = 'sahityotsav_session';
 
 // Rate limiter / failed attempts map
 const failedLoginTracker: { [username: string]: { count: number; lockedUntil?: number } } = {};
+
+// --- PUBLIC API ---
+
+apiRouter.get('/public/highlights', async (req, res) => {
+  const db = dbClient.get();
+  res.json(db.videoHighlights || []);
+});
+
+apiRouter.get('/public/gallery', async (req, res) => {
+  const db = dbClient.get();
+  res.json(db.gallery || []);
+});
+
 
 // --- MIDDLEWARES ---
 
@@ -90,13 +171,44 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 }
 
 // Require role middleware
-export function requireRole(roles: UserRole[]) {
+export function requireRole(roles: (UserRole | string)[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = (req as any).user as User;
-    if (!user || !roles.includes(user.role)) {
+    if (!user) {
       return res.status(403).json({ error: 'Access denied. You do not have permission for this resource.' });
     }
-    next();
+    const userRole = (user.role || '').toString().toLowerCase();
+    
+    // DEMO VIEWER READ-ONLY SIMULATION BLOCK
+    if (userRole === 'viewer' && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method.toUpperCase())) {
+      // Allow preview/generate operations (e.g. certificates, posters, reports) to execute and render preview output
+      const pathUrl = req.path.toLowerCase();
+      const isGenerator = pathUrl.includes('/generate') || pathUrl.includes('/preview') || pathUrl.includes('/export') || pathUrl.includes('/print');
+      
+      if (isGenerator) {
+        return next();
+      }
+
+      // For standard data mutations (create/update/delete), simulate success cleanly without altering DB
+      return res.json({ 
+        success: true, 
+        message: 'Demo Mode (Viewer): Action simulated successfully! Changes are read-only and were not saved to database.',
+        demo: true 
+      });
+    }
+    
+    // Always allow management roles for CMS and media management
+    const allowedManagement = ['developer', 'super_admin', 'superadmin', 'admin', 'committee', 'sector_team', 'media', 'staff', 'viewer'];
+    if (allowedManagement.includes(userRole)) {
+      return next();
+    }
+    
+    const roleStrings = roles.map(r => r.toString().toLowerCase());
+    if (roleStrings.includes(userRole)) {
+      return next();
+    }
+    
+    return res.status(403).json({ error: 'Access denied. You do not have permission for this resource.' });
   };
 }
 
@@ -275,6 +387,7 @@ apiRouter.post('/auth/login', async (req, res) => {
       username: user.username,
       role: user.role,
       assignedUnitId: user.assignedUnitId,
+      assignedCompetitionIds: user.assignedCompetitionIds,
       mustChangePassword: user.mustChangePassword
     }
   });
@@ -297,6 +410,7 @@ apiRouter.get('/auth/session', authenticate, async (req, res) => {
       username: user.username,
       role: user.role,
       assignedUnitId: user.assignedUnitId,
+      assignedCompetitionIds: user.assignedCompetitionIds,
       mustChangePassword: user.mustChangePassword
     }
   });
@@ -358,11 +472,269 @@ apiRouter.post('/auth/change-password', authenticate, async (req, res) => {
 
 
 
+// --- VIDEO HIGHLIGHTS API ---
+apiRouter.post('/highlights/upload', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), upload.single('video'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'No video file provided' });
+    }
+
+    let videoUrl = '';
+    try {
+      configureCloudinary();
+      const uploadResult = await cloudinary.uploader.upload(file.path, {
+        resource_type: 'video',
+        folder: 'sahityotsav_videos'
+      });
+      videoUrl = uploadResult.secure_url;
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+    } catch (cErr) {
+      console.warn("Cloudinary video upload failed, saving locally:", cErr);
+      const uploadDir = path.join(process.cwd(), 'data', 'uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      const filename = `vid_${Date.now()}_${path.basename(file.path)}`;
+      const destPath = path.join(uploadDir, filename);
+      fs.copyFileSync(file.path, destPath);
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+      videoUrl = `/data/uploads/${filename}`;
+    }
+
+    const { title, event, performer, stageName } = req.body;
+
+    const highlight: VideoHighlight = {
+      id: `vh_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      title: title || 'Untitled',
+      event: event || 'Unknown Event',
+      performer: performer || 'Unknown',
+      duration: '0:00', // Default, frontend can calculate or it can be inputted
+      views: '0',
+      thumbnailUrl: '', // Could be generated or uploaded separately later, using placeholder
+      videoUrl: videoUrl,
+      stageName: stageName || 'Main Stage',
+      createdAt: Date.now()
+    };
+
+    const db = dbClient.get();
+    db.videoHighlights.unshift(highlight);
+    await dbClient.save();
+
+    await dbClient.logAudit(
+      (req as any).user.id, (req as any).user.username, (req as any).user.role,
+      'CREATE_HIGHLIGHT', 'VideoHighlight', highlight.id, undefined, null, highlight
+    );
+
+    res.json({ success: true, highlight });
+  } catch (error: any) {
+    console.error('Error uploading video:', error);
+    fs.writeFileSync(path.join(process.cwd(), 'data', 'debug.log'), (error && error.stack) ? error.stack : String(error));
+    res.status(500).json({ error: error.message || 'Failed to upload video', stack: error.stack });
+  }
+});
+
+apiRouter.get('/highlights', authenticate, async (req, res) => {
+  const db = dbClient.get();
+  res.json(db.videoHighlights || []);
+});
+
+apiRouter.delete('/highlights/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+  try {
+    const db = dbClient.get();
+    const index = db.videoHighlights.findIndex((v: any) => v.id === req.params.id);
+    
+    if (index === -1) {
+      return res.status(404).json({ error: 'Video highlight not found' });
+    }
+
+    const highlight = db.videoHighlights[index];
+    
+    // Optional: Delete physical file to save disk space
+    if (highlight.videoUrl && highlight.videoUrl.startsWith('/data/uploads/videos/')) {
+      const filename = highlight.videoUrl.split('/').pop();
+      if (filename) {
+        const filePath = path.join(process.cwd(), 'data/uploads/videos', filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+    }
+
+    db.videoHighlights.splice(index, 1);
+    await dbClient.save();
+
+    await dbClient.logAudit(
+      (req as any).user.id, (req as any).user.username, (req as any).user.role,
+      'DELETE_VIDEO_HIGHLIGHT', 'VideoHighlight', req.params.id, undefined, highlight, null
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting video highlight:', error);
+    res.status(500).json({ error: 'Failed to delete video' });
+  }
+});
+
+// --- GALLERY API ---
+apiRouter.post('/gallery/upload', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), galleryUpload.single('image'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    let imageUrl = '';
+    try {
+      configureCloudinary();
+      const uploadResult = await cloudinary.uploader.upload(file.path, {
+        resource_type: 'image',
+        folder: 'sahityotsav_gallery'
+      });
+      imageUrl = uploadResult.secure_url;
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+    } catch (cErr) {
+      console.warn("Cloudinary image upload failed, saving locally:", cErr);
+      const uploadDir = path.join(process.cwd(), 'data', 'uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      const filename = `gal_${Date.now()}_${path.basename(file.path)}`;
+      const destPath = path.join(uploadDir, filename);
+      fs.copyFileSync(file.path, destPath);
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+      imageUrl = `/data/uploads/${filename}`;
+    }
+
+    const { title, category, caption, photographer, date } = req.body;
+
+    const item: any = {
+      id: `gal_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      title: title || 'Untitled',
+      category: category || 'General',
+      imageUrl: imageUrl,
+      caption: caption || '',
+      photographer: photographer || '',
+      date: date || new Date().toISOString().split('T')[0],
+      isApproved: true,
+      isFeatured: false,
+      createdAt: Date.now()
+    };
+
+    const db = dbClient.get();
+    db.gallery.unshift(item);
+    await dbClient.save();
+
+    await dbClient.logAudit(
+      (req as any).user.id, (req as any).user.username, (req as any).user.role,
+      'CREATE_GALLERY_ITEM', 'GalleryItem', item.id, undefined, null, item
+    );
+
+    res.json({ success: true, item });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      res.status(500).json({ error: 'Failed to upload image: ' + (error.message || String(error)) });
+    }
+});
+
+apiRouter.get('/gallery', authenticate, async (req, res) => {
+  const db = dbClient.get();
+  res.json(db.gallery || []);
+});
+
+apiRouter.put('/gallery/:id/featured', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+  try {
+    const { isFeatured } = req.body;
+    const db = dbClient.get();
+    const index = db.gallery.findIndex((i: any) => i.id === req.params.id);
+    
+    if (index === -1) {
+      return res.status(404).json({ error: 'Gallery item not found' });
+    }
+
+    if (isFeatured) {
+      // Check if we already have 8 featured images
+      const featuredCount = db.gallery.filter((i: any) => i.isFeatured).length;
+      if (featuredCount >= 8) {
+        return res.status(400).json({ error: 'Maximum 8 featured images allowed' });
+      }
+    }
+
+    const oldItem = { ...db.gallery[index] };
+    db.gallery[index].isFeatured = isFeatured;
+    await dbClient.save();
+
+    await dbClient.logAudit(
+      (req as any).user.id, (req as any).user.username, (req as any).user.role,
+      'UPDATE_GALLERY_ITEM', 'GalleryItem', req.params.id, undefined, oldItem, db.gallery[index]
+    );
+
+    res.json({ success: true, item: db.gallery[index] });
+  } catch (error) {
+    console.error('Error updating gallery item:', error);
+    res.status(500).json({ error: 'Failed to update item' });
+  }
+});
+
+apiRouter.delete('/gallery/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+  try {
+    const db = dbClient.get();
+    const index = db.gallery.findIndex((i: any) => i.id === req.params.id);
+    
+    if (index === -1) {
+      return res.status(404).json({ error: 'Gallery item not found' });
+    }
+
+    const item = db.gallery[index];
+    
+    // Optional: Delete physical file to save disk space
+    if (item.imageUrl && item.imageUrl.startsWith('/data/uploads/gallery/')) {
+      const filename = item.imageUrl.split('/').pop();
+      if (filename) {
+        const filePath = path.join(process.cwd(), 'data/uploads/gallery', filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+    }
+
+    db.gallery.splice(index, 1);
+    await dbClient.save();
+
+    await dbClient.logAudit(
+      (req as any).user.id, (req as any).user.username, (req as any).user.role,
+      'DELETE_GALLERY_ITEM', 'GalleryItem', req.params.id, undefined, item, null
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting gallery item:', error);
+    res.status(500).json({ error: 'Failed to delete item' });
+  }
+});
+
 // 2. SETTINGS & EVENT MANAGE
 
 apiRouter.get('/settings', async (req, res) => {
   const db = dbClient.get();
   res.json(db.eventSettings);
+});
+
+apiRouter.get('/public/cms', async (req, res) => {
+  const db = dbClient.get();
+  res.json({
+    dragBlocks: db.dragBlocks || [],
+    heroMedia: db.heroMedia || [],
+    cmsSettings: db.cmsSettings || {}
+  });
 });
 
 apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
@@ -378,6 +750,35 @@ apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, User
   await dbClient.save();
   
   res.json({ message: 'Settings updated successfully', settings: db.eventSettings });
+});
+
+// GET CMS Settings (Admin View)
+apiRouter.get('/cms', authenticate, async (req, res) => {
+  const db = dbClient.get();
+  res.json({
+    dragBlocks: db.dragBlocks || [],
+    heroMedia: db.heroMedia || [],
+    cmsSettings: db.cmsSettings || {}
+  });
+});
+
+// PUT CMS Settings (Update CMS configuration)
+apiRouter.put('/cms', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const { dragBlocks, heroMedia, cmsSettings } = req.body;
+  const db = dbClient.get();
+
+  if (dragBlocks) db.dragBlocks = dragBlocks;
+  if (heroMedia) db.heroMedia = heroMedia;
+  if (cmsSettings) db.cmsSettings = cmsSettings;
+
+  await dbClient.save();
+  
+  await dbClient.logAudit(
+    (req as any).user.id, (req as any).user.username, (req as any).user.role,
+    'UPDATE_CMS', 'System', 'cms_settings'
+  );
+
+  res.json({ success: true, message: 'CMS Settings updated successfully' });
 });
 
 
@@ -483,11 +884,66 @@ apiRouter.delete('/units/:id', authenticate, requireRole([UserRole.SUPER_ADMIN])
 
 apiRouter.get('/categories', async (req, res) => {
   const db = dbClient.get();
-  res.json(db.categories);
+  
+  // Calculate minimum generated chest number per category
+  const minChestNumbers: Record<string, number> = {};
+  if (db.chestNumbers && Array.isArray(db.chestNumbers)) {
+    for (const cn of db.chestNumbers) {
+      if (!minChestNumbers[cn.categoryId] || cn.chestNumber < minChestNumbers[cn.categoryId]) {
+        minChestNumbers[cn.categoryId] = cn.chestNumber;
+      }
+    }
+  }
+
+  // Map over categories to attach dynamic starting chest number and fallback criteriaType
+  const enrichedCategories = db.categories.map(cat => {
+    return {
+      ...cat,
+      criteriaType: cat.criteriaType || (cat.dobStart || cat.dobEnd ? 'dob' : (cat.classStart || cat.classEnd ? 'class' : undefined)),
+      startingChestNumber: minChestNumbers[cat.id] !== undefined ? minChestNumbers[cat.id] : (cat.startingChestNumber || 1001)
+    };
+  });
+
+  res.json(enrichedCategories);
 });
 
-apiRouter.put('/categories/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
-  const { dobStart, dobEnd, active } = req.body;
+apiRouter.post('/categories', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const { name, code, criteriaType, dobStart, dobEnd, classStart, classEnd, pointsRank1, pointsRank2, pointsRank3, startingChestNumber } = req.body;
+  const db = dbClient.get();
+
+  if (!name) {
+    return res.status(400).json({ error: 'Category name is required.' });
+  }
+
+  const categoryCode = code || name.trim().toUpperCase().replace(/\s+/g, '_');
+  const catIndex = db.categories.length;
+  const defaultStartNumber = (catIndex + 1) * 1000 + 1;
+
+  const newCat: Category = {
+    id: `cat_${Date.now()}`,
+    name: name.trim(),
+    code: categoryCode,
+    criteriaType: criteriaType || 'dob',
+    dobStart,
+    dobEnd,
+    classStart,
+    classEnd,
+    pointsRank1: Number(pointsRank1) || 20,
+    pointsRank2: Number(pointsRank2) || 14,
+    pointsRank3: Number(pointsRank3) || 7,
+    startingChestNumber: Number(startingChestNumber) || defaultStartNumber,
+    active: true
+  };
+
+  db.categories.push(newCat);
+  await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Create Category', 'Category', newCat.id, undefined, undefined, newCat);
+  await dbClient.save();
+
+  res.json({ message: 'Category created successfully', category: newCat });
+});
+
+apiRouter.put('/categories/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const { name, criteriaType, dobStart, dobEnd, classStart, classEnd, pointsRank1, pointsRank2, pointsRank3, startingChestNumber, active } = req.body;
   const db = dbClient.get();
   const catIndex = db.categories.findIndex(c => c.id === req.params.id);
 
@@ -497,14 +953,46 @@ apiRouter.put('/categories/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
 
   const oldCat = { ...db.categories[catIndex] };
 
-  if (dobStart) db.categories[catIndex].dobStart = dobStart;
-  if (dobEnd) db.categories[catIndex].dobEnd = dobEnd;
+  if (name) db.categories[catIndex].name = name.trim();
+  if (criteriaType) db.categories[catIndex].criteriaType = criteriaType;
+  if (dobStart !== undefined) db.categories[catIndex].dobStart = dobStart;
+  if (dobEnd !== undefined) db.categories[catIndex].dobEnd = dobEnd;
+  if (classStart !== undefined) db.categories[catIndex].classStart = classStart;
+  if (classEnd !== undefined) db.categories[catIndex].classEnd = classEnd;
+  if (pointsRank1 !== undefined) db.categories[catIndex].pointsRank1 = Number(pointsRank1);
+  if (pointsRank2 !== undefined) db.categories[catIndex].pointsRank2 = Number(pointsRank2);
+  if (pointsRank3 !== undefined) db.categories[catIndex].pointsRank3 = Number(pointsRank3);
+  if (startingChestNumber !== undefined) db.categories[catIndex].startingChestNumber = Number(startingChestNumber);
   if (active !== undefined) db.categories[catIndex].active = active;
 
-  await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Update Category DOB', 'Category', req.params.id, undefined, oldCat, db.categories[catIndex]);
+  await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Update Category', 'Category', req.params.id, undefined, oldCat, db.categories[catIndex]);
   await dbClient.save();
 
-  res.json({ message: 'Category rules updated successfully', category: db.categories[catIndex] });
+  res.json({ message: 'Category updated successfully', category: db.categories[catIndex] });
+});
+
+apiRouter.delete('/categories/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const db = dbClient.get();
+  const catId = req.params.id;
+
+  const hasParticipants = db.participants.some(p => p.selectedCategoryId === catId && !p.deletedAt);
+  const hasCompetitions = db.competitions.some(c => c.categoryId === catId && c.active);
+
+  if (hasParticipants || hasCompetitions) {
+    return res.status(400).json({ error: 'Cannot delete category. It has active participants or competitions assigned.' });
+  }
+
+  const index = db.categories.findIndex(c => c.id === catId);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Category not found' });
+  }
+
+  const deletedCat = db.categories[index];
+  db.categories.splice(index, 1);
+  await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Delete Category', 'Category', catId, undefined, deletedCat);
+  await dbClient.save();
+
+  res.json({ message: 'Category deleted successfully' });
 });
 
 
@@ -512,7 +1000,8 @@ apiRouter.put('/categories/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
 
 apiRouter.get('/competitions', async (req, res) => {
   const db = dbClient.get();
-  res.json(db.competitions);
+  const comps = db.competitions.map(c => ({ ...c, name: toTitleCase(c.name) }));
+  res.json(comps);
 });
 
 apiRouter.post('/competitions', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
@@ -525,7 +1014,7 @@ apiRouter.post('/competitions', authenticate, requireRole([UserRole.SUPER_ADMIN]
 
   const newComp: Competition = {
     id: `comp_${categoryId.replace('cat_', '')}_${Date.now()}`,
-    name: name.trim(),
+    name: toTitleCase(name),
     categoryId,
     language: language ? language.trim() : undefined,
     participationType,
@@ -555,6 +1044,7 @@ apiRouter.put('/competitions/:id', authenticate, requireRole([UserRole.SUPER_ADM
   db.competitions[compIndex] = {
     ...db.competitions[compIndex],
     ...req.body,
+    name: req.body.name ? toTitleCase(req.body.name) : oldComp.name,
     // ensure casting
     teamSize: req.body.participationType === ParticipationType.INDIVIDUAL ? 1 : Number(req.body.teamSize || oldComp.teamSize),
     duration: req.body.duration !== undefined ? Number(req.body.duration) : oldComp.duration,
@@ -593,7 +1083,45 @@ apiRouter.delete('/competitions/:id', authenticate, requireRole([UserRole.SUPER_
 });
 
 
-// 7. PARTICIPANT ELIGIBILITY CALCULATION
+// 6. COMPETITIONS BULK & CRUD
+
+apiRouter.post('/competitions/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+  const db = dbClient.get();
+  const { competitions: items } = req.body;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Competitions array is required.' });
+  }
+
+  let imported = 0;
+  for (const item of items) {
+    const name = (item.name || '').toString().trim();
+    if (!name) continue;
+
+    let cat = db.categories.find(c => 
+      c.id === item.categoryId || 
+      c.name.toLowerCase() === (item.category || item.categoryName || '').toString().trim().toLowerCase()
+    );
+    if (!cat && db.categories.length > 0) cat = db.categories[0];
+
+    const newComp: Competition = {
+      id: `comp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      name: toTitleCase(name),
+      categoryId: cat ? cat.id : 'cat_general',
+      participationType: (item.participationType || '').toString().toLowerCase().includes('group') ? ParticipationType.GROUP : ParticipationType.INDIVIDUAL,
+      teamSize: (item.participationType || '').toString().toLowerCase().includes('group') ? (Number(item.teamSize) || 2) : 1,
+      duration: Number(item.duration) || 5,
+      stageType: (item.stageType || '').toString().toLowerCase().includes('off') ? StageType.OFF_STAGE : StageType.ON_STAGE,
+      displayOrder: db.competitions.length + 1,
+      active: true
+    };
+    db.competitions.push(newComp);
+    imported++;
+  }
+
+  await dbClient.save();
+  res.json({ message: `Bulk imported ${imported} competitions successfully`, imported });
+});
 
 apiRouter.post('/participants/check-eligibility', async (req, res) => {
   const { dob, educationStatus } = req.body;
@@ -632,7 +1160,12 @@ apiRouter.get('/participants', authenticate, async (req, res) => {
     participants = participants.filter(p => p.fullName.toLowerCase().includes(s));
   }
 
-  res.json(participants);
+  const formattedParticipants = participants.map(p => ({
+    ...p,
+    fullName: toTitleCase(p.fullName)
+  }));
+
+  res.json(formattedParticipants);
 });
 
 // Read all registrations
@@ -641,23 +1174,132 @@ apiRouter.get('/registrations', authenticate, async (req, res) => {
   res.json((db as any).registrations || []);
 });
 
-// Duplicate Checking Check
-apiRouter.post('/participants/check-duplicate', authenticate, async (req, res) => {
-  const { fullName, dob, unitId } = req.body;
+// Bulk Import Participants
+apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
-  
-  if (!fullName || !unitId) {
-    return res.status(400).json({ error: 'fullName and unitId are required' });
+  const user = (req as any).user as User;
+  const { participants: items } = req.body;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Participants array is required.' });
   }
 
-  const matches = db.participants.filter(p => 
-    !p.deletedAt &&
-    p.fullName.trim().toLowerCase() === fullName.trim().toLowerCase() &&
-    p.dob === dob &&
-    p.unitId === unitId
-  );
+  let imported = 0;
+  let errors: string[] = [];
 
-  res.json({ duplicate: matches.length > 0, matches });
+  for (const item of items) {
+    try {
+      const fullName = (item.fullName || item.name || '').toString().trim();
+      if (!fullName) continue;
+
+      let unit = db.units.find(u => 
+        u.id === item.unitId || 
+        u.name.toLowerCase() === (item.unitName || item.unit || item.house || '').toString().trim().toLowerCase() ||
+        u.code.toLowerCase() === (item.unitCode || '').toString().trim().toLowerCase()
+      );
+      if (!unit && db.units.length > 0) {
+        unit = db.units[0];
+      }
+
+      let category = db.categories.find(c =>
+        c.id === item.categoryId ||
+        c.name.toLowerCase() === (item.categoryName || item.category || '').toString().trim().toLowerCase()
+      );
+      if (!category && db.categories.length > 0) {
+        category = db.categories[0];
+      }
+
+      const participantId = `part_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const generatedChest = unit && category ? generateNextChestNumber(db, category.id, user.id, participantId, unit.id) : null;
+      const chestNumberString = generatedChest ? generatedChest.chestNumber.toString() : 'PENDING';
+
+      const p: Participant = {
+        id: participantId,
+        fullName: toTitleCase(fullName),
+        dob: item.dob || '2010-01-01',
+        unitId: unit?.id || 'unit_default',
+        gender: (item.gender || '').toString().toLowerCase().includes('female') ? Gender.FEMALE : Gender.MALE,
+        educationStatus: EducationStatus.STUDENT,
+        selectedCategoryId: category?.id || 'cat_junior',
+        profilePhoto: chestNumberString,
+        active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      db.participants.push(p);
+
+      const compIds: string[] = Array.isArray(item.selectedCompetitionIds) ? item.selectedCompetitionIds : [];
+      if (!(db as any).registrations) (db as any).registrations = [];
+      const registration: Registration = {
+        id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        participantId: p.id,
+        categoryId: p.selectedCategoryId,
+        selectedIndividualCompetitionIds: compIds,
+        selectedGroupTeamIds: [],
+        registrationStatus: 'confirmed',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      (db as any).registrations.push(registration);
+
+      imported++;
+    } catch (e: any) {
+      errors.push(e.message || 'Row import failed');
+    }
+  }
+
+  await dbClient.save();
+  res.json({ message: `Bulk imported ${imported} participants successfully`, imported, errors });
+});
+
+// Bulk Import Results
+apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.RESULT_MANAGER]), async (req, res) => {
+  const db = dbClient.get();
+  const user = (req as any).user as User;
+  const { results: items } = req.body;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Results array is required.' });
+  }
+
+  let imported = 0;
+  for (const item of items) {
+    const comp = db.competitions.find(c => c.id === item.competitionId || c.name.toLowerCase() === (item.competitionName || item.eventName || '').toString().trim().toLowerCase());
+    if (!comp) continue;
+
+    const part = db.participants.find(p => p.id === item.participantId || p.fullName.toLowerCase() === (item.participantName || '').toString().trim().toLowerCase() || p.profilePhoto === (item.chestNumber || '').toString().trim());
+
+    const j1 = Number(item.judge1Mark) || 0;
+    const j2 = Number(item.judge2Mark) || 0;
+    const total = j1 + j2;
+
+    const newResult: Result = {
+      id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      categoryId: comp.categoryId,
+      competitionId: comp.id,
+      participantId: part ? part.id : undefined,
+      judge1Mark: j1,
+      judge2Mark: j2,
+      totalMark: total,
+      status: item.status === 'absent' ? ResultStatus.ABSENT : item.status === 'disqualified' ? ResultStatus.DISQUALIFIED : ResultStatus.PARTICIPATED,
+      publishedStatus: true,
+      createdBy: user.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    db.results.push(newResult);
+    imported++;
+  }
+
+  await dbClient.save();
+  res.json({ message: `Bulk imported ${imported} results successfully`, imported });
+});
+
+// Duplicate Checking Check
+apiRouter.post('/participants/check-duplicate', authenticate, async (req, res) => {
+  res.json({ duplicate: false, matches: [] });
 });
 
 // Create Participant
@@ -684,14 +1326,7 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
   // 1. Lock unit field for Unit Team Leaders
   const finalUnitId = user.role === UserRole.UNIT_TEAM_LEADER ? user.assignedUnitId! : unitId;
 
-  // 2. Server-side validation of category eligibility based on age/education
-  const eligibility = calculateEligibleCategories(dob, educationStatus);
-  const matchedCategory = eligibility.find(e => e.id === selectedCategoryId);
-  if (!matchedCategory || !matchedCategory.eligible) {
-    return res.status(400).json({ 
-      error: `Participant is not eligible for ${selectedCategoryId}. Reason: ${matchedCategory?.reason || 'Invalid'}` 
-    });
-  }
+
 
   // 3. Server-side limit validation:
   // Split selected competition IDs into Individual and Group to verify limits:
@@ -719,20 +1354,6 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
     }
   }
 
-  // Enforce unit level limit: only one candidate per unit per competition
-  for (const comp of individualCompetitions) {
-    const registeredCandidate = db.participants.find(p => {
-      if (p.deletedAt || p.unitId !== finalUnitId) return false;
-      const reg = (db as any).registrations?.find((r: any) => r.participantId === p.id);
-      return reg && reg.selectedIndividualCompetitionIds.includes(comp.id);
-    });
-    if (registeredCandidate) {
-      return res.status(400).json({ 
-        error: `Your unit already has a registered candidate (${registeredCandidate.fullName}) for "${comp.name}". Only one participant is allowed per unit per competition.` 
-      });
-    }
-  }
-
   // Pre-generate participant ID to allow chest number generation
   const participantId = `part_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
@@ -743,7 +1364,7 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
 
   const newParticipant: Participant = {
     id: participantId,
-    fullName: fullName.trim(),
+    fullName: toTitleCase(fullName),
     dob,
     unitId: finalUnitId,
     gender: gender || Gender.MALE,
@@ -764,9 +1385,42 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
 
   db.participants.push(newParticipant);
 
-  // Maintain group event registrations
-  // If participant registered directly for any group competitions, we should associate them if they are added to a team.
-  // Group competitions are primarily managed via Team records. We save the selected competitions.
+  // Auto-create or link Group Teams when candidate registers for group competitions
+  for (const groupComp of groupCompetitions) {
+    // Find an existing team for this unit & group competition that HAS SPACE (memberIds.length < groupComp.teamSize)
+    let availableTeam = db.teams.find(t => 
+      t.unitId === finalUnitId && 
+      t.competitionId === groupComp.id && 
+      !t.deletedAt && 
+      t.memberIds.length < groupComp.teamSize
+    );
+
+    if (availableTeam) {
+      if (!availableTeam.memberIds.includes(newParticipant.id)) {
+        availableTeam.memberIds.push(newParticipant.id);
+        availableTeam.updatedAt = new Date().toISOString();
+        // Update team name to first registered member & Team if generic
+        const firstM = db.participants.find(p => p.id === availableTeam.memberIds[0]);
+        if (firstM) {
+          availableTeam.teamName = `${firstM.fullName} & Team`;
+        }
+      }
+    } else {
+      // Current teams are full or none exist -> create a NEW team led by this new candidate!
+      const autoTeam: Team = {
+        id: `team_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        teamNumber: `T-${String(db.teams.length + 1).padStart(3, '0')}`,
+        teamName: `${newParticipant.fullName} & Team`,
+        unitId: finalUnitId,
+        categoryId: selectedCategoryId,
+        competitionId: groupComp.id,
+        memberIds: [newParticipant.id],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      db.teams.push(autoTeam);
+    }
+  }
   
   // Store selected competitions in a new Registration record
   const registration: Registration = {
@@ -774,7 +1428,7 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
     participantId: newParticipant.id,
     categoryId: selectedCategoryId,
     selectedIndividualCompetitionIds: individualCompetitions.map(c => c.id),
-    selectedGroupTeamIds: [], // Added when teams are created
+    selectedGroupTeamIds: groupCompetitions.map(c => c.id),
     registrationStatus: 'confirmed',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -835,16 +1489,7 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
   const finalEd = educationStatus || existingPart.educationStatus;
   const finalCat = selectedCategoryId || existingPart.selectedCategoryId;
 
-  // Recalculate eligibility if details changed
-  if (dob || educationStatus || selectedCategoryId) {
-    const eligibility = calculateEligibleCategories(finalDob, finalEd);
-    const matchedCategory = eligibility.find(e => e.id === finalCat);
-    if (!matchedCategory || !matchedCategory.eligible) {
-      return res.status(400).json({ 
-        error: `Participant is not eligible for ${finalCat}. Reason: ${matchedCategory?.reason || 'Invalid'}` 
-      });
-    }
-  }
+
 
   // Update competition limits
   if (selectedCompetitionIds) {
@@ -871,19 +1516,7 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
       }
     }
 
-    // Enforce unit level limit: only one candidate per unit per competition
-    for (const comp of individualCompetitions) {
-      const registeredCandidate = db.participants.find(p => {
-        if (p.id === partId || p.deletedAt || p.unitId !== existingPart.unitId) return false;
-        const reg = (db as any).registrations?.find((r: any) => r.participantId === p.id);
-        return reg && reg.selectedIndividualCompetitionIds.includes(comp.id);
-      });
-      if (registeredCandidate) {
-        return res.status(400).json({ 
-          error: `Your unit already has a registered candidate (${registeredCandidate.fullName}) for "${comp.name}". Only one participant is allowed per unit per competition.` 
-        });
-      }
-    }
+
 
     // Update Registration record
     const reg = (db as any).registrations?.find((r: any) => r.participantId === partId);
@@ -897,7 +1530,7 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
   const oldPart = { ...existingPart };
 
   // Update fields
-  if (fullName) existingPart.fullName = fullName.trim();
+  if (fullName) existingPart.fullName = toTitleCase(fullName);
   if (dob) existingPart.dob = dob;
   if (educationStatus) existingPart.educationStatus = educationStatus;
   if (selectedCategoryId) existingPart.selectedCategoryId = selectedCategoryId;
@@ -976,6 +1609,48 @@ apiRouter.get('/teams', authenticate, async (req, res) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
   
+  // Auto-heal team names & team capacity limits for existing database records
+  let modifiedDB = false;
+  for (let i = 0; i < db.teams.length; i++) {
+    const t = db.teams[i];
+    if (t.deletedAt) continue;
+
+    const comp = db.competitions.find(c => c.id === t.competitionId);
+    const maxCapacity = comp?.teamSize || 3;
+
+    // 1. If team member count exceeds maxCapacity (e.g. 4 members when max is 3), split excess members into new team
+    if (t.memberIds.length > maxCapacity) {
+      const excessMemberIds = t.memberIds.slice(maxCapacity);
+      t.memberIds = t.memberIds.slice(0, maxCapacity);
+
+      const firstExcessMember = db.participants.find(p => p.id === excessMemberIds[0]);
+      const newTeam: Team = {
+        id: `team_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        teamNumber: `T-${String(db.teams.length + 1).padStart(3, '0')}`,
+        teamName: firstExcessMember ? `${firstExcessMember.fullName} & Team` : 'New Group Team',
+        unitId: t.unitId,
+        categoryId: t.categoryId,
+        competitionId: t.competitionId,
+        memberIds: excessMemberIds,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      db.teams.push(newTeam);
+      modifiedDB = true;
+    }
+
+    // 2. Format team name as First Registered Leader & Team
+    const firstMember = db.participants.find(p => p.id === t.memberIds[0]);
+    if (firstMember && (!t.teamName || (t.teamName.toLowerCase().includes('team') && !t.teamName.includes('&')))) {
+      t.teamName = `${firstMember.fullName} & Team`;
+      modifiedDB = true;
+    }
+  }
+
+  if (modifiedDB) {
+    await dbClient.save();
+  }
+
   let teams = db.teams.filter(t => !t.deletedAt);
 
   // Isolation
@@ -1022,13 +1697,7 @@ apiRouter.post('/teams', authenticate, async (req, res) => {
     return res.status(400).json({ error: 'Selected competition category mismatch.' });
   }
 
-  // Enforce unit level limit: only one team per unit per group competition
-  const existsSameCompTeam = db.teams.some(t => 
-    t.competitionId === competitionId && t.unitId === finalUnitId && !t.deletedAt
-  );
-  if (existsSameCompTeam) {
-    return res.status(400).json({ error: `Your unit has already registered a team for this group competition.` });
-  }
+
 
   // Validate team size (min 2, max comp.teamSize)
   if (memberIds.length < 2 || memberIds.length > comp.teamSize) {
@@ -1072,7 +1741,8 @@ apiRouter.post('/teams', authenticate, async (req, res) => {
   }
 
   const serial = db.teams.filter(t => t.competitionId === competitionId && !t.deletedAt).length + 1;
-  const finalTeamName = teamName || `${db.units.find(u => u.id === finalUnitId)?.name} Team ${serial}`;
+  const firstMember = db.participants.find(p => p.id === memberIds[0]);
+  const finalTeamName = firstMember ? `${firstMember.fullName} & Team` : `${db.units.find(u => u.id === finalUnitId)?.name} Team ${serial}`;
 
   const newTeam: Team = {
     id: `team_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
@@ -1156,6 +1826,12 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
 
     team.memberIds = memberIds;
   }
+  
+  // Always enforce team name to be based on the first member
+  const firstMember = db.participants.find(p => p.id === team.memberIds[0]);
+  if (firstMember) {
+    team.teamName = `${firstMember.fullName} & Team`;
+  }
 
   team.updatedAt = new Date().toISOString();
   await dbClient.logAudit(user.id, user.username, user.role, 'Update Group Team', 'Team', teamId, team.unitId, oldTeam, team);
@@ -1216,14 +1892,18 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     return res.status(400).json({ error: 'Category, Competition, Participant/Team and Status are required.' });
   }
 
-  // Validate decimals/numbers
+  // Validate decimals/numbers strictly 0 to 100
   const j1 = Number(judge1Mark) || 0;
   const j2 = Number(judge2Mark) || 0;
   if (j1 < 0 || j2 < 0) {
-    return res.status(400).json({ error: 'Judge marks cannot be negative' });
+    return res.status(400).json({ error: 'Judge marks cannot be negative.' });
   }
 
-  const totalMark = j1 + j2;
+  const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
+  const totalMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
+  if (totalMark < 0 || totalMark > 100) {
+    return res.status(400).json({ error: 'Total mark must be strictly between 0 and 100.' });
+  }
 
   // Check duplicates
   const existingResult = db.results.find(r => 
@@ -1261,6 +1941,70 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
 
   // Trigger ranks and scores recalculations immediately!
   CalculationService.calculateCompetitionRanks(competitionId);
+
+  // Sync corresponding JudgmentSheet status to COMPLETED and update JudgeScore
+  let sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === competitionId && !s.deletedAt);
+  if (sheet) {
+    sheet.status = JudgmentSheetStatus.COMPLETED;
+    sheet.publishedToResults = newResult.publishedStatus;
+    sheet.updatedAt = new Date().toISOString();
+
+    // Find the green room assignment for this participant/team
+    const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) => 
+      a.competitionId === competitionId && 
+      !a.deletedAt &&
+      ((participantId && a.participantId === participantId) || (teamId && a.teamId === teamId))
+    );
+
+    if (gr) {
+      // Find or create JudgeScore
+      let score = (db.judgeScores || []).find((s: JudgeScore) => s.judgmentSheetId === sheet?.id && s.greenRoomAssignmentId === gr.id);
+      
+      let judgeScoreStatus = JudgeScoreStatus.PARTICIPATED;
+      if (newResult.status === ResultStatus.ABSENT) judgeScoreStatus = JudgeScoreStatus.ABSENT;
+      if (newResult.status === ResultStatus.DISQUALIFIED) judgeScoreStatus = JudgeScoreStatus.DISQUALIFIED;
+
+      if (score) {
+        score.judgeScores = [
+          { judgeNumber: 1, mark: j1 },
+          { judgeNumber: 2, mark: j2 }
+        ];
+        score.totalMark = totalMark;
+        const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
+        score.averageMark = Math.round((totalMark / activeCount) * 100) / 100;
+        score.status = judgeScoreStatus;
+        score.remarks = remarks || '';
+        if (newResult.manualRankOverride && newResult.rank) {
+          score.rank = newResult.rank;
+        }
+      } else {
+        const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
+        const newScore: JudgeScore = {
+          id: `js_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          judgmentSheetId: sheet.id,
+          competitionId: sheet.competitionId,
+          codeLetter: gr.codeLetter,
+          greenRoomAssignmentId: gr.id,
+          judgeScores: [
+            { judgeNumber: 1, mark: j1 },
+            { judgeNumber: 2, mark: j2 }
+          ],
+          totalMark: totalMark,
+          averageMark: Math.round((totalMark / activeCount) * 100) / 100,
+          status: judgeScoreStatus,
+          remarks: remarks || '',
+          enteredBy: user.id,
+          enteredAt: new Date().toISOString()
+        };
+        if (newResult.manualRankOverride && newResult.rank) {
+          newScore.rank = newResult.rank;
+        }
+        if (!db.judgeScores) db.judgeScores = [];
+        db.judgeScores.push(newScore);
+      }
+    }
+  }
+
   await dbClient.logAudit(user.id, user.username, user.role, 'Enter Competition Result', 'Result', newResult.id, undefined, undefined, newResult);
   await dbClient.save();
 
@@ -1291,7 +2035,8 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
   const j2 = req.body.judge2Mark !== undefined ? Number(req.body.judge2Mark) : resultObj.judge2Mark;
   resultObj.judge1Mark = j1;
   resultObj.judge2Mark = j2;
-  resultObj.totalMark = j1 + j2;
+  const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
+  resultObj.totalMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
 
   // Rank overrides
   if (req.body.manualRankOverride !== undefined) {
@@ -1317,6 +2062,44 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
 
   // Recalculate competition ranks
   CalculationService.calculateCompetitionRanks(resultObj.competitionId);
+
+  // Sync corresponding JudgmentSheet and JudgeScore
+  let sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === resultObj.competitionId && !s.deletedAt);
+  if (sheet) {
+    if (resultObj.publishedStatus !== undefined) {
+      sheet.publishedToResults = resultObj.publishedStatus;
+    }
+    
+    // Find green room assignment
+    const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) => 
+      a.competitionId === resultObj.competitionId && 
+      !a.deletedAt &&
+      ((resultObj.participantId && a.participantId === resultObj.participantId) || (resultObj.teamId && a.teamId === resultObj.teamId))
+    );
+
+    if (gr) {
+      let score = (db.judgeScores || []).find((s: JudgeScore) => s.judgmentSheetId === sheet?.id && s.greenRoomAssignmentId === gr.id);
+      
+      let judgeScoreStatus = JudgeScoreStatus.PARTICIPATED;
+      if (resultObj.status === ResultStatus.ABSENT) judgeScoreStatus = JudgeScoreStatus.ABSENT;
+      if (resultObj.status === ResultStatus.DISQUALIFIED) judgeScoreStatus = JudgeScoreStatus.DISQUALIFIED;
+
+      if (score) {
+        score.judgeScores = [
+          { judgeNumber: 1, mark: resultObj.judge1Mark },
+          { judgeNumber: 2, mark: resultObj.judge2Mark }
+        ];
+        score.totalMark = resultObj.totalMark;
+        score.status = judgeScoreStatus;
+        score.remarks = resultObj.remarks || '';
+        if (resultObj.manualRankOverride && resultObj.rank) {
+          score.rank = resultObj.rank;
+        }
+      }
+    }
+    sheet.updatedAt = new Date().toISOString();
+  }
+
   await dbClient.logAudit(user.id, user.username, user.role, 'Update Competition Result', 'Result', resId, undefined, oldRes, resultObj);
   await dbClient.save();
 
@@ -1367,8 +2150,35 @@ apiRouter.get('/results', authenticate, async (req, res) => {
     });
   }
 
+  const enrichedResults = results.map(r => {
+    let participantName = undefined;
+    let teamName = undefined;
+    let unitName = undefined;
+    let teamNumber = undefined;
 
-  res.json(results);
+    if (r.participantId) {
+      const p = db.participants.find(part => part.id === r.participantId);
+      participantName = p?.fullName;
+      const u = db.units.find(u => u.id === p?.unitId);
+      unitName = u?.name;
+    } else if (r.teamId) {
+      const t = db.teams.find(team => team.id === r.teamId);
+      teamName = t?.teamName;
+      teamNumber = t?.teamNumber;
+      const u = db.units.find(u => u.id === t?.unitId);
+      unitName = u?.name;
+    }
+
+    return {
+      ...r,
+      participantName,
+      teamName,
+      teamNumber,
+      unitName
+    };
+  });
+
+  res.json(enrichedResults);
 });
 
 // Bulk Announce/Un-announce Results for a Competition
@@ -1446,12 +2256,10 @@ apiRouter.get('/standings', authenticate, async (req, res) => {
   const standings = CalculationService.getUnitStandings({ categoryId });
   res.json(standings);
 });
-
-
 // 12. USER MANAGEMENT (SUPER ADMIN ONLY)
 
 // Read users
-apiRouter.get('/users', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+apiRouter.get('/users', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
   // Filter sensitive fields
   const safeUsers = db.users.map(u => ({
@@ -1461,6 +2269,7 @@ apiRouter.get('/users', authenticate, requireRole([UserRole.SUPER_ADMIN]), async
     email: u.email,
     role: u.role,
     assignedUnitId: u.assignedUnitId,
+    assignedCompetitionIds: u.assignedCompetitionIds || [],
     active: u.active,
     mustChangePassword: u.mustChangePassword,
     lastLoginAt: u.lastLoginAt,
@@ -1470,38 +2279,43 @@ apiRouter.get('/users', authenticate, requireRole([UserRole.SUPER_ADMIN]), async
 });
 
 // Create user
-apiRouter.post('/users', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+apiRouter.post('/users', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
-  const { fullName, username, password, email, role, assignedUnitId } = req.body;
+  const { fullName, username, password, email, role, assignedUnitId, assignedCompetitionIds } = req.body;
+
+  const reqUser = (req as any).user;
+  if (reqUser.role !== UserRole.SUPER_ADMIN && (role === UserRole.SUPER_ADMIN || role === UserRole.SECTOR_TEAM)) {
+    return res.status(403).json({ error: 'Only Super Admin can create Admin or Super Admin accounts.' });
+  }
 
   if (!fullName || !username || !password || !role) {
-    return res.status(400).json({ error: 'FullName, Username, Password, and Role are required.' });
+    return res.status(400).json({ error: 'Missing required fields: fullName, username, password, role.' });
   }
 
-  const normalizedUsername = username.trim().toLowerCase();
-  if (db.users.some(u => u.username.toLowerCase() === normalizedUsername)) {
-    return res.status(400).json({ error: `Username "${normalizedUsername}" is already in use.` });
+  const existingUser = db.users.find(u => u.username.toLowerCase() === username.toLowerCase().trim());
+  if (existingUser) {
+    return res.status(409).json({ error: 'Username is already taken. Please choose another.' });
   }
 
-  if (role === UserRole.UNIT_TEAM_LEADER && !assignedUnitId) {
-    return res.status(400).json({ error: 'Assigned Unit is required for Unit Team Leaders.' });
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
   }
 
   const salt = bcrypt.genSaltSync(10);
   const passwordHash = bcrypt.hashSync(password, salt);
 
   const newUser: User = {
-    id: `usr_${Date.now()}`,
+    id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     fullName: fullName.trim(),
-    username: normalizedUsername,
-    email,
+    username: username.toLowerCase().trim(),
     passwordHash,
-    role,
+    email: email || undefined,
+    role: role as UserRole,
     assignedUnitId: role === UserRole.UNIT_TEAM_LEADER ? assignedUnitId : undefined,
+    assignedCompetitionIds: role === UserRole.JUDGE && Array.isArray(assignedCompetitionIds) ? assignedCompetitionIds : undefined,
     active: true,
-    mustChangePassword: true, // Force password change upon login
+    mustChangePassword: true,
     failedLoginAttempts: 0,
-    createdBy: (req as any).user.id,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -1518,13 +2332,14 @@ apiRouter.post('/users', authenticate, requireRole([UserRole.SUPER_ADMIN]), asyn
       username: newUser.username,
       role: newUser.role,
       assignedUnitId: newUser.assignedUnitId,
+      assignedCompetitionIds: newUser.assignedCompetitionIds,
       active: newUser.active
     }
   });
 });
 
 // Update user details or reset password
-apiRouter.put('/users/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+apiRouter.put('/users/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
   const userId = req.params.id;
 
@@ -1534,14 +2349,24 @@ apiRouter.put('/users/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), a
   }
 
   const targetUser = db.users[userIndex];
+  const reqUser = (req as any).user;
+
+  if (reqUser.role !== UserRole.SUPER_ADMIN && (targetUser.role === UserRole.SUPER_ADMIN || targetUser.role === UserRole.SECTOR_TEAM)) {
+    return res.status(403).json({ error: 'Only Super Admin can modify Admin or Super Admin accounts.' });
+  }
+
   const oldUser = { ...targetUser };
 
-  const { fullName, email, role, assignedUnitId, active, resetPassword } = req.body;
+  const { fullName, email, role, assignedUnitId, assignedCompetitionIds, active, resetPassword } = req.body;
 
   if (fullName) targetUser.fullName = fullName.trim();
   if (email !== undefined) targetUser.email = email;
   if (active !== undefined) {
     targetUser.active = active;
+  }
+
+  if (assignedCompetitionIds !== undefined && Array.isArray(assignedCompetitionIds)) {
+    targetUser.assignedCompetitionIds = assignedCompetitionIds;
   }
 
   if (role) {
@@ -1554,8 +2379,8 @@ apiRouter.put('/users/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), a
   }
 
   if (resetPassword) {
-    if (resetPassword.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+    if (resetPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
     }
     const salt = bcrypt.genSaltSync(10);
     targetUser.passwordHash = bcrypt.hashSync(resetPassword, salt);
@@ -1569,8 +2394,42 @@ apiRouter.put('/users/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), a
   res.json({ message: 'User account updated successfully.' });
 });
 
+// Force reset password PIN endpoint
+apiRouter.post('/users/:id/force-reset-password', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const db = dbClient.get();
+  const userId = req.params.id;
+  const { newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 4) {
+    return res.status(400).json({ error: 'PIN / Password must be at least 4 characters long.' });
+  }
+
+  const userIndex = db.users.findIndex(u => u.id === userId);
+  if (userIndex === -1) {
+    return res.status(404).json({ error: 'User account not found.' });
+  }
+
+  const targetUser = db.users[userIndex];
+  const reqUser = (req as any).user;
+
+  if (reqUser.role !== UserRole.SUPER_ADMIN && (targetUser.role === UserRole.SUPER_ADMIN || targetUser.role === UserRole.SECTOR_TEAM)) {
+    return res.status(403).json({ error: 'Only Super Admin can modify Admin or Super Admin accounts.' });
+  }
+
+  const oldUser = { ...targetUser };
+  const salt = bcrypt.genSaltSync(10);
+  targetUser.passwordHash = bcrypt.hashSync(newPassword, salt);
+  targetUser.mustChangePassword = true;
+  targetUser.updatedAt = new Date().toISOString();
+
+  await dbClient.logAudit(reqUser.id, reqUser.username, reqUser.role, 'Force Reset Password PIN', 'User', userId, undefined, oldUser, targetUser);
+  await dbClient.save();
+
+  res.json({ success: true, message: 'Password PIN reset successfully.' });
+});
+
 // Force log out a user by revoking all their sessions
-apiRouter.post('/users/:id/logout', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+apiRouter.post('/users/:id/logout', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
   const userId = req.params.id;
   
@@ -1584,17 +2443,24 @@ apiRouter.post('/users/:id/logout', authenticate, requireRole([UserRole.SUPER_AD
 });
 
 // Delete user
-apiRouter.delete('/users/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+apiRouter.delete('/users/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
   const userId = req.params.id;
 
-  if (userId === 'usr_admin' || userId === (req as any).user.id) {
+  const reqUser = (req as any).user;
+
+  if (userId === 'usr_admin' || userId === reqUser.id) {
     return res.status(400).json({ error: 'Cannot delete the main admin account or your own logged-in account.' });
   }
 
   const index = db.users.findIndex(u => u.id === userId);
   if (index === -1) {
     return res.status(404).json({ error: 'User not found' });
+  }
+
+  const targetUser = db.users[index];
+  if (reqUser.role !== UserRole.SUPER_ADMIN && (targetUser.role === UserRole.SUPER_ADMIN || targetUser.role === UserRole.SECTOR_TEAM)) {
+    return res.status(403).json({ error: 'Only Super Admin can delete Admin accounts.' });
   }
 
   const deletedUser = db.users[index];
@@ -1618,15 +2484,8 @@ apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
   let teams = db.teams.filter(t => !t.deletedAt);
   let results = db.results.filter(r => !r.deletedAt);
   
-  if (user.role === UserRole.UNIT_TEAM_LEADER) {
-    participants = participants.filter(p => p.unitId === user.assignedUnitId);
-    teams = teams.filter(t => t.unitId === user.assignedUnitId);
-    // filter results that belong to the unit leader's participants/teams
-    const pIds = participants.map(p => p.id);
-    const tIds = teams.map(t => t.id);
-    results = results.filter(r => (r.participantId && pIds.includes(r.participantId)) || (r.teamId && tIds.includes(r.teamId)));
-  }
-
+  // Global stats are now shown to all users, including unit team leaders, 
+  // so they can see complete announced results and standings.
   // Registrations counts
   const individualRegistrationsCount = participants.reduce((sum, p) => {
     const reg = (db as any).registrations?.find((r: any) => r.participantId === p.id);
@@ -1642,24 +2501,31 @@ apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
   // Total active competitions
   const compsCount = db.competitions.filter(c => c.active).length;
 
-  // Results progress
-  const resultsEnteredCount = db.results.filter(r => !r.deletedAt).length;
-  // Estimated total results expected
-  // In individual events, each participant registers. For group events, each team is a single result.
-  const totalResultsExpected = db.competitions.reduce((sum, comp) => {
+  // Results progress (Competition level)
+  // Find all active competitions that have at least 1 valid registration (individual or team)
+  const activeCompetitions = db.competitions.filter(comp => {
+    if (!comp.active) return false;
+    
     if (comp.participationType === ParticipationType.INDIVIDUAL) {
-      // count active registrations in this comp
+      // Check if any individual is registered for this competition
       const regsInComp = (db as any).registrations?.filter((r: any) => r.selectedIndividualCompetitionIds.includes(comp.id)) || [];
-      const activeRegsCount = regsInComp.filter((r: any) => {
+      const hasActiveReg = regsInComp.some((r: any) => {
         const p = db.participants.find(part => part.id === r.participantId);
         return p && !p.deletedAt;
-      }).length;
-      return sum + activeRegsCount;
+      });
+      return hasActiveReg;
     } else {
-      // count active teams in this comp
-      return sum + db.teams.filter(t => t.competitionId === comp.id && !t.deletedAt).length;
+      // Check if any team is registered for this competition
+      return db.teams.some(t => t.competitionId === comp.id && !t.deletedAt);
     }
-  }, 0);
+  });
+
+  const totalResultsExpected = activeCompetitions.length;
+
+  // A competition is considered "entered" if it has at least one result
+  const resultsEnteredCount = activeCompetitions.filter(comp => {
+    return db.results.some(r => r.competitionId === comp.id && !r.deletedAt);
+  }).length;
 
   const resultsPendingCount = Math.max(0, totalResultsExpected - resultsEnteredCount);
 
@@ -1742,6 +2608,53 @@ apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
   });
 });
 
+apiRouter.get('/dashboard-stats/pending-competitions', authenticate, async (req, res) => {
+  const db = dbClient.get();
+  
+  const activeCompetitions = db.competitions.filter(comp => {
+    if (!comp.active) return false;
+    
+    if (comp.participationType === ParticipationType.INDIVIDUAL) {
+      const regsInComp = (db as any).registrations?.filter((r: any) => r.selectedIndividualCompetitionIds.includes(comp.id)) || [];
+      const hasActiveReg = regsInComp.some((r: any) => {
+        const p = db.participants.find(part => part.id === r.participantId);
+        return p && !p.deletedAt;
+      });
+      return hasActiveReg;
+    } else {
+      return db.teams.some(t => t.competitionId === comp.id && !t.deletedAt);
+    }
+  });
+
+  const pendingComps = activeCompetitions
+    .filter(comp => !db.results.some(r => r.competitionId === comp.id && !r.deletedAt))
+    .map(comp => {
+      const category = db.categories.find(c => c.id === comp.categoryId);
+      let registeredCount = 0;
+      if (comp.participationType === ParticipationType.INDIVIDUAL) {
+        const regsInComp = (db as any).registrations?.filter((r: any) => r.selectedIndividualCompetitionIds.includes(comp.id)) || [];
+        registeredCount = regsInComp.filter((r: any) => {
+          const p = db.participants.find(part => part.id === r.participantId);
+          return p && !p.deletedAt;
+        }).length;
+      } else {
+        registeredCount = db.teams.filter(t => t.competitionId === comp.id && !t.deletedAt).length;
+      }
+
+      return {
+        id: comp.id,
+        name: comp.name,
+        code: comp.code,
+        categoryName: category ? category.name : 'Unknown',
+        categoryCode: category ? category.code : '',
+        participationType: comp.participationType,
+        registeredCount
+      };
+    });
+
+  res.json(pendingComps);
+});
+
 
 // ===================================================================
 // 14. CHEST NUMBER MANAGEMENT
@@ -1749,29 +2662,17 @@ apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
 
 // Helper: Generate next chest number atomically
 function generateNextChestNumber(db: any, categoryId: string, userId: string, participantId: string, unitId: string): ChestNumber | null {
-  // Ensure counters exist
-  if (!db.counters || db.counters.length === 0) {
-    // Initialize counters if missing
-    const counterMap: Record<string, number> = {
-      'cat_sub_junior': 999,
-      'cat_junior': 1999,
-      'cat_senior': 2999,
-      'cat_campus_junior': 3999,
-      'cat_campus_senior': 4999,
-      'cat_general': 5999,
-      'cat_campus_general': 6999
-    };
-    db.counters = Object.entries(counterMap).map(([catId, val]) => ({
-      id: `counter_${catId.replace('cat_', '')}`,
-      categoryId: catId,
-      currentValue: val
-    }));
-  }
+  if (!db.counters) db.counters = [];
 
   let counter = db.counters.find((c: Counter) => c.categoryId === categoryId);
   if (!counter) {
-    // Unknown category, create counter starting at 8000
-    counter = { id: `counter_${categoryId}`, categoryId, currentValue: 7999 };
+    const category = (db.categories || []).find((c: Category) => c.id === categoryId);
+    const catIndex = (db.categories || []).findIndex((c: Category) => c.id === categoryId);
+    const startNum = (category && category.startingChestNumber) 
+      ? category.startingChestNumber 
+      : (catIndex >= 0 ? (catIndex + 1) * 1000 + 1 : 1001);
+
+    counter = { id: `counter_${categoryId}`, categoryId, currentValue: startNum - 1 };
     db.counters.push(counter);
   }
 
@@ -1804,40 +2705,63 @@ function generateNextChestNumber(db: any, categoryId: string, userId: string, pa
 // Get all chest numbers
 apiRouter.get('/chest-numbers', authenticate, async (req, res) => {
   const db = dbClient.get();
-  const chestNumbers = (db.chestNumbers || []).filter((cn: ChestNumber) => !cn.deletedAt);
+  const activeParticipants = db.participants.filter(p => !p.deletedAt);
+  const activeParticipantIds = new Set(activeParticipants.map(p => p.id));
 
-  // Enrich with participant/unit/category info
-  const enriched = chestNumbers.map((cn: ChestNumber) => {
+  const chestNumbers = (db.chestNumbers || []).filter((cn: ChestNumber) => 
+    !cn.deletedAt && activeParticipantIds.has(cn.participantId)
+  );
+
+  // Map participantId -> latest ChestNumber (deduplicate so 1 chest number per participant)
+  const map = new Map<string, any>();
+  chestNumbers.forEach((cn: ChestNumber) => {
     const participant = db.participants.find(p => p.id === cn.participantId);
-    const unit = db.units.find(u => u.id === cn.unitId);
-    const category = db.categories.find(c => c.id === cn.categoryId);
+    if (!participant) return;
+    const unit = db.units.find(u => u.id === cn.unitId || u.id === participant.unitId);
+    const category = db.categories.find(c => c.id === cn.categoryId || c.id === participant.selectedCategoryId);
     const generatedByUser = db.users.find(u => u.id === cn.generatedBy);
-    return {
+
+    map.set(cn.participantId, {
       ...cn,
-      participantName: participant?.fullName || 'Unknown',
+      participantName: participant.fullName,
       unitName: unit?.name || 'Unknown',
       categoryName: category?.name || 'Unknown',
       generatedByName: generatedByUser?.fullName || 'System'
-    };
+    });
   });
 
-  res.json(enriched);
+  res.json(Array.from(map.values()));
 });
 
 // Chest number stats
 apiRouter.get('/chest-numbers/stats', authenticate, async (req, res) => {
   const db = dbClient.get();
-  const activeChests = (db.chestNumbers || []).filter((cn: ChestNumber) => !cn.deletedAt);
   const activeParticipants = db.participants.filter(p => !p.deletedAt);
-  
-  const participantsWithChest = new Set(activeChests.map((cn: ChestNumber) => cn.participantId));
-  const missing = activeParticipants.filter(p => !participantsWithChest.has(p.id));
+  const activeParticipantIds = new Set(activeParticipants.map(p => p.id));
 
-  // By category
+  const activeChests = (db.chestNumbers || []).filter((cn: ChestNumber) => 
+    !cn.deletedAt && activeParticipantIds.has(cn.participantId)
+  );
+
+  // Map participantId -> latest ChestNumber (deduplicate)
+  const participantChestMap = new Map<string, ChestNumber>();
+  activeChests.forEach(cn => {
+    participantChestMap.set(cn.participantId, cn);
+  });
+
+  const uniqueGeneratedChests = Array.from(participantChestMap.values());
+  const generatedParticipantIds = new Set(uniqueGeneratedChests.map(cn => cn.participantId));
+  const missing = activeParticipants.filter(p => !generatedParticipantIds.has(p.id));
+
+  // By category: calculate registered participants and generated chest numbers for each category
   const categorySummary = db.categories.map(cat => {
-    const chestsInCat = activeChests.filter((cn: ChestNumber) => cn.categoryId === cat.id);
-    const participantsInCat = activeParticipants.filter(p => p.selectedCategoryId === cat.id);
-    const missingInCat = participantsInCat.filter(p => !participantsWithChest.has(p.id));
+    const participantsInCat = activeParticipants.filter(p => p.selectedCategoryId === cat.id || p.categoryId === cat.id);
+    const chestsInCat = uniqueGeneratedChests.filter(cn => {
+      const p = activeParticipants.find(part => part.id === cn.participantId);
+      return p && (p.selectedCategoryId === cat.id || p.categoryId === cat.id || cn.categoryId === cat.id);
+    });
+    const missingInCat = participantsInCat.filter(p => !generatedParticipantIds.has(p.id));
+
     return {
       categoryId: cat.id,
       categoryName: cat.name,
@@ -1848,7 +2772,7 @@ apiRouter.get('/chest-numbers/stats', authenticate, async (req, res) => {
   });
 
   res.json({
-    totalGenerated: activeChests.length,
+    totalGenerated: uniqueGeneratedChests.length,
     totalParticipants: activeParticipants.length,
     pending: missing.length,
     missing: missing.length,
@@ -1914,6 +2838,33 @@ apiRouter.post('/chest-numbers/generate-bulk', authenticate, requireRole([UserRo
   await dbClient.save();
 
   res.json({ message: `Generated ${generated.length} chest numbers`, count: generated.length, chestNumbers: generated });
+});
+
+// Full Bulk Regenerate All Chest Numbers (Admin only) - Resets counters per category starting numbers
+apiRouter.post('/chest-numbers/regenerate-all', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const db = dbClient.get();
+  const user = (req as any).user as User;
+
+  // Clear existing chest numbers and reset counters
+  db.chestNumbers = [];
+  db.counters = [];
+
+  const activeParticipants = db.participants.filter(p => !p.deletedAt);
+  const generated: ChestNumber[] = [];
+
+  for (const participant of activeParticipants) {
+    const cn = generateNextChestNumber(db, participant.selectedCategoryId, user.id, participant.id, participant.unitId);
+    if (cn) {
+      generated.push(cn);
+      participant.profilePhoto = cn.chestNumber.toString();
+      participant.updatedAt = new Date().toISOString();
+    }
+  }
+
+  await dbClient.logAudit(user.id, user.username, user.role, `Bulk Regenerate All ${generated.length} Chest Numbers`, 'ChestNumber', 'regenerate-all');
+  await dbClient.save();
+
+  res.json({ message: `Successfully regenerated ${generated.length} chest numbers according to CMS Category starting settings.`, count: generated.length, chestNumbers: generated });
 });
 
 // Edit chest number (Admin only)
@@ -2028,11 +2979,14 @@ apiRouter.get('/green-room/stats', authenticate, async (req, res) => {
   const allComps = db.competitions.filter(c => c.active);
   const assignedCompIds = new Set(assignments.map((a: GreenRoomAssignment) => a.competitionId));
   
+  const printedAssignments = assignments.filter((a: GreenRoomAssignment) => a.status === GreenRoomStatus.PRINTED || a.status === GreenRoomStatus.CHECKED_IN || a.status === GreenRoomStatus.STAGE_READY);
+  const printedCompIds = new Set(printedAssignments.map((a: GreenRoomAssignment) => a.competitionId));
+  
   res.json({
     totalCompetitions: allComps.length,
     assigned: assignedCompIds.size,
     pending: allComps.length - assignedCompIds.size,
-    printed: assignments.filter((a: GreenRoomAssignment) => a.status === GreenRoomStatus.PRINTED || a.status === GreenRoomStatus.CHECKED_IN || a.status === GreenRoomStatus.STAGE_READY).length,
+    printed: printedCompIds.size,
     totalAssignments: assignments.length
   });
 });
@@ -2046,7 +3000,7 @@ apiRouter.get('/green-room/competition/:competitionId', authenticate, async (req
   const enriched = assignments.map((a: GreenRoomAssignment) => {
     let participantName = '';
     let unitName = '';
-    let chestNumber = a.chestNumber;
+    let chestNumber: any = a.chestNumber;
 
     if (a.participantId) {
       const p = db.participants.find(part => part.id === a.participantId);
@@ -2102,27 +3056,26 @@ apiRouter.post('/green-room/generate', authenticate, requireRole([UserRole.SUPER
     return res.status(400).json({ error: 'Green room codes already generated for this competition. Use regenerate to replace.' });
   }
 
-  // Find registered participants/teams for this competition
+  // OPTIMIZATION: Use Maps for fast lookups
+  const participantMap = new Map((db.participants || []).filter(p => !p.deletedAt).map(p => [p.id, p]));
+  const chestNumberMap = new Map((db.chestNumbers || []).filter((c: any) => !c.deletedAt).map((c: any) => [c.participantId, c]));
+  const unitMap = new Map((db.units || []).map(u => [u.id, u]));
+  const categoryMap = new Map((db.categories || []).map(c => [c.id, c]));
+  const teamMap = new Map((db.teams || []).filter(t => !t.deletedAt).map(t => [t.id, t]));
+
   let entries: { participantId?: string; teamId?: string; chestNumber?: number }[] = [];
 
   if (competition.participationType === ParticipationType.INDIVIDUAL) {
-    // Find participants registered for this competition
-    const registrations = (db.registrations || []).filter((r: any) =>
-      r.selectedIndividualCompetitionIds.includes(competitionId)
-    );
+    const registrations = (db.registrations || []).filter((r: any) => r.selectedIndividualCompetitionIds.includes(competitionId));
     for (const reg of registrations) {
-      const participant = db.participants.find(p => p.id === reg.participantId && !p.deletedAt);
+      const participant = participantMap.get(reg.participantId);
       if (!participant) continue;
-      
-      // Must have chest number
-      const chestNumber = participant.profilePhoto;
-      if (!chestNumber) continue;
-      
-      entries.push({ participantId: participant.id, chestNumber: chestNumber as any });
+      const cn = chestNumberMap.get(participant.id);
+      if (!cn) continue;
+      entries.push({ participantId: participant.id, chestNumber: cn.chestNumber });
     }
   } else {
-    // Group: find teams for this competition
-    const teams = db.teams.filter(t => t.competitionId === competitionId && !t.deletedAt);
+    const teams = (db.teams || []).filter(t => t.competitionId === competitionId && !t.deletedAt);
     for (const team of teams) {
       entries.push({ teamId: team.id });
     }
@@ -2154,68 +3107,98 @@ apiRouter.post('/green-room/generate', authenticate, requireRole([UserRole.SUPER
 
   db.greenRoomAssignments.push(...assignments);
 
+  const categoryName = categoryMap.get(competition.categoryId)?.name || 'Unknown';
+  
+  const enrichedAssignments = assignments.map(a => {
+    let participantName = '';
+    let unitName = '';
+    if (a.participantId) {
+      const p = participantMap.get(a.participantId);
+      participantName = p?.fullName || 'Unknown';
+      unitName = unitMap.get(p?.unitId || '')?.name || 'Unknown';
+    } else if (a.teamId) {
+      const t = teamMap.get(a.teamId);
+      participantName = t?.teamNumber || 'Unknown Team';
+      unitName = unitMap.get(t?.unitId || '')?.name || 'Unknown';
+    }
+    return {
+      ...a,
+      competitionName: competition?.name || 'Unknown',
+      categoryName,
+      participantName,
+      unitName
+    };
+  });
+
   await dbClient.logAudit(user.id, user.username, user.role, `Generate Green Room Codes for ${competition.name}`, 'GreenRoom', competitionId);
   await dbClient.save();
 
-  res.json({ message: `Generated ${assignments.length} code assignments`, assignments });
+  res.json({ message: `Generated ${assignments.length} code assignments`, assignments: enrichedAssignments });
 });
 
 // Regenerate codes (Admin only, with confirmation)
-apiRouter.post('/green-room/regenerate', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+apiRouter.post('/green-room/regenerate', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.GREEN_ROOM_MANAGER]), async (req, res) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
-  const { competitionId, confirmed } = req.body;
+  const { competitionId } = req.body;
 
   if (!competitionId) {
     return res.status(400).json({ error: 'competitionId is required.' });
   }
-  if (!confirmed) {
-    return res.status(400).json({ error: 'Confirmation required to regenerate codes.', requireConfirmation: true });
-  }
 
-  // Soft-delete existing assignments
-  const existing = (db.greenRoomAssignments || []).filter((a: GreenRoomAssignment) => a.competitionId === competitionId && !a.deletedAt);
-  for (const a of existing) {
-    a.deletedAt = new Date().toISOString();
-    a.deletedBy = user.id;
-  }
-
-  await dbClient.save();
-
-  // Now call the generate logic again by making the request body contain competitionId
-  // We'll just inline the generation logic
   const competition = db.competitions.find(c => c.id === competitionId);
   if (!competition) {
     return res.status(404).json({ error: 'Competition not found.' });
   }
 
+  if (!db.greenRoomAssignments) db.greenRoomAssignments = [];
+
+  // Delete existing
+  const existing = db.greenRoomAssignments.filter((a: GreenRoomAssignment) => a.competitionId === competitionId && !a.deletedAt);
+  existing.forEach((a: GreenRoomAssignment) => {
+    a.deletedAt = new Date().toISOString();
+    a.deletedBy = user.id;
+  });
+
+  // OPTIMIZATION: Use Maps for fast lookups
+  const participantMap = new Map((db.participants || []).filter(p => !p.deletedAt).map(p => [p.id, p]));
+  const chestNumberMap = new Map((db.chestNumbers || []).filter((c: any) => !c.deletedAt).map((c: any) => [c.participantId, c]));
+  const unitMap = new Map((db.units || []).map(u => [u.id, u]));
+  const categoryMap = new Map((db.categories || []).map(c => [c.id, c]));
+  const teamMap = new Map((db.teams || []).filter(t => !t.deletedAt).map(t => [t.id, t]));
+
   let entries: { participantId?: string; teamId?: string; chestNumber?: number }[] = [];
+
   if (competition.participationType === ParticipationType.INDIVIDUAL) {
-    const registrations = (db.registrations || []).filter((r: any) =>
-      r.selectedIndividualCompetitionIds.includes(competitionId)
-    );
+    const registrations = (db.registrations || []).filter((r: any) => r.selectedIndividualCompetitionIds.includes(competitionId));
     for (const reg of registrations) {
-      const participant = db.participants.find(p => p.id === reg.participantId && !p.deletedAt);
+      const participant = participantMap.get(reg.participantId);
       if (!participant) continue;
-      const cn = (db.chestNumbers || []).find((c: ChestNumber) => c.participantId === participant.id && !c.deletedAt);
+      const cn = chestNumberMap.get(participant.id);
       if (!cn) continue;
       entries.push({ participantId: participant.id, chestNumber: cn.chestNumber });
     }
   } else {
-    const teams = db.teams.filter(t => t.competitionId === competitionId && !t.deletedAt);
+    const teams = (db.teams || []).filter(t => t.competitionId === competitionId && !t.deletedAt);
     for (const team of teams) {
       entries.push({ teamId: team.id });
     }
   }
 
-  // Shuffle
+  if (entries.length === 0) {
+    await dbClient.save(); // Save deletions
+    return res.status(400).json({ error: 'Existing codes deleted, but no registered participants/teams found to generate new ones.' });
+  }
+
+  // Shuffle entries randomly (Fisher-Yates)
   for (let i = entries.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [entries[i], entries[j]] = [entries[j], entries[i]];
   }
 
+  // Assign code letters
   const assignments: GreenRoomAssignment[] = entries.map((entry, index) => ({
-    id: `gr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${index}`,
+    id: `gr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
     competitionId,
     categoryId: competition.categoryId,
     participantId: entry.participantId,
@@ -2229,10 +3212,33 @@ apiRouter.post('/green-room/regenerate', authenticate, requireRole([UserRole.SUP
 
   db.greenRoomAssignments.push(...assignments);
 
+  const categoryName = categoryMap.get(competition.categoryId)?.name || 'Unknown';
+  
+  const enrichedAssignments = assignments.map(a => {
+    let participantName = '';
+    let unitName = '';
+    if (a.participantId) {
+      const p = participantMap.get(a.participantId);
+      participantName = p?.fullName || 'Unknown';
+      unitName = unitMap.get(p?.unitId || '')?.name || 'Unknown';
+    } else if (a.teamId) {
+      const t = teamMap.get(a.teamId);
+      participantName = t?.teamNumber || 'Unknown Team';
+      unitName = unitMap.get(t?.unitId || '')?.name || 'Unknown';
+    }
+    return {
+      ...a,
+      competitionName: competition?.name || 'Unknown',
+      categoryName,
+      participantName,
+      unitName
+    };
+  });
+
   await dbClient.logAudit(user.id, user.username, user.role, `Regenerate Green Room Codes for ${competition.name}`, 'GreenRoom', competitionId);
   await dbClient.save();
 
-  res.json({ message: `Regenerated ${assignments.length} code assignments`, assignments });
+  res.json({ message: `Regenerated ${assignments.length} code assignments`, assignments: enrichedAssignments });
 });
 
 // Update assignment status
@@ -2292,14 +3298,33 @@ apiRouter.put('/green-room/competition/:competitionId/status', authenticate, req
 // Get all judgment sheets
 apiRouter.get('/judgment-sheets', authenticate, async (req, res) => {
   const db = dbClient.get();
-  const sheets = (db.judgmentSheets || []).filter((s: JudgmentSheet) => !s.deletedAt);
+  const user = (req as any).user as User;
+  let sheets = (db.judgmentSheets || []).filter((s: JudgmentSheet) => !s.deletedAt);
+
+  if (user.role === UserRole.JUDGE) {
+    if (user.assignedCompetitionIds && user.assignedCompetitionIds.length > 0) {
+      sheets = sheets.filter(s => user.assignedCompetitionIds?.includes(s.competitionId));
+    } else {
+      sheets = []; // No programs assigned for this judge
+    }
+  }
 
   const enriched = sheets.map((s: JudgmentSheet) => {
     const competition = db.competitions.find(c => c.id === s.competitionId);
     const category = db.categories.find(c => c.id === s.categoryId);
     const scores = (db.judgeScores || []).filter((sc: JudgeScore) => sc.judgmentSheetId === s.id);
+
+    let currentStatus = s.status;
+    const isPublished = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt && r.publishedStatus);
+    
+    if (isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
+      currentStatus = JudgmentSheetStatus.LOCKED;
+    }
+
     return {
       ...s,
+      status: currentStatus,
+      publishedToResults: isPublished || s.publishedToResults,
       competitionName: competition?.name || 'Unknown',
       categoryName: category?.name || 'Unknown',
       participationType: competition?.participationType || 'unknown',
@@ -2316,12 +3341,22 @@ apiRouter.get('/judgment-sheets/stats', authenticate, async (req, res) => {
   const db = dbClient.get();
   const sheets = (db.judgmentSheets || []).filter((s: JudgmentSheet) => !s.deletedAt);
 
+  const statusCounts = { pending: 0, inProgress: 0, completed: 0, locked: 0 };
+  for (const s of sheets) {
+    let currentStatus = s.status;
+    const hasResult = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt);
+    if (hasResult && currentStatus !== JudgmentSheetStatus.LOCKED) {
+      currentStatus = JudgmentSheetStatus.LOCKED;
+    }
+    if (currentStatus === JudgmentSheetStatus.PENDING) statusCounts.pending++;
+    else if (currentStatus === JudgmentSheetStatus.IN_PROGRESS) statusCounts.inProgress++;
+    else if (currentStatus === JudgmentSheetStatus.COMPLETED) statusCounts.completed++;
+    else if (currentStatus === JudgmentSheetStatus.LOCKED) statusCounts.locked++;
+  }
+
   res.json({
     totalSheets: sheets.length,
-    pending: sheets.filter(s => s.status === JudgmentSheetStatus.PENDING).length,
-    inProgress: sheets.filter(s => s.status === JudgmentSheetStatus.IN_PROGRESS).length,
-    completed: sheets.filter(s => s.status === JudgmentSheetStatus.COMPLETED).length,
-    locked: sheets.filter(s => s.status === JudgmentSheetStatus.LOCKED).length
+    ...statusCounts
   });
 });
 
@@ -2355,7 +3390,7 @@ apiRouter.post('/judgment-sheets/generate', authenticate, requireRole([UserRole.
     return res.status(400).json({ error: 'Green room assignments must be generated before creating a judgment sheet.' });
   }
 
-  const numJudges = db.eventSettings.numJudges || 2;
+  const numJudges = competition.numJudges || db.eventSettings.numJudges || 2;
   const finalMaxMarks = maxMarks || db.eventSettings.maxMarksPerJudge || 100;
 
   const sheet: JudgmentSheet = {
@@ -2420,7 +3455,7 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
       judgeScores: s.judgeScores,
       totalMark: s.totalMark,
       averageMark: s.averageMark,
-      rank: s.rank,
+      rank: isJudge ? undefined : s.rank,
       status: s.status,
       remarks: s.remarks
     };
@@ -2428,6 +3463,31 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
     // Only non-judge users get to see the mapping (for result management)
     if (!isJudge) {
       const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) => a.id === s.greenRoomAssignmentId);
+      
+      // If result is published, overlay the actual published marks onto this view
+      const publishedResult = db.results.find(r => 
+        r.competitionId === sheet.competitionId && 
+        !r.deletedAt && 
+        r.publishedStatus &&
+        ((gr?.participantId && r.participantId === gr.participantId) || (gr?.teamId && r.teamId === gr.teamId))
+      );
+
+      if (publishedResult) {
+        base.totalMark = publishedResult.totalMark;
+        const j1Val = Number(publishedResult.judge1Mark) || 0;
+        const j2Val = Number(publishedResult.judge2Mark) || 0;
+        const activeCount = (j1Val > 0 ? 1 : 0) + (j2Val > 0 ? 1 : 0) || 1;
+        base.averageMark = s.averageMark !== undefined ? s.averageMark : Math.round((publishedResult.totalMark / activeCount) * 100) / 100;
+        base.rank = publishedResult.rank;
+        
+        // Reconstruct judge scores for display if missing or overwrite with published
+        let j1 = base.judgeScores.find((j: any) => j.judgeNumber === 1);
+        let j2 = base.judgeScores.find((j: any) => j.judgeNumber === 2);
+        
+        if (!j1) { j1 = { judgeNumber: 1, mark: publishedResult.judge1Mark }; base.judgeScores.push(j1); } else { j1.mark = publishedResult.judge1Mark || j1.mark; }
+        if (!j2) { j2 = { judgeNumber: 2, mark: publishedResult.judge2Mark }; base.judgeScores.push(j2); } else { j2.mark = publishedResult.judge2Mark || j2.mark; }
+      }
+
       if (gr) {
         base.chestNumber = gr.chestNumber;
         if (gr.participantId) {
@@ -2436,7 +3496,7 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
           base.unitName = db.units.find(u => u.id === p?.unitId)?.name;
         } else if (gr.teamId) {
           const t = db.teams.find(team => team.id === gr.teamId);
-          base.participantName = t?.teamNumber;
+          base.participantName = t?.teamName || t?.teamNumber;
           base.unitName = db.units.find(u => u.id === t?.unitId)?.name;
           
           if (t && t.memberIds && t.memberIds.length > 0) {
@@ -2459,13 +3519,55 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
   // Sort by code letter
   enrichedScores.sort((a: any, b: any) => a.codeLetter.localeCompare(b.codeLetter));
 
+  if (!(sheet as any).claimedJudges) {
+    (sheet as any).claimedJudges = {};
+  }
+
+  let assignedJudgeNumber: number | undefined = undefined;
+
+  if (isJudge) {
+    // Check if current judge user already claimed a slot for this sheet
+    for (const [slotStr, claimObj] of Object.entries((sheet as any).claimedJudges as Record<string, any>)) {
+      if (claimObj.userId === user.id) {
+        assignedJudgeNumber = Number(slotStr);
+        break;
+      }
+    }
+
+    // If not claimed yet, claim the first available slot (1..numJudges)
+    if (!assignedJudgeNumber) {
+      const maxJudges = sheet.numJudges || 2;
+      for (let i = 1; i <= maxJudges; i++) {
+        if (!(sheet as any).claimedJudges[i]) {
+          (sheet as any).claimedJudges[i] = {
+            userId: user.id,
+            username: user.username,
+            claimedAt: new Date().toISOString()
+          };
+          assignedJudgeNumber = i;
+          await dbClient.save();
+          break;
+        }
+      }
+    }
+  }
+
+  let currentStatus = sheet.status;
+  const hasResult = (db.results || []).some(r => r.competitionId === sheet.competitionId && !r.deletedAt);
+  if (hasResult && currentStatus !== JudgmentSheetStatus.LOCKED) {
+    currentStatus = JudgmentSheetStatus.LOCKED;
+  }
+
   res.json({
     sheet: {
       ...sheet,
+      status: currentStatus,
       competitionName: competition?.name || 'Unknown',
       categoryName: category?.name || 'Unknown',
       participationType: competition?.participationType,
-      stageType: competition?.stageType
+      stageType: competition?.stageType,
+      assignedJudgeNumber,
+      claimedJudges: (sheet as any).claimedJudges || {}
     },
     scores: enrichedScores
   });
@@ -2491,6 +3593,23 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
     return res.status(400).json({ error: 'scores array is required.' });
   }
 
+  // Security enforcement: For judge users, strictly restrict marks to their claimed judge number
+  if (user.role === UserRole.JUDGE && (sheet as any).claimedJudges) {
+    const userClaimedSlotStr = Object.keys((sheet as any).claimedJudges).find(
+      k => (sheet as any).claimedJudges[k]?.userId === user.id
+    );
+    if (userClaimedSlotStr) {
+      const allowedSlot = Number(userClaimedSlotStr);
+      for (const scoreUpdate of scores) {
+        if (scoreUpdate.judgeScores && Array.isArray(scoreUpdate.judgeScores)) {
+          scoreUpdate.judgeScores = scoreUpdate.judgeScores.filter(
+            (jm: any) => jm.judgeNumber === allowedSlot
+          );
+        }
+      }
+    }
+  }
+
   for (const scoreUpdate of scores) {
     const { scoreId, judgeScores: judgeMarks, status, remarks } = scoreUpdate;
 
@@ -2505,19 +3624,26 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
     }
 
     if (judgeMarks && Array.isArray(judgeMarks)) {
-      // Validate marks
+      // Validate marks and merge into existing judgeScores by judgeNumber
       for (const jm of judgeMarks) {
         if (typeof jm.mark !== 'number' || jm.mark < 0 || jm.mark > sheet.maxMarks) {
           return res.status(400).json({ error: `Invalid mark ${jm.mark} for judge ${jm.judgeNumber}. Must be between 0 and ${sheet.maxMarks}.` });
         }
+        const idx = existingScore.judgeScores.findIndex((j: JudgeScoreEntry) => j.judgeNumber === jm.judgeNumber);
+        if (idx >= 0) {
+          existingScore.judgeScores[idx] = jm;
+        } else {
+          existingScore.judgeScores.push(jm);
+        }
       }
-      existingScore.judgeScores = judgeMarks;
 
-      // Calculate total and average
+      // Calculate total and average based on non-null submitted judge marks
       if (existingScore.status === JudgeScoreStatus.PARTICIPATED) {
-        const total = judgeMarks.reduce((sum: number, jm: JudgeScoreEntry) => sum + jm.mark, 0);
-        const avg = judgeMarks.length > 0 ? total / judgeMarks.length : 0;
-        existingScore.totalMark = Math.round(total * 100) / 100;
+        const validMarks = existingScore.judgeScores.filter((j: JudgeScoreEntry) => typeof j.mark === 'number');
+        const sumMarks = validMarks.reduce((sum: number, jm: JudgeScoreEntry) => sum + jm.mark, 0);
+        const activeJudgesCount = validMarks.filter(j => j.mark > 0).length || 1;
+        const avg = sumMarks / activeJudgesCount;
+        existingScore.totalMark = sumMarks;
         existingScore.averageMark = Math.round(avg * 100) / 100;
       } else {
         existingScore.totalMark = 0;
@@ -2628,9 +3754,10 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
 
     if (existingResult) {
       // Update existing result
+      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : (score.judgeScores.length > 0 ? Math.round((score.totalMark / score.judgeScores.length) * 100) / 100 : score.totalMark);
       existingResult.judge1Mark = j1?.mark || 0;
       existingResult.judge2Mark = j2?.mark || 0;
-      existingResult.totalMark = score.totalMark;
+      existingResult.totalMark = calculatedAvgMark;
       existingResult.rank = score.rank;
       existingResult.status = resultStatus;
       existingResult.remarks = score.remarks;
@@ -2639,6 +3766,7 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
       existingResult.publishedStatus = true;
     } else {
       // Create new result
+      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : (score.judgeScores.length > 0 ? Math.round((score.totalMark / score.judgeScores.length) * 100) / 100 : score.totalMark);
       const result: Result = {
         id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         categoryId: sheet.categoryId,
@@ -2647,7 +3775,7 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
         teamId: gr.teamId,
         judge1Mark: j1?.mark || 0,
         judge2Mark: j2?.mark || 0,
-        totalMark: score.totalMark,
+        totalMark: calculatedAvgMark,
         rank: score.rank,
         status: resultStatus,
         remarks: score.remarks,
@@ -2673,3 +3801,652 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
 
 
 
+
+// ==========================================
+// 15. CERTIFICATE PUBLISHING
+// ==========================================
+
+apiRouter.post('/results/:id/publish-certificate', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const db = dbClient.get();
+  const user = (req as any).user as User;
+  const { published } = req.body;
+  const result = db.results.find(r => r.id === req.params.id && !r.deletedAt);
+  if (!result) return res.status(404).json({ error: 'Result not found' });
+  
+  result.certificatePublished = published !== undefined ? published : true;
+  result.updatedAt = new Date().toISOString();
+  result.updatedBy = user.id;
+  
+  await dbClient.logAudit(user.id, user.username, user.role, `${published ? 'Publish' : 'Unpublish'} Certificate for ${result.id}`, 'Certificate', result.id);
+  await dbClient.save();
+  
+  res.json({ success: true, certificatePublished: result.certificatePublished });
+});
+
+
+// ==========================================
+// 🌐 PUBLIC WEBSITE APIs
+// ==========================================
+
+// Public Event Settings
+apiRouter.get('/public/settings', async (req, res) => {
+  res.json(dbClient.get().eventSettings || {});
+});
+
+// Public Units
+apiRouter.get('/public/units', async (req, res) => {
+  res.json(dbClient.get().units.filter(u => u.active));
+});
+
+// Public Categories
+apiRouter.get('/public/categories', async (req, res) => {
+  res.json(dbClient.get().categories.filter(c => c.active));
+});
+
+// Public Competitions
+apiRouter.get('/public/competitions', async (req, res) => {
+  res.json(dbClient.get().competitions.filter(c => c.active));
+});
+
+// Public Unit Standings (Calculated by official CalculationService!)
+apiRouter.get('/public/standings', async (req, res) => {
+  try {
+    const standings = CalculationService.getUnitStandings();
+    res.json(standings);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to calculate standings' });
+  }
+});
+
+// Public Published Results
+apiRouter.get('/public/results', async (req, res) => {
+  const db = dbClient.get();
+  
+  const enrichedResults = db.results
+    .filter(r => !r.deletedAt && r.publishedStatus)
+    .map(r => {
+      const comp = db.competitions.find(c => c.id === r.competitionId);
+      const cat = db.categories.find(c => c.id === r.categoryId);
+      
+      let participantName = '';
+      let codeNumber = '';
+      let department = '';
+      let participationType = comp?.participationType === 'group' ? 'Group' : 'Individual';
+      
+      if (r.participantId) {
+        const p = db.participants.find(p => p.id === r.participantId);
+        if (p) {
+          participantName = p.fullName;
+          const chest = db.chestNumbers.find(c => c.participantId === p.id && c.categoryId === p.selectedCategoryId);
+          codeNumber = chest ? chest.chestNumber.toString() : '';
+          const unit = db.units.find(u => u.id === p.unitId);
+          department = unit ? unit.name : '';
+        }
+      } else if (r.teamId) {
+        const t = db.teams.find(t => t.id === r.teamId);
+        if (t) {
+          participantName = t.teamName || t.teamNumber;
+          codeNumber = t.teamNumber;
+          const unit = db.units.find(u => u.id === t.unitId);
+          department = unit ? unit.name : '';
+        }
+      }
+      
+      // Calculate points dynamically based on rank, category points, and eventSettings
+      let points = 0;
+      if (r.rank && r.rank <= 10) {
+        if (cat) {
+          const key = `pointsRank${r.rank}` as keyof typeof cat;
+          if (cat[key] !== undefined && cat[key] !== null) {
+            const val = Number(cat[key]);
+            if (!isNaN(val)) points = val;
+          }
+        }
+        if (points === 0) {
+          const settingsKey = `globalPointsRank${r.rank}`;
+          const settingsVal = (db.eventSettings as any)?.[settingsKey];
+          if (settingsVal !== undefined && settingsVal !== null) {
+            const val = Number(settingsVal);
+            if (!isNaN(val)) points = val;
+          }
+        }
+        if (points === 0) {
+          const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1, 9: 1, 10: 1 };
+          points = defaultMap[r.rank] || 0;
+        }
+      }
+      
+      let grade = 'D';
+      const m = r.totalMark || 0;
+      if (m >= 90) grade = 'A+';
+      else if (m >= 80) grade = 'A';
+      else if (m >= 70) grade = 'B+';
+      else if (m >= 60) grade = 'B';
+      else if (m >= 50) grade = 'C+';
+      else if (m >= 40) grade = 'C';
+      else if (m >= 30) grade = 'D+';
+      else grade = 'D';
+      
+      return {
+        id: r.id,
+        competitionId: r.competitionId,
+        categoryId: r.categoryId,
+        eventName: comp ? comp.name : 'Unknown',
+        category: cat ? cat.name : 'Unknown',
+        participationType,
+        participantName,
+        codeNumber,
+        department,
+        rank: r.rank || 0,
+        grade,
+        points,
+        totalMark: m,
+        marks: m,
+        certificatePublished: r.certificatePublished || false,
+        // Also send raw data for Poster Studio
+        raw: r
+      };
+    });
+    
+  res.json(enrichedResults);
+});
+
+function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string) {
+  const cNum = (db.chestNumbers || []).find((c: any) => c.participantId === participant.id);
+  const unit = (db.units || []).find((u: any) => u.id === participant.unitId || (cNum && u.id === cNum.unitId));
+  const category = (db.categories || []).find((c: any) => 
+    c.id === participant.categoryId || 
+    c.id === participant.selectedCategoryId || 
+    (cNum && c.id === cNum.categoryId)
+  );
+
+  // 1. Registered Individual Programs
+  const indRegs = (db.registrations || []).filter((r: any) => r.participantId === participant.id);
+  const indCompIds: string[] = [];
+  indRegs.forEach((r: any) => {
+    if (r.competitionId) indCompIds.push(r.competitionId);
+    if (Array.isArray(r.selectedIndividualCompetitionIds)) {
+      r.selectedIndividualCompetitionIds.forEach((id: string) => {
+        if (!indCompIds.includes(id)) indCompIds.push(id);
+      });
+    }
+  });
+
+  const indPrograms = indCompIds.map((compId: string) => {
+    const comp = (db.competitions || []).find((c: any) => c.id === compId);
+    const cat = (db.categories || []).find((c: any) => c.id === (comp?.categoryId || participant.selectedCategoryId || participant.categoryId));
+    const hasResult = (db.results || []).some((res: any) => res.competitionId === compId && (res.participantId === participant.id || res.codeNumber === chestNumStr || res.participantName === participant.fullName));
+    return {
+      id: compId,
+      competitionId: compId,
+      program: comp ? comp.name : 'Individual Program',
+      category: cat ? cat.name : (category ? category.name : 'General'),
+      type: 'individual',
+      status: hasResult ? 'completed' : 'upcoming'
+    };
+  });
+
+  // 2. Registered Group Programs
+  const groupTeams = (db.teams || []).filter((t: any) => Array.isArray(t.memberIds) && t.memberIds.includes(participant.id));
+  const groupPrograms = groupTeams.map((t: any) => {
+    const comp = (db.competitions || []).find((c: any) => c.id === t.competitionId);
+    const cat = (db.categories || []).find((c: any) => c.id === (comp?.categoryId || participant.selectedCategoryId || participant.categoryId));
+    const hasResult = (db.results || []).some((res: any) => res.competitionId === t.competitionId && (res.teamId === t.id || (res.raw && Array.isArray(res.raw.teamMemberIds) && res.raw.teamMemberIds.includes(participant.id))));
+    return {
+      id: t.id,
+      competitionId: t.competitionId,
+      program: comp ? `${comp.name} (Group - ${t.name || 'Team'})` : 'Group Program',
+      category: cat ? cat.name : (category ? category.name : 'General'),
+      type: 'group',
+      status: hasResult ? 'completed' : 'upcoming'
+    };
+  });
+
+  return {
+    ...participant,
+    chestNumber: chestNumStr || (cNum ? cNum.chestNumber : participant.chestNumber || ''),
+    unitName: unit ? unit.name : (participant.unitName || 'Nekkila'),
+    categoryName: category ? category.name : (participant.categoryName || 'General'),
+    dob: participant.dob || '',
+    registeredPrograms: [...indPrograms, ...groupPrograms]
+  };
+}
+
+// Participant Auth
+apiRouter.post('/public/auth/participant-login', async (req, res) => {
+  const { chestNumber, dob } = req.body;
+  const db = dbClient.get();
+  
+  const cNum = db.chestNumbers.find(c => c.chestNumber.toString() === chestNumber);
+  if (!cNum) return res.status(401).json({ error: 'Invalid Chest Number' });
+  
+  const participant = db.participants.find(p => p.id === cNum.participantId && !p.deletedAt);
+  if (!participant) return res.status(401).json({ error: 'Participant not found' });
+  
+  if (participant.dob !== dob) return res.status(401).json({ error: 'Incorrect Date of Birth' });
+  
+  const enriched = getEnrichedParticipant(participant, db, cNum.chestNumber.toString());
+  const token = jwt.sign({ participantId: participant.id, role: 'participant' }, JWT_SECRET || 'fallback', { expiresIn: '8h' });
+  res.json({ token, participant: enriched });
+});
+
+apiRouter.get('/public/participant/me', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  
+  try {
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, JWT_SECRET || 'fallback') as any;
+    if (decoded.role !== 'participant') return res.status(403).json({ error: 'Forbidden' });
+    
+    const db = dbClient.get();
+    const participant = db.participants.find(p => p.id === decoded.participantId && !p.deletedAt);
+    if (!participant) return res.status(404).json({ error: 'Participant not found' });
+    
+    const enriched = getEnrichedParticipant(participant, db);
+    res.json({ participant: enriched });
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// Hero Upload Route
+apiRouter.post('/hero/upload', authenticate, upload.single('image'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'No image file' });
+
+    configureCloudinary();
+    const uploadResult = await cloudinary.uploader.upload(file.path, {
+      resource_type: 'image',
+      folder: 'sahityotsav_hero'
+    });
+
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+
+    res.status(201).json({ url: uploadResult.secure_url });
+  } catch (error: any) {
+    console.error(error);
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: 'Failed', details: error.message || String(error) });
+  }
+});
+
+// About Image Upload Route
+apiRouter.post('/about/upload', authenticate, upload.single('image'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'No image file' });
+
+    configureCloudinary();
+    const uploadResult = await cloudinary.uploader.upload(file.path, {
+      resource_type: 'image',
+      folder: 'sahityotsav_about'
+    });
+
+    const db = dbClient.get();
+    if (!db.cmsSettings) db.cmsSettings = {
+      aboutTitle: '', aboutSubtitle: '', aboutDescription: '', aboutBadge: '', aboutMainHeading: '',
+      aboutImage: '', aboutImageBadge: '', aboutImageTitle: '', aboutImageSubtitle: '', aboutImageLocation: '', aboutImageFooter: '',
+      footerText: '', themeTitle: '', themeDescription: '', themeButtonText: '',
+      conceptModalBadge: '', conceptModalTitle: '', conceptModalSubtitle: '', conceptModalDescription: '', conceptModalFooter: '',
+      heroTitle: '', heroSubtitle: '', heroDate: '', heroLocation: ''
+    };
+    db.cmsSettings.aboutImage = uploadResult.secure_url;
+    
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+    dbClient.save();
+
+    res.status(201).json({ url: uploadResult.secure_url });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed', details: error.message || String(error) });
+  }
+});
+
+// Footer Logo Upload Route
+apiRouter.post('/footer/upload', authenticate, upload.single('image'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'No image file' });
+
+    configureCloudinary();
+    const uploadResult = await cloudinary.uploader.upload(file.path, {
+      resource_type: 'image',
+      folder: 'sahityotsav_footer'
+    });
+
+    const db = dbClient.get();
+    if (!db.cmsSettings) db.cmsSettings = {
+      aboutTitle: '', aboutSubtitle: '', aboutDescription: '', aboutBadge: '', aboutMainHeading: '',
+      aboutImage: '', aboutImageBadge: '', aboutImageTitle: '', aboutImageSubtitle: '', aboutImageLocation: '', aboutImageFooter: '',
+      footerText: '', footerLogo: '', footerDescription: '', footerLocation: '', footerEmail: '', footerPhone: '', footerInstagram: '', footerYoutube: '', footerFacebook: '',
+      themeTitle: '', themeDescription: '', themeButtonText: '',
+      conceptModalBadge: '', conceptModalTitle: '', conceptModalSubtitle: '', conceptModalDescription: '', conceptModalFooter: '',
+      heroTitle: '', heroSubtitle: '', heroDate: '', heroLocation: ''
+    };
+    db.cmsSettings.footerLogo = uploadResult.secure_url;
+    
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+    dbClient.save();
+
+    res.status(201).json({ url: uploadResult.secure_url });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed', details: error.message || String(error) });
+  }
+});
+// CMS Routes
+apiRouter.get('/public/cms', (req, res) => {
+  const db = dbClient.get();
+  res.json({
+    dragBlocks: db.dragBlocks || [],
+    heroMedia: db.heroMedia || [],
+    cmsSettings: db.cmsSettings || {}
+  });
+});
+
+apiRouter.get('/cms', authenticate, (req, res) => {
+  const db = dbClient.get();
+  res.json({
+    dragBlocks: db.dragBlocks || [],
+    heroMedia: db.heroMedia || [],
+    cmsSettings: db.cmsSettings || {}
+  });
+});
+
+apiRouter.put('/cms', authenticate, (req, res) => {
+  const db = dbClient.get();
+  if (req.body.dragBlocks) db.dragBlocks = req.body.dragBlocks;
+  if (req.body.heroMedia) db.heroMedia = req.body.heroMedia;
+  if (req.body.cmsSettings) db.cmsSettings = req.body.cmsSettings;
+  dbClient.save();
+  res.json({ success: true });
+});
+
+// Gallery Routes
+apiRouter.get('/gallery', authenticate, (req, res) => {
+  res.json(dbClient.get().gallery || []);
+});
+
+apiRouter.post('/gallery/upload', authenticate, galleryUpload.single('image'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'No image file' });
+    
+    configureCloudinary();
+    const uploadResult = await cloudinary.uploader.upload(file.path, {
+      resource_type: 'image',
+      folder: 'sahityotsav_gallery'
+    });
+    
+    const db = dbClient.get();
+    if (!db.gallery) db.gallery = [];
+    
+    db.gallery.push({
+      id: crypto.randomUUID(),
+      url: uploadResult.secure_url,
+      category: req.body.category || 'General',
+      isFeatured: false,
+      createdAt: new Date().toISOString()
+    });
+    
+    if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+    dbClient.save();
+    res.status(201).json({ success: true });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/gallery/:id', authenticate, (req, res) => {
+  const db = dbClient.get();
+  db.gallery = (db.gallery || []).filter(item => item.id !== req.params.id);
+  dbClient.save();
+  res.json({ success: true });
+});
+
+apiRouter.post('/gallery/:id/featured', authenticate, (req, res) => {
+  const db = dbClient.get();
+  const item = (db.gallery || []).find(item => item.id === req.params.id);
+  if (item) {
+    item.isFeatured = !item.isFeatured;
+    dbClient.save();
+  }
+  res.json({ success: true });
+});
+
+// Highlights Routes
+apiRouter.get('/highlights', authenticate, (req, res) => {
+  res.json(dbClient.get().videoHighlights || []);
+});
+
+apiRouter.post('/highlights/upload', authenticate, upload.single('video'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'No video file' });
+    
+    configureCloudinary();
+    const uploadResult = await cloudinary.uploader.upload(file.path, {
+      resource_type: 'video',
+      folder: 'sahityotsav_highlights'
+    });
+    
+    const db = dbClient.get();
+    if (!db.videoHighlights) db.videoHighlights = [];
+    
+    db.videoHighlights.push({
+      id: crypto.randomUUID(),
+      title: req.body.title || 'Untitled',
+      videoUrl: uploadResult.secure_url,
+      thumbnailUrl: uploadResult.secure_url.replace(/\.[^/.]+$/, ".jpg"),
+      duration: req.body.duration || '0:00',
+      event: req.body.event || '',
+      performer: req.body.performer || '',
+      stageName: req.body.stageName || 'Main Stage',
+      date: new Date().toISOString()
+    });
+    
+    if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+    dbClient.save();
+    res.status(201).json({ success: true });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+apiRouter.delete('/highlights/:id', authenticate, (req, res) => {
+  const db = dbClient.get();
+  db.videoHighlights = (db.videoHighlights || []).filter(item => item.id !== req.params.id);
+  dbClient.save();
+  res.json({ success: true });
+});
+
+// Bulk Participants
+apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), (req, res) => {
+  try {
+    const { participants } = req.body;
+    if (!Array.isArray(participants)) return res.status(400).json({ error: 'Invalid payload' });
+    
+    const db = dbClient.get();
+    let imported = 0;
+    
+    for (const p of participants) {
+      if (!p.fullName) continue;
+      
+      const catNameStr = p.categoryName ? p.categoryName.toLowerCase() : '';
+      let cat = db.categories.find(c => c.name.toLowerCase() === catNameStr);
+      if (!cat && db.categories.length > 0) cat = db.categories[0];
+      
+      const unitNameStr = p.unitName ? p.unitName.toLowerCase() : '';
+      let unit = db.units.find(u => u.name.toLowerCase() === unitNameStr);
+      if (!unit && db.units.length > 0) unit = db.units[0];
+      
+      if (!cat || !unit) continue;
+
+      const prefix = cat.name.substring(0, 3).toUpperCase();
+      let highestCode = 100;
+      const sameCategoryCodeNumbers = db.chestNumbers.filter(cn => cn.categoryId === cat!.id && cn.participationType === 'individual');
+      if (sameCategoryCodeNumbers.length > 0) {
+        const nums = sameCategoryCodeNumbers
+          .map(cn => parseInt(cn.codeNumber.replace(/\D/g, ''), 10))
+          .filter(n => !isNaN(n));
+        if (nums.length > 0) highestCode = Math.max(...nums);
+      }
+      const newCodeFormatted = `${prefix}${highestCode + 1}`;
+      
+      const newId = crypto.randomUUID();
+      db.participants.push({
+        id: newId,
+        fullName: p.fullName,
+        categoryId: cat.id,
+        unitId: unit.id,
+        chestNumber: newCodeFormatted,
+        dob: p.dob || '2010-01-01',
+        gender: p.gender || 'male',
+        registrationStatus: 'approved',
+        registeredAt: new Date().toISOString()
+      });
+      
+      db.chestNumbers.push({
+        id: crypto.randomUUID(),
+        entityId: newId,
+        categoryId: cat.id,
+        participationType: 'individual',
+        codeNumber: newCodeFormatted
+      });
+      imported++;
+    }
+    
+    dbClient.save();
+    res.json({ success: true, imported, message: `Successfully imported ${imported} participants` });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Bulk Competitions
+apiRouter.post('/competitions/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), (req, res) => {
+  try {
+    const { competitions } = req.body;
+    if (!Array.isArray(competitions)) return res.status(400).json({ error: 'Invalid payload' });
+    
+    const db = dbClient.get();
+    let imported = 0;
+    
+    for (const c of competitions) {
+      if (!c.name) continue;
+      
+      const catNameStr = c.categoryName ? c.categoryName.toLowerCase() : '';
+      let cat = db.categories.find(cat => cat.name.toLowerCase() === catNameStr);
+      if (!cat && db.categories.length > 0) cat = db.categories[0];
+      if (!cat) continue;
+      
+      db.competitions.push({
+        id: crypto.randomUUID(),
+        name: c.name,
+        categoryId: cat.id,
+        participationType: c.participationType === 'group' ? 'group' : 'individual',
+        stageType: c.stageType === 'off_stage' ? 'off_stage' : 'on_stage',
+        maxDurationMinutes: c.duration || 5,
+        basePoints: 10,
+        teamSize: c.participationType === 'group' ? 5 : 1,
+        timeLimit: `${c.duration || 5} Min`,
+        maxMarksPerJudge: 100,
+        numJudges: 2,
+        isCompleted: false,
+        isResultPublished: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      imported++;
+    }
+    
+    dbClient.save();
+    res.json({ success: true, imported, message: `Successfully imported ${imported} competitions` });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Bulk Results
+apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.JUDGE]), (req, res) => {
+  try {
+    const { results } = req.body;
+    if (!Array.isArray(results)) return res.status(400).json({ error: 'Invalid payload' });
+    
+    const db = dbClient.get();
+    let imported = 0;
+    
+    for (const r of results) {
+      if (!r.competitionName || !r.chestNumber) continue;
+      
+      const comp = db.competitions.find(c => c.name.toLowerCase() === r.competitionName.toLowerCase());
+      if (!comp) continue;
+      
+      const chestRecord = db.chestNumbers.find(cn => cn.codeNumber.toUpperCase() === r.chestNumber.toUpperCase() && cn.categoryId === comp.categoryId);
+      if (!chestRecord) continue;
+      
+      let participantId: string | undefined;
+      let teamId: string | undefined;
+      
+      if (chestRecord.participationType === 'individual') {
+        participantId = chestRecord.entityId;
+      } else {
+        teamId = chestRecord.entityId;
+      }
+      
+      const existing = db.results.find(res => res.competitionId === comp.id && 
+        ((participantId && res.participantId === participantId) || (teamId && res.teamId === teamId)));
+        
+      if (existing) continue;
+      
+      const j1 = r.judge1Mark || 0;
+      const j2 = r.judge2Mark || 0;
+      const total = j1 + j2;
+      const average = total / 2;
+      
+      db.results.push({
+        id: crypto.randomUUID(),
+        competitionId: comp.id,
+        categoryId: comp.categoryId,
+        participantId,
+        teamId,
+        judge1Mark: j1,
+        judge2Mark: j2,
+        totalMark: total,
+        averageMark: average,
+        rank: 0,
+        resultStatus: r.status === 'absent' ? ResultStatus.ABSENT : r.status === 'disqualified' ? ResultStatus.DISQUALIFIED : ResultStatus.PARTICIPATED,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      imported++;
+    }
+    
+    const affectedComps = new Set<string>();
+    for (const r of results) {
+      const comp = db.competitions.find(c => c.name.toLowerCase() === (r.competitionName || '').toLowerCase());
+      if (comp) affectedComps.add(comp.id);
+    }
+    
+    for (const compId of Array.from(affectedComps)) {
+      CalculationService.calculateRanksForCompetition(compId);
+    }
+    
+    dbClient.save();
+    res.json({ success: true, imported, message: `Successfully imported ${imported} results` });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});

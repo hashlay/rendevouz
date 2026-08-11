@@ -8,11 +8,16 @@ import { User, UserRole } from '../types';
 interface UsersViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
-export default function UsersView({ user, token }: UsersViewProps) {
+export default function UsersView({ user, token, eventSettings }: UsersViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
+  const leaderRoleLabel = `${entityLabel} Leader`;
   const [usersList, setUsersList] = useState<User[]>([]);
   const [units, setUnits] = useState<any[]>([]);
+  const [competitions, setCompetitions] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form toggles
@@ -26,6 +31,7 @@ export default function UsersView({ user, token }: UsersViewProps) {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>(UserRole.SECTOR_TEAM);
   const [assignedUnitId, setAssignedUnitId] = useState('');
+  const [assignedCompetitionIds, setAssignedCompetitionIds] = useState<string[]>([]);
 
   // Password reset targeting
   const [resetTargetUser, setResetTargetUser] = useState<User | null>(null);
@@ -37,21 +43,36 @@ export default function UsersView({ user, token }: UsersViewProps) {
   const [editFullName, setEditFullName] = useState('');
   const [editRole, setEditRole] = useState<UserRole>(UserRole.SECTOR_TEAM);
   const [editAssignedUnitId, setEditAssignedUnitId] = useState('');
+  const [editAssignedCompetitionIds, setEditAssignedCompetitionIds] = useState<string[]>([]);
   const [editActive, setEditActive] = useState(true);
+
+  // Program Assignment Modal State
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assignTargetUser, setAssignTargetUser] = useState<User | null>(null);
+  const [programSelection, setProgramSelection] = useState<string[]>([]);
 
   const fetchUsersAndUnits = async () => {
     setLoading(true);
     try {
-      const [uRes, unitRes] = await Promise.all([
+      const [uRes, unitRes, compRes, catRes] = await Promise.all([
         fetch('/api/users', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('/api/units')
+        fetch('/api/units'),
+        fetch('/api/competitions'),
+        fetch('/api/categories')
       ]);
 
-      const [uData, unitData] = await Promise.all([uRes.json(), unitRes.json()]);
+      const [uData, unitData, compData, catData] = await Promise.all([
+        uRes.json(), 
+        unitRes.json(),
+        compRes.json(),
+        catRes.json()
+      ]);
       setUsersList(uData);
       setUnits(unitData);
+      setCompetitions(compData);
+      setCategories(catData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -82,7 +103,8 @@ export default function UsersView({ user, token }: UsersViewProps) {
       username: username.toLowerCase().trim(),
       password,
       role,
-      assignedUnitId: role === UserRole.UNIT_TEAM_LEADER ? assignedUnitId : undefined
+      assignedUnitId: role === UserRole.UNIT_TEAM_LEADER ? assignedUnitId : undefined,
+      assignedCompetitionIds: role === UserRole.JUDGE ? assignedCompetitionIds : undefined
     };
 
     try {
@@ -104,6 +126,7 @@ export default function UsersView({ user, token }: UsersViewProps) {
       setPassword('');
       setRole(UserRole.SECTOR_TEAM);
       setAssignedUnitId('');
+      setAssignedCompetitionIds([]);
       fetchUsersAndUnits();
       alert('Operator account successfully registered!');
     } catch (err: any) {
@@ -170,8 +193,47 @@ export default function UsersView({ user, token }: UsersViewProps) {
     setEditFullName(targetUser.fullName);
     setEditRole(targetUser.role);
     setEditAssignedUnitId(targetUser.assignedUnitId || '');
+    setEditAssignedCompetitionIds(targetUser.assignedCompetitionIds || []);
     setEditActive(targetUser.active);
     setEditOpen(true);
+  };
+
+  // Open Program Assignment Modal for Judge
+  const handleOpenAssignModal = (targetUser: User) => {
+    setAssignTargetUser(targetUser);
+    setProgramSelection(targetUser.assignedCompetitionIds || []);
+    setAssignModalOpen(true);
+  };
+
+  // Save Program Assignments
+  const handleSaveAssignments = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assignTargetUser) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/users/${assignTargetUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          assignedCompetitionIds: programSelection
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to assign programs');
+
+      setAssignModalOpen(false);
+      setAssignTargetUser(null);
+      fetchUsersAndUnits();
+      alert('Assigned programs updated successfully!');
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Handle Update User (Edit)
@@ -193,6 +255,7 @@ export default function UsersView({ user, token }: UsersViewProps) {
       fullName: editFullName,
       role: editRole,
       assignedUnitId: editRole === UserRole.UNIT_TEAM_LEADER ? editAssignedUnitId : undefined,
+      assignedCompetitionIds: editRole === UserRole.JUDGE ? editAssignedCompetitionIds : undefined,
       active: editActive
     };
 
@@ -311,7 +374,13 @@ export default function UsersView({ user, token }: UsersViewProps) {
 
                 <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 text-xs">
                   <span className="text-slate-500 font-medium">
-                    Unit: <strong className="text-slate-700">{op.role === UserRole.UNIT_TEAM_LEADER ? (assignedUnit ? assignedUnit.name : 'Unknown') : 'Global'}</strong>
+                    {op.role === UserRole.UNIT_TEAM_LEADER ? (
+                      <>{entityLabel}: <strong className="text-slate-700">{assignedUnit ? assignedUnit.name : 'Unknown'}</strong></>
+                    ) : op.role === UserRole.JUDGE ? (
+                      <strong className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-mono text-[10px]">{op.assignedCompetitionIds?.length || 0} Programs Assigned</strong>
+                    ) : (
+                      'Global'
+                    )}
                   </span>
                   <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-lg border ${
                     op.role === UserRole.SUPER_ADMIN 
@@ -320,11 +389,22 @@ export default function UsersView({ user, token }: UsersViewProps) {
                         ? 'bg-blue-50 border-blue-200 text-blue-800' 
                         : 'bg-amber-50 border-amber-200 text-amber-800'
                   }`}>
-                    {op.role === UserRole.UNIT_TEAM_LEADER ? 'Unit Leader' : op.role.replace('_', ' ')}
+                    {op.role === UserRole.SUPER_ADMIN ? 'Super Admin' : op.role === UserRole.SECTOR_TEAM ? 'Admin' : op.role === UserRole.UNIT_TEAM_LEADER ? leaderRoleLabel : op.role.replace('_', ' ')}
                   </span>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2.5 border-t border-slate-100">
+                <div className="flex flex-wrap justify-end gap-2 pt-2.5 border-t border-slate-100">
+                  {op.role === UserRole.JUDGE && (
+                    <button
+                      onClick={() => handleOpenAssignModal(op)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2.5 py-1.5 rounded-xl border border-indigo-100 transition-colors shadow-sm"
+                      title="Assign Programs to Judge"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Assign Programs</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       setResetTargetUser(op);
@@ -370,7 +450,7 @@ export default function UsersView({ user, token }: UsersViewProps) {
                 <tr>
                   <th className="px-6 py-4 text-left">Operator Profile</th>
                   <th className="px-6 py-4 text-left">Role Access</th>
-                  <th className="px-6 py-4 text-left">Assigned Unit</th>
+                  <th className="px-6 py-4 text-left">Assigned {entityLabel}</th>
                   <th className="px-6 py-4 text-center">Status</th>
                   <th className="px-6 py-4 text-center">Actions</th>
                 </tr>
@@ -399,11 +479,19 @@ export default function UsersView({ user, token }: UsersViewProps) {
                               ? 'bg-blue-50 border-blue-200 text-blue-800' 
                               : 'bg-amber-50 border-amber-200 text-amber-800'
                         }`}>
-                          {op.role === UserRole.UNIT_TEAM_LEADER ? 'Unit Leader' : op.role.replace('_', ' ')}
+                          {op.role === UserRole.SUPER_ADMIN ? 'Super Admin' : op.role === UserRole.SECTOR_TEAM ? 'Admin' : op.role === UserRole.UNIT_TEAM_LEADER ? leaderRoleLabel : op.role.replace('_', ' ')}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap font-semibold text-slate-600">
-                        {op.role === UserRole.UNIT_TEAM_LEADER ? (assignedUnit ? assignedUnit.name : 'Unknown') : 'Global Sector access'}
+                        {op.role === UserRole.UNIT_TEAM_LEADER ? (
+                          assignedUnit ? assignedUnit.name : 'Unknown'
+                        ) : op.role === UserRole.JUDGE ? (
+                          <span className="inline-block text-[11px] font-bold font-mono text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-100">
+                            {op.assignedCompetitionIds?.length || 0} Programs Assigned
+                          </span>
+                        ) : (
+                          'Global Campus access'
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <button
@@ -420,6 +508,17 @@ export default function UsersView({ user, token }: UsersViewProps) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center gap-2">
+                          {op.role === UserRole.JUDGE && (
+                            <button
+                              onClick={() => handleOpenAssignModal(op)}
+                              className="flex items-center gap-1 text-[11.5px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/50 px-3 py-1.5 rounded-xl border border-indigo-100 transition-colors shadow-sm"
+                              title="Assign Programs to Judge"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              <span>Assign Programs</span>
+                            </button>
+                          )}
+
                           {/* Password Reset Force Button */}
                           <button
                             onClick={() => {
@@ -487,7 +586,7 @@ export default function UsersView({ user, token }: UsersViewProps) {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  placeholder="E.g. Shafi Ninthikal"
+                  placeholder="E.g. Shafi Campus"
                 />
               </div>
 
@@ -526,28 +625,66 @@ export default function UsersView({ user, token }: UsersViewProps) {
                   }}
                   className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-700 bg-white"
                 >
-                  <option value={UserRole.SECTOR_TEAM}>Sector Team Operator</option>
-                  <option value={UserRole.UNIT_TEAM_LEADER}>Unit Team Leader</option>
+                  <option value={UserRole.SECTOR_TEAM}>Admin</option>
+                  <option value={UserRole.UNIT_TEAM_LEADER}>{leaderRoleLabel}</option>
                   <option value={UserRole.GREEN_ROOM_MANAGER}>Green Room Manager</option>
                   <option value={UserRole.JUDGE}>Judge</option>
                   <option value={UserRole.RESULT_MANAGER}>Result Manager</option>
-                  <option value={UserRole.SUPER_ADMIN}>Super Admin access</option>
+                  <option value={UserRole.VIEWER}>Viewer (Read-Only Portal Access)</option>
+                  {user.role === UserRole.SUPER_ADMIN && (
+                    <option value={UserRole.SUPER_ADMIN}>Super Admin access</option>
+                  )}
                 </select>
               </div>
 
               {/* Unit assignment picker (Only if role is unit leader!) */}
               {role === UserRole.UNIT_TEAM_LEADER && (
                 <div className="animate-fade-in bg-slate-50 p-4 border rounded-2xl">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Assign Sector Unit</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Assign {entityLabel}</label>
                   <select
                     required
                     value={assignedUnitId}
                     onChange={(e) => setAssignedUnitId(e.target.value)}
                     className="mt-1.5 block w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-700"
                   >
-                    <option value="">Choose Unit</option>
+                    <option value="">Choose {entityLabel}</option>
                     {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
+                </div>
+              )}
+
+              {/* Judge Program Assignment Checklist */}
+              {role === UserRole.JUDGE && (
+                <div className="animate-fade-in bg-indigo-50/50 p-4 border border-indigo-100 rounded-2xl space-y-2 max-h-48 overflow-y-auto">
+                  <label className="block text-[10px] font-bold text-indigo-900 uppercase tracking-wider font-mono">
+                    Assign Programs / Competitions to Judge
+                  </label>
+                  <p className="text-[11px] text-indigo-700">Select which programs this Judge is responsible for evaluating:</p>
+                  <div className="space-y-1.5 pt-1">
+                    {competitions.filter(c => c.active).map(comp => {
+                      const cat = categories.find(c => c.id === comp.categoryId);
+                      const isChecked = assignedCompetitionIds.includes(comp.id);
+                      return (
+                        <label key={comp.id} className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-indigo-100/80 cursor-pointer hover:bg-indigo-50">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setAssignedCompetitionIds(prev => [...prev, comp.id]);
+                              } else {
+                                setAssignedCompetitionIds(prev => prev.filter(id => id !== comp.id));
+                              }
+                            }}
+                            className="h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500"
+                          />
+                          <div className="text-xs font-semibold text-slate-800">
+                            {comp.name} <span className="text-[10px] text-slate-400 font-mono">({cat?.name})</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -652,7 +789,7 @@ export default function UsersView({ user, token }: UsersViewProps) {
                   value={editFullName}
                   onChange={(e) => setEditFullName(e.target.value)}
                   className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans text-sm"
-                  placeholder="E.g. Shafi Ninthikal"
+                  placeholder="E.g. Shafi Campus"
                 />
               </div>
 
@@ -667,28 +804,66 @@ export default function UsersView({ user, token }: UsersViewProps) {
                   className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-700 bg-white font-sans text-sm"
                   disabled={editingUser.id === 'usr_admin'} // Main admin can't change their role
                 >
-                  <option value={UserRole.SECTOR_TEAM}>Sector Team Operator</option>
-                  <option value={UserRole.UNIT_TEAM_LEADER}>Unit Team Leader</option>
+                  <option value={UserRole.SECTOR_TEAM}>Admin</option>
+                  <option value={UserRole.UNIT_TEAM_LEADER}>{leaderRoleLabel}</option>
                   <option value={UserRole.GREEN_ROOM_MANAGER}>Green Room Manager</option>
                   <option value={UserRole.JUDGE}>Judge</option>
                   <option value={UserRole.RESULT_MANAGER}>Result Manager</option>
-                  <option value={UserRole.SUPER_ADMIN}>Super Admin access</option>
+                  <option value={UserRole.VIEWER}>Viewer (Read-Only Portal Access)</option>
+                  {user.role === UserRole.SUPER_ADMIN && (
+                    <option value={UserRole.SUPER_ADMIN}>Super Admin access</option>
+                  )}
                 </select>
               </div>
 
               {/* Unit assignment picker (Only if role is unit leader!) */}
               {editRole === UserRole.UNIT_TEAM_LEADER && (
                 <div className="animate-fade-in bg-slate-50 p-4 border rounded-2xl">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Assign Sector Unit</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Assign {entityLabel}</label>
                   <select
                     required
                     value={editAssignedUnitId}
                     onChange={(e) => setEditAssignedUnitId(e.target.value)}
                     className="mt-1.5 block w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-700 font-sans text-sm"
                   >
-                    <option value="">Choose Unit</option>
+                    <option value="">Choose {entityLabel}</option>
                     {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
+                </div>
+              )}
+
+              {/* Judge Program Assignment Checklist */}
+              {editRole === UserRole.JUDGE && (
+                <div className="animate-fade-in bg-indigo-50/50 p-4 border border-indigo-100 rounded-2xl space-y-2 max-h-48 overflow-y-auto">
+                  <label className="block text-[10px] font-bold text-indigo-900 uppercase tracking-wider font-mono">
+                    Assign Programs / Competitions to Judge
+                  </label>
+                  <p className="text-[11px] text-indigo-700">Select which programs this Judge is responsible for evaluating:</p>
+                  <div className="space-y-1.5 pt-1">
+                    {competitions.filter(c => c.active).map(comp => {
+                      const cat = categories.find(c => c.id === comp.categoryId);
+                      const isChecked = editAssignedCompetitionIds.includes(comp.id);
+                      return (
+                        <label key={comp.id} className="flex items-center gap-2 p-1.5 bg-white rounded-lg border border-indigo-100/80 cursor-pointer hover:bg-indigo-50">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditAssignedCompetitionIds(prev => [...prev, comp.id]);
+                              } else {
+                                setEditAssignedCompetitionIds(prev => prev.filter(id => id !== comp.id));
+                              }
+                            }}
+                            className="h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500"
+                          />
+                          <div className="text-xs font-semibold text-slate-800">
+                            {comp.name} <span className="text-[10px] text-slate-400 font-mono">({cat?.name})</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -725,6 +900,90 @@ export default function UsersView({ user, token }: UsersViewProps) {
                 </button>
               </div>
 
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- DEDICATED ASSIGN PROGRAMS MODAL FOR JUDGES --- */}
+      {assignModalOpen && assignTargetUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 animate-scale-up space-y-4">
+            
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 className="font-display font-bold text-slate-800 text-base">Assign Programs for Judge</h3>
+                <span className="text-[10px] font-mono text-slate-500 mt-0.5 block">{assignTargetUser.fullName} (@{assignTargetUser.username})</span>
+              </div>
+              <button 
+                onClick={() => { setAssignModalOpen(false); setAssignTargetUser(null); }} 
+                className="p-1 rounded-lg text-slate-400 hover:bg-slate-50 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAssignments} className="space-y-4 text-xs font-sans">
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Check off all competitions that <strong>{assignTargetUser.fullName}</strong> is assigned to evaluate. Upon logging in, this Judge will only see their assigned program judgment sheets.
+              </p>
+
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 max-h-64 overflow-y-auto space-y-2">
+                {categories.map(cat => {
+                  const compList = competitions.filter(c => c.categoryId === cat.id && c.active);
+                  if (compList.length === 0) return null;
+
+                  return (
+                    <div key={cat.id} className="space-y-1 bg-white p-2.5 rounded-xl border border-slate-100">
+                      <h5 className="font-display font-bold text-slate-800 text-[11px] uppercase tracking-wider text-emerald-800">{cat.name} Category</h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                        {compList.map(comp => {
+                          const isChecked = programSelection.includes(comp.id);
+                          return (
+                            <label key={comp.id} className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-colors ${isChecked ? 'bg-indigo-50 border-indigo-200 text-indigo-900 font-bold' : 'bg-slate-50 border-slate-200/80 text-slate-700 hover:bg-slate-100'}`}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setProgramSelection(prev => [...prev, comp.id]);
+                                  } else {
+                                    setProgramSelection(prev => prev.filter(id => id !== comp.id));
+                                  }
+                                }}
+                                className="h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500"
+                              />
+                              <span className="truncate">{comp.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-between items-center pt-3 border-t">
+                <span className="text-xs font-mono text-slate-500 font-bold">
+                  Selected: {programSelection.length} Programs
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setAssignModalOpen(false); setAssignTargetUser(null); }}
+                    className="px-4 py-2 border rounded-xl font-semibold text-slate-600 bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md"
+                  >
+                    {submitting ? 'Saving...' : 'Save Assigned Programs'}
+                  </button>
+                </div>
+              </div>
             </form>
           </div>
         </div>

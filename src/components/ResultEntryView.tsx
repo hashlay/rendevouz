@@ -8,9 +8,11 @@ import { User, UserRole, Category, Competition, Unit, ResultStatus, Participatio
 interface ResultEntryViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
-export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
+export default function ResultEntryView({ user, token, eventSettings }: ResultEntryViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
   // Master lists
   const [categories, setCategories] = useState<Category[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -43,6 +45,57 @@ export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
   const [publishing, setPublishing] = useState(true);
 
   const [savingResult, setSavingResult] = useState(false);
+
+  // Bulk Result Import State
+  const [showBulkResultModal, setShowBulkResultModal] = useState(false);
+  const [bulkResultText, setBulkResultText] = useState('');
+  const [importingBulkResult, setImportingBulkResult] = useState(false);
+
+  const handleBulkResultImport = async () => {
+    if (!bulkResultText.trim()) return;
+    setImportingBulkResult(true);
+
+    try {
+      // Format: Competition Name, Candidate/Chest Number, Judge1 Mark, Judge2 Mark, Status (participated/absent/disqualified)
+      const lines = bulkResultText.trim().split('\n');
+      const resultsToImport = lines.map(line => {
+        const parts = line.split(',').map(s => s.trim());
+        return {
+          competitionName: parts[0] || '',
+          chestNumber: parts[1] || '',
+          judge1Mark: Number(parts[2]) || 0,
+          judge2Mark: Number(parts[3]) || 0,
+          status: (parts[4] || 'participated').toLowerCase()
+        };
+      }).filter(r => r.competitionName.length > 0);
+
+      const res = await fetch('/api/results/bulk', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ results: resultsToImport })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Bulk result import failed');
+
+      setToast({ type: 'success', text: data.message || `Successfully imported ${data.imported} results in bulk!` });
+      setShowBulkResultModal(false);
+      setBulkResultText('');
+      if (selectedCompId) {
+        const refreshRes = await fetch(`/api/results?competitionId=${selectedCompId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setSavedResults(await refreshRes.json());
+      }
+    } catch (err: any) {
+      setToast({ type: 'error', text: err.message });
+    } finally {
+      setImportingBulkResult(false);
+    }
+  };
 
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [tempCandidateId, setTempCandidateId] = useState<string | null>(null);
@@ -232,20 +285,30 @@ export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
     }
   };
 
-  // Submit Result Entry
+  const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Submit Result Entry with Fast Auto-Advance (No Blocking Alerts)
   const handleSubmitResult = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeCandidate) return;
 
     // Validate marks if status is participated
+    const maxMark = eventSettings?.maxMarksPerJudge || 100;
     if (resultStatus === ResultStatus.PARTICIPATED) {
       if (j1Mark === '' || j2Mark === '') {
-        alert('Please enter marks for both judges');
+        setToast({ type: 'error', text: 'Please enter marks for both judges' });
+        return;
+      }
+      const m1 = Number(j1Mark);
+      const m2 = Number(j2Mark);
+      if (isNaN(m1) || m1 < 0 || m1 > maxMark || isNaN(m2) || m2 < 0 || m2 > maxMark) {
+        setToast({ type: 'error', text: `Marks must be strictly between 0 and ${maxMark}` });
         return;
       }
     }
 
     setSavingResult(true);
+    setToast(null);
 
     // Check if edit or create
     const existing = savedResults.find(r => 
@@ -296,10 +359,9 @@ export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to enter results');
 
-      // Refresh list
-      setActiveCandidate(null);
       // Clear draft
       localStorage.removeItem(`result_draft_${user.id}`);
+      
       // Trigger refresh of list entries
       const refreshRes = await fetch(`/api/results?competitionId=${selectedCompId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -307,9 +369,25 @@ export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
       const refreshData = await refreshRes.json();
       setSavedResults(refreshData);
 
-      alert('Result entered and scoreboards recalculated!');
+      // Fast & Furious Auto-Advance to Next Candidate
+      const currIndex = candidatesList.findIndex(c => c.id === activeCandidate.id);
+      const nextCandidate = candidatesList[currIndex + 1];
+
+      if (nextCandidate) {
+        handleOpenEntry(nextCandidate);
+        setToast({
+          type: 'success',
+          text: `✓ Saved score for ${activeCandidate.fullName || activeCandidate.teamNumber || 'Candidate'}! Auto-advanced to next.`
+        });
+      } else {
+        setActiveCandidate(null);
+        setToast({
+          type: 'success',
+          text: '✓ All candidate scores entered & scoreboards recalculated!'
+        });
+      }
     } catch (err: any) {
-      alert(err.message);
+      setToast({ type: 'error', text: err.message || 'Failed to save result' });
     } finally {
       setSavingResult(false);
     }
@@ -337,9 +415,9 @@ export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
       const refreshData = await refreshRes.json();
       setSavedResults(refreshData);
 
-      alert('Result removed successfully');
+      setToast({ type: 'success', text: 'Result removed successfully' });
     } catch (err: any) {
-      alert(err.message);
+      setToast({ type: 'error', text: err.message });
     }
   };
 
@@ -368,9 +446,9 @@ export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
       const refreshData = await refreshRes.json();
       setSavedResults(refreshData);
       
-      alert(data.message);
+      setToast({ type: 'success', text: data.message });
     } catch (err: any) {
-      alert(err.message);
+      setToast({ type: 'error', text: err.message });
     }
   };
 
@@ -392,6 +470,15 @@ export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto font-sans">
+      {/* Toast Notification Banner */}
+      {toast && (
+        <div className={`p-4 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm transition-all animate-fadeIn ${
+          toast.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+        }`}>
+          <span>{toast.text}</span>
+          <button onClick={() => setToast(null)} className="ml-4 text-slate-400 hover:text-slate-600 font-extrabold cursor-pointer">✕</button>
+        </div>
+      )}
       
       {/* Category and Competition workflow selectors */}
       <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4 no-print">
@@ -430,7 +517,16 @@ export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
 
         {selectedCatId && (
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-mono">3. Select Competition Event</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center justify-between">
+              <span>3. Select Competition Event</span>
+              <button
+                type="button"
+                onClick={() => setShowBulkResultModal(true)}
+                className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 underline font-sans cursor-pointer"
+              >
+                + Bulk Import Results
+              </button>
+            </label>
             <select
               value={selectedCompId}
               onChange={(e) => setSelectedCompId(e.target.value)}
@@ -442,6 +538,51 @@ export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
           </div>
         )}
       </div>
+
+      {/* Bulk Import Results Modal */}
+      {showBulkResultModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-emerald-600" />
+                <span>Bulk Import Competition Results (CSV / Excel)</span>
+              </h3>
+              <button onClick={() => setShowBulkResultModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-emerald-50 text-emerald-800 rounded-2xl text-xs space-y-1 border border-emerald-200">
+              <p className="font-bold">Format: One result entry per line (CSV format):</p>
+              <p className="font-mono text-[11px]">Program Name, Participant Name/Chest #, Judge1 Mark, Judge2 Mark, Status (participated/absent/disqualified)</p>
+              <p className="text-[10px] text-emerald-700 mt-1">Example: Qira'at Recitation, 1001, 95, 92, participated</p>
+            </div>
+
+            <textarea
+              rows={8}
+              value={bulkResultText}
+              onChange={(e) => setBulkResultText(e.target.value)}
+              placeholder="Paste CSV lines here..."
+              className="w-full p-3 border border-slate-300 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            />
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <button onClick={() => setShowBulkResultModal(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkResultImport}
+                disabled={importingBulkResult || !bulkResultText.trim()}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow"
+              >
+                {importingBulkResult ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trophy className="w-4 h-4" />}
+                Import Results Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Registry Sheet list of registered participants/teams */}
       {selectedCompId && (
@@ -495,7 +636,7 @@ export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
                             )}
                           </h5>
                         </div>
-                        <span className="text-xs font-semibold text-slate-500 mt-1 block font-mono">Representing Unit: {unit ? unit.name : 'Unknown'}</span>
+                        <span className="text-xs font-semibold text-slate-500 mt-1 block font-mono">Representing {entityLabel}: {unit ? unit.name : 'Unknown'}</span>
                       </div>
 
                       <div className="flex items-center gap-4">
@@ -547,7 +688,7 @@ export default function ResultEntryView({ user, token }: ResultEntryViewProps) {
             </div>
           )}
 
-          {/* Manage Announcements Section (Sector Team Only) */}
+          {/* Manage Announcements Section (Campus Team Only) */}
           {user.role !== UserRole.UNIT_TEAM_LEADER && savedResults.length > 0 && (
             <div className="bg-slate-50 border-t border-slate-200 p-5 no-print">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

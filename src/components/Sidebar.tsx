@@ -1,9 +1,9 @@
 import React from 'react';
-import { 
-  LayoutDashboard, UserPlus, Users, Trophy, Award, 
-  Settings, Users2, ShieldAlert, FileSpreadsheet, 
+import {
+  LayoutDashboard, UserPlus, Users, Trophy, Award,
+  Settings, Users2, ShieldAlert, FileSpreadsheet,
   LogOut, ClipboardList, BookOpen, Menu, X,
-  Hash, Theater, Scale, FileBadge
+  Hash, Theater, Scale, FileBadge, Image, Camera, Globe
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 import SSFLogo from './SSFLogo';
@@ -18,11 +18,13 @@ interface SidebarProps {
   setMobileOpen: (open: boolean) => void;
 }
 
-export default function Sidebar({ 
-  user, activeTab, setActiveTab, onLogout, eventSettings, mobileOpen, setMobileOpen 
+export default function Sidebar({
+  user, activeTab, setActiveTab, onLogout, eventSettings, mobileOpen, setMobileOpen
 }: SidebarProps) {
 
   const [logoFailed, setLogoFailed] = React.useState(false);
+
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
@@ -35,16 +37,24 @@ export default function Sidebar({
     { id: 'registered-events', label: 'Registered Events', icon: ClipboardList, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.UNIT_TEAM_LEADER] },
     { id: 'announced-results', label: 'Announced Results', icon: Award, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.UNIT_TEAM_LEADER] },
     { id: 'certificates', label: 'Certificates', icon: FileBadge, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
+    { id: 'certificate-studio', label: 'Certificate Studio', icon: FileBadge, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
+    { id: 'posters', label: 'Posters', icon: BookOpen, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.UNIT_TEAM_LEADER, UserRole.RESULT_MANAGER] },
+    { id: 'poster-studio', label: 'Poster Studio', icon: BookOpen, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
+    { id: 'highlights', label: 'Highlights Studio', icon: Trophy, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
+    { id: 'gallery-studio', label: 'Gallery Studio', icon: Image, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
+    { id: 'cms-studio', label: 'CMS Website', icon: Globe, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
     { id: 'competitions', label: 'Competitions', icon: ClipboardList, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
     { id: 'results', label: 'Result Entry', icon: Trophy, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.RESULT_MANAGER] },
     { id: 'scoreboard', label: 'Individual Scores', icon: Award, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
-    { id: 'standings', label: 'Unit Standings', icon: Trophy, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
+    { id: 'standings', label: `${entityLabel} Standings`, icon: Trophy, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
     { id: 'reports', label: 'Reports & Exports', icon: FileSpreadsheet, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.UNIT_TEAM_LEADER] },
-    { id: 'users', label: 'User Accounts', icon: ShieldAlert, roles: [UserRole.SUPER_ADMIN] },
+    { id: 'users', label: 'User Accounts', icon: ShieldAlert, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
     { id: 'settings', label: 'Settings', icon: Settings, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
   ];
 
-  const filteredItems = menuItems.filter(item => item.roles.includes(user.role as UserRole));
+  const filteredItems = menuItems.filter(item => 
+    user.role === UserRole.VIEWER || item.roles.includes(user.role as UserRole)
+  );
 
   const sidebarContent = (
     <div className="h-full flex flex-col justify-between bg-emerald-950 text-emerald-100 border-r border-emerald-900 font-sans">
@@ -52,9 +62,9 @@ export default function Sidebar({
         {/* Logo and Event Header */}
         <div className="p-6 border-b border-emerald-900 bg-emerald-950/50 flex items-center gap-3">
           {eventSettings?.ssfLogoUrl && !logoFailed ? (
-            <img 
-              src={eventSettings.ssfLogoUrl} 
-              alt="SSF Logo" 
+            <img
+              src={eventSettings.ssfLogoUrl}
+              alt="SSF Logo"
               referrerPolicy="no-referrer"
               onError={() => setLogoFailed(true)}
               className="h-10 w-10 object-contain shrink-0"
@@ -63,10 +73,20 @@ export default function Sidebar({
             <SSFLogo className="h-10 w-10 bg-white/10 p-1 rounded-xl text-emerald-400 shrink-0" showText={false} />
           )}
           <div className="flex flex-col">
-            <span className="font-display font-extrabold text-amber-400 text-sm tracking-wide leading-none uppercase">SAHITYOTSAV</span>
-            <span className="text-emerald-300 text-[10px] font-mono tracking-widest uppercase mt-1">Ninthikal Sector</span>
+            <span className="font-display font-extrabold text-amber-400 text-sm tracking-wide leading-none uppercase">
+              {eventSettings?.festivalName || 'SAHITYOTSAV'}
+            </span>
+            <span className="text-emerald-300 text-[10px] font-mono tracking-widest uppercase mt-1">
+              {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'}
+            </span>
           </div>
         </div>
+
+        {user.role === UserRole.VIEWER && (
+          <div className="mx-3 mt-3 p-2.5 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-300 text-[11px] font-mono font-bold flex items-center gap-2">
+            <span>👁️ DEMO VIEWER (READ ONLY)</span>
+          </div>
+        )}
 
         {/* Navigation Items */}
         <nav className="mt-6 px-3 space-y-1">
@@ -80,11 +100,10 @@ export default function Sidebar({
                   setActiveTab(item.id);
                   setMobileOpen(false); // Close mobile drawer on selection
                 }}
-                className={`w-full flex items-center px-4 py-2.5 text-sm font-semibold rounded-lg transition-all group ${
-                  isActive 
-                    ? 'bg-amber-500 text-slate-900 shadow-md shadow-amber-500/10' 
+                className={`w-full flex items-center px-4 py-2.5 text-sm font-semibold rounded-lg transition-all group ${isActive
+                    ? 'bg-amber-500 text-slate-900 shadow-md shadow-amber-500/10'
                     : 'text-emerald-200 hover:bg-emerald-900/60 hover:text-white'
-                }`}
+                  }`}
               >
                 <Icon className={`mr-3 h-5 w-5 shrink-0 ${isActive ? 'text-slate-900' : 'text-emerald-300 group-hover:text-amber-300'}`} />
                 {item.label}
@@ -128,16 +147,15 @@ export default function Sidebar({
 
       {/* Mobile Drawer Overlay */}
       {mobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Mobile Slider Drawer */}
-      <aside className={`fixed inset-y-0 left-0 w-64 bg-emerald-950 z-40 transform transition-transform duration-300 md:hidden ${
-        mobileOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <aside className={`fixed inset-y-0 left-0 w-64 bg-emerald-950 z-40 transform transition-transform duration-300 md:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
         {sidebarContent}
       </aside>
     </>

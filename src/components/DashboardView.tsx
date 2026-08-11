@@ -9,15 +9,24 @@ import { User, UserRole } from '../types';
 interface DashboardViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
-export default function DashboardView({ user, token }: DashboardViewProps) {
+export default function DashboardView({ user, token, eventSettings }: DashboardViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
+  const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
+
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const [pendingComps, setPendingComps] = useState<any[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+
   const fetchStats = async () => {
-    setLoading(true);
+    // If stats are already there, don't show full page loading to prevent flicker
+    if (!stats) setLoading(true);
     setError(null);
     try {
       const res = await fetch('/api/dashboard-stats', {
@@ -30,6 +39,23 @@ export default function DashboardView({ user, token }: DashboardViewProps) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingCompetitions = async () => {
+    setPendingLoading(true);
+    setShowPendingModal(true);
+    try {
+      const res = await fetch('/api/dashboard-stats/pending-competitions', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch pending competitions');
+      setPendingComps(data);
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setPendingLoading(false);
     }
   };
 
@@ -79,7 +105,7 @@ export default function DashboardView({ user, token }: DashboardViewProps) {
             <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider font-mono">Total Participants</span>
             <h3 className="text-3xl font-display font-extrabold text-slate-800 mt-1">{stats.totalParticipants}</h3>
             {user.role === UserRole.UNIT_TEAM_LEADER && (
-              <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">Registered in your unit</span>
+              <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">Registered in your {entityLabel.toLowerCase()}</span>
             )}
           </div>
           <div className="h-12 w-12 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center shadow-inner">
@@ -104,7 +130,6 @@ export default function DashboardView({ user, token }: DashboardViewProps) {
           <div>
             <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider font-mono">Individual Registrations</span>
             <h3 className="text-3xl font-display font-extrabold text-slate-800 mt-1">{stats.individualRegistrations}</h3>
-            <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">Maximum 3 per person</span>
           </div>
           <div className="h-12 w-12 bg-amber-50 text-amber-700 rounded-xl flex items-center justify-center shadow-inner">
             <Award className="h-6 w-6" />
@@ -116,7 +141,6 @@ export default function DashboardView({ user, token }: DashboardViewProps) {
           <div>
             <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider font-mono">Group Teams</span>
             <h3 className="text-3xl font-display font-extrabold text-slate-800 mt-1">{stats.groupTeamsCount}</h3>
-            <span className="text-[10px] text-purple-600 font-semibold mt-1 block">Maximum 2 per person</span>
           </div>
           <div className="h-12 w-12 bg-purple-50 text-purple-700 rounded-xl flex items-center justify-center shadow-inner">
             <Users2 className="h-6 w-6" />
@@ -136,7 +160,7 @@ export default function DashboardView({ user, token }: DashboardViewProps) {
               <Trophy className="h-6 w-6 text-amber-400 animate-bounce" />
             </div>
             <div className="mt-6">
-              <span className="text-emerald-300 font-semibold text-xs">LEADING SECTOR UNIT</span>
+              <span className="text-emerald-300 font-semibold text-xs uppercase tracking-wider">LEADING CAMPUS {entityLabel.toUpperCase()}</span>
               <h2 className="text-3xl font-display font-extrabold text-white mt-1">
                 {stats.leadingUnit ? stats.leadingUnit.unitName : 'TBD'}
               </h2>
@@ -197,13 +221,13 @@ export default function DashboardView({ user, token }: DashboardViewProps) {
             <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider font-mono">Result Entry Completion</span>
             <div className="mt-4 flex items-baseline justify-between">
               <h3 className="text-4xl font-display font-extrabold text-slate-800">{completionPercentage}%</h3>
-              <span className="text-xs text-slate-400 font-semibold font-mono">
-                {stats.resultsEntered} / {totalResultsExpected}
+              <span className="text-xs font-semibold text-emerald-600 font-mono bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                {stats.resultsEntered} / {totalResultsExpected} Programs
               </span>
             </div>
             
             {/* Elegant visual bar */}
-            <div className="w-full bg-slate-100 h-3 rounded-full mt-4 overflow-hidden relative border border-slate-200/50">
+            <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden mt-3 border border-slate-100">
               <div 
                 className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-500" 
                 style={{ width: `${completionPercentage}%` }}
@@ -211,29 +235,32 @@ export default function DashboardView({ user, token }: DashboardViewProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 text-xs font-semibold font-mono mt-4">
-            <div className="flex items-center gap-1.5 text-emerald-600">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <span>Published: {stats.resultsEntered}</span>
+          <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center">
+            <div className="text-xs text-slate-400 font-semibold">
+              <span>Pending Results: <strong className="text-amber-600">{stats.resultsPending}</strong></span>
             </div>
-            <div className="flex items-center gap-1.5 text-amber-600">
-              <span className="h-2 w-2 rounded-full bg-amber-500" />
-              <span>Pending: {stats.resultsPending}</span>
-            </div>
+            <button 
+              onClick={fetchPendingCompetitions}
+              className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-bold transition-colors shadow-sm border border-amber-200"
+            >
+              View Pending
+            </button>
           </div>
         </div>
 
       </div>
 
-      {/* 2.5 Top On-Stage & Off-Stage Individual Performers */}
+      {/* On-Stage & Off-Stage Champions Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* Top On-Stage Performer */}
-        <div className="bg-gradient-to-br from-indigo-950 to-slate-900 p-6 rounded-3xl text-white shadow-lg shadow-indigo-950/10 flex flex-col justify-between border border-indigo-900/50">
+        {/* On-Stage Top Individual Spot */}
+        <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 p-6 rounded-3xl text-white shadow-lg flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="bg-indigo-800 text-indigo-200 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase">On-Stage Champion</span>
-              <Mic className="h-5 w-5 text-amber-400 animate-pulse" />
+              <span className="bg-indigo-500/20 text-indigo-300 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase border border-indigo-500/30">
+                On-Stage Champion
+              </span>
+              <Mic className="h-6 w-6 text-amber-400 animate-pulse" />
             </div>
             <div className="mt-6">
               <span className="text-indigo-300 font-semibold text-xs">TOP PERFORMANCE INDIVIDUAL (ON-STAGE)</span>
@@ -261,11 +288,13 @@ export default function DashboardView({ user, token }: DashboardViewProps) {
           </div>
         </div>
 
-        {/* Top Off-Stage Performer */}
-        <div className="bg-gradient-to-br from-teal-950 to-slate-900 p-6 rounded-3xl text-white shadow-lg shadow-teal-950/10 flex flex-col justify-between border border-teal-900/50">
+        {/* Off-Stage Top Individual Spot */}
+        <div className="bg-gradient-to-br from-teal-950 via-slate-900 to-teal-900 p-6 rounded-3xl text-white shadow-lg flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="bg-teal-800 text-teal-200 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase">Off-Stage Champion</span>
+              <span className="bg-teal-500/20 text-teal-300 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase border border-teal-500/30">
+                Off-Stage Champion
+              </span>
               <BookOpen className="h-5 w-5 text-amber-400" />
             </div>
             <div className="mt-6">
@@ -299,9 +328,9 @@ export default function DashboardView({ user, token }: DashboardViewProps) {
       {/* 3. Detailed visual bar charts / distribution tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Distribution of registrations by Sector Units */}
+        {/* Distribution of registrations by Campus Units */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-          <h4 className="font-display font-bold text-slate-800 text-base">Registrations by Sector Unit</h4>
+          <h4 className="font-display font-bold text-slate-800 text-base">Registrations by Campus {entityLabelPlural}</h4>
           <div className="space-y-3 pt-2">
             {stats.participantsByUnit.map((item: any) => {
               // Calculate width fraction relative to max
@@ -412,6 +441,58 @@ export default function DashboardView({ user, token }: DashboardViewProps) {
 
       </div>
 
+      {/* Pending Results Modal */}
+      {showPendingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <ClipboardList className="h-6 w-6 text-amber-500" />
+                Pending Result Entry Programs
+              </h2>
+              <button 
+                onClick={() => setShowPendingModal(false)}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
+              >
+                Close
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+              {pendingLoading ? (
+                <div className="flex flex-col items-center justify-center p-12">
+                  <RefreshCw className="h-8 w-8 text-emerald-600 animate-spin mb-4" />
+                  <span className="text-slate-500 text-sm">Loading pending programs...</span>
+                </div>
+              ) : pendingComps.length === 0 ? (
+                <div className="text-center p-12">
+                  <div className="h-16 w-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800">All Caught Up!</h3>
+                  <p className="text-slate-500 mt-2">No pending results to enter.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3">
+                  {pendingComps.map(comp => (
+                    <div key={comp.id} className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex justify-between items-center hover:border-amber-300 transition-colors">
+                      <div>
+                        <h4 className="font-bold text-slate-800">{comp.name}</h4>
+                        <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full mt-1 inline-block">
+                          {comp.categoryName} • {comp.participationType === 'individual' ? 'Individual' : 'Group'}
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                        Pending
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

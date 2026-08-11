@@ -8,9 +8,12 @@ import { User, UserRole, Category, Unit, Participant, Competition, EducationStat
 interface ParticipantsViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
-export default function ParticipantsView({ user, token }: ParticipantsViewProps) {
+export default function ParticipantsView({ user, token, eventSettings }: ParticipantsViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
+  const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
   // Master lists
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -42,6 +45,52 @@ export default function ParticipantsView({ user, token }: ParticipantsViewProps)
   // Deletion confirm
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletionReason, setDeletionReason] = useState('');
+
+  // Bulk Import State
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkText, setBulkText] = useState('');
+  const [importingBulk, setImportingBulk] = useState(false);
+
+  const handleBulkImport = async () => {
+    if (!bulkText.trim()) return;
+    setImportingBulk(true);
+
+    try {
+      // Parse CSV lines: Name, Category, Unit/House, DOB, Gender
+      const lines = bulkText.trim().split('\n');
+      const participantsToImport = lines.map(line => {
+        const parts = line.split(',').map(s => s.trim());
+        return {
+          fullName: parts[0] || '',
+          categoryName: parts[1] || '',
+          unitName: parts[2] || '',
+          dob: parts[3] || '2010-01-01',
+          gender: parts[4] || 'male'
+        };
+      }).filter(p => p.fullName.length > 0);
+
+      const res = await fetch('/api/participants/bulk', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ participants: participantsToImport })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Bulk import failed');
+
+      alert(data.message || `Successfully imported ${data.imported} participants!`);
+      setShowBulkModal(false);
+      setBulkText('');
+      fetchLists();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setImportingBulk(false);
+    }
+  };
 
   const fetchLists = async () => {
     setLoading(true);
@@ -84,31 +133,60 @@ export default function ParticipantsView({ user, token }: ParticipantsViewProps)
     setProfileLoading(true);
 
     try {
-      // Fetch scoreboard details (which calculates rank and details on the server!)
-      const res = await fetch(`/api/scoreboard?search=${encodeURIComponent(p.fullName)}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      const profile = data.find((entry: any) => entry.participantId === p.id);
-      
-      // Get all raw registered results for this participant
-      const resultsRes = await fetch(`/api/results`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const resultsData = await resultsRes.json();
-      const participantResults = resultsData.filter((r: any) => r.participantId === p.id);
+      const [sbRes, resRes, teamsRes, regRes] = await Promise.all([
+        fetch(`/api/scoreboard?categoryId=${p.selectedCategoryId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/results', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/registrations', { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
 
-      // Find teams they belong to
-      const teamsRes = await fetch(`/api/teams`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const [sbData, resultsData, teamsData, regsData] = await Promise.all([
+        sbRes.json(), resRes.json(), teamsRes.json(), regRes.json()
+      ]);
+
+      const profile = sbData.find((entry: any) => entry.participantId === p.id);
+      const participantResults = resultsData.filter((r: any) => r.participantId === p.id);
+      const joinedTeams = teamsData.filter((t: any) => t.memberIds && t.memberIds.includes(p.id));
+
+      const userReg = regsData.find((r: any) => r.participantId === p.id);
+      const indCompIds: string[] = userReg?.selectedIndividualCompetitionIds || [];
+
+      // Calculate total registered events count (Individual + Group Teams)
+      const eventsCount = indCompIds.length + joinedTeams.length;
+
+      // Build complete breakdown list for both Individual & Group competitions
+      const breakdowns: any[] = [];
+
+      indCompIds.forEach(cId => {
+        const comp = competitions.find(c => c.id === cId);
+        const res = resultsData.find((r: any) => r.competitionId === cId && r.participantId === p.id && r.publishedStatus && !r.deletedAt);
+        breakdowns.push({
+          id: `ind_${cId}`,
+          compName: comp ? comp.name : 'Individual Competition',
+          type: 'Individual Event',
+          stageType: comp ? comp.stageType : 'on_stage',
+          result: res
+        });
       });
-      const teamsData = await teamsRes.json();
-      const joinedTeams = teamsData.filter((t: any) => t.memberIds.includes(p.id));
+
+      joinedTeams.forEach(t => {
+        const comp = competitions.find(c => c.id === t.competitionId);
+        const res = resultsData.find((r: any) => r.competitionId === t.competitionId && r.teamId === t.id && r.publishedStatus && !r.deletedAt);
+        breakdowns.push({
+          id: `grp_${t.id}`,
+          compName: comp ? comp.name : (t.teamName || 'Group Event'),
+          type: 'Group Event',
+          stageType: comp ? comp.stageType : 'on_stage',
+          result: res
+        });
+      });
 
       setPartProfile({
         scoreboard: profile || { totalEvents: 0, overallMarks: 0, individualMarks: 0, groupMarks: 0, rank: 'N/A', placements: [] },
         results: participantResults,
-        teams: joinedTeams
+        teams: joinedTeams,
+        eventsCount,
+        breakdowns
       });
     } catch (e) {
       console.error(e);
@@ -258,7 +336,7 @@ export default function ParticipantsView({ user, token }: ParticipantsViewProps)
               onChange={(e) => setSelectedUnitId(e.target.value)}
               className="px-3 py-2 border border-slate-300 rounded-xl text-slate-700 focus:outline-none text-xs font-semibold bg-slate-50"
             >
-              <option value="">All Units</option>
+              <option value="">All {entityLabelPlural}</option>
               {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           )}
@@ -276,14 +354,67 @@ export default function ParticipantsView({ user, token }: ParticipantsViewProps)
           </select>
           
           <button 
+            onClick={() => setShowBulkModal(true)} 
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Bulk Import CSV/Excel
+          </button>
+
+          <button 
             onClick={() => window.print()} 
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold shadow-sm transition-all border border-slate-200"
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-bold shadow-sm transition-all border border-slate-200 cursor-pointer"
           >
             <Printer className="h-4 w-4" />
             Print List
           </button>
         </div>
       </div>
+
+      {/* Bulk Import Modal */}
+      {showBulkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 border border-slate-200">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                <span>Bulk Import Participants (CSV / Excel)</span>
+              </h3>
+              <button onClick={() => setShowBulkModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-emerald-50 text-emerald-800 rounded-2xl text-xs space-y-1 border border-emerald-200">
+              <p className="font-bold">Format: One participant per line (CSV format):</p>
+              <p className="font-mono text-[11px]">Full Name, Category, Unit/House, Date of Birth (YYYY-MM-DD), Gender (Male/Female)</p>
+              <p className="text-[10px] text-emerald-700 mt-1">Example: Muhammad Raihan, Junior, Red House, 2008-04-15, Male</p>
+            </div>
+
+            <textarea
+              rows={8}
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+              placeholder="Paste CSV lines here..."
+              className="w-full p-3 border border-slate-300 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            />
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <button onClick={() => setShowBulkModal(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkImport}
+                disabled={importingBulk || !bulkText.trim()}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow"
+              >
+                {importingBulk ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+                Import Participants Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Participants List */}
       <div>
@@ -314,7 +445,7 @@ export default function ParticipantsView({ user, token }: ParticipantsViewProps)
 
                   <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 text-xs">
                     <div className="text-slate-500">
-                      Unit: <span className="font-semibold text-slate-700">{unit ? unit.name : 'Unknown'}</span>
+                      {entityLabel}: <span className="font-semibold text-slate-700">{unit ? unit.name : 'Unknown'}</span>
                     </div>
                     <div className="text-slate-400 font-mono text-[11px]">
                       DOB: {p.dob}
@@ -367,13 +498,30 @@ export default function ParticipantsView({ user, token }: ParticipantsViewProps)
 
         {/* Desktop Table View */}
         <div className="hidden md:block print:block print-sheet bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden print:shadow-none print:border-none print:overflow-visible">
+          
+          <div className="hidden print:flex items-center justify-between pb-6 border-b border-dashed border-slate-300 mb-8">
+            <div className="flex-shrink-0 w-32 flex justify-start">
+              {eventSettings?.logoUrl && (
+                <img src={eventSettings.logoUrl} alt="Festival Logo" className="max-h-24 object-contain" />
+              )}
+            </div>
+            <div className="flex flex-col items-center text-center flex-1">
+              <span className="font-display font-extrabold text-2xl tracking-wider text-slate-900 uppercase">{eventSettings?.festivalName?.toUpperCase() || 'FESTIVAL'} 2026</span>
+              <span className="font-mono text-xs font-semibold text-emerald-700 tracking-widest uppercase mt-1">{eventSettings?.campusName?.toUpperCase() || 'CAMPUS'} COMMITTEE</span>
+              <h1 className="text-xl font-bold text-center mt-4 uppercase">
+                Candidates Registry
+              </h1>
+            </div>
+            <div className="flex-shrink-0 w-32"></div>
+          </div>
+
           <div className="overflow-x-auto print:overflow-visible">
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50 font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4 text-left">Chest No</th>
                   <th className="px-6 py-4 text-left">Candidate</th>
-                  <th className="px-6 py-4 text-left">Unit</th>
+                  <th className="px-6 py-4 text-left">{entityLabel}</th>
                   <th className="px-6 py-4 text-left">Category</th>
                   <th className="px-6 py-4 text-left">DOB</th>
                   <th className="px-6 py-4 text-center print:hidden">Actions</th>
@@ -485,7 +633,11 @@ export default function ParticipantsView({ user, token }: ParticipantsViewProps)
                   <div className="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/50">
                     <div className="text-center">
                       <span className="text-[10px] font-bold text-slate-400 block uppercase font-mono">Rank Spot</span>
-                      <span className="text-base font-extrabold text-emerald-700 mt-1 block">#{partProfile?.scoreboard?.rank || 'N/A'}</span>
+                      <span className="text-base font-extrabold text-emerald-700 mt-1 block">
+                        {partProfile?.scoreboard?.overallMarks > 0 && partProfile?.scoreboard?.rank && partProfile.scoreboard.rank !== 'N/A'
+                          ? `#${partProfile.scoreboard.rank}`
+                          : '—'}
+                      </span>
                     </div>
                     <div className="text-center border-x border-slate-200">
                       <span className="text-[10px] font-bold text-slate-400 block uppercase font-mono">Total Score</span>
@@ -493,7 +645,7 @@ export default function ParticipantsView({ user, token }: ParticipantsViewProps)
                     </div>
                     <div className="text-center">
                       <span className="text-[10px] font-bold text-slate-400 block uppercase font-mono">Events count</span>
-                      <span className="text-base font-extrabold text-amber-600 mt-1 block">{partProfile?.scoreboard?.totalEvents || 0}</span>
+                      <span className="text-base font-extrabold text-amber-600 mt-1 block">{partProfile?.eventsCount ?? (partProfile?.scoreboard?.totalEvents || 0)}</span>
                     </div>
                   </div>
 
@@ -501,21 +653,19 @@ export default function ParticipantsView({ user, token }: ParticipantsViewProps)
                   <div className="space-y-3">
                     <h4 className="font-display font-bold text-slate-800 text-sm">Competition Breakdowns</h4>
                     <ul className="space-y-2 divide-y divide-slate-100">
-                      {partProfile?.scoreboard?.placements?.map((pObj: any) => {
-                        const comp = competitions.find(c => c.id === pObj.compId);
-                        const result = partProfile?.results?.find((r: any) => r.competitionId === pObj.compId);
-                        return (
-                          <li key={pObj.compId} className="pt-2.5 flex justify-between items-center text-xs">
+                      {partProfile?.breakdowns && partProfile.breakdowns.length > 0 ? (
+                        partProfile.breakdowns.map((item: any) => (
+                          <li key={item.id} className="pt-2.5 flex justify-between items-center text-xs">
                             <div>
-                              <span className="font-semibold text-slate-800 block">{comp ? comp.name : 'Unknown'}</span>
-                              <span className="text-[10px] font-mono text-slate-400 mt-0.5 block">{pObj.type} Event • {comp?.stageType.replace('_', ' ')}</span>
+                              <span className="font-semibold text-slate-800 block">{item.compName}</span>
+                              <span className="text-[10px] font-mono text-slate-400 mt-0.5 block">{item.type} • {(item.stageType || 'on_stage').replace('_', ' ')}</span>
                             </div>
                             <div className="text-right">
-                              {result ? (
+                              {item.result ? (
                                 <>
-                                  <span className="font-bold text-emerald-600 block">{result.totalMark} marks</span>
+                                  <span className="font-bold text-emerald-600 block">{item.result.totalMark} marks</span>
                                   <span className="text-[9px] font-mono bg-emerald-50 text-emerald-700 border px-1.5 py-0.5 rounded uppercase font-bold">
-                                    Rank {result.rank || 'TBD'}
+                                    Rank {item.result.rank || 'TBD'}
                                   </span>
                                 </>
                               ) : (
@@ -523,8 +673,10 @@ export default function ParticipantsView({ user, token }: ParticipantsViewProps)
                               )}
                             </div>
                           </li>
-                        );
-                      })}
+                        ))
+                      ) : (
+                        <li className="py-3 text-center text-xs font-mono text-slate-400">No competitions registered for this candidate yet.</li>
+                      )}
                     </ul>
                   </div>
 

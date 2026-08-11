@@ -35,10 +35,10 @@ export default function Header({ user, activeTab, setMobileOpen, eventSettings, 
       case 'competitions': return 'Competitions Master';
       case 'results': return 'Competition Result Entry';
       case 'scoreboard': return 'Individual Scores Scoreboard';
-      case 'standings': return 'Unit Standings & Rankings';
+      case 'standings': return `${eventSettings?.entityLabel || 'Unit'} Standings & Rankings`;
       case 'reports': return 'Printable Reports & CSV Exports';
       case 'users': return 'User Account Configuration';
-      case 'settings': return 'System Settings & Config';
+      case 'settings': return 'CMS Portal & System Config';
       default: return 'Management Console';
     }
   };
@@ -59,7 +59,7 @@ export default function Header({ user, activeTab, setMobileOpen, eventSettings, 
             {getTabTitle(activeTab)}
           </h1>
           <span className="hidden sm:inline-block text-[10px] font-semibold text-slate-400 mt-0.5 tracking-wider uppercase font-mono">
-            {eventSettings?.sectorName || 'Ninthikal Sector'} • {eventSettings?.eventTitle}
+            {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'} • {eventSettings?.festivalName || eventSettings?.eventTitle || 'Sahityotsav'}
           </span>
         </div>
       </div>

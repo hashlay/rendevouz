@@ -132,16 +132,29 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         {/* Beautiful layout showing logos side-by-side */}
         <div className="flex justify-center items-center gap-6 mb-6">
-          <SSFLogo className="h-16 w-16 text-emerald-600 shrink-0" showText={false} />
+          {eventSettings?.ssfLogoUrl ? (
+            <img 
+              src={eventSettings.ssfLogoUrl} 
+              alt="Festival Logo" 
+              className="h-16 w-16 object-contain shrink-0" 
+              onError={(e) => (e.currentTarget.style.display = 'none')}
+            />
+          ) : (
+            <SSFLogo className="h-16 w-16 text-emerald-600 shrink-0" showText={false} />
+          )}
           <div className="h-12 w-px bg-slate-300" />
           <div className="flex flex-col items-start">
-            <span className="font-display font-bold text-emerald-800 text-xl tracking-tight leading-none">SAHITYOTSAV</span>
-            <span className="text-amber-600 font-mono text-xs font-semibold tracking-widest mt-1">NINTHIKAL SECTOR</span>
+            <span className="font-display font-bold text-emerald-800 text-xl tracking-tight leading-none uppercase">
+              {eventSettings?.festivalName || 'SAHITYOTSAV'}
+            </span>
+            <span className="text-amber-600 font-mono text-xs font-semibold tracking-widest mt-1 uppercase">
+              {eventSettings?.campusName || eventSettings?.sectorName || 'CAMPUS'}
+            </span>
           </div>
         </div>
 
         <h2 className="font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          {eventSettings?.eventTitle || "SSF Ninthikal Sector Sahityotsav"}
+          {eventSettings?.eventTitle || eventSettings?.festivalName || "Sahityotsav"}
         </h2>
         <p className="mt-2 text-sm text-slate-600 font-sans">
           Festival Management System • {eventSettings?.eventYear || '2026'}
@@ -293,7 +306,7 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
         </span>
       </div>
 
-      <Footer />
+      <Footer eventSettings={eventSettings} />
     </div>
   );
 }

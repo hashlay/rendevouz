@@ -7,9 +7,13 @@ import { User, UserRole } from '../types';
 interface StandingsViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
-export default function StandingsView({ user, token }: StandingsViewProps) {
+export default function StandingsView({ user, token, eventSettings }: StandingsViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
+  const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
+
   const [standings, setStandings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +46,7 @@ export default function StandingsView({ user, token }: StandingsViewProps) {
     return (
       <div className="flex flex-col items-center justify-center p-12 min-h-[50vh]">
         <RefreshCw className="h-10 w-10 text-emerald-600 animate-spin mb-4" />
-        <span className="text-slate-500 font-mono text-xs">Loading unit standings...</span>
+        <span className="text-slate-500 font-mono text-xs">Loading {entityLabel.toLowerCase()} standings...</span>
       </div>
     );
   }
@@ -53,11 +57,6 @@ export default function StandingsView({ user, token }: StandingsViewProps) {
       {/* 1. Visual Bento Standings Card lists */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {standings.slice(0, 3).map((unit, index) => {
-          const medalColors = [
-            'from-amber-400 to-amber-500 text-slate-950 shadow-amber-500/10 border-amber-300',
-            'from-slate-200 to-slate-300 text-slate-800 border-slate-200',
-            'from-orange-200 to-orange-300 text-orange-950 border-orange-200'
-          ];
           return (
             <div 
               key={unit.unitId} 
@@ -77,7 +76,7 @@ export default function StandingsView({ user, token }: StandingsViewProps) {
                 </div>
 
                 <div className="mt-5">
-                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest block">Sector Unit</span>
+                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest block">Campus {entityLabel}</span>
                   <h3 className={`font-display font-extrabold text-xl md:text-2xl mt-1 truncate ${index === 0 ? 'text-white' : 'text-slate-800'}`}>
                     {unit.unitName}
                   </h3>
@@ -108,7 +107,7 @@ export default function StandingsView({ user, token }: StandingsViewProps) {
         {/* Mobile card list layout */}
         <div className="block md:hidden space-y-3">
           <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex justify-between items-center text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">
-            <span>Unit Standings</span>
+            <span>{entityLabel} Standings</span>
             <span>Sorted by Points</span>
           </div>
           {standings.map((row, index) => {
@@ -168,11 +167,8 @@ export default function StandingsView({ user, token }: StandingsViewProps) {
           <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
             <div className="flex items-center gap-2">
               <BarChart2 className="h-5 w-5 text-emerald-600" />
-              <h4 className="font-display font-bold text-slate-800 text-base">Unit Standings Registry</h4>
+              <h4 className="font-display font-bold text-slate-800 text-base">{entityLabel} Standings Registry</h4>
             </div>
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-              Sorted by Points (1st=20, 2nd=14, 3rd=7, 4th-7th=4)
-            </span>
           </div>
 
           <div className="overflow-x-auto">
@@ -180,8 +176,8 @@ export default function StandingsView({ user, token }: StandingsViewProps) {
               <thead className="bg-slate-50 font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4 text-left">Standing</th>
-                  <th className="px-6 py-4 text-left">Unit Code</th>
-                  <th className="px-6 py-4 text-left">Unit Name</th>
+                  <th className="px-6 py-4 text-left">{entityLabel} Code</th>
+                  <th className="px-6 py-4 text-left">{entityLabel} Name</th>
                   <th className="px-6 py-4 text-center">Medal Tally (R1 - R2 - R3 - R4-7)</th>
                   <th className="px-6 py-4 text-right">Raw Marks</th>
                   <th className="px-6 py-4 text-right">Official Points</th>

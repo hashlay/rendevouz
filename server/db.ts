@@ -401,25 +401,52 @@ function ensureDbExists() {
   console.log("Database initialized and seeded successfully");
 }
 
+// ============================================================
+// HIGH-PERFORMANCE SAVE ENGINE
+// ============================================================
+
+let _mongoSyncTimer: ReturnType<typeof setTimeout> | null = null;
+const MONGO_SYNC_DEBOUNCE_MS = 2000; // Batch MongoDB writes every 2s
+
+function _syncMongoNow() {
+  if (isMongoConnected && mongoCollection) {
+    mongoCollection.updateOne(
+      { _id: 'global_state' as any },
+      { $set: db },
+      { upsert: true }
+    ).catch(e => console.error("MongoDB sync error:", e));
+  }
+}
+
+function _scheduleMongSync() {
+  if (_mongoSyncTimer) clearTimeout(_mongoSyncTimer);
+  _mongoSyncTimer = setTimeout(() => {
+    _mongoSyncTimer = null;
+    _syncMongoNow();
+  }, MONGO_SYNC_DEBOUNCE_MS);
+}
+
 export async function saveDb() {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
-  } catch (e) {
-    console.error("Failed to write to database file", e);
+  // Truncate logs in memory (fast, no I/O)
+  if (db.auditLogs && db.auditLogs.length > 500) {
+    db.auditLogs = db.auditLogs.slice(-500);
   }
-  
-  try {
-    // Sync with MongoDB if connected
-    if (isMongoConnected && mongoCollection) {
-      await mongoCollection.updateOne(
-        { _id: 'global_state' as any },
-        { $set: db },
-        { upsert: true }
-      );
-    }
-  } catch (e) {
-    console.error("Failed to sync to MongoDB", e);
+  if (db.loginAudits && db.loginAudits.length > 500) {
+    db.loginAudits = db.loginAudits.slice(-500);
   }
+
+  // Write to local file (compact JSON, non-blocking)
+  try {
+    const data = JSON.stringify(db);
+    fs.writeFile(DB_FILE, data, 'utf-8', (err) => {
+      if (err) console.error("Failed to write db file:", err);
+    });
+  } catch (e) {
+    console.error("Failed to serialize database", e);
+  }
+
+  // Schedule a debounced MongoDB sync (non-blocking)
+  _scheduleMongSync();
 }
 
 // Initialize on import
@@ -456,7 +483,7 @@ export const dbClient = {
     await saveDb();
   },
 
-  // Audit helper
+  // Audit helper — appends log to memory only (caller must call save() after)
   logAudit: async (actorId: string | undefined, actorUsername: string | undefined, actorRole: string | undefined, action: string, entityType: string, entityId: string, assignedUnitId?: string, previousData?: any, newData?: any) => {
     const log: AuditLog = {
       id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
@@ -471,8 +498,7 @@ export const dbClient = {
       newData: newData ? JSON.stringify(newData) : undefined,
       timestamp: new Date().toISOString()
     };
-    db.auditLogs.unshift(log); // newest first
-    await saveDb();
+    db.auditLogs.unshift(log); // newest first — memory only, fast
     return log;
   }
 };

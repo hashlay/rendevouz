@@ -2,15 +2,19 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
+import compression from 'compression';
 import path from 'path';
 import { apiRouter } from './server/routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Security headers & parsers
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Enable gzip compression for all responses (huge speed boost for JSON APIs)
+app.use(compression());
+
+// Security headers & parsers with 50mb limit for gallery Base64 logo uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Request logs
 app.use((req, res, next) => {

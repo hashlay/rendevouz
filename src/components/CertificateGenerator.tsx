@@ -5,6 +5,9 @@ interface CertificateGeneratorProps {
   participantNames: string[];
   competitionName: string;
   rank: number;
+  eventSettings?: any;
+  user: any;
+  token: string;
   onClose: () => void;
 }
 
@@ -12,39 +15,61 @@ export default function CertificateGenerator({
   participantNames,
   competitionName,
   rank,
+  eventSettings,
+  user,
+  token,
   onClose
 }: CertificateGeneratorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   
+  const [dragging, setDragging] = useState<'name' | 'comp' | null>(null);
+  const lastMousePos = useRef<{x: number, y: number} | null>(null);
+  
   // Customization state
-  const [nameX, setNameX] = useState(rank === 1 ? -151 : -125);
-  const [nameY, setNameY] = useState(rank === 1 ? 461 : 461);
-  const [compX, setCompX] = useState(rank === 1 ? -37 : -30);
-  const [compY, setCompY] = useState(rank === 1 ? 553 : 553);
-  const [nameSize, setNameSize] = useState(rank === 1 ? 33 : 33);
-  const [compSize, setCompSize] = useState(rank === 1 ? 25 : 25);
+  const templateConfig = eventSettings?.certificateTemplateConfig?.[rank] || {};
+  const [nameX, setNameX] = useState(templateConfig.nameX ?? (rank === 1 ? -151 : -125));
+  const [nameY, setNameY] = useState(templateConfig.nameY ?? (rank === 1 ? 461 : 461));
+  const [compX, setCompX] = useState(templateConfig.compX ?? (rank === 1 ? -37 : -30));
+  const [compY, setCompY] = useState(templateConfig.compY ?? (rank === 1 ? 553 : 553));
+  const [nameSize, setNameSize] = useState(templateConfig.nameSize ?? (rank === 1 ? 33 : 33));
+  const [compSize, setCompSize] = useState(templateConfig.compSize ?? (rank === 1 ? 25 : 25));
   
   // Base on rank, pick default colors
-  // 1st place has a red/burgundy theme. 2nd place uses black text.
-  const defaultColor = rank === 1 ? '#cc0000' : '#000000'; // Red for 1st, Black for 2nd
+  // 1st place has a red/burgundy theme. 2nd and 3rd place use black text.
+  const defaultColor = rank === 1 ? '#cc0000' : '#000000';
   
-  const [nameColor, setNameColor] = useState(defaultColor);
-  const [compColor, setCompColor] = useState(defaultColor);
+  const [nameColor, setNameColor] = useState(templateConfig.nameColor ?? defaultColor);
+  const [compColor, setCompColor] = useState(templateConfig.compColor ?? defaultColor);
+  
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   const [imageLoaded, setImageLoaded] = useState(false);
   const templateImgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const img = new Image();
-    // 1st place -> certificate_1.jpg
-    // 2nd place -> certificate_2.jpg
-    img.src = rank === 1 ? '/certificate_1.jpg' : '/certificate_2.jpg';
+    // 1st place -> certTheme1Url || /certificate_1.jpg
+    // 2nd place -> certTheme2Url || /certificate_2.jpg
+    // 3rd place -> certTheme3Url || /certificate_3.jpg || /certificate_2.jpg
+    const customUrl = rank === 1 
+      ? eventSettings?.certTheme1Url 
+      : rank === 2 
+        ? eventSettings?.certTheme2Url 
+        : eventSettings?.certTheme3Url;
+
+    const fallbackUrl = rank === 1 ? '/certificate_1.jpg' : '/certificate_2.jpg';
+    img.src = customUrl || fallbackUrl;
+
     img.onload = () => {
       templateImgRef.current = img;
       setImageLoaded(true);
     };
-  }, [rank]);
+    img.onerror = () => {
+      // Fallback if custom URL fails to load
+      img.src = fallbackUrl;
+    };
+  }, [rank, eventSettings]);
 
   const drawCertificate = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, pName: string) => {
     // Set canvas size to match image resolution exactly for high quality
@@ -79,6 +104,90 @@ export default function CertificateGenerator({
       drawCertificate(ctx, templateImgRef.current, participantNames[currentIndex]);
     }
   }, [imageLoaded, nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, participantNames, currentIndex, competitionName]);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !templateImgRef.current) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Convert to image coordinates
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const imgX = x * scaleX;
+    const imgY = y * scaleY;
+    
+    const centerX = templateImgRef.current.width / 2;
+    
+    // Hit test approx
+    const nameHit = Math.abs(imgX - (centerX + nameX)) < 300 && imgY > nameY - nameSize - 20 && imgY < nameY + 20;
+    const compHit = Math.abs(imgX - (centerX + compX)) < 300 && imgY > compY - compSize - 20 && imgY < compY + 20;
+    
+    if (nameHit) {
+      setDragging('name');
+      lastMousePos.current = { x: imgX, y: imgY };
+    } else if (compHit) {
+      setDragging('comp');
+      lastMousePos.current = { x: imgX, y: imgY };
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!dragging || !lastMousePos.current || !templateImgRef.current || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const imgX = (e.clientX - rect.left) * scaleX;
+    const imgY = (e.clientY - rect.top) * scaleY;
+    
+    const dx = imgX - lastMousePos.current.x;
+    const dy = imgY - lastMousePos.current.y;
+    
+    if (dragging === 'name') {
+      setNameX(prev => Math.round(prev + dx));
+      setNameY(prev => Math.round(prev + dy));
+    } else if (dragging === 'comp') {
+      setCompX(prev => Math.round(prev + dx));
+      setCompY(prev => Math.round(prev + dy));
+    }
+    
+    lastMousePos.current = { x: imgX, y: imgY };
+  };
+
+  const handleMouseUp = () => {
+    setDragging(null);
+    lastMousePos.current = null;
+  };
+
+  const handleSaveTemplate = async () => {
+    setSavingTemplate(true);
+    try {
+      const currentConfig = eventSettings?.certificateTemplateConfig || {};
+      const newConfig = {
+        ...currentConfig,
+        [rank]: { nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor }
+      };
+      
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ certificateTemplateConfig: newConfig })
+      });
+      
+      if (!res.ok) throw new Error('Failed to save template configuration');
+      
+      alert(`Template settings for Rank ${rank} saved as default!`);
+    } catch (err: any) {
+      alert('Error saving template: ' + err.message);
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
 
   const handleDownload = () => {
     if (!canvasRef.current || !templateImgRef.current) return;
@@ -173,7 +282,11 @@ export default function CertificateGenerator({
             <div className="relative shadow-xl border border-slate-200 rounded-lg overflow-hidden bg-white max-w-full" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
               <canvas 
                 ref={canvasRef} 
-                className="w-full h-auto max-h-[70vh] object-contain"
+                className="w-full h-auto max-h-[70vh] object-contain cursor-move"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
               />
             </div>
           )}
@@ -338,6 +451,17 @@ export default function CertificateGenerator({
               <Download className="w-5 h-5" />
               {participantNames.length > 1 ? 'Download All JPGs' : 'Download JPG'}
             </button>
+            {user?.role === 'super_admin' && (
+              <button 
+                onClick={handleSaveTemplate}
+                disabled={savingTemplate}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-purple-600/20 disabled:opacity-50 mt-2"
+              >
+                <Settings2 className="w-5 h-5" />
+                {savingTemplate ? 'Saving...' : 'Save as Default Template'}
+              </button>
+            )}
+            
             <button 
               onClick={onClose}
               className="w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold transition-colors mt-2"

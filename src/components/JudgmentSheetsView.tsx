@@ -8,6 +8,7 @@ import { User, UserRole, JudgmentSheetStatus, JudgeScoreStatus } from '../types'
 interface JudgmentSheetsViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -24,7 +25,7 @@ const STATUS_LABELS: Record<string, string> = {
   locked: 'Locked'
 };
 
-export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewProps) {
+export default function JudgmentSheetsView({ user, token, eventSettings }: JudgmentSheetsViewProps) {
   const [sheets, setSheets] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [categories, setCategories] = useState<any[]>([]);
@@ -40,6 +41,9 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
   const [currentScores, setCurrentScores] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'dashboard' | 'generate' | 'enter' | 'print'>('dashboard');
   const [printType, setPrintType] = useState<'blank' | 'filled'>('blank');
+  
+  // Active Judge slot toggle (for judge users evaluating as Judge 1 or Judge 2)
+  const [activeJudgeNumber, setActiveJudgeNumber] = useState<number>(1);
 
   // Marks entry state
   const [savingScores, setSavingScores] = useState(false);
@@ -98,19 +102,61 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
         const data = await res.json();
         setCurrentSheet(data.sheet);
         setCurrentScores(data.scores);
+        if (data.sheet.assignedJudgeNumber) {
+          setActiveJudgeNumber(data.sheet.assignedJudgeNumber);
+        }
         setViewMode('enter');
       }
     } catch (e) { console.error(e); }
   };
 
+  const handleCriteriaChange = (scoreId: string, judgeNum: number, critKey: 'c1' | 'c2' | 'c3' | 'c4', value: string) => {
+    let numVal = parseFloat(value);
+    if (isNaN(numVal) || numVal < 0) numVal = 0;
+    if (numVal > 25) numVal = 25;
+
+    setCurrentScores(prev => prev.map(s => {
+      if (s.id !== scoreId) return s;
+
+      const newJudgeScores = [...s.judgeScores];
+      let jIdx = newJudgeScores.findIndex((j: any) => j.judgeNumber === judgeNum);
+
+      if (jIdx < 0) {
+        newJudgeScores.push({ judgeNumber: judgeNum, mark: 0 });
+        jIdx = newJudgeScores.length - 1;
+      }
+
+      const existingJm = { ...newJudgeScores[jIdx] };
+      existingJm[critKey] = numVal;
+
+      // Auto sum c1+c2+c3+c4 if entered
+      const c1 = existingJm.c1 || 0;
+      const c2 = existingJm.c2 || 0;
+      const c3 = existingJm.c3 || 0;
+      const c4 = existingJm.c4 || 0;
+
+      const autoSum = c1 + c2 + c3 + c4;
+      existingJm.mark = Math.min(Math.max(autoSum, 0), 100);
+
+      newJudgeScores[jIdx] = existingJm;
+
+      const validMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number');
+      const sumMarks = validMarks.reduce((sum, j) => sum + j.mark, 0);
+      const avg = validMarks.length > 0 ? sumMarks / validMarks.length : 0;
+
+      return {
+        ...s,
+        judgeScores: newJudgeScores,
+        totalMark: sumMarks,
+        averageMark: Math.round(avg * 100) / 100
+      };
+    }));
+  };
+
   const handleScoreChange = (scoreId: string, judgeNum: number, value: string) => {
     let numVal = parseFloat(value);
-    if (isNaN(numVal)) numVal = 0;
-
-    // Cap at max marks
-    if (currentSheet && numVal > currentSheet.maxMarks) {
-      numVal = currentSheet.maxMarks;
-    }
+    if (isNaN(numVal) || numVal < 0) numVal = 0;
+    if (numVal > 100) numVal = 100;
 
     setCurrentScores(prev => prev.map(s => {
       if (s.id !== scoreId) return s;
@@ -124,14 +170,15 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
         newJudgeScores.push({ judgeNumber: judgeNum, mark: numVal });
       }
 
-      // Calculate frontend totals for immediate feedback
-      const total = newJudgeScores.reduce((sum, j) => sum + j.mark, 0);
-      const avg = newJudgeScores.length > 0 ? total / newJudgeScores.length : 0;
+      // Calculate frontend total and average
+      const validMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number');
+      const sumMarks = validMarks.reduce((sum, j) => sum + j.mark, 0);
+      const avg = validMarks.length > 0 ? sumMarks / validMarks.length : 0;
 
       return {
         ...s,
         judgeScores: newJudgeScores,
-        totalMark: Math.round(total * 100) / 100,
+        totalMark: sumMarks,
         averageMark: Math.round(avg * 100) / 100
       };
     }));
@@ -226,6 +273,55 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
     }
   };
 
+  const handleLockAndPublish = async () => {
+    if (!currentSheet) return;
+    if (!confirm('Are you sure you want to lock and publish these results immediately? Scores will no longer be editable and results will be visible.')) return;
+
+    setSavingScores(true);
+    setMessage(null);
+    try {
+      // 1. Save scores
+      const payload = currentScores.map(s => ({
+        scoreId: s.id,
+        judgeScores: s.judgeScores,
+        status: s.status,
+        remarks: s.remarks
+      }));
+      const saveRes = await fetch(`/api/judgment-sheets/${currentSheet.id}/scores`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scores: payload })
+      });
+      if (!saveRes.ok) throw new Error((await saveRes.json()).error || 'Failed to save scores');
+
+      // 2. Lock sheet
+      const lockRes = await fetch(`/api/judgment-sheets/${currentSheet.id}/lock`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!lockRes.ok) throw new Error((await lockRes.json()).error || 'Failed to lock results');
+
+      // 3. Publish results
+      const pubRes = await fetch(`/api/judgment-sheets/${currentSheet.id}/calculate`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!pubRes.ok) throw new Error((await pubRes.json()).error || 'Failed to publish results');
+      
+      const data = await pubRes.json();
+      setMessage({ type: 'success', text: data.message });
+      loadSheet(currentSheet.id);
+      fetchData();
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e.message || 'Failed to lock and publish' });
+    } finally {
+      setSavingScores(false);
+    }
+  };
+
   const isJudge = user.role === UserRole.JUDGE;
   const isAdmin = user.role === UserRole.SUPER_ADMIN;
   const isResultManager = user.role === UserRole.RESULT_MANAGER;
@@ -249,9 +345,9 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
         {/* Print Header */}
         <div className="text-center mb-10">
           <div className="flex items-center justify-center mb-4">
-            <img src="/logos/sahityotsav-logo.png" alt="Sahityotsav" className="h-20 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <img src={eventSettings?.sahityotsavLogoUrl || '/logos/sahityotsav-logo.png'} alt="Sahityotsav" className="h-20 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           </div>
-          <h1 className="text-2xl font-normal text-slate-800">Sahityotsav</h1>
+          <h1 className="text-2xl font-normal text-slate-800">{eventSettings?.festivalName || 'Festival'}</h1>
           <h2 className="text-lg font-normal text-slate-600 mt-1">Judgement Sheet</h2>
         </div>
 
@@ -312,7 +408,7 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
         </div>
 
         <div className="mt-16 text-[11px] text-black flex justify-between">
-          <div>Copyright © 2026-2027 SSF Ninthikal Sector. All rights reserved.</div>
+          <div>Copyright © 2026-2027 {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'}. All rights reserved.</div>
           <div></div>
         </div>
 
@@ -428,8 +524,8 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
                         <td className="px-4 py-3">{s.numJudges}</td>
                         <td className="px-4 py-3">{s.scoresCount}</td>
                         <td className="px-4 py-3">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[s.status]}`}>
-                            {STATUS_LABELS[s.status]}
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${s.publishedToResults ? 'bg-purple-100 text-purple-700' : STATUS_COLORS[s.status]}`}>
+                            {s.publishedToResults ? 'Published' : STATUS_LABELS[s.status]}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -511,8 +607,8 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
               <p className="text-sm text-slate-500">{currentSheet.categoryName} • Max Marks: {currentSheet.maxMarks}</p>
             </div>
             <div className="flex gap-2 flex-wrap items-center">
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[currentSheet.status]}`}>
-                {STATUS_LABELS[currentSheet.status]}
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${currentSheet.publishedToResults ? 'bg-purple-100 text-purple-700' : STATUS_COLORS[currentSheet.status]}`}>
+                {currentSheet.publishedToResults ? 'Published' : STATUS_LABELS[currentSheet.status]}
               </span>
 
               <div className="relative group inline-block">
@@ -525,6 +621,16 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
                 </div>
               </div>
 
+              {isJudge && (
+                <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 shadow-sm">
+                  <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Evaluating as:</span>
+                  <span className="px-2.5 py-1 bg-indigo-600 text-white rounded font-mono font-bold text-xs flex items-center gap-1.5 shadow-inner">
+                    <Lock className="w-3 h-3 text-indigo-200" />
+                    Judge {activeJudgeNumber} (Locked to your account)
+                  </span>
+                </div>
+              )}
+
               {canEditScores && currentSheet.status !== JudgmentSheetStatus.LOCKED && (
                 <button onClick={handleSaveScores} disabled={savingScores} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition">
                   {savingScores ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -533,8 +639,9 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
               )}
 
               {canGenerate && currentSheet.status !== JudgmentSheetStatus.LOCKED && (
-                <button onClick={handleLockResults} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition">
-                  <Lock className="h-4 w-4" /> Lock Results
+                <button onClick={handleLockAndPublish} disabled={savingScores} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition shadow-sm">
+                  {savingScores ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                  Lock & Publish
                 </button>
               )}
 
@@ -552,6 +659,12 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
             </div>
           )}
 
+          {!isJudge && currentSheet.status !== JudgmentSheetStatus.LOCKED && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3 rounded-xl text-xs flex items-center gap-2 font-medium">
+              <span>⚡ <strong>Admin Review:</strong> Multiple judges enter marks in their portal. Below shows each judge's mark and the calculated <strong>Average Score</strong>. Once verified, click <strong>Lock Results</strong> and <strong>Publish to Results</strong>.</span>
+            </div>
+          )}
+
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -566,18 +679,37 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
                     )}
                     <th className="text-center px-3 py-3 font-semibold text-slate-600 w-28">Status</th>
 
-                    {[...Array(currentSheet.numJudges)].map((_, i) => (
-                      <th key={`h${i}`} className="text-center px-3 py-3 font-semibold text-slate-600 w-20">Judge {i + 1}</th>
-                    ))}
+                    {isJudge ? (
+                      <>
+                        <th className="text-center px-2 py-3 font-semibold text-slate-600 w-20">Crit 1 <span className="text-[9px] text-slate-400 font-normal block">(Max 25)</span></th>
+                        <th className="text-center px-2 py-3 font-semibold text-slate-600 w-20">Crit 2 <span className="text-[9px] text-slate-400 font-normal block">(Max 25)</span></th>
+                        <th className="text-center px-2 py-3 font-semibold text-slate-600 w-20">Crit 3 <span className="text-[9px] text-slate-400 font-normal block">(Max 25)</span></th>
+                        <th className="text-center px-2 py-3 font-semibold text-slate-600 w-20">Crit 4 <span className="text-[9px] text-slate-400 font-normal block">(Max 25)</span></th>
+                        <th className="text-center px-3 py-3 font-semibold text-indigo-900 bg-indigo-50/50 w-28">Total Mark <span className="text-[9px] text-indigo-600 font-normal block">(Max 100)</span></th>
+                      </>
+                    ) : (
+                      <>
+                        {[...Array(currentSheet.numJudges)].map((_, i) => (
+                          <th key={`h${i}`} className="text-center px-3 py-3 font-semibold text-slate-600 w-24">Judge {i + 1}</th>
+                        ))}
+                        <th className="text-center px-3 py-3 font-semibold text-slate-600 w-24">Avg Mark</th>
+                      </>
+                    )}
 
-                    <th className="text-center px-3 py-3 font-semibold text-slate-600 w-20">Total</th>
-                    <th className="text-center px-3 py-3 font-semibold text-slate-600 w-16">Rank</th>
+                    {!isJudge && (
+                      <th className="text-center px-3 py-3 font-semibold text-slate-600 w-16">Rank</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
-                  {currentScores.map((s: any) => {
+                  {currentScores.map((s: any, sIdx: number) => {
                     const isParticipated = s.status === JudgeScoreStatus.PARTICIPATED;
                     const isLocked = currentSheet.status === JudgmentSheetStatus.LOCKED;
+                    
+                    // Judge slot entry (dynamic based on activeJudgeNumber selection)
+                    const judgeSlotNum = activeJudgeNumber;
+                    const activeJudgeEntry = s.judgeScores.find((x: any) => x.judgeNumber === judgeSlotNum);
+
                     return (
                       <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
                         <td className="px-3 py-2 text-center">
@@ -607,34 +739,104 @@ export default function JudgmentSheetsView({ user, token }: JudgmentSheetsViewPr
                           </select>
                         </td>
 
-                        {[...Array(currentSheet.numJudges)].map((_, i) => {
-                          const jm = s.judgeScores.find((x: any) => x.judgeNumber === i + 1);
-                          return (
-                            <td key={`j${i}`} className="px-2 py-2 text-center">
+                        {isJudge ? (
+                          <>
+                            <td className="px-1 py-2 text-center">
                               <input
                                 type="number"
                                 min="0"
-                                max={currentSheet.maxMarks}
-                                value={jm?.mark ?? ''}
-                                onChange={(e) => handleScoreChange(s.id, i + 1, e.target.value)}
+                                max="25"
+                                value={activeJudgeEntry?.c1 ?? ''}
+                                onChange={(e) => handleCriteriaChange(s.id, judgeSlotNum, 'c1', e.target.value)}
                                 disabled={isLocked || !canEditScores || !isParticipated}
-                                className="w-16 px-2 py-1.5 text-center border border-slate-300 rounded font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                                placeholder="0-25"
+                                className="w-14 px-1.5 py-1 text-center border border-slate-300 rounded font-mono font-medium text-xs focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100"
                               />
                             </td>
-                          );
-                        })}
+                            <td className="px-1 py-2 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                max="25"
+                                value={activeJudgeEntry?.c2 ?? ''}
+                                onChange={(e) => handleCriteriaChange(s.id, judgeSlotNum, 'c2', e.target.value)}
+                                disabled={isLocked || !canEditScores || !isParticipated}
+                                placeholder="0-25"
+                                className="w-14 px-1.5 py-1 text-center border border-slate-300 rounded font-mono font-medium text-xs focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100"
+                              />
+                            </td>
+                            <td className="px-1 py-2 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                max="25"
+                                value={activeJudgeEntry?.c3 ?? ''}
+                                onChange={(e) => handleCriteriaChange(s.id, judgeSlotNum, 'c3', e.target.value)}
+                                disabled={isLocked || !canEditScores || !isParticipated}
+                                placeholder="0-25"
+                                className="w-14 px-1.5 py-1 text-center border border-slate-300 rounded font-mono font-medium text-xs focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100"
+                              />
+                            </td>
+                            <td className="px-1 py-2 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                max="25"
+                                value={activeJudgeEntry?.c4 ?? ''}
+                                onChange={(e) => handleCriteriaChange(s.id, judgeSlotNum, 'c4', e.target.value)}
+                                disabled={isLocked || !canEditScores || !isParticipated}
+                                placeholder="0-25"
+                                className="w-14 px-1.5 py-1 text-center border border-slate-300 rounded font-mono font-medium text-xs focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100"
+                              />
+                            </td>
+                            <td className="px-2 py-2 text-center bg-indigo-50/30">
+                              <input
+                                id={`input-judge-${judgeSlotNum}-score-${sIdx}`}
+                                type="number"
+                                min="0"
+                                max={currentSheet.maxMarks}
+                                value={activeJudgeEntry?.mark ?? ''}
+                                onChange={(e) => handleScoreChange(s.id, judgeSlotNum, e.target.value)}
+                                disabled={isLocked || !canEditScores || !isParticipated}
+                                placeholder="0-100"
+                                className="w-20 px-2 py-2 text-center border-2 border-indigo-300 focus:border-indigo-600 bg-white rounded-xl font-mono font-bold text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500 shadow-inner"
+                              />
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            {[...Array(currentSheet.numJudges)].map((_, i) => {
+                              const jm = s.judgeScores.find((x: any) => x.judgeNumber === i + 1);
+                              return (
+                                <td key={`j${i}`} className="px-2 py-2 text-center">
+                                  <input
+                                    id={`input-judge-${i + 1}-score-${sIdx}`}
+                                    type="number"
+                                    min="0"
+                                    max={currentSheet.maxMarks}
+                                    value={jm?.mark ?? ''}
+                                    onChange={(e) => handleScoreChange(s.id, i + 1, e.target.value)}
+                                    disabled={isLocked || !canEditScores || !isParticipated}
+                                    className="w-16 px-2 py-1.5 text-center border border-slate-300 rounded font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                                  />
+                                </td>
+                              );
+                            })}
+                            <td className="px-3 py-2 text-center">
+                              <div className="font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded">
+                                {!isParticipated ? '—' : (s.averageMark || '0')}
+                              </div>
+                            </td>
+                          </>
+                        )}
 
-                        <td className="px-3 py-2 text-center">
-                          <div className="font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded">
-                            {!isParticipated ? '—' : (s.totalMark || '0')}
-                          </div>
-                        </td>
-
-                        <td className="px-3 py-2 text-center">
-                          <div className={`font-bold text-lg ${s.rank === 1 ? 'text-amber-500' : s.rank === 2 ? 'text-slate-400' : s.rank === 3 ? 'text-amber-700' : 'text-slate-600'}`}>
-                            {s.rank || '-'}
-                          </div>
-                        </td>
+                        {!isJudge && (
+                          <td className="px-3 py-2 text-center">
+                            <div className={`font-bold text-lg ${s.rank === 1 ? 'text-amber-500' : s.rank === 2 ? 'text-slate-400' : s.rank === 3 ? 'text-amber-700' : 'text-slate-600'}`}>
+                              {s.rank || '-'}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

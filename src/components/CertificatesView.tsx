@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { FileBadge, Search, Filter, RefreshCw } from 'lucide-react';
+import { FileBadge, Search, Filter, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { UserRole, Category, Unit, Participant, Competition, Result, Team } from '../types';
 import CertificateGenerator from './CertificateGenerator';
 
 interface CertificatesViewProps {
   user: any;
   token: string;
+  eventSettings?: any;
 }
 
-export default function CertificatesView({ user, token }: CertificatesViewProps) {
+export default function CertificatesView({ user, token, eventSettings }: CertificatesViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
   const [results, setResults] = useState<Result[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -71,6 +73,26 @@ export default function CertificatesView({ user, token }: CertificatesViewProps)
         return <span className="px-2 py-1 bg-orange-100 text-orange-700 font-bold text-[10px] rounded uppercase tracking-wider border border-orange-200">3rd Place</span>;
       default:
         return null;
+    }
+  };
+
+  const togglePublish = async (resultId: string, currentStatus: boolean) => {
+    try {
+      const res = await fetch(`/api/results/${resultId}/publish-certificate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ published: !currentStatus })
+      });
+      if (res.ok) {
+        setResults(prev => prev.map(r => r.id === resultId ? { ...r, certificatePublished: !currentStatus } : r));
+      } else {
+        alert('Failed to update status');
+      }
+    } catch (e) {
+      alert('Network error');
     }
   };
 
@@ -207,16 +229,29 @@ export default function CertificatesView({ user, token }: CertificatesViewProps)
                                     {winnerName}
                                   </p>
                                   <p className="text-[10px] text-slate-500 font-medium mt-1 truncate">
-                                    Unit: {winnerUnitName}
+                                    {entityLabel}: {winnerUnitName}
                                   </p>
                                 </div>
-                                <button 
-                                  onClick={() => setSelectedCertificate({ names: certNames.length > 0 ? certNames : [winnerName], comp: comp.name, rank: res.rank as number })}
-                                  className="mt-4 w-full flex items-center justify-center gap-2 py-2 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 rounded-lg text-xs font-bold transition-colors"
-                                >
-                                  <FileBadge className="w-4 h-4" />
-                                  Generate Certificate
-                                </button>
+                                <div className="mt-4 flex gap-2">
+                                  <button 
+                                    onClick={() => setSelectedCertificate({ names: certNames.length > 0 ? certNames : [winnerName], comp: comp.name, rank: res.rank as number })}
+                                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 rounded-lg text-xs font-bold transition-colors"
+                                  >
+                                    <FileBadge className="w-4 h-4" />
+                                    Generate
+                                  </button>
+                                  <button 
+                                    onClick={() => togglePublish(res.id, !!res.certificatePublished)}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 border rounded-lg text-xs font-bold transition-colors ${
+                                      res.certificatePublished 
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
+                                        : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                    title={res.certificatePublished ? "Unpublish from participant portal" : "Publish to participant portal"}
+                                  >
+                                    {res.certificatePublished ? <><Eye className="w-4 h-4" /> Published</> : <><EyeOff className="w-4 h-4" /> Hidden</>}
+                                  </button>
+                                </div>
                               </div>
                             );
                           })}
@@ -245,6 +280,9 @@ export default function CertificatesView({ user, token }: CertificatesViewProps)
           participantNames={selectedCertificate.names}
           competitionName={selectedCertificate.comp}
           rank={selectedCertificate.rank}
+          eventSettings={eventSettings}
+          user={user}
+          token={token}
           onClose={() => setSelectedCertificate(null)}
         />
       )}

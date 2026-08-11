@@ -5,9 +5,12 @@ import { UserRole, Category, Unit, Participant, Competition, Result, Team, Parti
 interface AnnouncedResultsViewProps {
   user: any;
   token: string;
+  eventSettings?: any;
 }
 
-export default function AnnouncedResultsView({ user, token }: AnnouncedResultsViewProps) {
+export default function AnnouncedResultsView({ user, token, eventSettings }: AnnouncedResultsViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
+  const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
   const [results, setResults] = useState<Result[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -151,7 +154,7 @@ export default function AnnouncedResultsView({ user, token }: AnnouncedResultsVi
           </div>
           <div>
             <h1 className="text-xl font-display font-extrabold text-slate-900 tracking-tight">Announced Results</h1>
-            <p className="text-xs text-slate-500 mt-0.5">Official winners announced for Ninthikal Sahityotsav events.</p>
+            <p className="text-xs text-slate-500 mt-0.5">Official winners announced for {eventSettings?.campusName || 'Campus'} {eventSettings?.festivalName || 'Festival'} events.</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -216,13 +219,13 @@ export default function AnnouncedResultsView({ user, token }: AnnouncedResultsVi
 
           {/* Unit selection */}
           <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Filter by Winning Unit</label>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Filter by Winning {entityLabel}</label>
             <select
               value={selectedUnitId}
               onChange={(e) => setSelectedUnitId(e.target.value)}
               className="mt-1.5 block w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-xs font-medium cursor-pointer"
             >
-              <option value="">All Units</option>
+              <option value="">All {entityLabelPlural}</option>
               {units.map(u => (
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
@@ -331,25 +334,18 @@ export default function AnnouncedResultsView({ user, token }: AnnouncedResultsVi
                       let winnerUnitCode = 'GEN';
 
                       if (res.participantId) {
-                        const p = participants.find(part => part.id === res.participantId);
-                        if (p) {
-                          winnerName = p.fullName;
-                          const u = units.find(unit => unit.id === p.unitId);
-                          winnerUnitName = u ? u.name : 'Unknown';
-                          winnerUnitCode = u ? u.code : 'GEN';
-                        }
+                        winnerName = res.participantName || 'Unknown Participant';
+                        winnerUnitName = res.unitName || 'Unknown Unit';
+                        const u = units.find(unit => unit.name === res.unitName);
+                        winnerUnitCode = u ? u.code : 'GEN';
                       } else if (res.teamId) {
-                        const t = teams.find(team => team.id === res.teamId);
-                        if (t) {
-                          winnerName = t.teamName || 'Group Team';
-                          if (t.memberIds && t.memberIds.length > 0) {
-                            const memberNames = t.memberIds.map(mid => participants.find(p => p.id === mid)?.fullName).filter(Boolean).join(', ');
-                            winnerName = `${winnerName} (${memberNames})`;
-                          }
-                          const u = units.find(unit => unit.id === t.unitId);
-                          winnerUnitName = u ? u.name : 'Unknown';
-                          winnerUnitCode = u ? u.code : 'GEN';
+                        winnerName = res.teamName || 'Group Team';
+                        if (res.teamNumber) {
+                           winnerName = `${winnerName} (${res.teamNumber})`;
                         }
+                        winnerUnitName = res.unitName || 'Unknown Unit';
+                        const u = units.find(unit => unit.name === res.unitName);
+                        winnerUnitCode = u ? u.code : 'GEN';
                       }
 
                       return (
@@ -357,7 +353,7 @@ export default function AnnouncedResultsView({ user, token }: AnnouncedResultsVi
                           <div className="space-y-0.5">
                             <p className="font-bold text-slate-800 text-xs">{winnerName}</p>
                             <p className="text-[10px] text-slate-500 font-medium">
-                              Unit: <strong className="text-slate-700">{winnerUnitName}</strong> ({winnerUnitCode})
+                              {entityLabel}: <strong className="text-slate-700">{winnerUnitName}</strong> ({winnerUnitCode})
                             </p>
                           </div>
                           <div className="shrink-0">
@@ -383,12 +379,21 @@ export default function AnnouncedResultsView({ user, token }: AnnouncedResultsVi
 
       {/* PRINT LAYOUT */}
       <div className="hidden print:block print-sheet font-sans text-black bg-white p-8">
-        {printMode === 'first' && (
-          <h1 className="text-2xl font-bold text-center mb-6 uppercase">First prizes of SSF Ninthikal Sector Sahityotsav</h1>
-        )}
-        {printMode === 'all' && (
-          <h1 className="text-2xl font-bold text-center mb-6 uppercase">Result of Ninthikal Sector Sahityotsav</h1>
-        )}
+        <div className="flex items-center justify-between pb-6 border-b border-dashed border-slate-300 mb-8">
+          <div className="flex-shrink-0 w-32 flex justify-start">
+            {eventSettings?.logoUrl && (
+              <img src={eventSettings.logoUrl} alt="Festival Logo" className="max-h-24 object-contain" />
+            )}
+          </div>
+          <div className="flex flex-col items-center text-center flex-1">
+            <span className="font-display font-extrabold text-2xl tracking-wider text-slate-900 uppercase">{eventSettings?.festivalName?.toUpperCase() || 'FESTIVAL'} 2026</span>
+            <span className="font-mono text-xs font-semibold text-emerald-700 tracking-widest uppercase mt-1">{eventSettings?.campusName?.toUpperCase() || 'CAMPUS'} COMMITTEE</span>
+            <h1 className="text-xl font-bold text-center mt-4 uppercase">
+              {printMode === 'first' ? 'First Prizes Sheet' : 'Official Results Sheet'}
+            </h1>
+          </div>
+          <div className="flex-shrink-0 w-32"></div>
+        </div>
 
         <div className="space-y-8">
           {categories.filter(c => c.active).map(cat => {

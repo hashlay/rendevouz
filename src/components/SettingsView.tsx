@@ -8,35 +8,96 @@ import { User, UserRole } from '../types';
 interface SettingsViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
-export default function SettingsView({ user, token }: SettingsViewProps) {
+export default function SettingsView({ user, token, eventSettings }: SettingsViewProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Settings form states
+  // CMS Settings form states
   const [sectorName, setSectorName] = useState('');
   const [eventTitle, setEventTitle] = useState('');
+  const [festivalName, setFestivalName] = useState('Sahityotsav');
+  const [campusName, setCampusName] = useState('Campus');
   const [ssfLogoUrl, setSsfLogoUrl] = useState('');
   const [sahityotsavLogoUrl, setSahityotsavLogoUrl] = useState('');
+  const [certTheme1Url, setCertTheme1Url] = useState('');
+  const [certTheme2Url, setCertTheme2Url] = useState('');
+  const [certTheme3Url, setCertTheme3Url] = useState('');
   const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [gradeSystemEnabled, setGradeSystemEnabled] = useState(false);
+  const [maxIndividualEvents, setMaxIndividualEvents] = useState(3);
+  const [maxGroupEvents, setMaxGroupEvents] = useState(2);
+  const [globalPoints1, setGlobalPoints1] = useState(20);
+  const [globalPoints2, setGlobalPoints2] = useState(14);
+  const [globalPoints3, setGlobalPoints3] = useState(7);
+  const [globalPoints4, setGlobalPoints4] = useState(5);
+  const [globalPoints5, setGlobalPoints5] = useState(4);
+  const [globalPoints6, setGlobalPoints6] = useState(3);
+  const [globalPoints7, setGlobalPoints7] = useState(2);
+  const [globalPoints8, setGlobalPoints8] = useState(1);
+  const [globalPoints9, setGlobalPoints9] = useState(1);
+  const [globalPoints10, setGlobalPoints10] = useState(1);
+  const [entityMode, setEntityMode] = useState<'unit' | 'house' | 'team'>('unit');
+
+  // Units / Houses CRUD state
+  const [units, setUnits] = useState<any[]>([]);
+  const [newUnitName, setNewUnitName] = useState('');
+  const [newUnitCode, setNewUnitCode] = useState('');
+
+  // Categories & Rank Points State
+  const [categories, setCategories] = useState<any[]>([]);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [catName, setCatName] = useState('');
+  const [catStartChestNo, setCatStartChestNo] = useState(1001);
+  const [catCriteria, setCatCriteria] = useState<'dob'|'class'>('dob');
+  const [catDobStart, setCatDobStart] = useState('');
+  const [catDobEnd, setCatDobEnd] = useState('');
+  const [catClassStart, setCatClassStart] = useState('');
+  const [catClassEnd, setCatClassEnd] = useState('');
+  
 
   // Backup file uploading state
   const [backupFile, setBackupFile] = useState<File | null>(null);
   const [restoring, setRestoring] = useState(false);
 
-  const fetchSettings = async () => {
+  const fetchSettingsAndUnits = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/settings', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      setSectorName(data.sectorName);
-      setEventTitle(data.eventTitle);
-      setSsfLogoUrl(data.ssfLogoUrl);
-      setSahityotsavLogoUrl(data.sahityotsavLogoUrl);
+      const [sRes, uRes, cRes] = await Promise.all([
+        fetch('/api/settings', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/units'),
+        fetch('/api/categories')
+      ]);
+      const data = await sRes.json();
+      setSectorName(data.sectorName || '');
+      setEventTitle(data.eventTitle || '');
+      setFestivalName(data.festivalName || 'Sahityotsav');
+      setCampusName(data.campusName || data.sectorName || 'Campus');
+      setSsfLogoUrl(data.ssfLogoUrl || '');
+      setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '');
+      setCertTheme1Url(data.certTheme1Url || '');
+      setCertTheme2Url(data.certTheme2Url || '');
+      setCertTheme3Url(data.certTheme3Url || '');
       setRegistrationOpen(data.registrationOpen ?? true);
+      setGradeSystemEnabled(data.gradeSystemEnabled ?? false);
+      setMaxIndividualEvents(data.maxIndividualEvents || 3);
+      setMaxGroupEvents(data.maxGroupEvents || 2);
+      setGlobalPoints1(data.globalPointsRank1 || 20);
+      setGlobalPoints2(data.globalPointsRank2 || 14);
+      setGlobalPoints3(data.globalPointsRank3 || 7);
+      setGlobalPoints4(data.globalPointsRank4 || 5);
+      setGlobalPoints5(data.globalPointsRank5 || 4);
+      setGlobalPoints6(data.globalPointsRank6 || 3);
+      setGlobalPoints7(data.globalPointsRank7 || 2);
+      setGlobalPoints8(data.globalPointsRank8 || 1);
+      setGlobalPoints9(data.globalPointsRank9 || 1);
+      setGlobalPoints10(data.globalPointsRank10 || 1);
+      setEntityMode(data.entityMode || 'unit');
+
+      if (uRes.ok) setUnits(await uRes.json());
+      if (cRes.ok) setCategories(await cRes.json());
     } catch (e) {
       console.error(e);
     } finally {
@@ -45,7 +106,7 @@ export default function SettingsView({ user, token }: SettingsViewProps) {
   };
 
   useEffect(() => {
-    fetchSettings();
+    fetchSettingsAndUnits();
   }, []);
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -58,17 +119,93 @@ export default function SettingsView({ user, token }: SettingsViewProps) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ sectorName, eventTitle, ssfLogoUrl, sahityotsavLogoUrl, registrationOpen })
+        body: JSON.stringify({ 
+          sectorName, 
+          eventTitle, 
+          festivalName,
+          campusName,
+          ssfLogoUrl, 
+          sahityotsavLogoUrl,
+          certTheme1Url,
+          certTheme2Url,
+          certTheme3Url,
+          registrationOpen,
+          gradeSystemEnabled,
+          maxIndividualEvents,
+          maxGroupEvents,
+          globalPointsRank1: globalPoints1,
+          globalPointsRank2: globalPoints2,
+          globalPointsRank3: globalPoints3,
+          globalPointsRank4: globalPoints4,
+          globalPointsRank5: globalPoints5,
+          globalPointsRank6: globalPoints6,
+          globalPointsRank7: globalPoints7,
+          globalPointsRank8: globalPoints8,
+          globalPointsRank9: globalPoints9,
+          globalPointsRank10: globalPoints10,
+          entityMode,
+          entityLabel: entityMode === 'house' ? 'House' : entityMode === 'team' ? 'Team' : 'Unit'
+        })
       });
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        if (!res.ok) throw new Error(`Server error (${res.status}). Payload may be too large or invalid response.`);
+      }
+
       if (!res.ok) throw new Error(data.error || 'Failed to update settings');
 
-      alert('Branding and settings updated successfully!');
-      window.location.reload(); // Refresh to propagate logo and title updates in sidebar & header!
+      alert('CMS branding and settings updated successfully!');
+      window.location.reload();
     } catch (err: any) {
       alert(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAddUnit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUnitName || !newUnitCode) return;
+
+    try {
+      const res = await fetch('/api/units', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newUnitName, code: newUnitCode })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add item');
+
+      setNewUnitName('');
+      setNewUnitCode('');
+      fetchSettingsAndUnits();
+      alert(`${entityMode === 'house' ? 'House' : entityMode === 'team' ? 'Team' : 'Unit'} added successfully!`);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteUnit = async (id: string) => {
+    if (!confirm(`Are you sure you want to delete this ${entityMode}?`)) return;
+
+    try {
+      const res = await fetch(`/api/units/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete');
+
+      fetchSettingsAndUnits();
+      alert('Deleted successfully');
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -121,6 +258,60 @@ export default function SettingsView({ user, token }: SettingsViewProps) {
     }
   };
 
+  const handleSaveCategoryInSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catName.trim()) {
+      alert('Category name is required');
+      return;
+    }
+
+    try {
+      const url = editingCatId ? `/api/categories/${editingCatId}` : '/api/categories';
+      const method = editingCatId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: catName.trim(),
+          startingChestNumber: Number(catStartChestNo) || 1001,
+          criteriaType: catCriteria,
+          dobStart: catDobStart || undefined,
+          dobEnd: catDobEnd || undefined,
+          classStart: catClassStart || undefined,
+          classEnd: catClassEnd || undefined
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save category');
+
+      setEditingCatId(null);
+      setCatName('');
+      fetchSettingsAndUnits();
+      alert(editingCatId ? 'Category updated successfully!' : 'Category created successfully!');
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteCategoryInSettings = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+    try {
+      const res = await fetch(`/api/categories/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete category');
+      fetchSettingsAndUnits();
+      alert('Category deleted');
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
   // Complete DB reset wipes registrations
   const handleResetApp = async () => {
     if (!confirm('EXTREMELY DANGEROUS RESET: This deletes all candidate registrations, results, and team mappings! Only master configurations will remain. Do you want to continue?')) return;
@@ -155,27 +346,56 @@ export default function SettingsView({ user, token }: SettingsViewProps) {
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto font-sans">
       
-      {/* 1. Branding Settings */}
+      {/* 1. CMS Portal & Event Visual Branding */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
-        <div className="border-b pb-4">
-          <h3 className="font-display font-bold text-slate-800 text-lg">Event Visual Branding</h3>
-          <p className="text-xs text-slate-400 mt-1">Configure sector names, title prefixes, and official SSF / Karnataka Sahityotsav vector logos URLs</p>
+        <div className="border-b pb-4 flex items-center justify-between">
+          <div>
+            <h3 className="font-display font-bold text-slate-800 text-lg flex items-center gap-2">
+              <Settings className="w-5 h-5 text-emerald-600" />
+              <span>CMS Portal & Festival Branding</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">Configure logo, festival titles, sector/campus names, and dynamic organizational mode.</p>
+          </div>
+          {ssfLogoUrl && (
+            <div className="flex items-center gap-2 p-2 bg-slate-50 border rounded-2xl">
+              <img src={ssfLogoUrl} alt="Logo Preview" className="h-8 w-8 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
+              <span className="text-[10px] font-mono font-bold text-slate-500">Live Logo</span>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSaveSettings} className="space-y-4 text-xs font-sans">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Sector Name</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Festival Name</label>
               <input
                 type="text"
                 required
-                value={sectorName}
-                onChange={(e) => setSectorName(e.target.value)}
+                value={festivalName}
+                onChange={(e) => setFestivalName(e.target.value)}
+                placeholder="e.g. Sahityotsav"
                 className="mt-1.5 block w-full px-3 py-2.5 border border-slate-300 rounded-xl text-slate-900 focus:outline-none font-bold"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Event Title</label>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Campus / Campus Name</label>
+              <input
+                type="text"
+                required
+                value={campusName}
+                onChange={(e) => {
+                  setCampusName(e.target.value);
+                  setSectorName(e.target.value);
+                }}
+                placeholder="e.g. Campus"
+                className="mt-1.5 block w-full px-3 py-2.5 border border-slate-300 rounded-xl text-slate-900 focus:outline-none font-bold"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Event Title Prefix</label>
               <input
                 type="text"
                 required
@@ -184,36 +404,109 @@ export default function SettingsView({ user, token }: SettingsViewProps) {
                 className="mt-1.5 block w-full px-3 py-2.5 border border-slate-300 rounded-xl text-slate-900 focus:outline-none font-bold"
               />
             </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Official Logo Image URL / Upload</label>
+              <input
+                type="text"
+                value={ssfLogoUrl}
+                onChange={(e) => {
+                  setSsfLogoUrl(e.target.value);
+                  setSahityotsavLogoUrl(e.target.value);
+                }}
+                placeholder="https://example.com/logo.png"
+                className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 font-mono text-xs"
+              />
+              <div className="mt-2 flex items-center gap-2">
+                <label className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs cursor-pointer border border-emerald-200 transition-colors">
+                  <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Upload Logo from Gallery</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (uploadEvent) => {
+                          const img = new Image();
+                          img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 400;
+                            const MAX_HEIGHT = 400;
+                            let width = img.width;
+                            let height = img.height;
+
+                            if (width > height) {
+                              if (width > MAX_WIDTH) {
+                                height = Math.round((height * MAX_WIDTH) / width);
+                                width = MAX_WIDTH;
+                              }
+                            } else {
+                              if (height > MAX_HEIGHT) {
+                                width = Math.round((width * MAX_HEIGHT) / height);
+                                height = MAX_HEIGHT;
+                              }
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx?.drawImage(img, 0, 0, width, height);
+                            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+                            setSsfLogoUrl(compressedDataUrl);
+                            setSahityotsavLogoUrl(compressedDataUrl);
+                          };
+                          img.src = uploadEvent.target?.result as string;
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }} 
+                  />
+                </label>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">SSF Logo URL</label>
-              <input
-                type="text"
-                required
-                value={ssfLogoUrl}
-                onChange={(e) => setSsfLogoUrl(e.target.value)}
-                className="mt-1.5 block w-full px-3 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-mono"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Sahityotsav Logo URL</label>
-              <input
-                type="text"
-                required
-                value={sahityotsavLogoUrl}
-                onChange={(e) => setSahityotsavLogoUrl(e.target.value)}
-                className="mt-1.5 block w-full px-3 py-2.5 border border-slate-300 rounded-xl text-slate-900 font-mono"
-              />
+
+
+          {/* Organizational Entity Mode Selector */}
+          <div className="p-4 bg-emerald-50/60 border border-emerald-200/80 rounded-2xl space-y-2">
+            <label className="block text-[10px] font-extrabold text-emerald-900 uppercase tracking-wider font-mono">
+              Organizational Entity Structure
+            </label>
+            <p className="text-xs text-emerald-800">
+              Select whether participants compete as <strong>Units</strong>, <strong>Houses</strong> (e.g. Red House, Blue House), or <strong>Teams</strong> across the system.
+            </p>
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              {[
+                { key: 'unit', label: 'Units', desc: 'Unit Leaders & Campus Units' },
+                { key: 'house', label: 'Houses', desc: 'Red, Blue, Green Houses' },
+                { key: 'team', label: 'Teams', desc: 'Custom Campus Teams' }
+              ].map(m => (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setEntityMode(m.key as any)}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    entityMode === m.key
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-300'
+                  }`}
+                >
+                  <div className="font-extrabold text-xs">{m.label}</div>
+                  <div className={`text-[10px] ${entityMode === m.key ? 'text-emerald-100' : 'text-slate-400'}`}>{m.desc}</div>
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Registration Lock Toggle */}
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-              <h4 className="font-semibold text-slate-800 text-xs">Sector Registration Window</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">Toggle whether Unit Team Leaders can register candidates, edit details, or manage group teams.</p>
+              <h4 className="font-semibold text-slate-800 text-xs">Campus Registration Window</h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">Toggle whether team leaders can register candidates, edit details, or manage group teams.</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer select-none">
               <input 
@@ -229,17 +522,303 @@ export default function SettingsView({ user, token }: SettingsViewProps) {
             </label>
           </div>
 
+          {/* Grade Awarding System Toggle */}
+          <div className="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <h4 className="font-semibold text-indigo-950 text-xs">Grade Awarding System (A+, A, B+, B, C)</h4>
+              <p className="text-[11px] text-indigo-800 mt-0.5">Enable or disable automatic performance grade badges on result certificates and score sheets.</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none">
+              <input 
+                type="checkbox" 
+                checked={gradeSystemEnabled} 
+                onChange={(e) => setGradeSystemEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <span className="ml-2.5 text-xs font-bold font-mono uppercase text-indigo-900">
+                {gradeSystemEnabled ? 'ENABLED' : 'DISABLED'}
+              </span>
+            </label>
+          </div>
+
+          {/* Global Points System */}
+          <div className="space-y-2 pt-2 border-t border-slate-200 mt-4">
+            <label className="block text-[10px] font-extrabold text-slate-900 uppercase tracking-wider font-mono">Global Points Distribution (Ranks 1st through 10th)</label>
+            <p className="text-[11px] text-slate-500 mb-2">This single point system applies to all categories.</p>
+            <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+              {[
+                { label: '1st', state: globalPoints1, setter: setGlobalPoints1, color: 'text-emerald-700 font-extrabold' },
+                { label: '2nd', state: globalPoints2, setter: setGlobalPoints2, color: 'text-slate-800 font-extrabold' },
+                { label: '3rd', state: globalPoints3, setter: setGlobalPoints3, color: 'text-orange-700 font-extrabold' },
+                { label: '4th', state: globalPoints4, setter: setGlobalPoints4, color: 'text-slate-700 font-bold' },
+                { label: '5th', state: globalPoints5, setter: setGlobalPoints5, color: 'text-slate-700 font-bold' },
+                { label: '6th', state: globalPoints6, setter: setGlobalPoints6, color: 'text-slate-700 font-bold' },
+                { label: '7th', state: globalPoints7, setter: setGlobalPoints7, color: 'text-slate-700 font-bold' },
+                { label: '8th', state: globalPoints8, setter: setGlobalPoints8, color: 'text-slate-600' },
+                { label: '9th', state: globalPoints9, setter: setGlobalPoints9, color: 'text-slate-600' },
+                { label: '10th', state: globalPoints10, setter: setGlobalPoints10, color: 'text-slate-600' }
+              ].map(item => (
+                <div key={item.label}>
+                  <label className="block text-[9px] font-bold text-slate-500 text-center font-mono">{item.label}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={item.state}
+                    onChange={(e) => item.setter(Number(e.target.value))}
+                    className={`mt-0.5 block w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-center text-xs font-mono ${item.color}`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Program Limits Controls */}
+          <div className="bg-purple-50/50 p-4 rounded-2xl border border-purple-200 space-y-3">
+            <h4 className="font-bold text-purple-950 text-xs uppercase tracking-wider font-mono">Participant Competition Program Limits</h4>
+            <p className="text-[11px] text-purple-800">Set the maximum number of individual and group events a candidate can register for.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Max Individual Events Per Candidate</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={maxIndividualEvents}
+                  onChange={(e) => setMaxIndividualEvents(Number(e.target.value))}
+                  className="mt-1 block w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Max Group Events Per Candidate</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={maxGroupEvents}
+                  onChange={(e) => setMaxGroupEvents(Number(e.target.value))}
+                  className="mt-1 block w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-purple-900 focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end pt-4 border-t">
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md"
+              className="flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer"
             >
               <Save className="h-4 w-4" />
-              <span>{saving ? 'Updating...' : 'Save Branding'}</span>
+              <span>{saving ? 'Updating...' : 'Save CMS Branding'}</span>
             </button>
           </div>
         </form>
+      </div>
+
+      {/* 2. Category & Rank Points Manager (1st to 10th Place) */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
+        <div className="border-b pb-4 flex items-center justify-between">
+          <div>
+            <h3 className="font-display font-extrabold text-slate-800 text-lg flex items-center gap-2">
+              <span>Category Manager & Rank Points System (1st to 10th Place)</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">Configure competition categories, starting chest numbers, and points distribution for 1st through 10th place.</p>
+          </div>
+        </div>
+
+        {/* Categories Table */}
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 border-b text-slate-500 font-mono uppercase text-[10px]">
+              <tr>
+                <th className="p-3">Category Name</th>
+                <th className="p-3">Start Chest No</th>
+                <th className="p-3">Criteria</th>
+                <th className="p-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {categories.map(cat => (
+                <tr key={cat.id} className="hover:bg-slate-50/80 font-medium">
+                  <td className="p-3 font-bold text-slate-800">{cat.name}</td>
+                  <td className="p-3 font-mono font-bold text-purple-900">{cat.startingChestNumber || 1001}</td>
+                  <td className="p-3 text-slate-600">
+                    {cat.criteriaType === 'dob' && (cat.dobStart || cat.dobEnd) ? `DOB: ${cat.dobStart || '*'} to ${cat.dobEnd || '*'}` : ''}
+                    {cat.criteriaType === 'class' && (cat.classStart || cat.classEnd) ? `Class: ${cat.classStart || '*'} to ${cat.classEnd || '*'}` : ''}
+                  </td>
+                  <td className="p-3 text-right space-x-2">
+                    <button
+                      onClick={() => {
+                        setEditingCatId(cat.id);
+                        setCatName(cat.name);
+                        setCatStartChestNo(cat.startingChestNumber || 1001);
+                        setCatCriteria(cat.criteriaType || 'dob');
+                        setCatDobStart(cat.dobStart || '');
+                        setCatDobEnd(cat.dobEnd || '');
+                        setCatClassStart(cat.classStart || '');
+                        setCatClassEnd(cat.classEnd || '');
+                        setTimeout(() => document.getElementById('category-form')?.scrollIntoView({ behavior: 'smooth' }), 50);
+                      }}
+                      className="px-2.5 py-1 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-bold"
+                    >
+                      Edit Category
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategoryInSettings(cat.id)}
+                      className="p-1 text-slate-400 hover:text-rose-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Add/Edit Category Form */}
+        <form id="category-form" onSubmit={handleSaveCategoryInSettings} className="bg-purple-50/40 p-5 rounded-2xl border border-purple-200/80 space-y-4">
+          <div className="flex justify-between items-center">
+            <h4 className="font-bold text-purple-950 text-xs uppercase tracking-wider font-mono">
+              {editingCatId ? `Edit Category: "${catName}"` : '+ Add New Category'}
+            </h4>
+            {editingCatId && (
+              <button
+                type="button"
+                onClick={() => { setEditingCatId(null); setCatName(''); }}
+                className="text-xs font-bold text-slate-500 hover:text-slate-700"
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Category Name</label>
+              <input
+                type="text"
+                required
+                value={catName}
+                onChange={(e) => setCatName(e.target.value)}
+                placeholder="e.g. Sub-Junior"
+                className="mt-1 block w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Starting Chest Number</label>
+              <input
+                type="number"
+                required
+                value={catStartChestNo}
+                onChange={(e) => setCatStartChestNo(Number(e.target.value))}
+                className="mt-1 block w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-extrabold text-purple-900"
+              />
+            </div>
+          </div>
+
+          {/* Criteria Settings */}
+          <div className="space-y-3 pt-2 border-t border-purple-200/60">
+            <div className="flex items-center gap-4">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Criteria Type</label>
+              <select value={catCriteria} onChange={(e) => setCatCriteria(e.target.value as any)} className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs">
+                <option value="dob">Date of Birth</option>
+                <option value="class">Class/Grade</option>
+              </select>
+            </div>
+            
+            {catCriteria === 'dob' ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">DOB Start (Optional)</label>
+                  <input type="date" value={catDobStart} onChange={(e) => setCatDobStart(e.target.value)} className="mt-1 block w-full px-3 py-1.5 border rounded-lg text-xs" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">DOB End (Optional)</label>
+                  <input type="date" value={catDobEnd} onChange={(e) => setCatDobEnd(e.target.value)} className="mt-1 block w-full px-3 py-1.5 border rounded-lg text-xs" />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Class Start (Optional)</label>
+                  <input type="text" value={catClassStart} onChange={(e) => setCatClassStart(e.target.value)} placeholder="e.g. 5" className="mt-1 block w-full px-3 py-1.5 border rounded-lg text-xs" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Class End (Optional)</label>
+                  <input type="text" value={catClassEnd} onChange={(e) => setCatClassEnd(e.target.value)} placeholder="e.g. 7" className="mt-1 block w-full px-3 py-1.5 border rounded-lg text-xs" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              className="px-5 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-extrabold shadow cursor-pointer"
+            >
+              {editingCatId ? 'Update Category' : '+ Save Category'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* 2. Units / Houses / Teams Manager */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+        <div className="border-b pb-4 flex items-center justify-between">
+          <div>
+            <h3 className="font-display font-bold text-slate-800 text-lg capitalize">
+              Manage {entityMode === 'house' ? 'Houses' : entityMode === 'team' ? 'Teams' : 'Units'} ({units.length})
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">Add, edit, or remove active {entityMode === 'house' ? 'houses' : entityMode === 'team' ? 'teams' : 'units'} participating in the festival.</p>
+          </div>
+        </div>
+
+        {/* Add Unit / House Form */}
+        <form onSubmit={handleAddUnit} className="flex flex-col sm:flex-row gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+          <input
+            type="text"
+            required
+            placeholder={`e.g. ${entityMode === 'house' ? 'Red House' : entityMode === 'team' ? 'Alpha Team' : 'Nekkila Unit'}`}
+            value={newUnitName}
+            onChange={(e) => setNewUnitName(e.target.value)}
+            className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 bg-white"
+          />
+          <input
+            type="text"
+            required
+            placeholder="Code (e.g. RED)"
+            value={newUnitCode}
+            onChange={(e) => setNewUnitCode(e.target.value)}
+            className="w-full sm:w-32 px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono uppercase font-bold text-slate-900 bg-white"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow cursor-pointer whitespace-nowrap"
+          >
+            + Add {entityMode === 'house' ? 'House' : entityMode === 'team' ? 'Team' : 'Unit'}
+          </button>
+        </form>
+
+        {/* Units / Houses List */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {units.map((u) => (
+            <div key={u.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+              <div>
+                <div className="font-extrabold text-xs text-slate-900">{u.name}</div>
+                <div className="text-[10px] font-mono text-emerald-700 font-bold">Code: {u.code}</div>
+              </div>
+              <button
+                onClick={() => handleDeleteUnit(u.id)}
+                className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg transition cursor-pointer"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* 2. Backup & Disaster recovery */}

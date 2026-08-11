@@ -8,11 +8,23 @@ import {
  * Helper to normalize mark out of 100 if two judges gave marks.
  */
 const getNormalizedMark = (r: Result): number => {
-  if (r.judge1Mark > 0 && r.judge2Mark > 0) {
-    return r.totalMark / 2;
+  if (r.totalMark === undefined || isNaN(r.totalMark)) return 0;
+  if (r.totalMark > 100) {
+    const j1 = Number(r.judge1Mark) || 0;
+    const j2 = Number(r.judge2Mark) || 0;
+    const activeJudges = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
+    return Math.round(((j1 + j2) / activeJudges) * 100) / 100;
   }
   return r.totalMark;
 };
+
+export function toTitleCase(str: string): string {
+  if (!str) return '';
+  return str.trim().split(/\s+/).map(word => {
+    if (!word) return '';
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+}
 
 /**
  * Service to centralize all scoreboard and standings calculations.
@@ -140,14 +152,33 @@ export const CalculationService = {
       const unit = db.units.find(u => u.id === participant.unitId);
       const category = db.categories.find(c => c.id === participant.selectedCategoryId);
       
-      // Find rankings in individual events
+      // Find rankings in individual & group events
       const rankPlacements = [
-        ...filteredIndividualResults.map(r => ({ compId: r.competitionId, rank: r.rank, type: 'Individual' }))
+        ...filteredIndividualResults.map(r => {
+          const comp = db.competitions.find(c => c.id === r.competitionId);
+          return {
+            compId: r.competitionId,
+            compName: comp ? toTitleCase(comp.name) : 'Competition',
+            rank: r.rank,
+            marks: getNormalizedMark(r),
+            type: 'Individual'
+          };
+        }),
+        ...filteredGroupResults.map(r => {
+          const comp = db.competitions.find(c => c.id === r.competitionId);
+          return {
+            compId: r.competitionId,
+            compName: comp ? toTitleCase(comp.name) : 'Competition',
+            rank: r.rank,
+            marks: getNormalizedMark(r),
+            type: 'Group'
+          };
+        })
       ];
       
       return {
         participantId: participant.id,
-        name: participant.fullName,
+        name: toTitleCase(participant.fullName),
         unitId: participant.unitId,
         unitName: unit ? unit.name : 'Unknown',
         categoryId: participant.selectedCategoryId,
@@ -177,7 +208,7 @@ export const CalculationService = {
       }
       return {
         ...entry,
-        rank: currentRank
+        rank: entry.overallMarks > 0 ? currentRank : 'N/A'
       };
     });
     
@@ -237,8 +268,8 @@ export const CalculationService = {
         const comp = db.competitions.find(c => c.id === r.competitionId);
         return comp && comp.stageType === StageType.ON_STAGE;
       });
-      const onStageMarks = onStageIndividual.reduce((sum, r) => sum + r.totalMark, 0) + 
-                            onStageGroup.reduce((sum, r) => sum + r.totalMark, 0);
+      const onStageMarks = Math.round((onStageIndividual.reduce((sum, r) => sum + getNormalizedMark(r), 0) + 
+                             onStageGroup.reduce((sum, r) => sum + getNormalizedMark(r), 0)) * 100) / 100;
       
       // Off-stage subtotals
       const offStageIndividual = individualResults.filter(r => {
@@ -249,11 +280,11 @@ export const CalculationService = {
         const comp = db.competitions.find(c => c.id === r.competitionId);
         return comp && comp.stageType === StageType.OFF_STAGE;
       });
-      const offStageMarks = offStageIndividual.reduce((sum, r) => sum + r.totalMark, 0) + 
-                             offStageGroup.reduce((sum, r) => sum + r.totalMark, 0);
+      const offStageMarks = Math.round((offStageIndividual.reduce((sum, r) => sum + getNormalizedMark(r), 0) + 
+                              offStageGroup.reduce((sum, r) => sum + getNormalizedMark(r), 0)) * 100) / 100;
       
       // Overall totals
-      const overallMarks = onStageMarks + offStageMarks;
+      const overallMarks = Math.round((onStageMarks + offStageMarks) * 100) / 100;
       const completedResultsCount = individualResults.length + groupResults.length;
       
       // Calculate placement counts (Rank 1, Rank 2, Rank 3, Rank 4-7)
@@ -274,9 +305,33 @@ export const CalculationService = {
       countPlacements(individualResults);
       countPlacements(groupResults);
       
-      // Calculate official points: 1st place = 20pts, 2nd = 14pts, 3rd = 7pts, 4th-7th = 4pts
-      const overallPoints = (firstPlaceCount * 20) + (secondPlaceCount * 14) + (thirdPlaceCount * 7) + (fourthToSeventhPlaceCount * 4);
-      
+      // Helper to compute points for ranks 1 through 10 dynamically from Category configuration
+      const getRankPoints = (r: Result) => {
+        if (!r.rank || r.rank > 10) return 0;
+        const cat = db.categories.find(c => c.id === r.categoryId);
+        if (cat) {
+          const key = `pointsRank${r.rank}` as keyof typeof cat;
+          if (cat[key] !== undefined && cat[key] !== null) {
+            const val = Number(cat[key]);
+            if (!isNaN(val)) return val;
+          }
+        }
+        
+        // Fallback to global points from eventSettings
+        const settingsKey = `globalPointsRank${r.rank}`;
+        const settingsVal = (db.eventSettings as any)?.[settingsKey];
+        if (settingsVal !== undefined && settingsVal !== null) {
+          const val = Number(settingsVal);
+          if (!isNaN(val)) return val;
+        }
+        
+        const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1, 9: 1, 10: 1 };
+        return defaultMap[r.rank] || 0;
+      };
+
+      // Compute total unit points dynamically for all 1st to 10th place ranks
+      const overallPoints = [...individualResults, ...groupResults].reduce((sum, r) => sum + getRankPoints(r), 0);
+
       // Compute Category Breakdown
       const categoryBreakdown = db.categories.map(cat => {
         // count of participants in this category for this unit
@@ -284,14 +339,11 @@ export const CalculationService = {
         
         // results for this category
         const catResults = [...individualResults, ...groupResults].filter(r => r.categoryId === cat.id);
-        const marks = catResults.reduce((sum, r) => sum + r.totalMark, 0);
+        const marks = Math.round(catResults.reduce((sum, r) => sum + getNormalizedMark(r), 0) * 100) / 100;
         
         let points = 0;
         catResults.forEach(r => {
-          if (r.rank === 1) points += 20;
-          else if (r.rank === 2) points += 14;
-          else if (r.rank === 3) points += 7;
-          else if (r.rank !== undefined && r.rank >= 4 && r.rank <= 7) points += 4;
+          points += getRankPoints(r);
         });
         
         return {

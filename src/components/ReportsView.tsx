@@ -3,18 +3,22 @@ import {
   FileSpreadsheet, Printer, Download, RefreshCw, ClipboardCheck, 
   Users, Trophy, Award, BarChart2, BookOpen 
 } from 'lucide-react';
-import { User, UserRole, Category, Unit, Competition, Team } from '../types';
+import { User, UserRole, Category, Unit, Competition, Team, Participant } from '../types';
 
 interface ReportsViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
-export default function ReportsView({ user, token }: ReportsViewProps) {
+export default function ReportsView({ user, token, eventSettings }: ReportsViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
+  const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
   const [categories, setCategories] = useState<Category[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Active Report Type selection: 'participants' | 'results' | 'scoreboard' | 'standings'
@@ -31,18 +35,21 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
 
   const fetchMasters = async () => {
     try {
-      const [cRes, uRes, compRes, tRes] = await Promise.all([
+      const [cRes, uRes, compRes, tRes, pRes] = await Promise.all([
         fetch('/api/categories'),
         fetch('/api/units'),
         fetch('/api/competitions'),
-        fetch('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/participants', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
-      const [cData, uData, compData, tData] = await Promise.all([cRes.json(), uRes.json(), compRes.json(), tRes.json()]);
+      const [cData, uData, compData, tData, pData] = await Promise.all([cRes.json(), uRes.json(), compRes.json(), tRes.json(), pRes.json()]);
 
       setCategories(cData);
       setUnits(uData);
       setCompetitions(compData);
       setTeams(tData);
+      setParticipants(pData);
+      setLoading(false);
     } catch (e) {
       console.error(e);
     } finally {
@@ -62,7 +69,7 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
       if (reportType === 'participants') {
         url = `/api/participants?unitId=${filterUnitId}&categoryId=${filterCategoryId}`;
       } else if (reportType === 'results') {
-        url = `/api/results?competitionId=${filterCompId}`;
+        url = `/api/results${filterCompId ? `?competitionId=${filterCompId}` : ''}`;
       } else if (reportType === 'scoreboard') {
         url = `/api/scoreboard?unitId=${filterUnitId}&categoryId=${filterCategoryId}`;
       } else if (reportType === 'standings') {
@@ -103,7 +110,7 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
         return [p.profilePhoto, p.fullName, p.dob, u, c, p.educationStatus, p.phone || ''];
       });
     } else if (reportType === 'results') {
-      headers = ['Candidate/Team Number', 'Unit', 'Judge 1 Mark', 'Judge 2', 'Total Mark', 'Rank', 'Status'];
+      headers = ['Candidate/Team Number', 'Unit', 'Competition', 'Judge 1 Mark', 'Judge 2', 'Total Mark', 'Rank', 'Status'];
       rows = previewData.map(r => {
         const u = units.find(unit => unit.id === r.unitId)?.name || '';
         let displayName = r.participantName;
@@ -111,7 +118,7 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
           if (r.teamId) {
             const t = teams.find(team => team.id === r.teamId);
             if (t) {
-              displayName = t.name ? `${t.name} (${t.members.map(m=>m.name).join(', ')})` : t.members.map(m=>m.name).join(', ');
+              displayName = t.teamName || 'Group Team';
             } else {
               displayName = r.teamNumber || 'Group Team';
             }
@@ -119,7 +126,8 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
             displayName = r.teamNumber || 'Group Team';
           }
         }
-        return [displayName, u, r.judge1Mark, r.judge2Mark, r.totalMark, r.rank, r.status];
+        const compName = competitions.find(c => c.id === r.competitionId)?.name || '';
+        return [displayName, u, compName, r.judge1Mark, r.judge2Mark, r.totalMark, r.rank, r.status];
       });
     } else if (reportType === 'scoreboard') {
       headers = ['Standing', 'Chest No', 'Candidate Name', 'Unit', 'Category', 'Raw Marks'];
@@ -204,7 +212,7 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
               onChange={(e) => setFilterUnitId(e.target.value)}
               className="px-3 py-2 border border-slate-300 rounded-xl text-slate-700 font-semibold text-xs bg-slate-50"
             >
-              <option value="">All Units</option>
+              <option value="">All {entityLabelPlural}</option>
               {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           )}
@@ -263,16 +271,32 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md p-6 sm:p-10 relative overflow-hidden print-sheet print:overflow-visible">
         
         {/* Printable header */}
-        <div className="flex flex-col items-center text-center pb-8 border-b border-dashed border-slate-300">
-          <span className="font-display font-extrabold text-2xl tracking-wider text-slate-900 uppercase">SSF SAHITYOTSAV 2026</span>
-          <span className="font-mono text-xs font-semibold text-emerald-700 tracking-widest uppercase mt-1">NINTHIKAL SECTOR COMITE</span>
-          <h2 className="font-display font-bold text-slate-800 text-lg mt-4 uppercase">
-            {reportType === 'participants' && 'Candidate Registrations Sheet'}
-            {reportType === 'results' && 'Official Event Marks sheet'}
-            {reportType === 'scoreboard' && 'Individual Champion Scoreboard'}
-            {reportType === 'standings' && 'Official Unit Medal standings'}
-          </h2>
-          <span className="text-[10px] font-mono text-slate-400 mt-2 font-bold uppercase">
+        <div className="flex items-center justify-between pb-8 border-b border-dashed border-slate-300">
+          {/* Logo on Left */}
+          <div className="flex-shrink-0 w-32 flex justify-start">
+            {eventSettings?.logoUrl && (
+              <img src={eventSettings.logoUrl} alt="Festival Logo" className="max-h-24 object-contain" />
+            )}
+          </div>
+          
+          {/* Centered Text */}
+          <div className="flex flex-col items-center text-center flex-1">
+            <span className="font-display font-extrabold text-2xl tracking-wider text-slate-900 uppercase">{eventSettings?.festivalName?.toUpperCase() || 'FESTIVAL'} 2026</span>
+            <span className="font-mono text-xs font-semibold text-emerald-700 tracking-widest uppercase mt-1">{eventSettings?.campusName?.toUpperCase() || 'CAMPUS'} COMMITTEE</span>
+            <h2 className="font-display font-bold text-slate-800 text-lg mt-4 uppercase">
+              {reportType === 'participants' && 'Candidate Registrations Sheet'}
+              {reportType === 'results' && 'Official Event Marks sheet'}
+              {reportType === 'scoreboard' && 'Individual Champion Scoreboard'}
+              {reportType === 'standings' && 'Official Unit Medal standings'}
+            </h2>
+          </div>
+
+          {/* Empty Space on Right to balance the flex layout */}
+          <div className="flex-shrink-0 w-32"></div>
+        </div>
+
+        <div className="text-center mt-4 mb-2">
+          <span className="text-[10px] font-mono text-slate-400 font-bold uppercase">
             REPORT GENERATED ON: {new Date().toLocaleDateString()} AT {new Date().toLocaleTimeString()}
           </span>
         </div>
@@ -291,7 +315,7 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
                         <th className="px-4 py-3 text-left">Chest No</th>
                         <th className="px-4 py-3 text-left">Candidate</th>
                         <th className="px-4 py-3 text-left">DOB</th>
-                        <th className="px-4 py-3 text-left">Representing Unit</th>
+                        <th className="px-4 py-3 text-left">Representing {entityLabel}</th>
                         <th className="px-4 py-3 text-left">Category</th>
                         <th className="px-4 py-3 text-left">Education</th>
                       </tr>
@@ -320,7 +344,8 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
                     <thead className="bg-slate-50 font-mono font-bold text-slate-500 uppercase">
                       <tr>
                         <th className="px-4 py-3 text-left">Candidate Name / Team Number</th>
-                        <th className="px-4 py-3 text-left">Unit</th>
+                        <th className="px-4 py-3 text-left">{entityLabel}</th>
+                        <th className="px-4 py-3 text-left">Competition</th>
                         <th className="px-4 py-3 text-right">Judge 1</th>
                         <th className="px-4 py-3 text-right">Judge 2</th>
                         <th className="px-4 py-3 text-right">Total Marks</th>
@@ -329,28 +354,35 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                       {previewData.map(r => {
-                        let u = units.find(unit => unit.id === r.unitId)?.name || '';
-                        let displayName = r.participantName;
-                        if (!displayName) {
-                          if (r.teamId) {
-                            const t = teams.find(team => team.id === r.teamId);
-                            if (t) {
-                              displayName = t.name ? `${t.name} (${t.members.map(m=>m.name).join(', ')})` : t.members.map(m=>m.name).join(', ');
-                              if (!u && t.unitId) {
-                                u = units.find(unit => unit.id === t.unitId)?.name || '';
-                              }
-                            } else {
-                              displayName = r.teamNumber || 'Group Team';
+                        let u = '';
+                        let displayName = '';
+                        
+                        if (r.participantId) {
+                          const p = participants.find(part => part.id === r.participantId);
+                          if (p) {
+                            displayName = p.fullName;
+                            u = units.find(unit => unit.id === p.unitId)?.name || '';
+                          }
+                        } else if (r.teamId) {
+                          const t = teams.find(team => team.id === r.teamId);
+                          if (t) {
+                            displayName = t.teamName || 'Group Team';
+                            if (t.memberIds && t.memberIds.length > 0) {
+                              const validMemberNames = t.memberIds.map(mid => participants.find(p => p.id === mid)?.fullName).filter(Boolean);
+                              const memberNames = validMemberNames.join(', ');
+                              if (memberNames) displayName = `${displayName} (${memberNames})`;
                             }
-                          } else {
-                            displayName = r.teamNumber || 'Group Team';
+                            u = units.find(unit => unit.id === t.unitId)?.name || '';
                           }
                         }
                         
+                        const compName = competitions.find(c => c.id === r.competitionId)?.name || '';
+
                         return (
                           <tr key={r.id}>
                             <td className="px-4 py-3 font-semibold text-slate-900">{displayName}</td>
                             <td className="px-4 py-3">{u}</td>
+                            <td className="px-4 py-3 text-slate-600 text-xs font-medium">{compName}</td>
                             <td className="px-4 py-3 text-right font-mono">{r.judge1Mark}</td>
                             <td className="px-4 py-3 text-right font-mono">{r.judge2Mark}</td>
                             <td className="px-4 py-3 text-right font-bold text-emerald-700 font-mono">{r.totalMark}</td>
@@ -369,7 +401,7 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
                         <th className="px-4 py-3 text-left">Rank</th>
                         <th className="px-4 py-3 text-left">Chest No</th>
                         <th className="px-4 py-3 text-left">Candidate Name</th>
-                        <th className="px-4 py-3 text-left">Unit</th>
+                        <th className="px-4 py-3 text-left">{entityLabel}</th>
                         <th className="px-4 py-3 text-left">Category</th>
                         <th className="px-4 py-3 text-right">Accumulated Score</th>
                       </tr>
@@ -394,7 +426,7 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
                     <thead className="bg-slate-50 font-mono font-bold text-slate-500 uppercase">
                       <tr>
                         <th className="px-4 py-3 text-left">Standing</th>
-                        <th className="px-4 py-3 text-left">Unit Name</th>
+                        <th className="px-4 py-3 text-left">{entityLabel} Name</th>
                         <th className="px-4 py-3 text-center">First Places</th>
                         <th className="px-4 py-3 text-center">Second Places</th>
                         <th className="px-4 py-3 text-center">Third Places</th>
@@ -429,7 +461,7 @@ export default function ReportsView({ user, token }: ReportsViewProps) {
         <div className="mt-16 pt-8 border-t border-dashed border-slate-200 grid grid-cols-2 gap-8 text-center text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider print-signatures">
           <div>
             <div className="h-10 border-b border-slate-300 w-40 mx-auto" />
-            <span className="mt-2 block">SECTOR SAHITYOTSAV CHAIRMAN</span>
+            <span className="mt-2 block">{eventSettings?.campusName?.toUpperCase() || 'CAMPUS'} {eventSettings?.festivalName?.toUpperCase() || 'FESTIVAL'} CHAIRMAN</span>
           </div>
           <div>
             <div className="h-10 border-b border-slate-300 w-40 mx-auto" />

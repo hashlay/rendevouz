@@ -24,6 +24,12 @@ import CertificatesView from './components/CertificatesView';
 import ChestNumbersView from './components/ChestNumbersView';
 import GreenRoomView from './components/GreenRoomView';
 import JudgmentSheetsView from './components/JudgmentSheetsView';
+import PostersView from './components/PostersView';
+import PosterSettingsView from './components/PosterSettingsView';
+import CertificateSettingsView from './components/CertificateSettingsView';
+import HighlightsStudio from './components/HighlightsStudio';
+import GalleryStudio from './components/GalleryStudio';
+import CMSWebsiteStudio from './components/CMSWebsiteStudio';
 import Footer from './components/Footer';
 
 export default function App() {
@@ -31,7 +37,15 @@ export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  const [eventSettings, setEventSettings] = useState<any>(null);
+  const [eventSettings, setEventSettings] = useState<any>(() => {
+    try {
+      const cached = localStorage.getItem('eventSettings_cache');
+      if (cached) return JSON.parse(cached);
+    } catch (e) {
+      console.error('Error parsing cached settings:', e);
+    }
+    return null;
+  });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Audit Logs drawer states
@@ -79,6 +93,8 @@ export default function App() {
           // Set initial default tab depending on user privilege role
           if (data.user.role === UserRole.UNIT_TEAM_LEADER) {
             setActiveTab('registration');
+          } else if (data.user.role === UserRole.JUDGE) {
+            setActiveTab('judgment-sheets');
           } else {
             setActiveTab('dashboard');
           }
@@ -105,6 +121,7 @@ export default function App() {
       const res = await fetch('/api/settings');
       const data = await res.json();
       setEventSettings(data);
+      localStorage.setItem('eventSettings_cache', JSON.stringify(data));
     } catch (e) {
       console.error(e);
     }
@@ -122,6 +139,8 @@ export default function App() {
     // Set appropriate initial tab
     if (userObj.role === UserRole.UNIT_TEAM_LEADER) {
       setActiveTab('registration');
+    } else if (userObj.role === UserRole.JUDGE) {
+      setActiveTab('judgment-sheets');
     } else {
       setActiveTab('dashboard');
     }
@@ -175,41 +194,53 @@ export default function App() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardView user={user} token={token} />;
+        return <DashboardView user={user} token={token} eventSettings={eventSettings} />;
       case 'registration':
-        return <RegistrationView user={user} token={token} />;
+        return <RegistrationView user={user} token={token} eventSettings={eventSettings} />;
       case 'participants':
-        return <ParticipantsView user={user} token={token} />;
+        return <ParticipantsView user={user} token={token} eventSettings={eventSettings} />;
       case 'teams':
-        return <TeamsView user={user} token={token} />;
+        return <TeamsView user={user} token={token} eventSettings={eventSettings} />;
       case 'registered-events':
-        return <RegisteredEventsView user={user} token={token} />;
+        return <RegisteredEventsView user={user} token={token} eventSettings={eventSettings} />;
       case 'announced-results':
-        return <AnnouncedResultsView user={user} token={token} />;
+        return <AnnouncedResultsView user={user} token={token} eventSettings={eventSettings} />;
       case 'certificates':
-        return <CertificatesView user={user} token={token} />;
+        return <CertificatesView user={user} token={token} eventSettings={eventSettings} />;
+      case 'certificate-studio':
+        return <CertificateSettingsView user={user} token={token} eventSettings={eventSettings} onSettingsUpdated={fetchEventConfig} />;
+      case 'posters':
+        return <PostersView user={user} token={token} eventSettings={eventSettings} />;
+      case 'poster-studio':
+        return <PosterSettingsView user={user} token={token} eventSettings={eventSettings} onSettingsUpdated={fetchEventConfig} />;
+      case 'highlights':
+        return <HighlightsStudio user={user} />;
+      case 'gallery-studio':
+        return <GalleryStudio user={user} />;
+      case 'cms-studio':
+        return <CMSWebsiteStudio user={user} />;
       case 'competitions':
-        return <CompetitionsView user={user} token={token} />;
+        return <CompetitionsView user={user} token={token} eventSettings={eventSettings} />;
       case 'results':
-        return <ResultEntryView user={user} token={token} />;
+        return <ResultEntryView user={user} token={token} eventSettings={eventSettings} />;
       case 'scoreboard':
-        return <ScoreboardView user={user} token={token} />;
+        return <ScoreboardView user={user} token={token} eventSettings={eventSettings} />;
       case 'chest-numbers':
-        return <ChestNumbersView user={user} token={token} />;
+        return <ChestNumbersView user={user} token={token} eventSettings={eventSettings} />;
       case 'green-room':
-        return <GreenRoomView user={user} token={token} />;
+        return <GreenRoomView user={user} token={token} eventSettings={eventSettings} />;
       case 'judgment-sheets':
-        return <JudgmentSheetsView user={user} token={token} />;
+        return <JudgmentSheetsView user={user} token={token} eventSettings={eventSettings} />;
       case 'standings':
-        return <StandingsView user={user} token={token} />;
+        return <StandingsView user={user} token={token} eventSettings={eventSettings} />;
       case 'reports':
-        return <ReportsView user={user} token={token} />;
+        return <ReportsView user={user} token={token} eventSettings={eventSettings} />;
       case 'users':
-        return <UsersView user={user} token={token} />;
+        return <UsersView user={user} token={token} eventSettings={eventSettings} />;
       case 'settings':
-        return <SettingsView user={user} token={token} />;
+        return <SettingsView user={user} token={token} eventSettings={eventSettings} />;
       default:
-        return <DashboardView user={user} token={token} />;
+        return <DashboardView user={user} token={token} eventSettings={eventSettings} />;
     }
   };
 
@@ -240,7 +271,7 @@ export default function App() {
           {renderTabContent()}
         </main>
 
-        <Footer />
+        <Footer eventSettings={eventSettings} />
       </div>
 
       {/* --- SUPER ADMIN SLIDING AUDIT LOG PANEL --- */}

@@ -9,7 +9,8 @@ export enum UserRole {
   UNIT_TEAM_LEADER = 'unit_team_leader',
   GREEN_ROOM_MANAGER = 'green_room_manager',
   JUDGE = 'judge',
-  RESULT_MANAGER = 'result_manager'
+  RESULT_MANAGER = 'result_manager',
+  VIEWER = 'viewer'
 }
 
 export interface User {
@@ -20,6 +21,7 @@ export interface User {
   passwordHash: string;
   role: UserRole;
   assignedUnitId?: string; // For unit_team_leader
+  assignedCompetitionIds?: string[]; // For judge program assignments
   active: boolean;
   mustChangePassword?: boolean;
   failedLoginAttempts: number;
@@ -76,6 +78,7 @@ export interface Unit {
 
 export enum EducationStatus {
   STUDENT = 'student',
+  HIGHER_SECONDARY = 'higher_secondary',
   UNDERGRADUATE = 'undergraduate',
   POSTGRADUATE = 'postgraduate'
 }
@@ -88,8 +91,23 @@ export enum Gender {
 export interface Category {
   id: string;
   name: string;
-  dobStart: string; // YYYY-MM-DD
-  dobEnd: string; // YYYY-MM-DD
+  code?: string;
+  criteriaType?: 'dob' | 'class';
+  dobStart?: string; // YYYY-MM-DD
+  dobEnd?: string; // YYYY-MM-DD
+  classStart?: string;
+  classEnd?: string;
+  pointsRank1?: number;
+  pointsRank2?: number;
+  pointsRank3?: number;
+  pointsRank4?: number;
+  pointsRank5?: number;
+  pointsRank6?: number;
+  pointsRank7?: number;
+  pointsRank8?: number;
+  pointsRank9?: number;
+  pointsRank10?: number;
+  startingChestNumber?: number;
   educationRequirements?: EducationStatus[];
   active: boolean;
 }
@@ -114,6 +132,7 @@ export interface Competition {
   duration: number; // in minutes
   stageType: StageType;
   displayOrder: number;
+  numJudges?: number;
   active: boolean;
 }
 
@@ -194,6 +213,7 @@ export interface Result {
   status: ResultStatus;
   remarks?: string;
   publishedStatus: boolean;
+  certificatePublished?: boolean;
   manualRankOverride?: boolean;
   manualRankOverrideReason?: string;
   
@@ -222,9 +242,18 @@ export interface EventSettings {
   maxGroupEvents: number; // default 2
   registrationOpen: boolean;
   
-  // Branding
+  // Branding & CMS
   ssfLogoUrl: string;
   sahityotsavLogoUrl: string;
+  logoUrl?: string;
+  festivalName?: string;
+  campusName?: string;
+  entityMode?: 'unit' | 'house' | 'team';
+  entityLabel?: string;
+  gradeSystemEnabled?: boolean;
+  certTheme1Url?: string;
+  certTheme2Url?: string;
+  certTheme3Url?: string;
   primaryColor: string; // e.g. "emerald" or HEX
   accentColor: string; // e.g. "amber" or HEX
   headerBannerUrl?: string;
@@ -234,6 +263,29 @@ export interface EventSettings {
   markDecimalPrecision: number; // default 2
   autoRankingEnabled: boolean;
   maxMarksPerJudge?: number; // default 100
+  
+  // Global Points System
+  globalPointsRank1?: number;
+  globalPointsRank2?: number;
+  globalPointsRank3?: number;
+  globalPointsRank4?: number;
+  globalPointsRank5?: number;
+  globalPointsRank6?: number;
+  globalPointsRank7?: number;
+  globalPointsRank8?: number;
+  globalPointsRank9?: number;
+  globalPointsRank10?: number;
+  
+  // Poster Generation System
+  posterTemplateConfig?: any; // Stores themes and coordinates for dynamic poster generation
+  
+  // Certificate Generation System
+  certificateTemplateConfig?: any; // Stores themes and coordinates for dynamic certificate generation
+
+  // Media Hub
+  photoHubDriveLink?: string;
+  stage1LiveLink?: string;
+  stage2LiveLink?: string;
 }
 
 // ===== CHEST NUMBER SYSTEM =====
@@ -299,6 +351,7 @@ export interface JudgmentSheet {
   numJudges: number;
   createdBy: string;
   createdAt: string;
+  updatedAt?: string;
   lockedBy?: string;
   lockedAt?: string;
   publishedToResults?: boolean;
@@ -308,6 +361,10 @@ export interface JudgmentSheet {
 export interface JudgeScoreEntry {
   judgeNumber: number; // 1-5
   mark: number;
+  c1?: number; // Criteria 1 (max 25)
+  c2?: number; // Criteria 2 (max 25)
+  c3?: number; // Criteria 3 (max 25)
+  c4?: number; // Criteria 4 (max 25)
   remarks?: string;
 }
 
@@ -333,4 +390,101 @@ export interface JudgeScore {
   enteredAt: string;
   updatedBy?: string;
   updatedAt?: string;
+}
+
+export interface GalleryItem {
+  id: string;
+  title: string;
+  category: 'Inauguration' | 'Performances' | 'Literary' | 'Exhibition' | 'Crowd & Life' | 'Competitions' | 'Awarding' | 'Campus';
+  imageUrl: string;
+  caption: string;
+  photographer?: string;
+  date: string;
+  isApproved?: boolean;
+  isFeatured?: boolean;
+  createdAt?: number;
+}
+
+export interface VideoHighlight {
+  id: string;
+  title: string;
+  event: string;
+  performer: string;
+  duration: string;
+  views: string;
+  thumbnailUrl: string;
+  videoUrl: string;
+  stageName: string;
+  createdAt?: number;
+}
+
+export interface DragBlock {
+  id: string;
+  title: string;
+  type: 'hero' | 'about' | 'announcements' | 'live_stages' | 'results' | 'sponsors' | 'schedule' | 'gallery' | 'photo_hub' | 'highlights' | 'custom';
+  enabled: boolean;
+  order: number;
+  contentSnippet?: string;
+}
+
+export interface CMSSettings {
+  aboutTitle: string;
+  aboutSubtitle: string;
+  aboutDescription: string;
+  aboutBadge?: string;
+  aboutMainHeading?: string;
+  aboutImage?: string;
+  aboutImageBadge?: string;
+  aboutImageTitle?: string;
+  aboutImageSubtitle?: string;
+  aboutImageLocation?: string;
+  aboutImageFooter?: string;
+  themeTitle: string;
+  themeDescription: string;
+  themeButtonText?: string;
+  conceptModalBadge?: string;
+  conceptModalTitle?: string;
+  conceptModalSubtitle?: string;
+  conceptModalDescription?: string;
+  conceptModalFooter?: string;
+  footerText?: string;
+  footerLogo?: string;
+  footerLogoTitle?: string;
+  footerLogoSubtitle?: string;
+  footerLogoBadge?: string;
+  footerDescription?: string;
+  footerLocation?: string;
+  footerEmail?: string;
+  footerPhone?: string;
+  footerInstagram?: string;
+  footerYoutube?: string;
+  footerFacebook?: string;
+  headerLogo?: string;
+  headerLogoTitle?: string;
+  headerLogoSubtitle?: string;
+  heroLogo?: string;
+  heroLogoTitle?: string;
+  heroLogoSubtitle?: string;
+  heroLogoBadge?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroInstitutionLeft?: string;
+  heroInstitutionRight?: string;
+  heroDate?: string;
+  heroLocation?: string;
+  heroDesktopLoopEnabled?: boolean;
+  heroDesktopLoopInterval?: number;
+  heroDesktopImages?: string[];
+  heroMobileLoopEnabled?: boolean;
+  heroMobileLoopInterval?: number;
+  heroMobileImages?: string[];
+}
+
+export interface HeroMedia {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  title: string;
+  caption?: string;
+  order: number;
 }

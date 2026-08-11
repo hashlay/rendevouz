@@ -1,52 +1,82 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  UserPlus, Calendar, GraduationCap, ChevronRight, 
-  ChevronLeft, ClipboardCheck, AlertTriangle, Check, RefreshCw, X
+  UserPlus, GraduationCap, ClipboardCheck, AlertTriangle, Check, RefreshCw, X
 } from 'lucide-react';
-import { User, UserRole, EducationStatus, Gender, Category, Competition, ParticipationType, StageType } from '../types';
+import { User, UserRole, Gender, Category, Competition, ParticipationType } from '../types';
 
 interface RegistrationViewProps {
   user: User;
   token: string;
+  eventSettings?: any;
 }
 
-export default function RegistrationView({ user, token }: RegistrationViewProps) {
+export default function RegistrationView({ user, token, eventSettings }: RegistrationViewProps) {
+  const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
+
+  // Input Refs for fast keyboard navigation
+  const fullNameRef = useRef<HTMLInputElement>(null);
+  const dobDayRef = useRef<HTMLInputElement>(null);
+  const dobMonthRef = useRef<HTMLInputElement>(null);
+  const dobYearRef = useRef<HTMLInputElement>(null);
+
   // Master lists
   const [units, setUnits] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Form Steps: 1 = Unit, 2 = Participant Details, 3 = Category & Events, 4 = Review & Submit
-  const [step, setStep] = useState(1);
+  // Status & toast state
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  // Participant Data Form State
+  // Form State
   const [fullName, setFullName] = useState('');
-  const [dob, setDob] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState('');
   const [gender, setGender] = useState<Gender>(Gender.MALE);
-  const [educationStatus, setEducationStatus] = useState<EducationStatus>(EducationStatus.STUDENT);
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
-  const [phone, setPhone] = useState('');
-  const [guardianPhone, setGuardianPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [notes, setNotes] = useState('');
-
-  // Campus fields
-  const [institution, setInstitution] = useState('');
-  const [course, setCourse] = useState('');
-  const [yearSemester, setYearSemester] = useState('');
-
-  // Category Eligibility State
-  const [eligibilityList, setEligibilityList] = useState<any[]>([]);
-  const [eligibilityLoading, setEligibilityLoading] = useState(false);
-
-  // Competitions selected
   const [selectedComps, setSelectedComps] = useState<string[]>([]);
-  const [duplicateWarning, setDuplicateWarning] = useState<any>(null);
-  const [forceSubmit, setForceSubmit] = useState(false);
+
+  // DOB 3 distinct numeric boxes state (DD / MM / YYYY)
+  const [dobDay, setDobDay] = useState('');
+  const [dobMonth, setDobMonth] = useState('');
+  const [dobYear, setDobYear] = useState('');
+  const [dob, setDob] = useState('');
+
+  const updateCombinedDob = (d: string, m: string, y: string) => {
+    if (d && m && y && y.length === 4) {
+      const formattedDay = d.padStart(2, '0');
+      const formattedMonth = m.padStart(2, '0');
+      setDob(`${y}-${formattedMonth}-${formattedDay}`);
+    } else {
+      setDob('');
+    }
+  };
+
+  const handleDobDayChange = (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 2);
+    setDobDay(clean);
+    updateCombinedDob(clean, dobMonth, dobYear);
+    if (clean.length === 2) {
+      dobMonthRef.current?.focus();
+      dobMonthRef.current?.select();
+    }
+  };
+
+  const handleDobMonthChange = (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 2);
+    setDobMonth(clean);
+    updateCombinedDob(dobDay, clean, dobYear);
+    if (clean.length === 2) {
+      dobYearRef.current?.focus();
+      dobYearRef.current?.select();
+    }
+  };
+
+  const handleDobYearChange = (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 4);
+    setDobYear(clean);
+    updateCombinedDob(dobDay, dobMonth, clean);
+  };
 
   // Fetch initial master lists
   const fetchMasterLists = async () => {
@@ -63,10 +93,9 @@ export default function RegistrationView({ user, token }: RegistrationViewProps)
       setCategories(cData.filter((c: any) => c.active));
       setCompetitions(compData.filter((c: any) => c.active));
 
-      // Lock Unit Leader's unit automatically
+      // Auto-assign Unit Leader's unit
       if (user.role === UserRole.UNIT_TEAM_LEADER) {
         setSelectedUnitId(user.assignedUnitId || '');
-        setStep(2); // Jump straight to details
       }
     } catch (e) {
       console.error(e);
@@ -79,106 +108,11 @@ export default function RegistrationView({ user, token }: RegistrationViewProps)
     fetchMasterLists();
   }, []);
 
-  const [draftLoaded, setDraftLoaded] = useState(false);
-
-  // Load draft from localStorage on mount
-  useEffect(() => {
-    try {
-      const draftStr = localStorage.getItem(`registration_draft_${user.id}`);
-      if (draftStr) {
-        const draft = JSON.parse(draftStr);
-        if (draft.fullName) setFullName(draft.fullName);
-        if (draft.dob) setDob(draft.dob);
-        if (draft.selectedUnitId && user.role !== UserRole.UNIT_TEAM_LEADER) setSelectedUnitId(draft.selectedUnitId);
-        if (draft.gender) setGender(draft.gender);
-        if (draft.educationStatus) setEducationStatus(draft.educationStatus);
-        if (draft.selectedCategoryId) setSelectedCategoryId(draft.selectedCategoryId);
-        if (draft.phone) setPhone(draft.phone);
-        if (draft.guardianPhone) setGuardianPhone(draft.guardianPhone);
-        if (draft.address) setAddress(draft.address);
-        if (draft.notes) setNotes(draft.notes);
-        if (draft.institution) setInstitution(draft.institution);
-        if (draft.course) setCourse(draft.course);
-        if (draft.yearSemester) setYearSemester(draft.yearSemester);
-        if (draft.selectedComps) setSelectedComps(draft.selectedComps);
-        if (draft.step) setStep(draft.step);
-      }
-    } catch (err) {
-      console.error('Failed to load registration draft:', err);
-    } finally {
-      setDraftLoaded(true);
-    }
-  }, [user.id]);
-
-  // Save draft to localStorage whenever states change
-  useEffect(() => {
-    if (!draftLoaded) return;
-    try {
-      const draft = {
-        fullName,
-        dob,
-        selectedUnitId: user.role === UserRole.UNIT_TEAM_LEADER ? undefined : selectedUnitId,
-        gender,
-        educationStatus,
-        selectedCategoryId,
-        phone,
-        guardianPhone,
-        address,
-        notes,
-        institution,
-        course,
-        yearSemester,
-        selectedComps,
-        step
-      };
-      localStorage.setItem(`registration_draft_${user.id}`, JSON.stringify(draft));
-    } catch (err) {
-      console.error('Failed to save registration draft:', err);
-    }
-  }, [
-    draftLoaded, fullName, dob, selectedUnitId, gender, educationStatus,
-    selectedCategoryId, phone, guardianPhone, address, notes,
-    institution, course, yearSemester, selectedComps, step, user.id
-  ]);
-
-  // Recalculate eligibility when Education Status changes (and optionally DOB)
-  useEffect(() => {
-    if (!educationStatus) return;
-
-    const checkEligibility = async () => {
-      setEligibilityLoading(true);
-      try {
-        const res = await fetch('/api/participants/check-eligibility', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dob, educationStatus })
-        });
-        const data = await res.json();
-        setEligibilityList(data);
-
-        // Reset category selection and competition choice if no longer eligible
-        const previouslySelected = data.find((e: any) => e.id === selectedCategoryId);
-        if (!previouslySelected || !previouslySelected.eligible) {
-          setSelectedCategoryId('');
-          setSelectedComps([]);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setEligibilityLoading(false);
-      }
-    };
-
-    checkEligibility();
-  }, [dob, educationStatus]);
-
-  // Reset selected categories / details if jumping backward
   const handleCategorySelect = (catId: string) => {
     setSelectedCategoryId(catId);
-    setSelectedComps([]); // reset selected competitions upon category swap
+    setSelectedComps([]); // reset selected competitions on category change
   };
 
-  // Select/Deselect individual and group competitions, enforcing 3 ind / 2 grp limits
   const handleCompToggle = (compId: string) => {
     const comp = competitions.find(c => c.id === compId);
     if (!comp) return;
@@ -188,19 +122,21 @@ export default function RegistrationView({ user, token }: RegistrationViewProps)
     if (isSelected) {
       setSelectedComps(selectedComps.filter(id => id !== compId));
     } else {
-      // Calculate limits
       const selectedModels = competitions.filter(c => selectedComps.includes(c.id));
       const individualCount = selectedModels.filter(c => c.participationType === ParticipationType.INDIVIDUAL).length;
       const groupCount = selectedModels.filter(c => c.participationType === ParticipationType.GROUP).length;
 
+      const maxInd = eventSettings?.maxIndividualEvents || 3;
+      const maxGrp = eventSettings?.maxGroupEvents || 2;
+
       if (comp.participationType === ParticipationType.INDIVIDUAL) {
-        if (individualCount >= 3) {
-          alert('Maximum 3 individual competitions reached.');
+        if (individualCount >= maxInd) {
+          alert(`Maximum ${maxInd} individual competitions allowed per candidate.`);
           return;
         }
       } else {
-        if (groupCount >= 2) {
-          alert('Maximum 2 group competitions reached.');
+        if (groupCount >= maxGrp) {
+          alert(`Maximum ${maxGrp} group competitions allowed per candidate.`);
           return;
         }
       }
@@ -208,38 +144,23 @@ export default function RegistrationView({ user, token }: RegistrationViewProps)
     }
   };
 
-  // Duplicate Check logic before Review step
-  const handleNextToReview = async () => {
-    if (!selectedCategoryId) {
-      alert('Please select an eligible category');
-      return;
-    }
-    if (selectedComps.length === 0) {
-      alert('Please select at least one competition');
+  const handleFinalSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!fullName || !dob || !selectedUnitId || !selectedCategoryId || selectedComps.length === 0) {
+      alert('Please fill candidate name, valid date of birth (DD/MM/YYYY), select unit, category, and at least one competition.');
       return;
     }
 
-    setStep(4);
-  };
-
-  const handleFinalSubmit = async () => {
     setSubmitting(true);
     setMessage(null);
 
     const payload = {
-      fullName,
+      fullName: fullName.trim(),
       dob,
       unitId: selectedUnitId,
       gender,
-      educationStatus,
+      educationStatus: 'student',
       selectedCategoryId,
-      phone,
-      guardianPhone,
-      address,
-      notes,
-      institution: undefined,
-      course: (educationStatus === EducationStatus.UNDERGRADUATE || educationStatus === EducationStatus.POSTGRADUATE) ? course : undefined,
-      yearSemester: (educationStatus === EducationStatus.UNDERGRADUATE || educationStatus === EducationStatus.POSTGRADUATE) ? yearSemester : undefined,
       selectedCompetitionIds: selectedComps
     };
 
@@ -255,30 +176,22 @@ export default function RegistrationView({ user, token }: RegistrationViewProps)
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to complete registration');
+        throw new Error(data.error || 'Failed to complete candidate registration');
       }
 
-      setMessage({ type: 'success', text: `Participant registered successfully with Chest No: ${data.participant.profilePhoto}` });
-      // Clear draft
-      localStorage.removeItem(`registration_draft_${user.id}`);
-      // Reset form
+      const chestNo = data.chestNumber || data.participant?.profilePhoto || 'ASSIGNED';
+      setMessage({
+        type: 'success',
+        text: `Candidate "${fullName}" registered successfully! Chest No Assigned: ${chestNo}`
+      });
+
+      // Reset candidate fields while keeping unit pre-selected for fast continuous registration!
       setFullName('');
+      setDobDay('');
+      setDobMonth('');
+      setDobYear('');
       setDob('');
-      if (user.role !== UserRole.UNIT_TEAM_LEADER) setSelectedUnitId('');
-      setGender(Gender.MALE);
-      setEducationStatus(EducationStatus.STUDENT);
-      setSelectedCategoryId('');
       setSelectedComps([]);
-      setPhone('');
-      setGuardianPhone('');
-      setAddress('');
-      setNotes('');
-      setInstitution('');
-      setCourse('');
-      setYearSemester('');
-      setDuplicateWarning(null);
-      setForceSubmit(false);
-      setStep(user.role === UserRole.UNIT_TEAM_LEADER ? 2 : 1);
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message });
     } finally {
@@ -290,442 +203,316 @@ export default function RegistrationView({ user, token }: RegistrationViewProps)
     return (
       <div className="flex flex-col items-center justify-center p-12 min-h-[50vh]">
         <RefreshCw className="h-10 w-10 text-emerald-600 animate-spin mb-4" />
-        <span className="text-slate-500 font-mono text-xs">Loading registration wizard...</span>
+        <span className="text-slate-500 font-mono text-xs">Loading single-page registration console...</span>
       </div>
     );
   }
 
-  // Filter competitions belonging to the active category
   const filteredCompetitions = competitions.filter(c => c.categoryId === selectedCategoryId);
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto font-sans">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto font-sans space-y-6">
       
-      {/* Step progress bar */}
-      <div className="mb-8 border border-slate-200/60 bg-white p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 no-print">
-        <div className="flex items-center gap-2">
-          <UserPlus className="h-5 w-5 text-emerald-600" />
-          <span className="font-display font-bold text-slate-800 text-sm">REGISTRATION STEPS</span>
-          {draftLoaded && (
-            <span className="ml-2 bg-emerald-50 text-emerald-700 text-[9px] font-bold font-mono px-2 py-0.5 rounded-full flex items-center gap-1">
-              <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-ping"></span>
-              Draft Saved
-            </span>
-          )}
+      {/* Header Banner */}
+      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 p-6 rounded-3xl text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="font-display font-extrabold text-2xl mt-1 text-white">Candidate Registration Portal</h2>
+          <p className="text-emerald-200/80 text-xs mt-0.5">Register candidates rapidly in 1 single view with instant Chest Number assignment.</p>
         </div>
-        <div className="flex items-center gap-1.5 md:gap-3">
-          {[
-            { s: 1, label: 'Unit' },
-            { s: 2, label: 'Details' },
-            { s: 3, label: 'Events' },
-            { s: 4, label: 'Review' }
-          ].map((item) => {
-            // Skip step 1 for unit team leader
-            if (item.s === 1 && user.role === UserRole.UNIT_TEAM_LEADER) return null;
-            const isCompleted = step > item.s;
-            const isActive = step === item.s;
-            return (
-              <React.Fragment key={item.s}>
-                {item.s > (user.role === UserRole.UNIT_TEAM_LEADER ? 2 : 1) && (
-                  <div className={`h-0.5 w-4 sm:w-10 ${isCompleted ? 'bg-emerald-500' : 'bg-slate-200'}`} />
-                )}
-                <div className="flex items-center gap-1.5">
-                  <div className={`h-7 w-7 rounded-full flex items-center justify-center font-bold text-xs ${
-                    isActive 
-                      ? 'bg-amber-500 text-slate-900 ring-4 ring-amber-100' 
-                      : isCompleted ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400 border border-slate-200'
-                  }`}>
-                    {isCompleted ? <Check className="h-3.5 w-3.5 stroke-[3px]" /> : item.s}
-                  </div>
-                  <span className={`hidden sm:inline text-xs font-semibold ${isActive ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
-                    {item.label}
-                  </span>
-                </div>
-              </React.Fragment>
-            );
-          })}
-        </div>
+
+        {user.role === UserRole.UNIT_TEAM_LEADER && (
+          <div className="bg-emerald-900/60 border border-emerald-700/50 px-4 py-2 rounded-2xl font-mono text-xs font-bold text-emerald-200">
+            {entityLabel}: {units.find(u => u.id === user.assignedUnitId)?.name || 'Assigned Unit'}
+          </div>
+        )}
       </div>
 
+      {/* Alert Messages */}
       {message && (
-        <div className={`mb-6 p-4 rounded-2xl border flex items-center gap-3 shadow-sm ${
-          message.type === 'success' 
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
-            : 'bg-red-50 border-red-200 text-red-800'
+        <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-md ${
+          message.type === 'success' ? 'bg-emerald-50 text-emerald-900 border-emerald-200' : 'bg-rose-50 text-rose-900 border-rose-200'
         }`}>
-          <div className={`h-8 w-8 rounded-full flex items-center justify-center ${message.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-            <Check className="h-4 w-4" />
+          <div className="flex items-center gap-3">
+            {message.type === 'success' ? <Check className="w-5 h-5 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />}
+            <span className="text-xs font-bold font-mono">{message.text}</span>
           </div>
-          <div>
-            <h5 className="font-semibold text-sm">{message.type === 'success' ? 'Success' : 'Error'}</h5>
-            <p className="text-xs mt-0.5 font-mono">{message.text}</p>
-          </div>
+          <button onClick={() => setMessage(null)} className="p-1 rounded-lg hover:bg-black/5">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      {/* STEP 1: SELECT SECTOR UNIT (Super Admin / Sector team only) */}
-      {step === 1 && user.role !== UserRole.UNIT_TEAM_LEADER && (
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <h3 className="font-display font-bold text-slate-800 text-lg">Select Participant's Unit</h3>
-            <p className="text-xs text-slate-400 mt-1">Which unit does the candidate represent?</p>
+      {/* Main Single-Page Registration Form */}
+      <form onSubmit={handleFinalSubmit} className="bg-white rounded-3xl border border-slate-200/80 shadow-md p-6 space-y-6">
+
+        {/* SECTION 1: CANDIDATE & UNIT IDENTIFICATION */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+            <UserPlus className="w-5 h-5 text-emerald-600" />
+            <h3 className="font-display font-extrabold text-slate-800 text-sm uppercase tracking-wider">1. Candidate Basic Details</h3>
           </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {units.map((u) => (
-              <button
-                key={u.id}
-                type="button"
-                onClick={() => {
-                  setSelectedUnitId(u.id);
-                  setStep(2);
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Unit / Team Selector */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+                {entityLabel} Name <span className="text-rose-500">*</span>
+              </label>
+              <select
+                disabled={user.role === UserRole.UNIT_TEAM_LEADER}
+                value={selectedUnitId}
+                onChange={(e) => setSelectedUnitId(e.target.value)}
+                className="mt-1 block w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              >
+                <option value="">Select {entityLabel}</option>
+                {units.map(u => (
+                  <option key={u.id} value={u.id}>{u.name} ({u.code})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Candidate Name */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+                Candidate Full Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                ref={fullNameRef}
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    dobDayRef.current?.focus();
+                    dobDayRef.current?.select();
+                  }
                 }}
-                className={`p-5 rounded-2xl border-2 text-left transition-all flex flex-col justify-between h-32 hover:border-emerald-600 hover:shadow-lg ${
-                  selectedUnitId === u.id 
-                    ? 'border-emerald-600 bg-emerald-50/20 shadow-md ring-2 ring-emerald-500/20' 
-                    : 'border-slate-200 bg-white'
-                }`}
-              >
-                <span className="font-mono text-xs font-bold text-slate-400 uppercase tracking-widest">{u.code}</span>
-                <span className="font-display font-extrabold text-slate-800 text-base">{u.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* STEP 2: PARTICIPANT DETAILS & DATE OF BIRTH */}
-      {step === 2 && (
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 pb-4 flex justify-between items-center">
-            <div>
-              <h3 className="font-display font-bold text-slate-800 text-lg">Participant Personal Details</h3>
-              <p className="text-xs text-slate-400 mt-1">Enter correct birth records and educational status</p>
+                placeholder="e.g. Muhammed Rayan"
+                className="mt-1 block w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              />
             </div>
-            {user.role !== UserRole.UNIT_TEAM_LEADER && (
-              <button 
-                onClick={() => setStep(1)}
-                className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200"
-              >
-                Change Unit ({units.find(u => u.id === selectedUnitId)?.name})
-              </button>
-            )}
-          </div>
 
-          <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); setStep(3); }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* Full Name */}
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-mono">Candidate's Full Name</label>
+            {/* Date of Birth: 3 Distinct Numeric Boxes (DD / MM / YYYY) */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+                Date of Birth (DD / MM / YYYY) <span className="text-rose-500">*</span>
+              </label>
+              <div className="mt-1 flex items-center gap-2">
                 <input
+                  ref={dobDayRef}
                   type="text"
+                  inputMode="numeric"
+                  maxLength={2}
+                  placeholder="DD"
+                  value={dobDay}
+                  onChange={(e) => handleDobDayChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      dobMonthRef.current?.focus();
+                      dobMonthRef.current?.select();
+                    }
+                  }}
+                  className="w-16 px-3 py-2 border border-slate-300 rounded-xl text-center text-xs font-mono font-extrabold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="mt-2 block w-full px-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm shadow-sm"
-                  placeholder="Enter full name"
                 />
-              </div>
-
-              {/* Date of Birth */}
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4 text-emerald-600" />
-                  Date of Birth
-                </label>
+                <span className="text-slate-400 font-bold">/</span>
                 <input
-                  type="date"
-                  value={dob}
-                  onChange={(e) => setDob(e.target.value)}
-                  className="mt-2 block w-full px-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm shadow-sm font-mono"
-                />
-              </div>
-
-              {/* Education Status */}
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
-                  <GraduationCap className="h-4.5 w-4.5 text-emerald-600" />
-                  Education Status
-                </label>
-                <select
-                  value={educationStatus}
-                  onChange={(e) => setEducationStatus(e.target.value as EducationStatus)}
-                  className="mt-2 block w-full px-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm shadow-sm"
-                >
-                  <option value={EducationStatus.STUDENT}>School/College Student</option>
-                  <option value={EducationStatus.UNDERGRADUATE}>Undergraduate Course (UG)</option>
-                  <option value={EducationStatus.POSTGRADUATE}>Postgraduate Course (PG)</option>
-                </select>
-              </div>
-
-            </div>
-
-            {/* Campus details (only if undergraduate/postgraduate) */}
-            {(educationStatus === EducationStatus.UNDERGRADUATE || educationStatus === EducationStatus.POSTGRADUATE) && (
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/60 grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Course / Stream</label>
-                  <input
-                    type="text"
-                    value={course}
-                    onChange={(e) => setCourse(e.target.value)}
-                    className="mt-2 block w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 sm:text-xs"
-                    placeholder="E.g. BCA, B.Sc"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Year / Semester</label>
-                  <input
-                    type="text"
-                    value={yearSemester}
-                    onChange={(e) => setYearSemester(e.target.value)}
-                    className="mt-2 block w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 sm:text-xs"
-                    placeholder="E.g. 3rd Year / 6th Sem"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Optional contact details */}
-            <div className="grid grid-cols-1 gap-6">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-mono">Phone Number (Optional)</label>
-                <input
+                  ref={dobMonthRef}
                   type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="mt-2 block w-full px-4 py-2.5 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm shadow-sm"
-                  placeholder="Participant phone number"
+                  inputMode="numeric"
+                  maxLength={2}
+                  placeholder="MM"
+                  value={dobMonth}
+                  onChange={(e) => handleDobMonthChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      dobYearRef.current?.focus();
+                      dobYearRef.current?.select();
+                    }
+                  }}
+                  className="w-16 px-3 py-2 border border-slate-300 rounded-xl text-center text-xs font-mono font-extrabold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  required
+                />
+                <span className="text-slate-400 font-bold">/</span>
+                <input
+                  ref={dobYearRef}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="YYYY"
+                  value={dobYear}
+                  onChange={(e) => handleDobYearChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      dobYearRef.current?.blur();
+                    }
+                  }}
+                  className="w-24 px-3 py-2 border border-slate-300 rounded-xl text-center text-xs font-mono font-extrabold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  required
                 />
               </div>
             </div>
+          </div>
 
-            <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-              <span className="text-xs font-mono text-slate-400">Assigned Unit: {units.find(u => u.id === selectedUnitId)?.name || 'GEN'}</span>
-              <button
-                type="submit"
-                disabled={!fullName}
-                id="btn_to_events"
-                className="flex items-center px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-md shadow-emerald-600/10"
-              >
-                Select Events & Category
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* STEP 3: ELIGIBILITY & EVENTS SELECTOR */}
-      {step === 3 && (
-        <div className="space-y-6">
-          
-          {/* ELIGIBLE CATEGORIES LIST */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            {/* Gender Selection */}
             <div>
-              <h3 className="font-display font-bold text-slate-800 text-base">Select Competition Category</h3>
-              <p className="text-xs text-slate-400 mt-1">Calculated according to age and education limits. Pick one enabled option.</p>
-            </div>
-
-            {eligibilityLoading ? (
-              <div className="p-6 text-center text-xs text-slate-400 font-mono animate-pulse">Computing eligibility rules...</div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {eligibilityList.map((el) => (
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Gender</label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                {[
+                  { key: Gender.MALE, label: 'Male' },
+                  { key: Gender.FEMALE, label: 'Female' }
+                ].map(g => (
                   <button
-                    key={el.id}
+                    key={g.key}
                     type="button"
-                    disabled={!el.eligible}
-                    onClick={() => handleCategorySelect(el.id)}
-                    className={`p-4 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between ${
-                      !el.eligible 
-                        ? 'bg-slate-50 border-slate-200/60 opacity-50 cursor-not-allowed' 
-                        : selectedCategoryId === el.id
-                          ? 'border-emerald-600 bg-emerald-50/10 ring-2 ring-emerald-500/20'
-                          : 'border-slate-200 hover:border-slate-300'
+                    onClick={() => setGender(g.key)}
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                      gender === g.key ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
-                    {selectedCategoryId === el.id && (
-                      <div className="absolute top-3 right-3 h-5 w-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
-                        <Check className="h-3 w-3 stroke-[3px]" />
-                      </div>
-                    )}
-                    <span className="font-display font-bold text-slate-800 text-sm">{el.name}</span>
-                    <span className={`text-[10px] font-mono mt-2 block font-semibold ${el.eligible ? 'text-emerald-600' : 'text-red-500'}`}>
-                      {el.eligible ? '● Eligible to Register' : el.reason}
-                    </span>
+                    {g.label}
                   </button>
                 ))}
               </div>
-            )}
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 2: CATEGORY SELECTOR (All categories fully available) */}
+        <div className="space-y-3 pt-4 border-t border-slate-100">
+          <div className="flex justify-between items-center">
+            <h3 className="font-display font-extrabold text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 text-purple-600" />
+              <span>2. Select Category</span>
+            </h3>
           </div>
 
-          {/* EVENTS/PROGRAMS DIRECTORY SELECTOR */}
-          {selectedCategoryId && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                <div>
-                  <h3 className="font-display font-bold text-slate-800 text-base">Select Competitions</h3>
-                  <p className="text-xs text-slate-400 mt-1">Select individual (max 3) and group (max 2) events</p>
-                </div>
-                <div className="flex gap-4 font-mono text-xs font-semibold text-slate-500 bg-slate-50 px-4 py-2 rounded-xl border">
-                  <span>
-                    Ind: <b className="text-emerald-700">{competitions.filter(c => selectedComps.includes(c.id) && c.participationType === ParticipationType.INDIVIDUAL).length}/3</b>
-                  </span>
-                  <span>
-                    Grp: <b className="text-purple-700">{competitions.filter(c => selectedComps.includes(c.id) && c.participationType === ParticipationType.GROUP).length}/2</b>
-                  </span>
-                </div>
-              </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {categories.map(cat => {
+              const isSelected = selectedCategoryId === cat.id;
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-2 divide-y divide-slate-100">
-                {filteredCompetitions.map((comp) => {
-                  const isSelected = selectedComps.includes(comp.id);
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => handleCategorySelect(cat.id)}
+                  className={`p-4 rounded-2xl border text-center transition-all relative overflow-hidden cursor-pointer ${
+                    isSelected
+                      ? 'bg-purple-900 text-white border-purple-900 shadow-md ring-2 ring-purple-500'
+                      : 'bg-purple-50/50 text-purple-950 border-purple-200 hover:border-purple-400'
+                  }`}
+                >
+                  <span className="font-display font-extrabold text-sm block">{cat.name}</span>
+                  {isSelected && (
+                    <span className="absolute top-2 right-2 bg-purple-500 text-white p-0.5 rounded-full">
+                      <Check className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* SECTION 3: COMPETITIONS CHECKLIST FOR SELECTED CATEGORY */}
+        {selectedCategoryId && (
+          <div className="space-y-4 pt-4 border-t border-slate-100">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <h3 className="font-display font-extrabold text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                <ClipboardCheck className="w-5 h-5 text-emerald-600" />
+                <span>3. Select Competition Programs</span>
+              </h3>
+              <div className="flex items-center gap-2 font-mono text-[11px] font-bold">
+                <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg">
+                  Individual: {competitions.filter(c => selectedComps.includes(c.id) && c.participationType === ParticipationType.INDIVIDUAL).length} / {eventSettings?.maxIndividualEvents || 3}
+                </span>
+                <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-lg">
+                  Group: {competitions.filter(c => selectedComps.includes(c.id) && c.participationType === ParticipationType.GROUP).length} / {eventSettings?.maxGroupEvents || 2}
+                </span>
+              </div>
+            </div>
+
+            {filteredCompetitions.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 font-mono text-xs bg-slate-50 rounded-2xl border">
+                No active competition programs configured for this category yet.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
+                {filteredCompetitions.map(comp => {
+                  const isChecked = selectedComps.includes(comp.id);
+
                   return (
-                    <button
+                    <div
                       key={comp.id}
-                      type="button"
                       onClick={() => handleCompToggle(comp.id)}
-                      className={`p-4 rounded-2xl border text-left transition-all flex items-start gap-3 w-full hover:bg-slate-50/50 ${
-                        isSelected 
-                          ? 'border-emerald-600 bg-emerald-50/10' 
-                          : 'border-slate-200 bg-white'
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                        isChecked
+                          ? 'bg-emerald-50 border-emerald-500 text-emerald-950 shadow-xs'
+                          : 'bg-white border-slate-200 hover:border-emerald-300 text-slate-800'
                       }`}
                     >
-                      <div className={`mt-0.5 h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ${
-                        isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
-                      }`}>
-                        {isSelected && <Check className="h-3 w-3 stroke-[3px]" />}
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <span className="font-semibold text-slate-800 text-sm leading-tight block truncate">{comp.name}</span>
-                        <div className="flex items-center gap-2 mt-1.5 font-mono text-[10px] font-bold">
-                          <span className={`px-2 py-0.5 rounded uppercase ${
-                            comp.participationType === ParticipationType.INDIVIDUAL 
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' 
-                              : 'bg-purple-50 text-purple-800 border border-purple-100'
-                          }`}>
-                            {comp.participationType}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded uppercase ${
-                            comp.stageType === StageType.ON_STAGE 
-                              ? 'bg-amber-50 text-amber-800 border border-amber-100' 
-                              : 'bg-slate-100 text-slate-600 border border-slate-200'
-                          }`}>
-                            {comp.stageType.replace('_', ' ')}
-                          </span>
-                          {comp.duration > 0 && <span className="text-slate-400">{comp.duration} mins</span>}
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                          isChecked ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-slate-50'
+                        }`}>
+                          {isChecked && <Check className="w-3.5 h-3.5" />}
+                        </div>
+                        <div>
+                          <span className="font-bold text-xs block">{comp.name}</span>
+                          <div className="flex gap-2 mt-0.5 font-mono text-[9px] font-bold">
+                            <span className={`uppercase px-1.5 py-0.2 rounded ${
+                              comp.participationType === ParticipationType.INDIVIDUAL ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'
+                            }`}>
+                              {comp.participationType}
+                            </span>
+                            <span className="text-slate-400 uppercase">{comp.stageType.replace('_', ' ')}</span>
+                          </div>
                         </div>
                       </div>
-                    </button>
+
+                      {comp.duration > 0 && (
+                        <span className="font-mono text-[10px] text-slate-400 font-bold shrink-0">{comp.duration}m</span>
+                      )}
+                    </div>
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
-          {/* Nav buttons */}
-          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border">
-            <button
-              onClick={() => setStep(2)}
-              className="flex items-center text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-50 px-4 py-2.5 border rounded-xl"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Candidate Profile
-            </button>
-            <button
-              onClick={handleNextToReview}
-              disabled={!selectedCategoryId || selectedComps.length === 0}
-              id="btn_to_review"
-              className="flex items-center px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 shadow-md shadow-emerald-600/10"
-            >
-              Review Registration
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </button>
+        {/* SUBMIT ACTION BUTTON */}
+        <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <div className="text-[11px] text-slate-400 font-mono">
+            {selectedComps.length > 0 ? `Ready to register with ${selectedComps.length} program(s) selected.` : 'Fill candidate details, select category & programs to register.'}
           </div>
 
+          <button
+            type="submit"
+            disabled={submitting || !selectedCategoryId || selectedComps.length === 0 || !fullName || !dob || !selectedUnitId}
+            className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-display font-extrabold text-sm shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+          >
+            {submitting ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Registering Candidate...</span>
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-4 h-4" />
+                <span>Register Candidate & Generate Chest No.</span>
+              </>
+            )}
+          </button>
         </div>
-      )}
 
-      {/* STEP 4: REVIEW & FINAL CONFIRMATION */}
-      {step === 4 && (
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <h3 className="font-display font-bold text-slate-800 text-lg">Verify Final Records</h3>
-            <p className="text-xs text-slate-400 mt-1">Please double-check all candidate records before final submission</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans text-sm">
-            <div className="space-y-4">
-              <div>
-                <span className="text-slate-400 text-xs font-bold block uppercase tracking-wider font-mono">Candidate Name</span>
-                <span className="font-extrabold text-slate-800 text-base mt-1 block">{fullName}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-xs font-bold block uppercase tracking-wider font-mono">Representing Unit</span>
-                <span className="font-extrabold text-slate-800 text-base mt-1 block">
-                  {units.find(u => u.id === selectedUnitId)?.name || 'GEN'}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-slate-400 text-xs font-bold block uppercase tracking-wider font-mono">Date of Birth</span>
-                  <span className="font-bold text-slate-700 mt-1 block font-mono">{dob || 'Not provided'}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 text-xs font-bold block uppercase tracking-wider font-mono">Education</span>
-                  <span className="font-bold text-slate-700 mt-1 block capitalize">{educationStatus.replace('_', ' ')}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <span className="text-slate-400 text-xs font-bold block uppercase tracking-wider font-mono">Registered Category</span>
-                <span className="inline-block bg-amber-100 border border-amber-200 text-amber-900 px-3 py-1 rounded-xl text-xs font-bold mt-1.5">
-                  {categories.find(c => c.id === selectedCategoryId)?.name}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-xs font-bold block uppercase tracking-wider font-mono">Selected Competitions</span>
-                <ul className="mt-2 space-y-1.5">
-                  {competitions.filter(c => selectedComps.includes(c.id)).map(comp => (
-                    <li key={comp.id} className="flex justify-between items-center font-mono text-xs font-semibold bg-slate-50 p-2 rounded-lg border">
-                      <span>{comp.name}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-bold ${
-                        comp.participationType === ParticipationType.INDIVIDUAL ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'
-                      }`}>
-                        {comp.participationType}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center pt-6 border-t border-slate-100">
-            <button
-              onClick={() => setStep(3)}
-              className="flex items-center text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-50 px-4 py-2.5 border rounded-xl"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Adjust Programs
-            </button>
-            <button
-              onClick={handleFinalSubmit}
-              disabled={submitting}
-              id="btn_submit_reg"
-              className="flex items-center px-8 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors shadow-md shadow-emerald-600/10"
-            >
-              {submitting ? 'Registering...' : 'Save & Register Candidate'}
-              <ClipboardCheck className="h-4.5 w-4.5 ml-1.5" />
-            </button>
-          </div>
-        </div>
-      )}
-
+      </form>
     </div>
   );
 }
