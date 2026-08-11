@@ -3703,7 +3703,7 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
       if (existingScore.status === JudgeScoreStatus.PARTICIPATED) {
         const validMarks = existingScore.judgeScores.filter((j: JudgeScoreEntry) => typeof j.mark === 'number' && !Number.isNaN(j.mark));
         const sumMarks = validMarks.reduce((sum: number, jm: JudgeScoreEntry) => sum + jm.mark, 0);
-        const activeJudgesCount = validMarks.length || 1;
+        const activeJudgesCount = sheet.numJudges || validMarks.length || 1;
         const avg = sumMarks / activeJudgesCount;
         existingScore.totalMark = sumMarks;
         existingScore.averageMark = Math.round(avg * 100) / 100;
@@ -3816,10 +3816,11 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
 
     if (existingResult) {
       // Update existing result
-      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : (score.judgeScores.length > 0 ? Math.round((score.totalMark / score.judgeScores.length) * 100) / 100 : score.totalMark);
+      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : (score.judgeScores.length > 0 ? Math.round((score.totalMark / sheet.numJudges) * 100) / 100 : score.totalMark);
       existingResult.judge1Mark = j1?.mark || 0;
       existingResult.judge2Mark = j2?.mark || 0;
-      existingResult.totalMark = calculatedAvgMark;
+      existingResult.totalMark = score.totalMark;
+      existingResult.averageMark = calculatedAvgMark;
       existingResult.rank = score.rank;
       existingResult.status = resultStatus;
       existingResult.remarks = score.remarks;
@@ -3828,7 +3829,7 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
       existingResult.publishedStatus = true;
     } else {
       // Create new result
-      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : (score.judgeScores.length > 0 ? Math.round((score.totalMark / score.judgeScores.length) * 100) / 100 : score.totalMark);
+      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : (score.judgeScores.length > 0 ? Math.round((score.totalMark / sheet.numJudges) * 100) / 100 : score.totalMark);
       const result: Result = {
         id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         categoryId: sheet.categoryId,
@@ -3837,7 +3838,8 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
         teamId: gr.teamId,
         judge1Mark: j1?.mark || 0,
         judge2Mark: j2?.mark || 0,
-        totalMark: calculatedAvgMark,
+        totalMark: score.totalMark,
+        averageMark: calculatedAvgMark,
         rank: score.rank,
         status: resultStatus,
         remarks: score.remarks,

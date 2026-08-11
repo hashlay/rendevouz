@@ -663,7 +663,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                             <div className="text-right">
                               {item.result ? (
                                 <>
-                                  <span className="font-bold text-emerald-600 block">{item.result.totalMark} marks</span>
+                                  <span className="font-bold text-emerald-600 block">{item.result.totalMark} marks <span className="text-[10px] font-normal text-emerald-700/80">(Avg: {item.result.averageMark || 0})</span></span>
                                   <span className="text-[9px] font-mono bg-emerald-50 text-emerald-700 border px-1.5 py-0.5 rounded uppercase font-bold">
                                     Rank {item.result.rank || 'TBD'}
                                   </span>

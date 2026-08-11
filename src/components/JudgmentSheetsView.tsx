@@ -157,7 +157,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
 
       const validMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark));
       const sumMarks = validMarks.reduce((sum, j) => sum + j.mark, 0);
-      const avg = validMarks.length > 0 ? sumMarks / validMarks.length : 0;
+      const activeJudgesCount = currentSheet?.numJudges || validMarks.length || 1;
+      const avg = sumMarks / activeJudgesCount;
 
       return {
         ...s,
@@ -195,7 +196,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
       // Calculate frontend total and average
       const validMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark));
       const sumMarks = validMarks.reduce((sum, j) => sum + j.mark, 0);
-      const avg = validMarks.length > 0 ? sumMarks / validMarks.length : 0;
+      const activeJudgesCount = currentSheet?.numJudges || validMarks.length || 1;
+      const avg = sumMarks / activeJudgesCount;
 
       return {
         ...s,

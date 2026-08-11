@@ -209,6 +209,7 @@ export interface Result {
   judge1Mark: number;
   judge2Mark: number;
   totalMark: number;
+  averageMark?: number;
   rank?: number; // Calculated rank (1, 2, 3...)
   status: ResultStatus;
   remarks?: string;
