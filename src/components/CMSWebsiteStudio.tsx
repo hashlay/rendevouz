@@ -53,31 +53,62 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         setDragBlocks(data.dragBlocks && data.dragBlocks.length > 0 ? data.dragBlocks : defaultBlocks);
         setHeroMedia(data.heroMedia || []);
         const mergedSettings = data.cmsSettings || {};
-        setSettings({
-          aboutBadge: mergedSettings.aboutBadge || 'Festival Vision',
-          aboutMainHeading: mergedSettings.aboutMainHeading || 'ABOUT THE <span class="text-[#FF2B2B]">FESTIVAL</span>',
-          aboutTitle: mergedSettings.aboutTitle || 'Kulliyathu Imam Rabbani',
-          aboutSubtitle: mergedSettings.aboutSubtitle || 'Off-Campus of Markaz Garden, Poonoor',
-          aboutDescription: mergedSettings.aboutDescription || 'Kulliyathu Imam Rabbani stands as a premier center of higher Islamic learning and academic excellence, functioning as a key off-campus institute under the revered banner of Markaz Garden, Poonoor.\n\nThe Imam Rabbani LIFE Festival (Rendezvous Silver Edition) is an annual flagship celebration of intellectual, creative, and moral excellence.',
-          themeTitle: mergedSettings.themeTitle || 'Transcending the Illusions',
-          themeDescription: mergedSettings.themeDescription || 'In a world crowded with digital superficiality and sensory illusions, \'Transcending the Illusions\' calls upon the youth to pierce through modern worldly deceptions through classical wisdom, spiritual clarity, and moral fortitude.',
-          footerText: mergedSettings.footerText || 'Rendezvous Silver Edition is the flagship Imam Rabbani LIFE Festival celebrating intellectual, creative, and moral excellence at Kulliyathu Imam Rabbani, Poonoor.',
-          heroTitle: mergedSettings.heroTitle || 'RENDEZVOUS <span class="text-[#FF2B2B]">SILVER EDITION</span>',
-          heroSubtitle: mergedSettings.heroSubtitle || 'Imam Rabbani LIFE Festival',
-          heroDate: mergedSettings.heroDate || 'September 23 – 24, 2025',
-          heroLocation: mergedSettings.heroLocation || 'Main Campus Grounds, Poonoor, Kozhikode',
-          headerLogoTitle: mergedSettings.headerLogoTitle || 'RENDEZVOUS',
-          headerLogoSubtitle: mergedSettings.headerLogoSubtitle || 'Silver Edition',
-          heroLogoTitle: mergedSettings.heroLogoTitle || 'RENDEZVOUS',
-          heroLogoSubtitle: mergedSettings.heroLogoSubtitle || 'Silver Edition',
-          heroLogoBadge: mergedSettings.heroLogoBadge || 'KULLIYATHU IMAM RABBANI',
-          heroDesktopImages: mergedSettings.heroDesktopImages || ['/hero1.jpg', '/hero2.jpg'],
-          heroDesktopLoopEnabled: mergedSettings.heroDesktopLoopEnabled !== undefined ? mergedSettings.heroDesktopLoopEnabled : true,
-          heroDesktopLoopInterval: mergedSettings.heroDesktopLoopInterval || 3,
-          heroMobileLoopEnabled: mergedSettings.heroMobileLoopEnabled !== undefined ? mergedSettings.heroMobileLoopEnabled : true,
-          heroMobileLoopInterval: mergedSettings.heroMobileLoopInterval || 3,
-          ...mergedSettings
+        const DEFAULT_CMS_SETTINGS: any = {
+          headerLogoTitle: 'RENDEZVOUS',
+          headerLogoSubtitle: 'Silver Edition',
+          heroLogoTitle: 'RENDEZVOUS',
+          heroLogoSubtitle: 'Silver Edition',
+          heroLogoBadge: 'KULLIYATHU IMAM RABBANI',
+          heroTitle: 'RENDEZVOUS <span class="text-[#FF2B2B]">SILVER EDITION</span>',
+          heroSubtitle: 'Imam Rabbani LIFE Festival',
+          heroInstitutionLeft: 'Kulliyathu Imam Rabbani',
+          heroInstitutionRight: 'Off-Campus of Markaz Garden, Poonoor',
+          heroDate: 'September 23 – 24, 2025',
+          heroLocation: 'Main Campus Grounds, Poonoor, Kozhikode',
+          aboutBadge: 'Festival Vision',
+          aboutMainHeading: 'ABOUT THE <span class="text-[#FF2B2B]">FESTIVAL</span>',
+          aboutTitle: 'Kulliyathu Imam Rabbani',
+          aboutSubtitle: 'Off-Campus of Markaz Garden, Poonoor',
+          aboutDescription: 'Kulliyathu Imam Rabbani stands as a premier center of higher Islamic learning and academic excellence, functioning as a key off-campus institute under the revered banner of Markaz Garden, Poonoor.\n\nThe Imam Rabbani LIFE Festival (Rendezvous Silver Edition) is an annual flagship celebration of intellectual, creative, and moral excellence. It brings together over 1200 students across 40+ disciplines.',
+          aboutImageBadge: 'INAUGURATION SESSION',
+          aboutImageTitle: 'KULLIYATHU IMAM RABBANI',
+          aboutImageSubtitle: 'Distinguished Scholars & Dignitaries at Grand Assembly',
+          aboutImageLocation: 'Main Stage Auditorium • Markaz Garden Campus',
+          aboutImageFooter: 'Markaz Garden Off-Campus',
+          themeTitle: 'Transcending the Illusions',
+          themeDescription: 'In a world crowded with digital superficiality and sensory illusions, \'Transcending the Illusions\' calls upon the youth to pierce through modern worldly deceptions through classical wisdom, spiritual clarity, and moral fortitude.',
+          themeButtonText: 'READ PHILOSOPHICAL CONCEPT',
+          conceptModalBadge: 'Theme Concept & Philosophy',
+          conceptModalTitle: 'TRANSCENDING THE ILLUSIONS',
+          conceptModalSubtitle: 'Kulliyathu Imam Rabbani',
+          conceptModalFooter: 'Markaz Garden Off-Campus, Poonoor',
+          conceptModalDescription: 'In an era dominated by hyper-digital sensory overload, the human spirit is increasingly trapped.\n\nThe Silver Edition celebrates a milestone legacy of nurturing scholars, leaders, and artists who embody moral integrity.',
+          footerLogoTitle: 'RENDEZVOUS',
+          footerLogoSubtitle: 'Silver Edition',
+          footerLogoBadge: 'KULLIYATHU IMAM RABBANI',
+          footerDescription: 'Rendezvous Silver Edition is the flagship Imam Rabbani LIFE Festival organized by Kulliyathu Imam Rabbani, a premier off-campus institute of Markaz Garden, Poonoor.',
+          footerLocation: 'Main Campus Grounds, Poonoor, Kozhikode',
+          footerEmail: 'contact@imamrabbani.edu.in',
+          footerPhone: '+91 98471 23456',
+          footerInstagram: 'https://instagram.com/markazgarden',
+          footerYoutube: 'https://youtube.com/markazgarden',
+          footerFacebook: 'https://facebook.com/markazgarden',
+          footerText: '© 2025 Kulliyathu Imam Rabbani (Markaz Garden Off-Campus). All rights reserved.',
+          copyrightText: '© 2025 Kulliyathu Imam Rabbani (Markaz Garden Off-Campus). All rights reserved.',
+          heroDesktopImages: ['/hero1.jpg', '/hero2.jpg'],
+          heroDesktopLoopEnabled: true,
+          heroDesktopLoopInterval: 3,
+          heroMobileLoopEnabled: true,
+          heroMobileLoopInterval: 3
+        };
+
+        const finalSettings: any = { ...DEFAULT_CMS_SETTINGS };
+        Object.keys(DEFAULT_CMS_SETTINGS).forEach((key) => {
+          if (mergedSettings[key] !== undefined && mergedSettings[key] !== '' && mergedSettings[key] !== null) {
+            finalSettings[key] = mergedSettings[key];
+          }
         });
+        setSettings(finalSettings);
       }
     } catch (err) {
       console.error('Failed to fetch CMS', err);

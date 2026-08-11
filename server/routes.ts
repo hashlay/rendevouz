@@ -1315,6 +1315,50 @@ apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN,
   res.json({ message: `Bulk imported ${imported} results successfully`, imported });
 });
 
+// Bulk Import Competitions
+apiRouter.post('/competitions/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const db = dbClient.get();
+  const user = (req as any).user as User;
+  const { competitions: items } = req.body;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Competitions array is required.' });
+  }
+
+  let imported = 0;
+  for (const item of items) {
+    const compName = (item.name || item.eventName || '').toString().trim();
+    if (!compName) continue;
+
+    let category = db.categories.find(c =>
+      c.id === item.categoryId ||
+      c.name.toLowerCase() === (item.categoryName || item.category || '').toString().trim().toLowerCase()
+    );
+    if (!category && db.categories.length > 0) {
+      category = db.categories[0];
+    }
+
+    const newComp: Competition = {
+      id: `comp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      name: toTitleCase(compName),
+      categoryId: category?.id || 'cat_junior',
+      language: item.language,
+      participationType: (item.participationType || '').toLowerCase().includes('group') ? ParticipationType.GROUP : ParticipationType.INDIVIDUAL,
+      teamSize: Number(item.teamSize) || 1,
+      duration: Number(item.duration) || 5,
+      stageType: (item.stageType || '').toLowerCase().includes('off') ? StageType.OFF_STAGE : StageType.ON_STAGE,
+      displayOrder: db.competitions.length + 1,
+      active: true
+    };
+
+    db.competitions.push(newComp);
+    imported++;
+  }
+
+  await dbClient.save();
+  res.json({ message: `Bulk imported ${imported} competitions successfully`, imported });
+});
+
 // Duplicate Checking Check
 apiRouter.post('/participants/check-duplicate', authenticate, async (req, res) => {
   res.json({ duplicate: false, matches: [] });
