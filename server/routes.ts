@@ -3395,7 +3395,13 @@ apiRouter.get('/judgment-sheets', authenticate, async (req, res) => {
     };
   });
 
-  res.json(enriched);
+  let finalSheets = enriched;
+  if (user.role === UserRole.JUDGE) {
+    // Hide locked sheets from judges
+    finalSheets = enriched.filter(s => s.status !== JudgmentSheetStatus.LOCKED);
+  }
+
+  res.json(finalSheets);
 });
 
 // Judgment sheet stats
