@@ -365,9 +365,14 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       const hasRank2 = pRanks.includes(2);
       const hasRank3 = pRanks.includes(3);
 
-      if (selectedPlacementFilter === 'no_podium') {
+      if (selectedPlacementFilter === 'no_first_second') {
+        // No 1st Rank and No 2nd Rank
+        if (hasRank1 || hasRank2) return false;
+      } else if (selectedPlacementFilter === 'no_podium') {
+        // No 1st Rank, No 2nd Rank, and No 3rd Rank (Unawarded)
         if (hasRank1 || hasRank2 || hasRank3) return false;
       } else if (selectedPlacementFilter === 'third_only') {
+        // 3rd Place Only (Got 3rd Rank, but NO 1st or 2nd Rank)
         if (!hasRank3 || hasRank1 || hasRank2) return false;
       } else if (selectedPlacementFilter === 'first_place') {
         if (!hasRank1) return false;
@@ -429,7 +434,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
             title="Filter participants by published rank awards"
           >
             <option value="">All Award Statuses</option>
-            <option value="no_podium">Unawarded (No 1st, 2nd, or 3rd Rank)</option>
+            <option value="no_first_second">No 1st & No 2nd Rank</option>
+            <option value="no_podium">No 1st, No 2nd & No 3rd Rank (Unawarded)</option>
             <option value="third_only">3rd Place Only (No 1st/2nd Rank)</option>
             <option value="first_place">Has 1st Place Rank</option>
             <option value="second_place">Has 2nd Place Rank</option>
