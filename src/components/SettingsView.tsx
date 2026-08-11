@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Settings, Save, Database, Trash2, ShieldAlert, 
-  RefreshCw, CheckCircle2, Download, Upload, AlertTriangle 
+  RefreshCw, CheckCircle2, Download, Upload, AlertTriangle, Sparkles 
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 
@@ -10,6 +10,103 @@ interface SettingsViewProps {
   token: string;
   eventSettings?: any;
 }
+
+const removeBackgroundFromLogo = (imageSource: string): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 500;
+      const MAX_HEIGHT = 500;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width = Math.round((width * MAX_HEIGHT) / height);
+          height = MAX_HEIGHT;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(imageSource);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      const imgData = ctx.getImageData(0, 0, width, height);
+      const data = imgData.data;
+
+      // Sample background color from 4 corners
+      const cornerIndices = [0, (width - 1) * 4, (height - 1) * width * 4, (width * height - 1) * 4];
+      let bgR = 255, bgG = 255, bgB = 255;
+      let validCorners = 0;
+      let sumR = 0, sumG = 0, sumB = 0;
+
+      cornerIndices.forEach((idx) => {
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
+        const a = data[idx + 3];
+        if (a > 180 && (r > 160 || g > 160 || b > 160)) {
+          sumR += r;
+          sumG += g;
+          sumB += b;
+          validCorners++;
+        }
+      });
+
+      if (validCorners > 0) {
+        bgR = Math.round(sumR / validCorners);
+        bgG = Math.round(sumG / validCorners);
+        bgB = Math.round(sumB / validCorners);
+      }
+
+      const threshold = 45;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const a = data[i + 3];
+
+        if (a === 0) continue;
+
+        const dist = Math.sqrt(
+          (r - bgR) * (r - bgR) +
+          (g - bgG) * (g - bgG) +
+          (b - bgB) * (b - bgB)
+        );
+
+        const isLightBackground = r > 220 && g > 220 && b > 220;
+
+        if (dist < threshold || isLightBackground) {
+          if (dist < threshold / 2 || (r > 235 && g > 235 && b > 235)) {
+            data[i + 3] = 0; // Fully transparent
+          } else {
+            const alphaFactor = (dist - threshold / 2) / (threshold / 2);
+            data[i + 3] = Math.min(a, Math.round(a * alphaFactor));
+          }
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+
+    img.onerror = () => resolve(imageSource);
+    img.src = imageSource;
+  });
+};
 
 export default function SettingsView({ user, token, eventSettings }: SettingsViewProps) {
   const [loading, setLoading] = useState(true);
@@ -416,7 +513,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                 placeholder="https://example.com/logo.png"
                 className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 font-mono text-xs"
               />
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <label className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs cursor-pointer border border-emerald-200 transition-colors">
                   <Upload className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Upload Logo from Gallery</span>
@@ -429,42 +526,33 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                       if (file) {
                         const reader = new FileReader();
                         reader.onload = (uploadEvent) => {
-                          const img = new Image();
-                          img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            const MAX_WIDTH = 400;
-                            const MAX_HEIGHT = 400;
-                            let width = img.width;
-                            let height = img.height;
-
-                            if (width > height) {
-                              if (width > MAX_WIDTH) {
-                                height = Math.round((height * MAX_WIDTH) / width);
-                                width = MAX_WIDTH;
-                              }
-                            } else {
-                              if (height > MAX_HEIGHT) {
-                                width = Math.round((width * MAX_HEIGHT) / height);
-                                height = MAX_HEIGHT;
-                              }
-                            }
-
-                            canvas.width = width;
-                            canvas.height = height;
-                            const ctx = canvas.getContext('2d');
-                            ctx?.drawImage(img, 0, 0, width, height);
-                            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-
-                            setSsfLogoUrl(compressedDataUrl);
-                            setSahityotsavLogoUrl(compressedDataUrl);
-                          };
-                          img.src = uploadEvent.target?.result as string;
+                          const rawSrc = uploadEvent.target?.result as string;
+                          removeBackgroundFromLogo(rawSrc).then((transparentPng) => {
+                            setSsfLogoUrl(transparentPng);
+                            setSahityotsavLogoUrl(transparentPng);
+                          });
                         };
                         reader.readAsDataURL(file);
                       }
                     }} 
                   />
                 </label>
+
+                {ssfLogoUrl && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const transparentPng = await removeBackgroundFromLogo(ssfLogoUrl);
+                      setSsfLogoUrl(transparentPng);
+                      setSahityotsavLogoUrl(transparentPng);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs border border-indigo-200 transition-colors"
+                    title="Remove white/solid background from current logo"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Auto Remove Background</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
