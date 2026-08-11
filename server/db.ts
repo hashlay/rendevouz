@@ -457,6 +457,8 @@ function _syncMongoNow() {
   }
 }
 
+let _mongoSyncTimer: NodeJS.Timeout | null = null;
+
 function _scheduleMongSync() {
   if (_mongoSyncTimer) clearTimeout(_mongoSyncTimer);
   _mongoSyncTimer = setTimeout(() => {
