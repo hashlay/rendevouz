@@ -506,6 +506,22 @@ ensureDbExists();
 // Start MongoDB connection in the background and sync
 connectToMongo();
 
+export function getCollection(name: string): Collection<any> | null {
+  if (!mongoClient || !isMongoConnected) return null;
+  const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/') 
+    ? ((process.env.MONGO_URI || process.env.MONGODB_URI || '').split('/').pop()?.split('?')[0] || 'sahityotsav')
+    : 'sahityotsav';
+  return mongoClient.db(dbName).collection(name);
+}
+
+export function getDb() {
+  if (!mongoClient || !isMongoConnected) return null;
+  const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/') 
+    ? ((process.env.MONGO_URI || process.env.MONGODB_URI || '').split('/').pop()?.split('?')[0] || 'sahityotsav')
+    : 'sahityotsav';
+  return mongoClient.db(dbName);
+}
+
 export const dbClient = {
   waitForSync: () => {
     return connectToMongo();

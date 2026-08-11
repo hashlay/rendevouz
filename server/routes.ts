@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { dbClient } from './db.js';
+import { dbClient, getCollection } from './db.js';
 import { CalculationService } from './calculations.js';
 import { 
   UserRole, User, Session, LoginAudit, AuditLog, 
@@ -116,11 +116,21 @@ const failedLoginTracker: { [username: string]: { count: number; lockedUntil?: n
 // --- PUBLIC API ---
 
 apiRouter.get('/public/highlights', async (req, res) => {
+  const collection = getCollection('videoHighlights');
+  if (collection) {
+    const highlights = await collection.find({}).sort({ createdAt: -1 }).toArray();
+    return res.json(highlights);
+  }
   const db = dbClient.get();
   res.json(db.videoHighlights || []);
 });
 
 apiRouter.get('/public/gallery', async (req, res) => {
+  const collection = getCollection('gallery');
+  if (collection) {
+    const gallery = await collection.find({}).sort({ createdAt: -1 }).toArray();
+    return res.json(gallery);
+  }
   const db = dbClient.get();
   res.json(db.gallery || []);
 });
@@ -522,10 +532,15 @@ apiRouter.post('/highlights/upload', authenticate, requireRole([UserRole.SUPER_A
       createdAt: Date.now()
     };
 
-    const db = dbClient.get();
-    if (!Array.isArray(db.videoHighlights)) db.videoHighlights = [];
-    db.videoHighlights.unshift(highlight);
-    await dbClient.save();
+    const collection = getCollection('videoHighlights');
+    if (collection) {
+      await collection.insertOne({ ...highlight, _id: highlight.id });
+    } else {
+      const db = dbClient.get();
+      if (!Array.isArray(db.videoHighlights)) db.videoHighlights = [];
+      db.videoHighlights.unshift(highlight);
+      await dbClient.save();
+    }
 
     await dbClient.logAudit(
       (req as any).user.id, (req as any).user.username, (req as any).user.role,
@@ -541,23 +556,40 @@ apiRouter.post('/highlights/upload', authenticate, requireRole([UserRole.SUPER_A
 });
 
 apiRouter.get('/highlights', authenticate, async (req, res) => {
+  const collection = getCollection('videoHighlights');
+  if (collection) {
+    const highlights = await collection.find({}).sort({ createdAt: -1 }).toArray();
+    return res.json(highlights);
+  }
   const db = dbClient.get();
   res.json(db.videoHighlights || []);
 });
 
 apiRouter.delete('/highlights/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
   try {
-    const db = dbClient.get();
-    const index = db.videoHighlights.findIndex((v: any) => v.id === req.params.id);
+    let highlight = null;
+    const collection = getCollection('videoHighlights');
     
-    if (index === -1) {
-      return res.status(404).json({ error: 'Video highlight not found' });
+    if (collection) {
+      highlight = await collection.findOne({ _id: req.params.id });
+      if (!highlight) {
+        return res.status(404).json({ error: 'Video highlight not found' });
+      }
+      await collection.deleteOne({ _id: req.params.id });
+    } else {
+      const db = dbClient.get();
+      const index = db.videoHighlights.findIndex((v: any) => v.id === req.params.id);
+      
+      if (index === -1) {
+        return res.status(404).json({ error: 'Video highlight not found' });
+      }
+      highlight = db.videoHighlights[index];
+      db.videoHighlights.splice(index, 1);
+      await dbClient.save();
     }
-
-    const highlight = db.videoHighlights[index];
     
     // Optional: Delete physical file to save disk space
-    if (highlight.videoUrl && highlight.videoUrl.startsWith('/data/uploads/videos/')) {
+    if (highlight && highlight.videoUrl && highlight.videoUrl.startsWith('/data/uploads/videos/')) {
       const filename = highlight.videoUrl.split('/').pop();
       if (filename) {
         const filePath = path.join(process.cwd(), 'data/uploads/videos', filename);
@@ -567,15 +599,12 @@ apiRouter.delete('/highlights/:id', authenticate, requireRole([UserRole.SUPER_AD
       }
     }
 
-    db.videoHighlights.splice(index, 1);
-    await dbClient.save();
-
     await dbClient.logAudit(
       (req as any).user.id, (req as any).user.username, (req as any).user.role,
-      'DELETE_VIDEO_HIGHLIGHT', 'VideoHighlight', req.params.id, undefined, highlight, null
+      'DELETE_HIGHLIGHT', 'VideoHighlight', req.params.id, undefined, highlight, null
     );
 
-    res.json({ success: true });
+    res.json({ success: true, message: 'Video highlight deleted successfully' });
   } catch (error) {
     console.error('Error deleting video highlight:', error);
     res.status(500).json({ error: 'Failed to delete video' });
@@ -631,10 +660,15 @@ apiRouter.post('/gallery/upload', authenticate, requireRole([UserRole.SUPER_ADMI
       createdAt: Date.now()
     };
 
-    const db = dbClient.get();
-    if (!Array.isArray(db.gallery)) db.gallery = [];
-    db.gallery.unshift(item);
-    await dbClient.save();
+    const collection = getCollection('gallery');
+    if (collection) {
+      await collection.insertOne({ ...item, _id: item.id });
+    } else {
+      const db = dbClient.get();
+      if (!Array.isArray(db.gallery)) db.gallery = [];
+      db.gallery.unshift(item);
+      await dbClient.save();
+    }
 
     await dbClient.logAudit(
       (req as any).user.id, (req as any).user.username, (req as any).user.role,
@@ -649,6 +683,11 @@ apiRouter.post('/gallery/upload', authenticate, requireRole([UserRole.SUPER_ADMI
 });
 
 apiRouter.get('/gallery', authenticate, async (req, res) => {
+  const collection = getCollection('gallery');
+  if (collection) {
+    const gallery = await collection.find({}).sort({ createdAt: -1 }).toArray();
+    return res.json(gallery);
+  }
   const db = dbClient.get();
   res.json(db.gallery || []);
 });
@@ -656,31 +695,50 @@ apiRouter.get('/gallery', authenticate, async (req, res) => {
 apiRouter.put('/gallery/:id/featured', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
   try {
     const { isFeatured } = req.body;
-    const db = dbClient.get();
-    const index = db.gallery.findIndex((i: any) => i.id === req.params.id);
+    let oldItem = null;
+    let newItem = null;
     
-    if (index === -1) {
-      return res.status(404).json({ error: 'Gallery item not found' });
-    }
-
-    if (isFeatured) {
-      // Check if we already have 8 featured images
-      const featuredCount = db.gallery.filter((i: any) => i.isFeatured).length;
-      if (featuredCount >= 8) {
-        return res.status(400).json({ error: 'Maximum 8 featured images allowed' });
+    const collection = getCollection('gallery');
+    if (collection) {
+      const item = await collection.findOne({ _id: req.params.id });
+      if (!item) return res.status(404).json({ error: 'Gallery item not found' });
+      
+      if (isFeatured) {
+        const featuredCount = await collection.countDocuments({ isFeatured: true });
+        if (featuredCount >= 8) return res.status(400).json({ error: 'Maximum 8 featured images allowed' });
       }
-    }
+      
+      oldItem = { ...item };
+      newItem = { ...item, isFeatured };
+      await collection.updateOne({ _id: req.params.id }, { $set: { isFeatured } });
+    } else {
+      const db = dbClient.get();
+      const index = db.gallery.findIndex((i: any) => i.id === req.params.id);
+      
+      if (index === -1) {
+        return res.status(404).json({ error: 'Gallery item not found' });
+      }
 
-    const oldItem = { ...db.gallery[index] };
-    db.gallery[index].isFeatured = isFeatured;
-    await dbClient.save();
+      if (isFeatured) {
+        // Check if we already have 8 featured images
+        const featuredCount = db.gallery.filter((i: any) => i.isFeatured).length;
+        if (featuredCount >= 8) {
+          return res.status(400).json({ error: 'Maximum 8 featured images allowed' });
+        }
+      }
+
+      oldItem = { ...db.gallery[index] };
+      db.gallery[index].isFeatured = isFeatured;
+      newItem = db.gallery[index];
+      await dbClient.save();
+    }
 
     await dbClient.logAudit(
       (req as any).user.id, (req as any).user.username, (req as any).user.role,
-      'UPDATE_GALLERY_ITEM', 'GalleryItem', req.params.id, undefined, oldItem, db.gallery[index]
+      'UPDATE_GALLERY_ITEM', 'GalleryItem', req.params.id, undefined, oldItem, newItem
     );
 
-    res.json({ success: true, item: db.gallery[index] });
+    res.json({ success: true, item: newItem });
   } catch (error) {
     console.error('Error updating gallery item:', error);
     res.status(500).json({ error: 'Failed to update item' });
@@ -689,17 +747,28 @@ apiRouter.put('/gallery/:id/featured', authenticate, requireRole([UserRole.SUPER
 
 apiRouter.delete('/gallery/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
   try {
-    const db = dbClient.get();
-    const index = db.gallery.findIndex((i: any) => i.id === req.params.id);
+    let item = null;
+    const collection = getCollection('gallery');
     
-    if (index === -1) {
-      return res.status(404).json({ error: 'Gallery item not found' });
-    }
+    if (collection) {
+      item = await collection.findOne({ _id: req.params.id });
+      if (!item) return res.status(404).json({ error: 'Gallery item not found' });
+      await collection.deleteOne({ _id: req.params.id });
+    } else {
+      const db = dbClient.get();
+      const index = db.gallery.findIndex((i: any) => i.id === req.params.id);
+      
+      if (index === -1) {
+        return res.status(404).json({ error: 'Gallery item not found' });
+      }
 
-    const item = db.gallery[index];
+      item = db.gallery[index];
+      db.gallery.splice(index, 1);
+      await dbClient.save();
+    }
     
     // Optional: Delete physical file to save disk space
-    if (item.imageUrl && item.imageUrl.startsWith('/data/uploads/gallery/')) {
+    if (item && item.imageUrl && item.imageUrl.startsWith('/data/uploads/gallery/')) {
       const filename = item.imageUrl.split('/').pop();
       if (filename) {
         const filePath = path.join(process.cwd(), 'data/uploads/gallery', filename);
@@ -709,15 +778,12 @@ apiRouter.delete('/gallery/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
       }
     }
 
-    db.gallery.splice(index, 1);
-    await dbClient.save();
-
     await dbClient.logAudit(
       (req as any).user.id, (req as any).user.username, (req as any).user.role,
       'DELETE_GALLERY_ITEM', 'GalleryItem', req.params.id, undefined, item, null
     );
 
-    res.json({ success: true });
+    res.json({ success: true, message: 'Gallery item deleted successfully' });
   } catch (error) {
     console.error('Error deleting gallery item:', error);
     res.status(500).json({ error: 'Failed to delete item' });
