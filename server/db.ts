@@ -150,6 +150,8 @@ function ensureDbExists() {
       if (!db.greenRoomAssignments) db.greenRoomAssignments = [];
       if (!db.judgmentSheets) db.judgmentSheets = [];
       if (!db.judgeScores) db.judgeScores = [];
+      if (!db.gallery) db.gallery = [];
+      if (!db.videoHighlights) db.videoHighlights = [];
       return;
     } catch (e) {
       console.error("Error reading database file, initializing fresh one", e);

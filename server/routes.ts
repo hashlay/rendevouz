@@ -522,6 +522,7 @@ apiRouter.post('/highlights/upload', authenticate, requireRole([UserRole.SUPER_A
     };
 
     const db = dbClient.get();
+    if (!Array.isArray(db.videoHighlights)) db.videoHighlights = [];
     db.videoHighlights.unshift(highlight);
     await dbClient.save();
 
@@ -630,6 +631,7 @@ apiRouter.post('/gallery/upload', authenticate, requireRole([UserRole.SUPER_ADMI
     };
 
     const db = dbClient.get();
+    if (!Array.isArray(db.gallery)) db.gallery = [];
     db.gallery.unshift(item);
     await dbClient.save();
 
