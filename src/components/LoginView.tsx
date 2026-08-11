@@ -130,33 +130,30 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
       <div className="absolute bottom-0 left-0 right-0 h-64 bg-amber-500/5 skew-y-3 transform origin-bottom-right -z-10" />
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        {/* Beautiful layout showing logos side-by-side */}
-        <div className="flex justify-center items-center gap-6 mb-6">
+        {/* Logo and institution branding centered in place of title */}
+        <div className="flex justify-center items-center gap-4 mb-3">
           {eventSettings?.ssfLogoUrl ? (
             <img 
               src={eventSettings.ssfLogoUrl} 
               alt="Festival Logo" 
-              className="h-16 w-16 object-contain shrink-0" 
+              className="h-14 w-14 object-contain shrink-0" 
               onError={(e) => (e.currentTarget.style.display = 'none')}
             />
           ) : (
-            <SSFLogo className="h-16 w-16 text-emerald-600 shrink-0" showText={false} />
+            <SSFLogo className="h-14 w-14 text-emerald-600 shrink-0" showText={false} />
           )}
-          <div className="h-12 w-px bg-slate-300" />
-          <div className="flex flex-col items-start">
-            <span className="font-display font-bold text-emerald-800 text-xl tracking-tight leading-none uppercase">
-              {eventSettings?.festivalName || 'SAHITYOTSAV'}
+          <div className="h-10 w-px bg-slate-300" />
+          <div className="flex flex-col items-start text-left">
+            <span className="font-display font-bold text-emerald-800 text-lg tracking-tight leading-none uppercase">
+              {eventSettings?.festivalName || 'ZENITH'}
             </span>
             <span className="text-amber-600 font-mono text-xs font-semibold tracking-widest mt-1 uppercase">
-              {eventSettings?.campusName || eventSettings?.sectorName || 'CAMPUS'}
+              {eventSettings?.campusName || eventSettings?.sectorName || 'MEELAD SOFTWARE'}
             </span>
           </div>
         </div>
 
-        <h2 className="font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          {eventSettings?.eventTitle || eventSettings?.festivalName || "Sahityotsav"}
-        </h2>
-        <p className="mt-2 text-sm text-slate-600 font-sans">
+        <p className="text-xs sm:text-sm text-slate-500 font-sans font-medium">
           Festival Management System • {eventSettings?.eventYear || '2026'}
         </p>
       </div>
