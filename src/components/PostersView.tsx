@@ -254,18 +254,46 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
 
   const hitRegions = useRef<{ id: string, x: number, y: number, w: number, h: number }[]>([]);
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  // Helper to extract canvas X, Y coordinates from Mouse, Touch, or Pointer event
+  const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    try {
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    } catch (_) {}
-
+    if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const canvasX = (e.clientX - rect.left) * scaleX;
-    const canvasY = (e.clientY - rect.top) * scaleY;
+
+    let clientX = 0;
+    let clientY = 0;
+
+    if ('touches' in e && e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ('changedTouches' in e && (e as any).changedTouches && (e as any).changedTouches.length > 0) {
+      clientX = (e as any).changedTouches[0].clientX;
+      clientY = (e as any).changedTouches[0].clientY;
+    } else if ('clientX' in e) {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    } else {
+      return null;
+    }
+
+    return {
+      canvasX: (clientX - rect.left) * scaleX,
+      canvasY: (clientY - rect.top) * scaleY
+    };
+  };
+
+  const handleDragStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
+    const coords = getCanvasCoords(e);
+    if (!coords) return;
+    const { canvasX, canvasY } = coords;
+
+    if ('pointerId' in e) {
+      try {
+        (e.target as HTMLElement).setPointerCapture((e as React.PointerEvent).pointerId);
+      } catch (_) {}
+    }
 
     let bestHit: string | null = null;
     let bestArea = Infinity;
@@ -286,20 +314,19 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     }
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const canvasX = (e.clientX - rect.left) * scaleX;
-    const canvasY = (e.clientY - rect.top) * scaleY;
+  const handleDragMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
+    const coords = getCanvasCoords(e);
+    if (!coords) return;
+    const { canvasX, canvasY } = coords;
 
     const compIdx = getAnnouncementIndex(selectedCompId);
     const themeIdx = getThemeIndexForResult(compIdx);
     const c = getThemeConfig(themeIdx);
 
     if (dragging && lastMousePos.current) {
+      if ('touches' in e) {
+        try { e.preventDefault(); } catch (_) {}
+      }
       const dx = canvasX - lastMousePos.current.x;
       const dy = canvasY - lastMousePos.current.y;
       const posMap = dragPosMap[dragging];
@@ -320,10 +347,12 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     }
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    try {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch (_) {}
+  const handleDragEnd = (e?: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
+    if (e && 'pointerId' in e) {
+      try {
+        (e.target as HTMLElement).releasePointerCapture((e as React.PointerEvent).pointerId);
+      } catch (_) {}
+    }
     setDragging(null);
     lastMousePos.current = null;
   };
@@ -805,10 +834,17 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                 <canvas
                   ref={canvasRef}
                   className="w-full h-auto max-h-[50vh] md:max-h-[75vh] object-contain cursor-move touch-none select-none"
-                  onPointerDown={handlePointerDown}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  onPointerCancel={handlePointerUp}
+                  onMouseDown={handleDragStart}
+                  onMouseMove={handleDragMove}
+                  onMouseUp={handleDragEnd}
+                  onMouseLeave={handleDragEnd}
+                  onTouchStart={handleDragStart}
+                  onTouchMove={handleDragMove}
+                  onTouchEnd={handleDragEnd}
+                  onPointerDown={handleDragStart}
+                  onPointerMove={handleDragMove}
+                  onPointerUp={handleDragEnd}
+                  onPointerCancel={handleDragEnd}
                 />
               </div>
             </div>
