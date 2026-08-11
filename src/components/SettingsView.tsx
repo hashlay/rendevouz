@@ -126,6 +126,10 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [gradeSystemEnabled, setGradeSystemEnabled] = useState(false);
   const [maxIndividualEvents, setMaxIndividualEvents] = useState(3);
   const [maxGroupEvents, setMaxGroupEvents] = useState(2);
+  const [hasOnStageLimit, setHasOnStageLimit] = useState(false);
+  const [maxOnStageEvents, setMaxOnStageEvents] = useState(3);
+  const [hasOffStageLimit, setHasOffStageLimit] = useState(false);
+  const [maxOffStageEvents, setMaxOffStageEvents] = useState(5);
   const [globalPoints1, setGlobalPoints1] = useState(20);
   const [globalPoints2, setGlobalPoints2] = useState(14);
   const [globalPoints3, setGlobalPoints3] = useState(7);
@@ -183,6 +187,10 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       setGradeSystemEnabled(data.gradeSystemEnabled ?? false);
       setMaxIndividualEvents(data.maxIndividualEvents || 3);
       setMaxGroupEvents(data.maxGroupEvents || 2);
+      setHasOnStageLimit(data.maxOnStageEvents !== null && data.maxOnStageEvents !== undefined);
+      setMaxOnStageEvents(data.maxOnStageEvents || 3);
+      setHasOffStageLimit(data.maxOffStageEvents !== null && data.maxOffStageEvents !== undefined);
+      setMaxOffStageEvents(data.maxOffStageEvents || 5);
       setGlobalPoints1(data.globalPointsRank1 || 20);
       setGlobalPoints2(data.globalPointsRank2 || 14);
       setGlobalPoints3(data.globalPointsRank3 || 7);
@@ -234,6 +242,8 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
           gradeSystemEnabled,
           maxIndividualEvents,
           maxGroupEvents,
+          maxOnStageEvents: hasOnStageLimit ? maxOnStageEvents : null,
+          maxOffStageEvents: hasOffStageLimit ? maxOffStageEvents : null,
           globalPointsRank1: globalPoints1,
           globalPointsRank2: globalPoints2,
           globalPointsRank3: globalPoints3,
@@ -709,6 +719,55 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                   onChange={(e) => setMaxGroupEvents(Number(e.target.value))}
                   className="mt-1 block w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-purple-900 focus:ring-2 focus:ring-purple-500"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-purple-200/60">
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Max On-Stage Events Per Candidate</label>
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" checked={!hasOnStageLimit} onChange={() => setHasOnStageLimit(false)} className="w-3.5 h-3.5 text-purple-600" />
+                    <span className="text-[11px] font-bold text-slate-600">No Limit</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" checked={hasOnStageLimit} onChange={() => setHasOnStageLimit(true)} className="w-3.5 h-3.5 text-purple-600" />
+                    <span className="text-[11px] font-bold text-slate-600">Set Limit</span>
+                  </label>
+                </div>
+                {hasOnStageLimit && (
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={maxOnStageEvents}
+                    onChange={(e) => setMaxOnStageEvents(Number(e.target.value))}
+                    className="block w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-rose-700 focus:ring-2 focus:ring-rose-500"
+                  />
+                )}
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Max Off-Stage Events Per Candidate</label>
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" checked={!hasOffStageLimit} onChange={() => setHasOffStageLimit(false)} className="w-3.5 h-3.5 text-purple-600" />
+                    <span className="text-[11px] font-bold text-slate-600">No Limit</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" checked={hasOffStageLimit} onChange={() => setHasOffStageLimit(true)} className="w-3.5 h-3.5 text-purple-600" />
+                    <span className="text-[11px] font-bold text-slate-600">Set Limit</span>
+                  </label>
+                </div>
+                {hasOffStageLimit && (
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={maxOffStageEvents}
+                    onChange={(e) => setMaxOffStageEvents(Number(e.target.value))}
+                    className="block w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-sky-700 focus:ring-2 focus:ring-sky-500"
+                  />
+                )}
               </div>
             </div>
           </div>

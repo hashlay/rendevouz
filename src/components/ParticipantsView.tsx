@@ -883,6 +883,19 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                             checked={isChecked}
                             onChange={(e) => {
                               if (e.target.checked) {
+                                // Check on-stage / off-stage limits
+                                const allSelected = [...editComps, ...editGroupComps, comp.id];
+                                const allComps = allSelected.map(id => competitions.find(c => c.id === id)).filter(Boolean);
+                                const onStageCount = allComps.filter(c => c!.stageType === 'on_stage').length;
+                                const offStageCount = allComps.filter(c => c!.stageType === 'off_stage').length;
+                                const maxOn = (eventSettings as any)?.maxOnStageEvents;
+                                const maxOff = (eventSettings as any)?.maxOffStageEvents;
+                                if (maxOn != null && comp.stageType === 'on_stage' && onStageCount > maxOn) {
+                                  return alert(`Cannot select more than ${maxOn} on-stage competitions.`);
+                                }
+                                if (maxOff != null && comp.stageType === 'off_stage' && offStageCount > maxOff) {
+                                  return alert(`Cannot select more than ${maxOff} off-stage competitions.`);
+                                }
                                 setEditComps([...editComps, comp.id]);
                               } else {
                                 setEditComps(editComps.filter(id => id !== comp.id));
@@ -917,6 +930,19 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                             checked={isChecked}
                             onChange={(e) => {
                               if (e.target.checked) {
+                                // Check on-stage / off-stage limits
+                                const allSelected = [...editComps, ...editGroupComps, comp.id];
+                                const allComps = allSelected.map(id => competitions.find(c => c.id === id)).filter(Boolean);
+                                const onStageCount = allComps.filter(c => c!.stageType === 'on_stage').length;
+                                const offStageCount = allComps.filter(c => c!.stageType === 'off_stage').length;
+                                const maxOn = (eventSettings as any)?.maxOnStageEvents;
+                                const maxOff = (eventSettings as any)?.maxOffStageEvents;
+                                if (maxOn != null && comp.stageType === 'on_stage' && onStageCount > maxOn) {
+                                  return alert(`Cannot select more than ${maxOn} on-stage competitions.`);
+                                }
+                                if (maxOff != null && comp.stageType === 'off_stage' && offStageCount > maxOff) {
+                                  return alert(`Cannot select more than ${maxOff} off-stage competitions.`);
+                                }
                                 setEditGroupComps([...editGroupComps, comp.id]);
                               } else {
                                 setEditGroupComps(editGroupComps.filter(id => id !== comp.id));

@@ -371,6 +371,8 @@ function ensureDbExists() {
     contactInfo: 'info@ssf-ninthikal.org',
     maxIndividualEvents: 3,
     maxGroupEvents: 2,
+    maxOnStageEvents: null,
+    maxOffStageEvents: null,
     registrationOpen: true,
     ssfLogoUrl: 'https://i.pinimg.com/736x/db/ce/0f/dbce0ffa11c023edfc378a85a0259145.jpg', // Official SSF Logo
     sahityotsavLogoUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=128&q=80', // Beautiful literary art vector placeholder

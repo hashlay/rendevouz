@@ -241,6 +241,8 @@ export interface EventSettings {
   // Registration limits
   maxIndividualEvents: number; // default 3
   maxGroupEvents: number; // default 2
+  maxOnStageEvents?: number | null; // null means no limit
+  maxOffStageEvents?: number | null; // null means no limit
   registrationOpen: boolean;
   
   // Branding & CMS

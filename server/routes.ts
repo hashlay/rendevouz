@@ -1501,6 +1501,17 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
     return res.status(400).json({ error: `Cannot select more than ${db.eventSettings.maxGroupEvents} group competitions.` });
   }
 
+  // On-stage / Off-stage limits (null means no limit)
+  const allSelectedComps = db.competitions.filter(c => competitionIds.includes(c.id));
+  const onStageComps = allSelectedComps.filter(c => c.stageType === StageType.ON_STAGE);
+  const offStageComps = allSelectedComps.filter(c => c.stageType === StageType.OFF_STAGE);
+  if (db.eventSettings.maxOnStageEvents != null && onStageComps.length > db.eventSettings.maxOnStageEvents) {
+    return res.status(400).json({ error: `Cannot select more than ${db.eventSettings.maxOnStageEvents} on-stage competitions.` });
+  }
+  if (db.eventSettings.maxOffStageEvents != null && offStageComps.length > db.eventSettings.maxOffStageEvents) {
+    return res.status(400).json({ error: `Cannot select more than ${db.eventSettings.maxOffStageEvents} off-stage competitions.` });
+  }
+
   // Verify that all competitions belong to the SELECTED category
   for (const compId of competitionIds) {
     const comp = db.competitions.find(c => c.id === compId);
@@ -1661,6 +1672,17 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
     }
     if (groupCompetitions.length > db.eventSettings.maxGroupEvents) {
       return res.status(400).json({ error: `Cannot select more than ${db.eventSettings.maxGroupEvents} group competitions.` });
+    }
+
+    // On-stage / Off-stage limits (null means no limit)
+    const allSelectedComps = db.competitions.filter(c => competitionIds.includes(c.id));
+    const onStageComps = allSelectedComps.filter(c => c.stageType === StageType.ON_STAGE);
+    const offStageComps = allSelectedComps.filter(c => c.stageType === StageType.OFF_STAGE);
+    if (db.eventSettings.maxOnStageEvents != null && onStageComps.length > db.eventSettings.maxOnStageEvents) {
+      return res.status(400).json({ error: `Cannot select more than ${db.eventSettings.maxOnStageEvents} on-stage competitions.` });
+    }
+    if (db.eventSettings.maxOffStageEvents != null && offStageComps.length > db.eventSettings.maxOffStageEvents) {
+      return res.status(400).json({ error: `Cannot select more than ${db.eventSettings.maxOffStageEvents} off-stage competitions.` });
     }
 
     // Verify category matches
