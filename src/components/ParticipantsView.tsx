@@ -26,6 +26,9 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const [selectedUnitId, setSelectedUnitId] = useState(user.role === UserRole.UNIT_TEAM_LEADER ? (user.assignedUnitId || '') : '');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedEdStatus, setSelectedEdStatus] = useState('');
+  const [selectedPlacementFilter, setSelectedPlacementFilter] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
 
   // Selected participant details drawer/modal
   const [selectedPart, setSelectedPart] = useState<Participant | null>(null);
@@ -95,13 +98,15 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const fetchLists = async () => {
     setLoading(true);
     try {
-      const [pRes, cRes, uRes, compRes] = await Promise.all([
+      const [pRes, cRes, uRes, compRes, resRes, tRes] = await Promise.all([
         fetch(`/api/participants?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}&search=${search}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('/api/categories'),
         fetch('/api/units'),
-        fetch('/api/competitions')
+        fetch('/api/competitions'),
+        fetch('/api/results', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       if (!pRes.ok) {
@@ -109,12 +114,16 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         throw new Error(errorData.error || 'Failed to fetch participants');
       }
 
-      const [pData, cData, uData, compData] = await Promise.all([pRes.json(), cRes.json(), uRes.json(), compRes.json()]);
+      const [pData, cData, uData, compData, resData, tData] = await Promise.all([
+        pRes.json(), cRes.json(), uRes.json(), compRes.json(), resRes.json(), tRes.json()
+      ]);
 
       setParticipants(pData);
       setCategories(cData);
       setUnits(uData);
       setCompetitions(compData);
+      setResults(resData || []);
+      setTeams(tData || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -309,6 +318,65 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       alert(err.message);
     }
   };
+  // Helper to extract published ranks earned by a participant across individual & group events
+  const getParticipantRanks = (p: Participant) => {
+    const pRanks: number[] = [];
+    results.forEach((r: any) => {
+      if (!r.publishedStatus || r.deletedAt || !r.rank) return;
+      if (r.participantId === p.id) {
+        pRanks.push(Number(r.rank));
+      } else if (r.teamId) {
+        const t = teams.find((team: any) => team.id === r.teamId);
+        if (t && t.memberIds && t.memberIds.includes(p.id)) {
+          pRanks.push(Number(r.rank));
+        }
+      }
+    });
+    return pRanks;
+  };
+
+  const renderPlacementBadges = (p: Participant) => {
+    const pRanks = getParticipantRanks(p);
+    const count1 = pRanks.filter(r => r === 1).length;
+    const count2 = pRanks.filter(r => r === 2).length;
+    const count3 = pRanks.filter(r => r === 3).length;
+
+    if (count1 === 0 && count2 === 0 && count3 === 0) {
+      return (
+        <span className="px-2 py-0.5 bg-slate-100 text-slate-500 font-mono text-[9px] font-bold rounded-md border border-slate-200">
+          Unawarded
+        </span>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1 font-mono text-[9px] font-bold">
+        {count1 > 0 && <span className="bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">1st: {count1}</span>}
+        {count2 > 0 && <span className="bg-slate-200 text-slate-700 border border-slate-300 px-1.5 py-0.5 rounded">2nd: {count2}</span>}
+        {count3 > 0 && <span className="bg-amber-50 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded">3rd: {count3}</span>}
+      </div>
+    );
+  };
+
+  const filteredParticipants = participants.filter(p => {
+    if (selectedPlacementFilter) {
+      const pRanks = getParticipantRanks(p);
+      const hasRank1 = pRanks.includes(1);
+      const hasRank2 = pRanks.includes(2);
+      const hasRank3 = pRanks.includes(3);
+
+      if (selectedPlacementFilter === 'no_podium') {
+        if (hasRank1 || hasRank2 || hasRank3) return false;
+      } else if (selectedPlacementFilter === 'third_only') {
+        if (!hasRank3 || hasRank1 || hasRank2) return false;
+      } else if (selectedPlacementFilter === 'first_place') {
+        if (!hasRank1) return false;
+      } else if (selectedPlacementFilter === 'second_place') {
+        if (!hasRank2) return false;
+      }
+    }
+    return true;
+  });
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans">
@@ -351,6 +419,20 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
             {categories.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
+          </select>
+
+          {/* Placement Awards Filter */}
+          <select
+            value={selectedPlacementFilter}
+            onChange={(e) => setSelectedPlacementFilter(e.target.value)}
+            className="px-3 py-2 border border-amber-300 bg-amber-50/80 text-amber-900 rounded-xl focus:outline-none text-xs font-bold shadow-2xs cursor-pointer"
+            title="Filter participants by published rank awards"
+          >
+            <option value="">All Award Statuses</option>
+            <option value="no_podium">Unawarded (No 1st, 2nd, or 3rd Rank)</option>
+            <option value="third_only">3rd Place Only (No 1st/2nd Rank)</option>
+            <option value="first_place">Has 1st Place Rank</option>
+            <option value="second_place">Has 2nd Place Rank</option>
           </select>
           
           <button 
@@ -420,8 +502,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       <div>
         {/* Mobile-Friendly Grid List: compact, touch-optimized cards, hidden on medium screens and up */}
         <div className="block md:hidden space-y-3 print:hidden">
-          {participants.length > 0 ? (
-            participants.map((p) => {
+          {filteredParticipants.length > 0 ? (
+            filteredParticipants.map((p) => {
               const unit = units.find(u => u.id === p.unitId);
               const cat = categories.find(c => c.id === p.selectedCategoryId);
               return (
@@ -447,9 +529,13 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                     <div className="text-slate-500">
                       {entityLabel}: <span className="font-semibold text-slate-700">{unit ? unit.name : 'Unknown'}</span>
                     </div>
-                    <div className="text-slate-400 font-mono text-[11px]">
-                      DOB: {p.dob}
+                    <div>
+                      {renderPlacementBadges(p)}
                     </div>
+                  </div>
+
+                  <div className="text-slate-400 font-mono text-[11px]">
+                    DOB: {p.dob}
                   </div>
 
                   <div className="flex gap-2 pt-2.5 border-t border-slate-100 justify-end">
@@ -523,13 +609,14 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                   <th className="px-6 py-4 text-left">Candidate</th>
                   <th className="px-6 py-4 text-left">{entityLabel}</th>
                   <th className="px-6 py-4 text-left">Category</th>
+                  <th className="px-6 py-4 text-left">Published Awards</th>
                   <th className="px-6 py-4 text-left">DOB</th>
                   <th className="px-6 py-4 text-center print:hidden">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-100 text-sm">
-                {participants.length > 0 ? (
-                  participants.map((p) => {
+                {filteredParticipants.length > 0 ? (
+                  filteredParticipants.map((p) => {
                     const unit = units.find(u => u.id === p.unitId);
                     const cat = categories.find(c => c.id === p.selectedCategoryId);
                     return (
@@ -544,6 +631,9 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                           <span className="bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-xl">
                             {cat ? cat.name : 'Unknown'}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {renderPlacementBadges(p)}
                         </td>
                         <td className="px-6 py-4 font-mono text-xs text-slate-500 whitespace-nowrap">{p.dob}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-center print:hidden">
