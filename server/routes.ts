@@ -78,6 +78,20 @@ apiRouter.use(async (req, res, next) => {
           r.averageMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
         });
       }
+      if (db.judgeScores) {
+        db.judgeScores.forEach((s: any) => {
+          if (s.status === JudgeScoreStatus.PARTICIPATED || s.status === 'participated') {
+            const nonZeroMarks = (s.judgeScores || []).filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
+            const sumMarks = (s.judgeScores || []).reduce((sum: number, jm: any) => sum + (typeof jm.mark === 'number' && !Number.isNaN(jm.mark) ? jm.mark : 0), 0);
+            const activeJudgesCount = nonZeroMarks.length > 0 ? nonZeroMarks.length : 1;
+            const avg = Math.round((sumMarks / activeJudgesCount) * 100) / 100;
+            s.totalMark = sumMarks;
+            if (!s.averageMark || s.averageMark === 0) {
+              s.averageMark = avg;
+            }
+          }
+        });
+      }
       if (db.participants) {
         db.participants.forEach((p: any) => {
           if (p.fullName) p.fullName = toTitleCase(p.fullName);
@@ -3597,12 +3611,18 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
   const isJudge = user.role === UserRole.JUDGE;
   
   const enrichedScores = scores.map((s: JudgeScore) => {
+    const nonZeroMarks = (s.judgeScores || []).filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
+    const sumMarks = (s.judgeScores || []).reduce((sum: number, jm: any) => sum + (typeof jm.mark === 'number' && !Number.isNaN(jm.mark) ? jm.mark : 0), 0);
+    const activeJudgesCount = nonZeroMarks.length > 0 ? nonZeroMarks.length : 1;
+    const calculatedAvg = Math.round((sumMarks / activeJudgesCount) * 100) / 100;
+    const effectiveAvg = (s.averageMark && s.averageMark > 0) ? s.averageMark : (sumMarks > 0 ? calculatedAvg : (s.averageMark ?? 0));
+
     const base: any = {
       id: s.id,
       codeLetter: s.codeLetter,
       judgeScores: s.judgeScores,
-      totalMark: s.totalMark,
-      averageMark: s.averageMark,
+      totalMark: s.totalMark || sumMarks,
+      averageMark: effectiveAvg,
       rank: isJudge ? undefined : s.rank,
       status: s.status,
       remarks: s.remarks

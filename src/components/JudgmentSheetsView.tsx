@@ -854,9 +854,14 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                                   <span className="text-xs font-bold text-rose-600">Disqualified</span>
                                 ) : !isParticipated ? (
                                   '—'
-                                ) : (
-                                  s.averageMark !== undefined ? s.averageMark : '0'
-                                )}
+                                ) : (() => {
+                                  const nonZeroMarks = (s.judgeScores || []).filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
+                                  const sumMarks = (s.judgeScores || []).reduce((sum: number, jm: any) => sum + (typeof jm.mark === 'number' && !Number.isNaN(jm.mark) ? jm.mark : 0), 0);
+                                  const activeJudgesCount = nonZeroMarks.length > 0 ? nonZeroMarks.length : 1;
+                                  const calculatedAvg = Math.round((sumMarks / activeJudgesCount) * 100) / 100;
+                                  const displayAvg = (s.averageMark && s.averageMark > 0) ? s.averageMark : (sumMarks > 0 ? calculatedAvg : (s.averageMark ?? 0));
+                                  return displayAvg;
+                                })()}
                               </div>
                             </td>
                           </>
