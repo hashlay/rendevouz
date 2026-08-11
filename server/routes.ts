@@ -57,7 +57,7 @@ const galleryUpload = multer({
 let lastSyncTimestamp = 0;
 
 apiRouter.use('/data/uploads', express.static(path.join(process.cwd(), 'data/uploads')));
-apiRouter.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+apiRouter.use('/uploads', express.static(path.join(process.cwd(), 'data/uploads')));
 
 // --- SERVERLESS GLOBAL SYNC MIDDLEWARE ---
 // Connects to DB once and processes all requests instantly in memory.

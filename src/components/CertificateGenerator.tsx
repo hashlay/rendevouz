@@ -9,6 +9,7 @@ interface CertificateGeneratorProps {
   user: any;
   token: string;
   onClose: () => void;
+  onSettingsUpdated?: () => void;
 }
 
 export default function CertificateGenerator({
@@ -18,7 +19,8 @@ export default function CertificateGenerator({
   eventSettings,
   user,
   token,
-  onClose
+  onClose,
+  onSettingsUpdated
 }: CertificateGeneratorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -179,11 +181,12 @@ export default function CertificateGenerator({
         body: JSON.stringify({ certificateTemplateConfig: newConfig })
       });
       
-      if (!res.ok) throw new Error('Failed to save template configuration');
+      if (!res.ok) throw new Error('Failed to save certificate layout');
       
-      alert(`Template settings for Rank ${rank} saved as default!`);
+      alert(`Certificate layout for Rank ${rank} saved successfully!`);
+      if (onSettingsUpdated) onSettingsUpdated();
     } catch (err: any) {
-      alert('Error saving template: ' + err.message);
+      alert('Error saving certificate: ' + err.message);
     } finally {
       setSavingTemplate(false);
     }
@@ -458,7 +461,7 @@ export default function CertificateGenerator({
                 className="w-full flex items-center justify-center gap-2 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-purple-600/20 disabled:opacity-50 mt-2"
               >
                 <Settings2 className="w-5 h-5" />
-                {savingTemplate ? 'Saving...' : 'Save as Default Template'}
+                {savingTemplate ? 'Saving...' : 'Save Certificate'}
               </button>
             )}
             

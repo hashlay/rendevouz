@@ -206,7 +206,7 @@ export default function App() {
       case 'announced-results':
         return <AnnouncedResultsView user={user} token={token} eventSettings={eventSettings} />;
       case 'certificates':
-        return <CertificatesView user={user} token={token} eventSettings={eventSettings} />;
+        return <CertificatesView user={user} token={token} eventSettings={eventSettings} onSettingsUpdated={fetchEventConfig} />;
       case 'certificate-studio':
         return <CertificateSettingsView user={user} token={token} eventSettings={eventSettings} onSettingsUpdated={fetchEventConfig} />;
       case 'posters':

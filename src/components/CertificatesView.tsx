@@ -7,9 +7,10 @@ interface CertificatesViewProps {
   user: any;
   token: string;
   eventSettings?: any;
+  onSettingsUpdated?: () => void;
 }
 
-export default function CertificatesView({ user, token, eventSettings }: CertificatesViewProps) {
+export default function CertificatesView({ user, token, eventSettings, onSettingsUpdated }: CertificatesViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
   const [results, setResults] = useState<Result[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -284,6 +285,7 @@ export default function CertificatesView({ user, token, eventSettings }: Certifi
           user={user}
           token={token}
           onClose={() => setSelectedCertificate(null)}
+          onSettingsUpdated={onSettingsUpdated}
         />
       )}
 
