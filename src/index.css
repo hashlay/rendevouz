@@ -27,17 +27,23 @@ body {
   backface-visibility: hidden;
 }
 
-/* Mobile backdrop-blur fallback to prevent GPU black striping / cracked screen glitch */
-@media (max-width: 768px) {
+/* Mobile GPU backdrop-blur fallback to prevent GPU black striping / cracked screen glitch in all mobile modes */
+@media (max-width: 1024px), (pointer: coarse) {
   .backdrop-blur-md,
   .backdrop-blur-lg,
   .backdrop-blur-xl,
   .backdrop-blur-2xl,
   .backdrop-blur,
-  .backdrop-blur-sm {
+  .backdrop-blur-sm,
+  .backdrop-blur-xs {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
+}
+
+/* Prevent flex and grid items from overflowing their cell bounds */
+.grid > * {
+  min-width: 0;
 }
 
 /* Responsive Table Horizontal Scroll Wrappers */

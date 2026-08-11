@@ -153,11 +153,11 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Leading Unit Standings Spot */}
-        <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 p-6 rounded-3xl text-white shadow-lg shadow-emerald-950/10 flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 p-6 rounded-3xl text-white shadow-lg shadow-emerald-950/10 flex flex-col justify-between min-w-0 overflow-hidden">
           <div>
             <div className="flex items-center justify-between">
               <span className="bg-emerald-800 text-emerald-200 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase">Leaderboard Spot</span>
-              <Trophy className="h-6 w-6 text-amber-400 animate-bounce" />
+              <Trophy className="h-6 w-6 text-amber-400" />
             </div>
             <div className="mt-6">
               <span className="text-emerald-300 font-semibold text-xs uppercase tracking-wider">LEADING CAMPUS {entityLabel.toUpperCase()}</span>
@@ -183,11 +183,11 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
         </div>
 
         {/* Top Individual Spot */}
-        <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-3xl text-white shadow-lg shadow-slate-950/10 flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-3xl text-white shadow-lg shadow-slate-950/10 flex flex-col justify-between min-w-0 overflow-hidden">
           <div>
             <div className="flex items-center justify-between">
               <span className="bg-slate-800 text-slate-300 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase">Champion Spot</span>
-              <Star className="h-6 w-6 text-amber-400 animate-pulse" />
+              <Star className="h-6 w-6 text-amber-400" />
             </div>
             <div className="mt-6">
               <span className="text-slate-400 font-semibold text-xs">TOP PERFORMANCE INDIVIDUAL</span>
@@ -216,7 +216,7 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
         </div>
 
         {/* Results Progression Tracker */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between min-w-0 overflow-hidden">
           <div>
             <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider font-mono">Result Entry Completion</span>
             <div className="mt-4 flex items-baseline justify-between">
@@ -254,13 +254,13 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* On-Stage Top Individual Spot */}
-        <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 p-6 rounded-3xl text-white shadow-lg flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 p-6 rounded-3xl text-white shadow-lg flex flex-col justify-between min-w-0 overflow-hidden">
           <div>
             <div className="flex items-center justify-between">
               <span className="bg-indigo-500/20 text-indigo-300 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase border border-indigo-500/30">
                 On-Stage Champion
               </span>
-              <Mic className="h-6 w-6 text-amber-400 animate-pulse" />
+              <Mic className="h-6 w-6 text-amber-400" />
             </div>
             <div className="mt-6">
               <span className="text-indigo-300 font-semibold text-xs">TOP PERFORMANCE INDIVIDUAL (ON-STAGE)</span>
@@ -289,7 +289,7 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
         </div>
 
         {/* Off-Stage Top Individual Spot */}
-        <div className="bg-gradient-to-br from-teal-950 via-slate-900 to-teal-900 p-6 rounded-3xl text-white shadow-lg flex flex-col justify-between">
+        <div className="bg-gradient-to-br from-teal-950 via-slate-900 to-teal-900 p-6 rounded-3xl text-white shadow-lg flex flex-col justify-between min-w-0 overflow-hidden">
           <div>
             <div className="flex items-center justify-between">
               <span className="bg-teal-500/20 text-teal-300 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase border border-teal-500/30">

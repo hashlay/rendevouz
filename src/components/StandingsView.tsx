@@ -72,7 +72,7 @@ export default function StandingsView({ user, token, eventSettings }: StandingsV
                   }`}>
                     Podium #{index + 1}
                   </span>
-                  <Trophy className={`h-6 w-6 ${index === 0 ? 'text-amber-400 animate-bounce' : 'text-slate-400'}`} />
+                  <Trophy className={`h-6 w-6 ${index === 0 ? 'text-amber-400' : 'text-slate-400'}`} />
                 </div>
 
                 <div className="mt-5">

@@ -305,7 +305,7 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
             compResults.sort((a, b) => (a.rank || 0) - (b.rank || 0));
 
             return (
-              <div key={comp.id} className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col justify-between">
+              <div key={comp.id} className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col justify-between min-w-0">
                 <div>
                   {/* Event Title Section */}
                   <div className="p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-start gap-4">

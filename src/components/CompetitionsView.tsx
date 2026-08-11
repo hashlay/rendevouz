@@ -324,14 +324,14 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
 
   const renderCompCard = (comp: Competition, cat?: Category) => {
     return (
-      <div key={comp.id} className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between">
+      <div key={comp.id} className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between min-w-0 overflow-hidden">
         <div>
           <div className="flex justify-between items-start border-b border-slate-100 pb-3">
-            <div>
-              <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <div className="min-w-0 flex-1">
+              <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
                 {comp.id.replace('comp_', '').toUpperCase()}
               </span>
-              <h4 className="font-display font-extrabold text-slate-800 text-sm leading-tight mt-1 truncate max-w-[200px]">{comp.name}</h4>
+              <h4 className="font-display font-extrabold text-slate-800 text-sm leading-tight mt-1 truncate">{comp.name}</h4>
             </div>
             
             <div className="flex items-center gap-1">
@@ -579,7 +579,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
                   {/* Category Header */}
                   <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse"></div>
+                      <div className="h-2 w-2 rounded-full bg-emerald-600"></div>
                       <h3 className="font-display font-extrabold text-slate-800 text-sm uppercase tracking-wider">
                         {cat.name}
                       </h3>
