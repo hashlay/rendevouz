@@ -458,6 +458,8 @@ function _syncMongoNow() {
 }
 
 let _mongoSyncTimer: NodeJS.Timeout | null = null;
+const MONGO_SYNC_DEBOUNCE_MS = 5000;
+
 
 function _scheduleMongSync() {
   if (_mongoSyncTimer) clearTimeout(_mongoSyncTimer);
