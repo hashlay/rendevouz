@@ -601,10 +601,15 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">About Image Background</label>
                   <div className="flex items-center gap-4">
-                    {settings.aboutImage && (
-                      <div className="w-32 h-20 rounded-md overflow-hidden border border-slate-200 relative group">
+                    {settings.aboutImage ? (
+                      <div className="w-32 h-20 rounded-md overflow-hidden border border-slate-200 relative group shrink-0">
                         <img src={settings.aboutImage} alt="About bg" className="w-full h-full object-cover" />
                         <button type="button" onClick={() => setSettings({...settings, aboutImage: ''})} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-xs font-bold">REMOVE</button>
+                      </div>
+                    ) : (
+                      <div className="w-32 h-20 rounded-md overflow-hidden border border-slate-200 relative group shrink-0 bg-slate-100">
+                        <img src="/hero2.jpg" alt="About bg Default" className="w-full h-full object-cover opacity-80" />
+                        <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center py-0.5 font-semibold tracking-wider uppercase">Default</div>
                       </div>
                     )}
                     <label className="shrink-0 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-md text-sm font-medium text-slate-700 cursor-pointer transition-colors inline-flex items-center gap-2">
