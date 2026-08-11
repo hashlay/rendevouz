@@ -38,10 +38,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   // Edit State
   const [editingPart, setEditingPart] = useState<Participant | null>(null);
   const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editGPhone, setEditGPhone] = useState('');
-  const [editAddress, setEditAddress] = useState('');
-  const [editNotes, setEditNotes] = useState('');
+  const [editDob, setEditDob] = useState('');
+  const [editCategoryId, setEditCategoryId] = useState('');
   const [editComps, setEditComps] = useState<string[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -208,10 +206,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const openEdit = async (p: Participant) => {
     setEditingPart(p);
     setEditName(p.fullName);
-    setEditPhone(p.phone || '');
-    setEditGPhone(p.guardianPhone || '');
-    setEditAddress(p.address || '');
-    setEditNotes(p.notes || '');
+    setEditDob(p.dob || '');
+    setEditCategoryId(p.selectedCategoryId || '');
 
     // Fetch registered individual competitions
     try {
@@ -272,10 +268,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         },
         body: JSON.stringify({
           fullName: editName,
-          phone: editPhone,
-          guardianPhone: editGPhone,
-          address: editAddress,
-          notes: editNotes,
+          dob: editDob,
+          selectedCategoryId: editCategoryId,
           selectedCompetitionIds: editComps
         })
       });
@@ -285,7 +279,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
       setEditingPart(null);
       fetchLists();
-      alert('Participant updated successfully!');
+      alert('Candidate records updated successfully!');
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -805,7 +799,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
       {/* --- EDIT RECORD POPUP --- */}
       {editingPart && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 font-sans">
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 animate-scale-up space-y-4">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="font-display font-bold text-slate-800 text-base">Edit Candidate Records</h3>
@@ -822,35 +816,41 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold"
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Phone</label>
-                <input
-                  type="text"
-                  value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none"
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Date of Birth (DOB)</label>
+                  <input
+                    type="date"
+                    required
+                    value={editDob}
+                    onChange={(e) => setEditDob(e.target.value)}
+                    className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Address</label>
-                <textarea
-                  value={editAddress}
-                  onChange={(e) => setEditAddress(e.target.value)}
-                  className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none"
-                  rows={2}
-                />
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Category</label>
+                  <select
+                    value={editCategoryId}
+                    onChange={(e) => setEditCategoryId(e.target.value)}
+                    className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold bg-white cursor-pointer"
+                  >
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono mb-1.5">Registered Competitions (Individual)</label>
-                <div className="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
+                <div className="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
                   {competitions
-                    .filter(c => c.categoryId === editingPart.selectedCategoryId && c.participationType === 'individual')
+                    .filter(c => c.categoryId === editCategoryId && c.participationType === 'individual')
                     .map(comp => {
                       const isChecked = editComps.includes(comp.id);
                       return (
@@ -858,37 +858,34 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                           <input
                             type="checkbox"
                             checked={isChecked}
-                            onChange={() => {
-                              if (isChecked) {
-                                setEditComps(editComps.filter(id => id !== comp.id));
-                              } else {
+                            onChange={(e) => {
+                              if (e.target.checked) {
                                 setEditComps([...editComps, comp.id]);
+                              } else {
+                                setEditComps(editComps.filter(id => id !== comp.id));
                               }
                             }}
-                            className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                            className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
                           />
                           <span className="font-semibold text-xs">{comp.name}</span>
                         </label>
                       );
                     })}
-                  {competitions.filter(c => c.categoryId === editingPart.selectedCategoryId && c.participationType === 'individual').length === 0 && (
-                    <span className="text-slate-400 font-mono text-[10px]">No individual competitions available for this category.</span>
-                  )}
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t">
                 <button
                   type="button"
                   onClick={() => setEditingPart(null)}
-                  className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 bg-slate-50"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingEdit}
-                  className="px-5 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-emerald-700"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md shadow-emerald-600/20 transition-colors flex items-center gap-1.5"
                 >
                   {savingEdit ? 'Saving...' : 'Save Records'}
                 </button>
