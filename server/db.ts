@@ -482,8 +482,15 @@ export async function saveDb() {
   // Write to local file (compact JSON, non-blocking)
   try {
     const data = JSON.stringify(db);
-    fs.writeFile(DB_FILE, data, 'utf-8', (err) => {
-      if (err) console.error("Failed to write db file:", err);
+    const tempFile = DB_FILE + '.tmp';
+    fs.writeFile(tempFile, data, 'utf-8', (err) => {
+      if (err) {
+        console.error("Failed to write temp db file:", err);
+        return;
+      }
+      fs.rename(tempFile, DB_FILE, (renameErr) => {
+        if (renameErr) console.error("Failed to rename temp db file:", renameErr);
+      });
     });
   } catch (e) {
     console.error("Failed to serialize database", e);
