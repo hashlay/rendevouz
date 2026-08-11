@@ -4127,6 +4127,7 @@ apiRouter.get('/public/results', async (req, res) => {
       let department = '';
       let participationType = comp?.participationType === 'group' ? 'Group' : 'Individual';
       
+      let teamMemberIds: string[] = [];
       if (r.participantId) {
         const p = db.participants.find(p => p.id === r.participantId);
         if (p) {
@@ -4143,6 +4144,7 @@ apiRouter.get('/public/results', async (req, res) => {
           codeNumber = t.teamNumber;
           const unit = db.units.find(u => u.id === t.unitId);
           department = unit ? unit.name : '';
+          teamMemberIds = t.memberIds || [];
         }
       }
       
@@ -4198,7 +4200,10 @@ apiRouter.get('/public/results', async (req, res) => {
         marks: m,
         certificatePublished: r.certificatePublished || false,
         // Also send raw data for Poster Studio
-        raw: r
+        raw: {
+          ...r,
+          teamMemberIds
+        }
       };
     });
     
