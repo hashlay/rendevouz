@@ -710,7 +710,11 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
                             <span className="font-semibold text-slate-800 block">{r.participantName || r.teamName || 'Group Team'}</span>
                             <span className="text-[9px] font-mono text-slate-400 mt-0.5 block">Rank {r.rank || 'N/A'}</span>
                           </div>
-                          <span className="font-bold text-emerald-600 font-mono">{r.averageMark || 0} marks</span>
+                          {r.status === 'absent' || r.status === 'ABSENT' ? (
+                            <span className="font-bold text-rose-600 font-mono text-xs">Absent</span>
+                          ) : (
+                            <span className="font-bold text-emerald-600 font-mono">{r.averageMark !== undefined ? r.averageMark : (r.totalMark || 0)} marks</span>
+                          )}
                         </li>
                       ))}
                     </ul>

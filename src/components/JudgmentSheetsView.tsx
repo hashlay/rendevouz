@@ -155,9 +155,9 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
          newJudgeScores[jIdx] = existingJm;
       }
 
-      const validMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark));
-      const sumMarks = validMarks.reduce((sum, j) => sum + j.mark, 0);
-      const activeJudgesCount = currentSheet?.numJudges || validMarks.length || 1;
+      const nonZeroMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
+      const sumMarks = newJudgeScores.reduce((sum, j) => sum + (typeof j.mark === 'number' && !Number.isNaN(j.mark) ? j.mark : 0), 0);
+      const activeJudgesCount = nonZeroMarks.length > 0 ? nonZeroMarks.length : 1;
       const avg = sumMarks / activeJudgesCount;
 
       return {
@@ -193,10 +193,10 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         }
       }
 
-      // Calculate frontend total and average
-      const validMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark));
-      const sumMarks = validMarks.reduce((sum, j) => sum + j.mark, 0);
-      const activeJudgesCount = currentSheet?.numJudges || validMarks.length || 1;
+      // Calculate frontend total and average based on non-zero judge marks
+      const nonZeroMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
+      const sumMarks = newJudgeScores.reduce((sum, j) => sum + (typeof j.mark === 'number' && !Number.isNaN(j.mark) ? j.mark : 0), 0);
+      const activeJudgesCount = nonZeroMarks.length > 0 ? nonZeroMarks.length : 1;
       const avg = sumMarks / activeJudgesCount;
 
       return {
@@ -848,7 +848,15 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                             })}
                             <td className="px-3 py-2 text-center">
                               <div className="font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded">
-                                {!isParticipated ? '—' : (s.averageMark || '0')}
+                                {s.status === JudgeScoreStatus.ABSENT || s.status === 'absent' ? (
+                                  <span className="text-xs font-bold text-rose-600">Absent</span>
+                                ) : s.status === JudgeScoreStatus.DISQUALIFIED || s.status === 'disqualified' ? (
+                                  <span className="text-xs font-bold text-rose-600">Disqualified</span>
+                                ) : !isParticipated ? (
+                                  '—'
+                                ) : (
+                                  s.averageMark !== undefined ? s.averageMark : '0'
+                                )}
                               </div>
                             </td>
                           </>

@@ -426,7 +426,19 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="text-sm font-bold text-emerald-600 block">{r.averageMark || 0} marks</span>
+                    {r.status === 'absent' || r.status === 'ABSENT' ? (
+                      <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 block mb-1 font-mono uppercase">
+                        Absent
+                      </span>
+                    ) : r.status === 'disqualified' || r.status === 'DISQUALIFIED' ? (
+                      <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 block mb-1 font-mono uppercase">
+                        Disqualified
+                      </span>
+                    ) : (
+                      <span className="text-sm font-bold text-emerald-600 block">
+                        {r.averageMark !== undefined ? r.averageMark : (r.totalMark || 0)} marks
+                      </span>
+                    )}
                     <span className="text-[10px] font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                       Rank {r.rank || 'N/A'}
                     </span>

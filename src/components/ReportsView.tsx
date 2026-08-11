@@ -385,7 +385,13 @@ export default function ReportsView({ user, token, eventSettings }: ReportsViewP
                             <td className="px-4 py-3 text-slate-600 text-xs font-medium">{compName}</td>
                             <td className="px-4 py-3 text-right font-mono">{r.judge1Mark}</td>
                             <td className="px-4 py-3 text-right font-mono">{r.judge2Mark}</td>
-                            <td className="px-4 py-3 text-right font-bold text-emerald-700 font-mono">{r.averageMark || 0}</td>
+                            <td className="px-4 py-3 text-right font-bold text-emerald-700 font-mono">
+                              {r.status === 'absent' || r.status === 'ABSENT' ? (
+                                <span className="text-rose-600">Absent</span>
+                              ) : (
+                                r.averageMark !== undefined ? r.averageMark : (r.totalMark || 0)
+                              )}
+                            </td>
                             <td className="px-4 py-3 text-center font-bold text-amber-700 font-mono">Rank {r.rank || 'N/A'}</td>
                           </tr>
                         );

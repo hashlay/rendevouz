@@ -642,16 +642,18 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
                       <div className="flex items-center gap-4">
                         {resRecord ? (
                           <div className="text-right">
-                            {resRecord.status === ResultStatus.PARTICIPATED ? (
+                            {resRecord.status === ResultStatus.PARTICIPATED || resRecord.status === 'participated' ? (
                               <>
-                                <span className="text-sm font-extrabold text-emerald-600 block">{resRecord.averageMark || 0} marks</span>
+                                <span className="text-sm font-extrabold text-emerald-600 block">
+                                  {resRecord.averageMark !== undefined ? resRecord.averageMark : (resRecord.totalMark || 0)} marks
+                                </span>
                                 <span className={`inline-block text-[9px] font-mono font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded uppercase mt-0.5 border border-amber-200`}>
                                   Rank {resRecord.rank || 'N/A'} {resRecord.manualRankOverride && ' (Overridden)'}
                                 </span>
                               </>
                             ) : (
                               <span className="text-xs font-bold text-rose-500 uppercase bg-rose-50 px-2.5 py-1 rounded font-mono border border-rose-200">
-                                {resRecord.status.replace('_', ' ')}
+                                {resRecord.status === ResultStatus.ABSENT || resRecord.status === 'absent' ? 'Absent' : resRecord.status.replace('_', ' ')}
                               </span>
                             )}
                           </div>

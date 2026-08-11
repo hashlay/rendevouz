@@ -663,7 +663,11 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                             <div className="text-right">
                               {item.result ? (
                                 <>
-                                  <span className="font-bold text-emerald-600 block">{item.result.averageMark || 0} marks</span>
+                                  {item.result.status === 'absent' || item.result.status === 'ABSENT' ? (
+                                    <span className="font-bold text-rose-600 block text-xs font-mono">Absent</span>
+                                  ) : (
+                                    <span className="font-bold text-emerald-600 block">{item.result.averageMark !== undefined ? item.result.averageMark : (item.result.totalMark || 0)} marks</span>
+                                  )}
                                   <span className="text-[9px] font-mono bg-emerald-50 text-emerald-700 border px-1.5 py-0.5 rounded uppercase font-bold">
                                     Rank {item.result.rank || 'TBD'}
                                   </span>

@@ -8,17 +8,15 @@ import {
  * Helper to normalize mark out of 100 if two judges gave marks.
  */
 const getNormalizedMark = (r: Result): number => {
+  if (r.status === ResultStatus.ABSENT || (r as any).status === 'absent') return 0;
   if (r.averageMark !== undefined && !isNaN(r.averageMark)) {
     return r.averageMark;
   }
   if (r.totalMark === undefined || isNaN(r.totalMark)) return 0;
-  if (r.totalMark > 100) {
-    const j1 = Number(r.judge1Mark) || 0;
-    const j2 = Number(r.judge2Mark) || 0;
-    const activeJudges = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
-    return Math.round(((j1 + j2) / activeJudges) * 100) / 100;
-  }
-  return r.totalMark;
+  const j1 = Number(r.judge1Mark) || 0;
+  const j2 = Number(r.judge2Mark) || 0;
+  const activeJudges = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
+  return Math.round(((j1 + j2) / activeJudges) * 100) / 100;
 };
 
 export function toTitleCase(str: string): string {

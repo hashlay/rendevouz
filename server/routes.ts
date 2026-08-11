@@ -74,8 +74,7 @@ apiRouter.use(async (req, res, next) => {
           const j2 = Number(r.judge2Mark) || 0;
           // Calculate true total and average
           r.totalMark = j1 + j2;
-          const sheetTemp = (db.judgmentSheets || []).find((s: any) => s.competitionId === r.competitionId && !s.deletedAt);
-          const activeCount = sheetTemp?.numJudges || 2;
+          const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
           r.averageMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
         });
       }
@@ -2029,7 +2028,7 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
   }
 
   const sheetTemp = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === competitionId && !s.deletedAt);
-  const activeCount = sheetTemp?.numJudges || 2;
+  const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
   const totalMark = j1 + j2;
   const averageMark = Math.round((totalMark / activeCount) * 100) / 100;
   if (averageMark < 0 || averageMark > 100) {
@@ -2102,7 +2101,7 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
           { judgeNumber: 2, mark: j2 }
         ];
         score.totalMark = totalMark;
-        const activeCount = sheet?.numJudges || 2;
+        const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
         score.averageMark = averageMark;
         score.status = judgeScoreStatus;
         score.remarks = remarks || '';
@@ -2168,7 +2167,7 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
   resultObj.judge1Mark = j1;
   resultObj.judge2Mark = j2;
   const sheetTemp = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === resultObj.competitionId && !s.deletedAt);
-  const activeCount = sheetTemp?.numJudges || 2;
+  const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
   resultObj.totalMark = j1 + j2;
   resultObj.averageMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
 
@@ -2729,6 +2728,12 @@ apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
         participantName = t ? t.teamNumber : 'Unknown';
         unitName = t ? (db.units.find(u => u.id === t.unitId)?.name || 'Unknown') : 'Unknown';
       }
+      const j1 = Number(r.judge1Mark) || 0;
+      const j2 = Number(r.judge2Mark) || 0;
+      const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
+      const calculatedAvg = Math.round(((j1 + j2) / activeCount) * 100) / 100;
+      const averageMark = r.averageMark !== undefined ? r.averageMark : calculatedAvg;
+
       return {
         id: r.id,
         competitionName: comp ? comp.name : 'Unknown',
@@ -2736,6 +2741,8 @@ apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
         participantName,
         unitName,
         totalMark: r.totalMark,
+        averageMark,
+        status: r.status,
         rank: r.rank,
         updatedAt: r.updatedAt
       };
@@ -3617,8 +3624,8 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
         base.totalMark = publishedResult.totalMark;
         const j1Val = Number(publishedResult.judge1Mark) || 0;
         const j2Val = Number(publishedResult.judge2Mark) || 0;
-        const activeCount = sheet.numJudges || 2;
-        base.averageMark = s.averageMark !== undefined ? s.averageMark : (publishedResult.averageMark !== undefined ? publishedResult.averageMark : Math.round((publishedResult.totalMark / activeCount) * 100) / 100);
+        const activeCount = (j1Val > 0 ? 1 : 0) + (j2Val > 0 ? 1 : 0) || 1;
+        base.averageMark = s.averageMark !== undefined ? s.averageMark : (publishedResult.averageMark !== undefined ? publishedResult.averageMark : Math.round(((j1Val + j2Val) / activeCount) * 100) / 100);
         base.rank = publishedResult.rank;
         
         // Reconstruct judge scores for display if missing or overwrite with published
@@ -3780,9 +3787,9 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
 
       // Calculate total and average based on non-null submitted judge marks
       if (existingScore.status === JudgeScoreStatus.PARTICIPATED) {
-        const validMarks = existingScore.judgeScores.filter((j: JudgeScoreEntry) => typeof j.mark === 'number' && !Number.isNaN(j.mark));
-        const sumMarks = validMarks.reduce((sum: number, jm: JudgeScoreEntry) => sum + jm.mark, 0);
-        const activeJudgesCount = sheet.numJudges || validMarks.length || 1;
+        const nonZeroMarks = existingScore.judgeScores.filter((j: JudgeScoreEntry) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
+        const sumMarks = existingScore.judgeScores.reduce((sum: number, jm: JudgeScoreEntry) => sum + (typeof jm.mark === 'number' && !Number.isNaN(jm.mark) ? jm.mark : 0), 0);
+        const activeJudgesCount = nonZeroMarks.length > 0 ? nonZeroMarks.length : 1;
         const avg = sumMarks / activeJudgesCount;
         existingScore.totalMark = sumMarks;
         existingScore.averageMark = Math.round(avg * 100) / 100;
@@ -3895,9 +3902,12 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
 
     if (existingResult) {
       // Update existing result
-      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : (score.judgeScores.length > 0 ? Math.round((score.totalMark / sheet.numJudges) * 100) / 100 : score.totalMark);
-      existingResult.judge1Mark = j1?.mark || 0;
-      existingResult.judge2Mark = j2?.mark || 0;
+      const j1Mark = j1?.mark || 0;
+      const j2Mark = j2?.mark || 0;
+      const nonZeroCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
+      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : Math.round((score.totalMark / nonZeroCount) * 100) / 100;
+      existingResult.judge1Mark = j1Mark;
+      existingResult.judge2Mark = j2Mark;
       existingResult.totalMark = score.totalMark;
       existingResult.averageMark = calculatedAvgMark;
       existingResult.rank = score.rank;
@@ -3908,15 +3918,18 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
       existingResult.publishedStatus = true;
     } else {
       // Create new result
-      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : (score.judgeScores.length > 0 ? Math.round((score.totalMark / sheet.numJudges) * 100) / 100 : score.totalMark);
+      const j1Mark = j1?.mark || 0;
+      const j2Mark = j2?.mark || 0;
+      const nonZeroCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
+      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : Math.round((score.totalMark / nonZeroCount) * 100) / 100;
       const result: Result = {
         id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         categoryId: sheet.categoryId,
         competitionId: sheet.competitionId,
         participantId: gr.participantId,
         teamId: gr.teamId,
-        judge1Mark: j1?.mark || 0,
-        judge2Mark: j2?.mark || 0,
+        judge1Mark: j1Mark,
+        judge2Mark: j2Mark,
         totalMark: score.totalMark,
         averageMark: calculatedAvgMark,
         rank: score.rank,
@@ -4564,7 +4577,7 @@ apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN,
       const j2 = r.judge2Mark || 0;
       const total = j1 + j2;
       const sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === comp.id && !s.deletedAt);
-      const activeCount = sheet?.numJudges || 2;
+      const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
       const average = Math.round((total / activeCount) * 100) / 100;
       
       db.results.push({
@@ -4578,7 +4591,7 @@ apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN,
         totalMark: total,
         averageMark: average,
         rank: 0,
-        resultStatus: r.status === 'absent' ? ResultStatus.ABSENT : r.status === 'disqualified' ? ResultStatus.DISQUALIFIED : ResultStatus.PARTICIPATED,
+        status: r.status === 'absent' ? ResultStatus.ABSENT : r.status === 'disqualified' ? ResultStatus.DISQUALIFIED : ResultStatus.PARTICIPATED,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
@@ -4592,7 +4605,7 @@ apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN,
     }
     
     for (const compId of Array.from(affectedComps)) {
-      CalculationService.calculateRanksForCompetition(compId);
+      CalculationService.calculateCompetitionRanks(compId);
     }
     
     dbClient.save();
