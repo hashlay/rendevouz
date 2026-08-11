@@ -111,36 +111,51 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
   };
 
   const handleCriteriaChange = (scoreId: string, judgeNum: number, critKey: 'c1' | 'c2' | 'c3' | 'c4', value: string) => {
+    let isEmpty = value.trim() === '';
     let numVal = parseFloat(value);
-    if (isNaN(numVal) || numVal < 0) numVal = 0;
+    if (!isEmpty && (isNaN(numVal) || numVal < 0)) numVal = 0;
     if (numVal > 25) numVal = 25;
 
     setCurrentScores(prev => prev.map(s => {
       if (s.id !== scoreId) return s;
 
-      const newJudgeScores = [...s.judgeScores];
+      let newJudgeScores = [...s.judgeScores];
       let jIdx = newJudgeScores.findIndex((j: any) => j.judgeNumber === judgeNum);
 
       if (jIdx < 0) {
-        newJudgeScores.push({ judgeNumber: judgeNum, mark: 0 });
+        if (isEmpty) return s; // Nothing to clear
+        newJudgeScores.push({ judgeNumber: judgeNum });
         jIdx = newJudgeScores.length - 1;
       }
 
       const existingJm = { ...newJudgeScores[jIdx] };
-      existingJm[critKey] = numVal;
+      
+      if (isEmpty) {
+        delete existingJm[critKey];
+      } else {
+        existingJm[critKey] = numVal;
+      }
 
-      // Auto sum c1+c2+c3+c4 if entered
-      const c1 = existingJm.c1 || 0;
-      const c2 = existingJm.c2 || 0;
-      const c3 = existingJm.c3 || 0;
-      const c4 = existingJm.c4 || 0;
+      // Auto sum c1+c2+c3+c4 if any is entered
+      const c1 = existingJm.c1 !== undefined ? existingJm.c1 : 0;
+      const c2 = existingJm.c2 !== undefined ? existingJm.c2 : 0;
+      const c3 = existingJm.c3 !== undefined ? existingJm.c3 : 0;
+      const c4 = existingJm.c4 !== undefined ? existingJm.c4 : 0;
 
-      const autoSum = c1 + c2 + c3 + c4;
-      existingJm.mark = Math.min(Math.max(autoSum, 0), 100);
+      if (existingJm.c1 === undefined && existingJm.c2 === undefined && existingJm.c3 === undefined && existingJm.c4 === undefined) {
+          delete existingJm.mark;
+      } else {
+          const autoSum = c1 + c2 + c3 + c4;
+          existingJm.mark = Math.min(Math.max(autoSum, 0), 100);
+      }
 
-      newJudgeScores[jIdx] = existingJm;
+      if (existingJm.mark === undefined) {
+         newJudgeScores.splice(jIdx, 1);
+      } else {
+         newJudgeScores[jIdx] = existingJm;
+      }
 
-      const validMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number');
+      const validMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark));
       const sumMarks = validMarks.reduce((sum, j) => sum + j.mark, 0);
       const avg = validMarks.length > 0 ? sumMarks / validMarks.length : 0;
 
@@ -154,24 +169,31 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
   };
 
   const handleScoreChange = (scoreId: string, judgeNum: number, value: string) => {
+    let isEmpty = value.trim() === '';
     let numVal = parseFloat(value);
-    if (isNaN(numVal) || numVal < 0) numVal = 0;
+    if (!isEmpty && (isNaN(numVal) || numVal < 0)) numVal = 0;
     if (numVal > 100) numVal = 100;
 
     setCurrentScores(prev => prev.map(s => {
       if (s.id !== scoreId) return s;
 
-      const newJudgeScores = [...s.judgeScores];
+      let newJudgeScores = [...s.judgeScores];
       const jIdx = newJudgeScores.findIndex((j: any) => j.judgeNumber === judgeNum);
 
-      if (jIdx >= 0) {
-        newJudgeScores[jIdx].mark = numVal;
+      if (isEmpty) {
+        if (jIdx >= 0) {
+           newJudgeScores.splice(jIdx, 1);
+        }
       } else {
-        newJudgeScores.push({ judgeNumber: judgeNum, mark: numVal });
+        if (jIdx >= 0) {
+          newJudgeScores[jIdx].mark = numVal;
+        } else {
+          newJudgeScores.push({ judgeNumber: judgeNum, mark: numVal });
+        }
       }
 
       // Calculate frontend total and average
-      const validMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number');
+      const validMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark));
       const sumMarks = validMarks.reduce((sum, j) => sum + j.mark, 0);
       const avg = validMarks.length > 0 ? sumMarks / validMarks.length : 0;
 

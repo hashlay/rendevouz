@@ -3701,9 +3701,9 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
 
       // Calculate total and average based on non-null submitted judge marks
       if (existingScore.status === JudgeScoreStatus.PARTICIPATED) {
-        const validMarks = existingScore.judgeScores.filter((j: JudgeScoreEntry) => typeof j.mark === 'number');
+        const validMarks = existingScore.judgeScores.filter((j: JudgeScoreEntry) => typeof j.mark === 'number' && !Number.isNaN(j.mark));
         const sumMarks = validMarks.reduce((sum: number, jm: JudgeScoreEntry) => sum + jm.mark, 0);
-        const activeJudgesCount = validMarks.filter(j => j.mark > 0).length || 1;
+        const activeJudgesCount = validMarks.length || 1;
         const avg = sumMarks / activeJudgesCount;
         existingScore.totalMark = sumMarks;
         existingScore.averageMark = Math.round(avg * 100) / 100;
@@ -4283,7 +4283,7 @@ apiRouter.delete('/gallery/:id', authenticate, (req, res) => {
   res.json({ success: true });
 });
 
-apiRouter.post('/gallery/:id/featured', authenticate, (req, res) => {
+apiRouter.put('/gallery/:id/featured', authenticate, (req, res) => {
   const db = dbClient.get();
   const item = (db.gallery || []).find(item => item.id === req.params.id);
   if (item) {
