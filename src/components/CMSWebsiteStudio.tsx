@@ -608,7 +608,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                       </div>
                     ) : (
                       <div className="w-32 h-20 rounded-md overflow-hidden border border-slate-200 relative group shrink-0 bg-slate-100">
-                        <img src="/hero2.jpg" alt="About bg Default" className="w-full h-full object-cover opacity-80" />
+                        <img src="https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80" alt="About bg Default" className="w-full h-full object-cover opacity-80" />
                         <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] text-center py-0.5 font-semibold tracking-wider uppercase">Default</div>
                       </div>
                     )}
