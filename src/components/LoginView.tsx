@@ -132,16 +132,16 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         {/* Logo and institution branding centered in place of title */}
         {eventSettings?.fillLogo ? (
-          <div className="flex justify-center items-center mb-3">
+          <div className="flex justify-center items-center mb-5 text-center w-full min-h-[140px]">
             {eventSettings?.ssfLogoUrl ? (
               <img 
                 src={eventSettings.ssfLogoUrl} 
                 alt="Festival Logo" 
-                className="h-24 object-contain shrink-0" 
+                className="h-32 sm:h-40 w-auto max-w-[85%] object-contain shrink-0 mx-auto block drop-shadow-sm" 
                 onError={(e) => (e.currentTarget.style.display = 'none')}
               />
             ) : (
-              <SSFLogo className="h-24 text-emerald-600 shrink-0" showText={false} />
+              <SSFLogo className="h-32 sm:h-40 w-auto max-w-[85%] text-emerald-600 shrink-0 mx-auto block" showText={false} />
             )}
           </div>
         ) : (
