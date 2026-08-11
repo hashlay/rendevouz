@@ -254,9 +254,13 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
 
   const hitRegions = useRef<{ id: string, x: number, y: number, w: number, h: number }[]>([]);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch (_) {}
+
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
@@ -282,7 +286,7 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -316,17 +320,46 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     }
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch (_) {}
     setDragging(null);
     lastMousePos.current = null;
   };
 
   const RangeControl = ({ label, value, onChange, min, max }: { label: string, value: number, onChange: (v: number) => void, min: number, max: number }) => (
-    <div>
-      <label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">
-        {label} <span className="text-slate-600">{value}</span>
-      </label>
-      <input type="range" min={min} max={max} value={value} onChange={e => onChange(Number(e.target.value))} className="w-full accent-emerald-600" />
+    <div className="space-y-1">
+      <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
+        <span>{label}</span>
+        <div className="flex items-center gap-1 font-mono text-[10px] text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => onChange(Math.max(min, value - 5))}
+            className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
+            title="Step left (-5)"
+          >
+            -
+          </button>
+          <span className="w-8 text-center font-bold">{value}</span>
+          <button
+            type="button"
+            onClick={() => onChange(Math.min(max, value + 5))}
+            className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
+            title="Step right (+5)"
+          >
+            +
+          </button>
+        </div>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer touch-pan-x"
+      />
     </div>
   );
 
@@ -759,47 +792,57 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-500" />
-                Customize Poster Layout {activeComp && `\u2014 Result ${getAnnouncementIndex(selectedCompId) < 10 ? getAnnouncementIndex(selectedCompId).toString().padStart(2, '0') : getAnnouncementIndex(selectedCompId)}`}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-                <X className="w-5 h-5 text-slate-500" />
-              </button>
-            </div>
-
-            <div className="flex flex-col lg:flex-row overflow-hidden flex-1">
-              {/* Canvas area (Left) */}
-              <div className="flex-1 p-6 overflow-auto flex flex-col items-center justify-center bg-slate-100/50">
-                <div className="mb-4 text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" /> Drag and position elements directly on the canvas preview below
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 font-sans backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[92vh]">
+            
+            {/* Left: Preview Canvas Area (Certificate Generator style) */}
+            <div className="flex-1 bg-slate-100 p-4 sm:p-6 flex flex-col items-center justify-center overflow-auto border-b md:border-b-0 md:border-r border-slate-200 min-h-0 relative">
+              <div className="mb-2 text-[10px] text-slate-500 font-mono flex items-center gap-1.5 shrink-0 bg-white/80 px-2.5 py-1 rounded-full shadow-2xs border border-slate-200/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                Touch / Drag elements directly on canvas preview
+              </div>
+              <div className="relative shadow-xl border border-slate-200 rounded-lg overflow-hidden bg-white max-w-full flex items-center justify-center">
                 <canvas
                   ref={canvasRef}
-                  className="max-w-full h-auto rounded-xl shadow-2xl border border-slate-800/10 cursor-move"
-                  style={{ maxHeight: '65vh' }}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
+                  className="w-full h-auto max-h-[50vh] md:max-h-[75vh] object-contain cursor-move touch-none select-none"
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
                 />
               </div>
+            </div>
 
-              {/* Sidebar controls (Right) */}
-              {(() => {
-                const compIdx = getAnnouncementIndex(selectedCompId);
-                const themeIdx = getThemeIndexForResult(compIdx);
-                const c = getThemeConfig(themeIdx);
-                return (
-                  <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-slate-100 p-6 flex flex-col justify-between bg-white overflow-y-auto max-h-[85vh] lg:max-h-none">
-                    <div className="space-y-6">
+            {/* Right: Controls Sidebar (Certificate Generator style) */}
+            {(() => {
+              const compIdx = getAnnouncementIndex(selectedCompId);
+              const themeIdx = getThemeIndexForResult(compIdx);
+              const c = getThemeConfig(themeIdx);
+              return (
+                <div className="w-full md:w-80 lg:w-96 bg-white p-4 sm:p-6 overflow-y-auto flex flex-col max-h-[42vh] md:max-h-full justify-between">
+                  <div>
+                    <div className="flex justify-between items-center mb-4 border-b pb-3">
                       <div>
-                        <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-3">Adjust Positions</h4>
-                        <div className="p-3 bg-slate-50 rounded-xl space-y-3">
-                          <span className="text-[9px] font-bold text-slate-500 uppercase block">Header Elements</span>
+                        <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-emerald-500" />
+                          Customize Poster
+                        </h3>
+                        <p className="text-[10px] text-slate-400 font-mono font-bold uppercase mt-0.5">
+                          {activeComp ? `Result ${compIdx < 10 ? compIdx.toString().padStart(2, '0') : compIdx}` : 'Template Config'}
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => setIsModalOpen(false)} 
+                        className="p-1.5 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-5">
+                      <div>
+                        <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2.5">Header Position</h4>
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                           <RangeControl label="Campus X" value={c.campusNameX ?? 540} onChange={v => updateLocalConf('campusNameX', v)} min={0} max={1080} />
                           <RangeControl label="Campus Y" value={c.campusNameY ?? 70} onChange={v => updateLocalConf('campusNameY', v)} min={30} max={400} />
                           <RangeControl label="Fest X" value={c.festNameX ?? 540} onChange={v => updateLocalConf('festNameX', v)} min={0} max={1080} />
@@ -816,8 +859,8 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                       </div>
 
                       <div>
-                        <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-3">Block Letters</h4>
-                        <div className="p-3 bg-slate-50 rounded-xl space-y-3">
+                        <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2.5">Block Letters</h4>
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-2.5">
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" checked={c.campusNameUppercase !== false} onChange={e => updateLocalConf('campusNameUppercase', e.target.checked)} className="accent-emerald-600" />
                             <span className="text-xs font-bold text-slate-700">Campus Name</span>
@@ -854,7 +897,7 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                       </div>
 
                       {[1, 2, 3].map(rank => (
-                        <div key={rank} className="p-3 bg-slate-50 rounded-xl space-y-3">
+                        <div key={rank} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                           <span className="text-[9px] font-bold text-slate-500 uppercase block">Rank {rank} Placements</span>
                           <RangeControl label="Badge X" value={c[`rank${rank}BadgeX`] ?? 140} onChange={v => updateLocalConf(`rank${rank}BadgeX`, v)} min={0} max={1080} />
                           <RangeControl label="Badge Y" value={c[`rank${rank}BadgeY`] ?? (460 + (rank - 1) * 180)} onChange={v => updateLocalConf(`rank${rank}BadgeY`, v)} min={100} max={1200} />
@@ -866,10 +909,10 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                       ))}
                     </div>
 
-                    <div className="mt-8 space-y-3 pt-6 border-t border-slate-100">
+                    <div className="mt-6 space-y-2 pt-4 border-t border-slate-100">
                       <button
                         onClick={handleDownload}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-600/20 transition-all"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all"
                       >
                         <Download className="w-4 h-4" />
                         Download JPG (HD)
@@ -882,7 +925,7 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
                         >
                           <Save className="w-4 h-4" />
-                          {savingTemplate ? 'Saving...' : 'Save as Default Template'}
+                          {savingTemplate ? 'Saving...' : 'Save Default Template'}
                         </button>
                       )}
 
@@ -894,9 +937,9 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                       </button>
                     </div>
                   </div>
-                );
-              })()}
-            </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
