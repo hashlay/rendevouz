@@ -825,15 +825,15 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[92vh]">
             
             {/* Left: Preview Canvas Area (Certificate Generator style) */}
-            <div className="flex-1 bg-slate-100 p-4 sm:p-6 flex flex-col items-center justify-center overflow-auto border-b md:border-b-0 md:border-r border-slate-200 min-h-0 relative">
-              <div className="mb-2 text-[10px] text-slate-500 font-mono flex items-center gap-1.5 shrink-0 bg-white/80 px-2.5 py-1 rounded-full shadow-2xs border border-slate-200/60">
+            <div className="w-full md:flex-1 bg-slate-100 p-3 sm:p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-200 shrink-0 min-h-0 relative">
+              <div className="mb-1.5 text-[10px] text-slate-500 font-mono flex items-center gap-1.5 shrink-0 bg-white/80 px-2.5 py-0.5 rounded-full shadow-2xs border border-slate-200/60">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                 Touch / Drag elements directly on canvas preview
               </div>
-              <div className="relative shadow-xl border border-slate-200 rounded-lg overflow-hidden bg-white max-w-full flex items-center justify-center">
+              <div className="relative shadow-xl border border-slate-200 rounded-xl overflow-hidden bg-white max-w-full flex items-center justify-center shrink-0">
                 <canvas
                   ref={canvasRef}
-                  className="w-full h-auto max-h-[50vh] md:max-h-[75vh] object-contain cursor-move touch-none select-none"
+                  className="w-auto h-auto max-h-[35vh] sm:max-h-[45vh] md:max-h-[75vh] max-w-full object-contain cursor-move touch-none select-none"
                   onMouseDown={handleDragStart}
                   onMouseMove={handleDragMove}
                   onMouseUp={handleDragEnd}
@@ -855,7 +855,7 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
               const themeIdx = getThemeIndexForResult(compIdx);
               const c = getThemeConfig(themeIdx);
               return (
-                <div className="w-full md:w-80 lg:w-96 bg-white p-4 sm:p-6 overflow-y-auto flex flex-col max-h-[42vh] md:max-h-full justify-between">
+                <div className="w-full md:w-80 lg:w-96 bg-white p-4 sm:p-6 overflow-y-auto flex flex-col max-h-[50vh] md:max-h-full justify-between">
                   <div>
                     <div className="flex justify-between items-center mb-4 border-b pb-3">
                       <div>
