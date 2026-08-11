@@ -41,15 +41,35 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
       });
       if (response.ok) {
         const data = await response.json();
-        setDragBlocks(data.dragBlocks || []);
+        const defaultBlocks: DragBlock[] = [
+          { id: '1', title: 'Hero Section', type: 'hero', enabled: true, order: 1 },
+          { id: '2', title: 'Live Team Standings', type: 'results', enabled: true, order: 2 },
+          { id: '3', title: 'Announced Results & Placements', type: 'announcements', enabled: true, order: 3 },
+          { id: '4', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: true, order: 4 },
+          { id: '5', title: 'Photo Hub & Media Gallery', type: 'gallery', enabled: true, order: 5 },
+          { id: '6', title: 'Live Broadcast Streams', type: 'live_stages', enabled: true, order: 6 },
+          { id: '7', title: 'About & Concept', type: 'about', enabled: true, order: 7 }
+        ];
+        setDragBlocks(data.dragBlocks && data.dragBlocks.length > 0 ? data.dragBlocks : defaultBlocks);
         setHeroMedia(data.heroMedia || []);
+        const mergedSettings = data.cmsSettings || {};
         setSettings({
-          headerLogoTitle: 'RENDEZVOUS',
-          headerLogoSubtitle: 'Silver Edition',
-          heroLogoTitle: 'RENDEZVOUS',
-          heroLogoSubtitle: 'Silver Edition',
-          heroLogoBadge: 'KULLIYATHU IMAM RABBANI',
-          ...(data.cmsSettings || {})
+          aboutTitle: mergedSettings.aboutTitle || 'About Rendezvous',
+          aboutSubtitle: mergedSettings.aboutSubtitle || 'Imam Rabbani LIFE Festival',
+          aboutDescription: mergedSettings.aboutDescription || 'Rendezvous Silver Edition is the flagship Imam Rabbani LIFE Festival celebrating arts, culture, and literary talents.',
+          footerText: mergedSettings.footerText || 'Rendezvous Silver Edition is the flagship Imam Rabbani LIFE Festival celebrating arts, culture, and literary talents.',
+          themeTitle: mergedSettings.themeTitle || 'SILVER EDITION',
+          themeDescription: mergedSettings.themeDescription || 'Rendezvous Silver Edition 2026',
+          heroTitle: mergedSettings.heroTitle || 'RENDEZVOUS',
+          heroSubtitle: mergedSettings.heroSubtitle || 'Silver Edition',
+          heroDate: mergedSettings.heroDate || 'MAY 2026',
+          heroLocation: mergedSettings.heroLocation || 'IMAM RABBANI CAMPUS',
+          headerLogoTitle: mergedSettings.headerLogoTitle || 'RENDEZVOUS',
+          headerLogoSubtitle: mergedSettings.headerLogoSubtitle || 'Silver Edition',
+          heroLogoTitle: mergedSettings.heroLogoTitle || 'RENDEZVOUS',
+          heroLogoSubtitle: mergedSettings.heroLogoSubtitle || 'Silver Edition',
+          heroLogoBadge: mergedSettings.heroLogoBadge || 'KULLIYATHU IMAM RABBANI',
+          ...mergedSettings
         });
       }
     } catch (err) {

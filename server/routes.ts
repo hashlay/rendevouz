@@ -728,10 +728,23 @@ apiRouter.get('/settings', async (req, res) => {
   res.json(db.eventSettings);
 });
 
+const DEFAULT_DRAG_BLOCKS = [
+  { id: '1', title: 'Hero Section', type: 'hero', enabled: true, order: 1 },
+  { id: '2', title: 'Live Team Standings', type: 'results', enabled: true, order: 2 },
+  { id: '3', title: 'Announced Results & Placements', type: 'announcements', enabled: true, order: 3 },
+  { id: '4', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: true, order: 4 },
+  { id: '5', title: 'Photo Hub & Media Gallery', type: 'gallery', enabled: true, order: 5 },
+  { id: '6', title: 'Live Broadcast Streams', type: 'live_stages', enabled: true, order: 6 },
+  { id: '7', title: 'About & Concept', type: 'about', enabled: true, order: 7 }
+];
+
 apiRouter.get('/public/cms', async (req, res) => {
   const db = dbClient.get();
+  if (!db.dragBlocks || db.dragBlocks.length === 0) {
+    db.dragBlocks = DEFAULT_DRAG_BLOCKS;
+  }
   res.json({
-    dragBlocks: db.dragBlocks || [],
+    dragBlocks: db.dragBlocks,
     heroMedia: db.heroMedia || [],
     cmsSettings: db.cmsSettings || {}
   });
@@ -755,8 +768,11 @@ apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, User
 // GET CMS Settings (Admin View)
 apiRouter.get('/cms', authenticate, async (req, res) => {
   const db = dbClient.get();
+  if (!db.dragBlocks || db.dragBlocks.length === 0) {
+    db.dragBlocks = DEFAULT_DRAG_BLOCKS;
+  }
   res.json({
-    dragBlocks: db.dragBlocks || [],
+    dragBlocks: db.dragBlocks,
     heroMedia: db.heroMedia || [],
     cmsSettings: db.cmsSettings || {}
   });
@@ -4147,8 +4163,11 @@ apiRouter.post('/footer/upload', authenticate, upload.single('image'), async (re
 // CMS Routes
 apiRouter.get('/public/cms', (req, res) => {
   const db = dbClient.get();
+  if (!db.dragBlocks || db.dragBlocks.length === 0) {
+    db.dragBlocks = DEFAULT_DRAG_BLOCKS;
+  }
   res.json({
-    dragBlocks: db.dragBlocks || [],
+    dragBlocks: db.dragBlocks,
     heroMedia: db.heroMedia || [],
     cmsSettings: db.cmsSettings || {}
   });
@@ -4156,8 +4175,11 @@ apiRouter.get('/public/cms', (req, res) => {
 
 apiRouter.get('/cms', authenticate, (req, res) => {
   const db = dbClient.get();
+  if (!db.dragBlocks || db.dragBlocks.length === 0) {
+    db.dragBlocks = DEFAULT_DRAG_BLOCKS;
+  }
   res.json({
-    dragBlocks: db.dragBlocks || [],
+    dragBlocks: db.dragBlocks,
     heroMedia: db.heroMedia || [],
     cmsSettings: db.cmsSettings || {}
   });
