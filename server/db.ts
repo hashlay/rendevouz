@@ -50,21 +50,33 @@ async function _connectToMongo() {
     console.log(`🍃 Connected successfully to MongoDB: "${dbName}"`);
     console.log(`=============================================================`);
 
-    // Synchronize current cache from MongoDB if it exists, otherwise write to it
+    // Synchronize current cache from MongoDB if it exists and has valid data
     const existingState = await mongoCollection.findOne({ _id: 'global_state' as any });
-    if (existingState) {
-      console.log("Found existing database state in MongoDB. Synchronizing cache...");
+    const hasMongoData = existingState && Array.isArray(existingState.participants) && existingState.participants.length > 0;
+    const hasLocalData = db && Array.isArray(db.participants) && db.participants.length > 0;
+
+    if (hasMongoData) {
+      console.log(`Found existing database state in MongoDB (${existingState.participants.length} participants). Synchronizing cache...`);
       const { _id, ...restOfState } = existingState;
       db = restOfState as any;
-      // Also update local file backup so it is hot-synchronized
       try {
         fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
       } catch (_) {}
+    } else if (hasLocalData) {
+      console.log(`MongoDB state was empty. Preserving local state (${db.participants.length} participants) and pushing to MongoDB Atlas...`);
+      await mongoCollection.replaceOne(
+        { _id: 'global_state' as any },
+        { ...db },
+        { upsert: true }
+      );
+    } else if (existingState) {
+      const { _id, ...restOfState } = existingState;
+      db = restOfState as any;
     } else {
       console.log("No existing database state in MongoDB. Uploading initial seeded state...");
-      await mongoCollection.updateOne(
+      await mongoCollection.replaceOne(
         { _id: 'global_state' as any },
-        { $set: db },
+        { ...db },
         { upsert: true }
       );
     }
@@ -405,14 +417,39 @@ function ensureDbExists() {
 // HIGH-PERFORMANCE SAVE ENGINE
 // ============================================================
 
-let _mongoSyncTimer: ReturnType<typeof setTimeout> | null = null;
-const MONGO_SYNC_DEBOUNCE_MS = 2000; // Batch MongoDB writes every 2s
+const BACKUP_DIR = path.join(DB_DIR, 'backups');
+
+export function performHourlyBackup() {
+  if (!db || !Array.isArray(db.participants) || db.participants.length === 0) return;
+  try {
+    if (!fs.existsSync(BACKUP_DIR)) {
+      fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFilePath = path.join(BACKUP_DIR, `db_backup_${timestamp}.json`);
+    fs.writeFileSync(backupFilePath, JSON.stringify(db, null, 2), 'utf-8');
+    console.log(`📦 [Hourly Backup Engine] Database snapshot saved to ${backupFilePath} (${db.participants.length} participants, ${db.results.length} results)`);
+
+    // Maintain only the last 48 hourly backups
+    const files = fs.readdirSync(BACKUP_DIR).filter(f => f.endsWith('.json')).sort();
+    if (files.length > 48) {
+      const toDelete = files.slice(0, files.length - 48);
+      toDelete.forEach(f => fs.unlinkSync(path.join(BACKUP_DIR, f)));
+    }
+  } catch (err) {
+    console.error("❌ Failed to perform hourly database backup:", err);
+  }
+}
+
+// Trigger initial hourly backup on boot & set 60-min interval
+setTimeout(performHourlyBackup, 5000);
+setInterval(performHourlyBackup, 60 * 60 * 1000);
 
 function _syncMongoNow() {
-  if (isMongoConnected && mongoCollection) {
-    mongoCollection.updateOne(
+  if (isMongoConnected && mongoCollection && !isMongoConnecting && db && Array.isArray(db.participants)) {
+    mongoCollection.replaceOne(
       { _id: 'global_state' as any },
-      { $set: db },
+      { ...db },
       { upsert: true }
     ).catch(e => console.error("MongoDB sync error:", e));
   }
@@ -427,6 +464,7 @@ function _scheduleMongSync() {
 }
 
 export async function saveDb() {
+  if (!db) return;
   // Truncate logs in memory (fast, no I/O)
   if (db.auditLogs && db.auditLogs.length > 500) {
     db.auditLogs = db.auditLogs.slice(-500);

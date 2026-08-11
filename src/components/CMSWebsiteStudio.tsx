@@ -54,21 +54,28 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         setHeroMedia(data.heroMedia || []);
         const mergedSettings = data.cmsSettings || {};
         setSettings({
-          aboutTitle: mergedSettings.aboutTitle || 'About Rendezvous',
-          aboutSubtitle: mergedSettings.aboutSubtitle || 'Imam Rabbani LIFE Festival',
-          aboutDescription: mergedSettings.aboutDescription || 'Rendezvous Silver Edition is the flagship Imam Rabbani LIFE Festival celebrating arts, culture, and literary talents.',
-          footerText: mergedSettings.footerText || 'Rendezvous Silver Edition is the flagship Imam Rabbani LIFE Festival celebrating arts, culture, and literary talents.',
-          themeTitle: mergedSettings.themeTitle || 'SILVER EDITION',
-          themeDescription: mergedSettings.themeDescription || 'Rendezvous Silver Edition 2026',
-          heroTitle: mergedSettings.heroTitle || 'RENDEZVOUS',
-          heroSubtitle: mergedSettings.heroSubtitle || 'Silver Edition',
-          heroDate: mergedSettings.heroDate || 'MAY 2026',
-          heroLocation: mergedSettings.heroLocation || 'IMAM RABBANI CAMPUS',
+          aboutBadge: mergedSettings.aboutBadge || 'Festival Vision',
+          aboutMainHeading: mergedSettings.aboutMainHeading || 'ABOUT THE <span class="text-[#FF2B2B]">FESTIVAL</span>',
+          aboutTitle: mergedSettings.aboutTitle || 'Kulliyathu Imam Rabbani',
+          aboutSubtitle: mergedSettings.aboutSubtitle || 'Off-Campus of Markaz Garden, Poonoor',
+          aboutDescription: mergedSettings.aboutDescription || 'Kulliyathu Imam Rabbani stands as a premier center of higher Islamic learning and academic excellence, functioning as a key off-campus institute under the revered banner of Markaz Garden, Poonoor.\n\nThe Imam Rabbani LIFE Festival (Rendezvous Silver Edition) is an annual flagship celebration of intellectual, creative, and moral excellence.',
+          themeTitle: mergedSettings.themeTitle || 'Transcending the Illusions',
+          themeDescription: mergedSettings.themeDescription || 'In a world crowded with digital superficiality and sensory illusions, \'Transcending the Illusions\' calls upon the youth to pierce through modern worldly deceptions through classical wisdom, spiritual clarity, and moral fortitude.',
+          footerText: mergedSettings.footerText || 'Rendezvous Silver Edition is the flagship Imam Rabbani LIFE Festival celebrating intellectual, creative, and moral excellence at Kulliyathu Imam Rabbani, Poonoor.',
+          heroTitle: mergedSettings.heroTitle || 'RENDEZVOUS <span class="text-[#FF2B2B]">SILVER EDITION</span>',
+          heroSubtitle: mergedSettings.heroSubtitle || 'Imam Rabbani LIFE Festival',
+          heroDate: mergedSettings.heroDate || 'September 23 – 24, 2025',
+          heroLocation: mergedSettings.heroLocation || 'Main Campus Grounds, Poonoor, Kozhikode',
           headerLogoTitle: mergedSettings.headerLogoTitle || 'RENDEZVOUS',
           headerLogoSubtitle: mergedSettings.headerLogoSubtitle || 'Silver Edition',
           heroLogoTitle: mergedSettings.heroLogoTitle || 'RENDEZVOUS',
           heroLogoSubtitle: mergedSettings.heroLogoSubtitle || 'Silver Edition',
           heroLogoBadge: mergedSettings.heroLogoBadge || 'KULLIYATHU IMAM RABBANI',
+          heroDesktopImages: mergedSettings.heroDesktopImages || ['/hero1.jpg', '/hero2.jpg'],
+          heroDesktopLoopEnabled: mergedSettings.heroDesktopLoopEnabled !== undefined ? mergedSettings.heroDesktopLoopEnabled : true,
+          heroDesktopLoopInterval: mergedSettings.heroDesktopLoopInterval || 3,
+          heroMobileLoopEnabled: mergedSettings.heroMobileLoopEnabled !== undefined ? mergedSettings.heroMobileLoopEnabled : true,
+          heroMobileLoopInterval: mergedSettings.heroMobileLoopInterval || 3,
           ...mergedSettings
         });
       }
