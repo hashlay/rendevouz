@@ -812,18 +812,31 @@ apiRouter.get('/settings', async (req, res) => {
 
 const DEFAULT_DRAG_BLOCKS = [
   { id: '1', title: 'Hero Section', type: 'hero', enabled: true, order: 1 },
-  { id: '2', title: 'Live Team Standings', type: 'results', enabled: true, order: 2 },
-  { id: '3', title: 'Announced Results & Placements', type: 'announcements', enabled: true, order: 3 },
-  { id: '4', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: true, order: 4 },
-  { id: '5', title: 'Photo Hub & Media Gallery', type: 'gallery', enabled: true, order: 5 },
-  { id: '6', title: 'Live Broadcast Streams', type: 'live_stages', enabled: true, order: 6 },
-  { id: '7', title: 'About & Concept', type: 'about', enabled: true, order: 7 }
+  { id: '2', title: 'About & Concept', type: 'about', enabled: true, order: 2 },
+  { id: '3', title: 'Live Team Standings', type: 'results', enabled: true, order: 3 },
+  { id: '4', title: 'Announced Results & Placements', type: 'announcements', enabled: true, order: 4 },
+  { id: '5', title: 'Photo Hub (Drive & QR)', type: 'smile', enabled: true, order: 5 },
+  { id: '6', title: 'Media Gallery (Photo Uploads)', type: 'gallery', enabled: true, order: 6 },
+  { id: '7', title: 'Live Broadcast Streams', type: 'live_stages', enabled: true, order: 7 },
+  { id: '8', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: true, order: 8 }
 ];
 
 apiRouter.get('/public/cms', async (req, res) => {
   const db = dbClient.get();
   if (!db.dragBlocks || db.dragBlocks.length === 0) {
     db.dragBlocks = DEFAULT_DRAG_BLOCKS;
+  } else {
+    // If old combined block 'Photo Hub & Media Gallery' exists, split it into two separate blocks
+    const oldIndex = db.dragBlocks.findIndex((b: any) => b.title && b.title.includes('Photo Hub & Media Gallery'));
+    if (oldIndex !== -1) {
+      const oldBlock = db.dragBlocks[oldIndex];
+      db.dragBlocks.splice(oldIndex, 1, 
+        { id: 'smile_block', title: 'Photo Hub (Drive & QR)', type: 'smile', enabled: oldBlock.enabled, order: oldBlock.order },
+        { id: 'gallery_block', title: 'Media Gallery (Photo Uploads)', type: 'gallery', enabled: oldBlock.enabled, order: oldBlock.order + 1 }
+      );
+      db.dragBlocks.forEach((b: any, idx: number) => { b.order = idx + 1; });
+      dbClient.save();
+    }
   }
   res.json({
     dragBlocks: db.dragBlocks,
