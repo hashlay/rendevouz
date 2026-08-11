@@ -8,6 +8,9 @@ import {
  * Helper to normalize mark out of 100 if two judges gave marks.
  */
 const getNormalizedMark = (r: Result): number => {
+  if (r.averageMark !== undefined && !isNaN(r.averageMark)) {
+    return r.averageMark;
+  }
   if (r.totalMark === undefined || isNaN(r.totalMark)) return 0;
   if (r.totalMark > 100) {
     const j1 = Number(r.judge1Mark) || 0;
@@ -44,17 +47,17 @@ export const CalculationService = {
     // Filter results that should be ranked
     const rankableResults = results.filter(r => 
       r.status === ResultStatus.PARTICIPATED && 
-      r.totalMark !== undefined && 
-      !isNaN(r.totalMark)
+      r.averageMark !== undefined && 
+      !isNaN(r.averageMark)
     );
     
     // Sort rankable results: highest mark first
-    rankableResults.sort((a, b) => b.totalMark - a.totalMark);
+    rankableResults.sort((a, b) => (b.averageMark || 0) - (a.averageMark || 0));
     
     // Assign automatic ranks
     let currentRank = 1;
     for (let i = 0; i < rankableResults.length; i++) {
-      if (i > 0 && rankableResults[i].totalMark < rankableResults[i - 1].totalMark) {
+      if (i > 0 && (rankableResults[i].averageMark || 0) < (rankableResults[i - 1].averageMark || 0)) {
         currentRank = i + 1;
       }
       

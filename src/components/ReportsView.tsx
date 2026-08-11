@@ -348,7 +348,7 @@ export default function ReportsView({ user, token, eventSettings }: ReportsViewP
                         <th className="px-4 py-3 text-left">Competition</th>
                         <th className="px-4 py-3 text-right">Judge 1</th>
                         <th className="px-4 py-3 text-right">Judge 2</th>
-                        <th className="px-4 py-3 text-right">Total Marks</th>
+                        <th className="px-4 py-3 text-right">Average Marks</th>
                         <th className="px-4 py-3 text-center">Rank</th>
                       </tr>
                     </thead>
@@ -385,7 +385,7 @@ export default function ReportsView({ user, token, eventSettings }: ReportsViewP
                             <td className="px-4 py-3 text-slate-600 text-xs font-medium">{compName}</td>
                             <td className="px-4 py-3 text-right font-mono">{r.judge1Mark}</td>
                             <td className="px-4 py-3 text-right font-mono">{r.judge2Mark}</td>
-                            <td className="px-4 py-3 text-right font-bold text-emerald-700 font-mono">{r.totalMark}</td>
+                            <td className="px-4 py-3 text-right font-bold text-emerald-700 font-mono">{r.averageMark || 0}</td>
                             <td className="px-4 py-3 text-center font-bold text-amber-700 font-mono">Rank {r.rank || 'N/A'}</td>
                           </tr>
                         );

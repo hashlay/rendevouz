@@ -426,7 +426,7 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="text-sm font-bold text-emerald-600 block">{r.totalMark} marks <span className="text-[10px] font-normal text-emerald-700/80">(Avg: {r.averageMark || 0})</span></span>
+                    <span className="text-sm font-bold text-emerald-600 block">{r.averageMark || 0} marks</span>
                     <span className="text-[10px] font-mono font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                       Rank {r.rank || 'N/A'}
                     </span>

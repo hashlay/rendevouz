@@ -388,7 +388,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
             <tr>
               <th className="border border-black px-4 py-3 text-center font-bold w-24 align-middle" rowSpan={2}>Code Letter</th>
               <th className="border border-black px-4 py-2 text-center font-bold align-middle" colSpan={5}>Mark</th>
-              <th className="border border-black px-4 py-3 text-center font-bold w-24 align-middle" rowSpan={2}>Total</th>
+              <th className="border border-black px-4 py-3 text-center font-bold w-24 align-middle" rowSpan={2}>Average</th>
               <th className="border border-black px-4 py-3 text-center font-bold w-48 align-middle" rowSpan={2}>Comments</th>
             </tr>
             <tr>
@@ -414,7 +414,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                 })}
 
                 <td className="border border-black px-3 py-6 text-center">
-                  {(printType === 'filled' && s.status === JudgeScoreStatus.PARTICIPATED) ? (s.totalMark || '') : ''}
+                  {(printType === 'filled' && s.status === JudgeScoreStatus.PARTICIPATED) ? (s.averageMark !== undefined ? s.averageMark : '') : ''}
                 </td>
 
                 <td className="border border-black px-3 py-6 text-left">

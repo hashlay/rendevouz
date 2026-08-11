@@ -644,7 +644,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
                           <div className="text-right">
                             {resRecord.status === ResultStatus.PARTICIPATED ? (
                               <>
-                                <span className="text-sm font-extrabold text-emerald-600 block">{resRecord.totalMark} marks <span className="text-[10px] font-normal text-emerald-700/80">(Avg: {resRecord.averageMark || 0})</span></span>
+                                <span className="text-sm font-extrabold text-emerald-600 block">{resRecord.averageMark || 0} marks</span>
                                 <span className={`inline-block text-[9px] font-mono font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded uppercase mt-0.5 border border-amber-200`}>
                                   Rank {resRecord.rank || 'N/A'} {resRecord.manualRankOverride && ' (Overridden)'}
                                 </span>

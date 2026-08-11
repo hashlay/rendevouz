@@ -70,12 +70,13 @@ apiRouter.use(async (req, res, next) => {
     if (db) {
       if (db.results) {
         db.results.forEach((r: any) => {
-          if (r.totalMark && r.totalMark > 100) {
-            const j1 = Number(r.judge1Mark) || 0;
-            const j2 = Number(r.judge2Mark) || 0;
-            const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
-            r.totalMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
-          }
+          const j1 = Number(r.judge1Mark) || 0;
+          const j2 = Number(r.judge2Mark) || 0;
+          // Calculate true total and average
+          r.totalMark = j1 + j2;
+          const sheetTemp = (db.judgmentSheets || []).find((s: any) => s.competitionId === r.competitionId && !s.deletedAt);
+          const activeCount = sheetTemp?.numJudges || 2;
+          r.averageMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
         });
       }
       if (db.participants) {
@@ -1961,10 +1962,12 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     return res.status(400).json({ error: 'Judge marks cannot be negative.' });
   }
 
-  const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
-  const totalMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
-  if (totalMark < 0 || totalMark > 100) {
-    return res.status(400).json({ error: 'Total mark must be strictly between 0 and 100.' });
+  const sheetTemp = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === competitionId && !s.deletedAt);
+  const activeCount = sheetTemp?.numJudges || 2;
+  const totalMark = j1 + j2;
+  const averageMark = Math.round((totalMark / activeCount) * 100) / 100;
+  if (averageMark < 0 || averageMark > 100) {
+    return res.status(400).json({ error: 'Average mark must be strictly between 0 and 100.' });
   }
 
   // Check duplicates
@@ -1987,6 +1990,7 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     judge1Mark: j1,
     judge2Mark: j2,
     totalMark,
+    averageMark,
     status,
     remarks,
     publishedStatus: publishedStatus !== undefined ? publishedStatus : true,
@@ -2032,8 +2036,8 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
           { judgeNumber: 2, mark: j2 }
         ];
         score.totalMark = totalMark;
-        const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
-        score.averageMark = Math.round((totalMark / activeCount) * 100) / 100;
+        const activeCount = sheet?.numJudges || 2;
+        score.averageMark = averageMark;
         score.status = judgeScoreStatus;
         score.remarks = remarks || '';
         if (newResult.manualRankOverride && newResult.rank) {
@@ -2052,7 +2056,7 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
             { judgeNumber: 2, mark: j2 }
           ],
           totalMark: totalMark,
-          averageMark: Math.round((totalMark / activeCount) * 100) / 100,
+          averageMark: averageMark,
           status: judgeScoreStatus,
           remarks: remarks || '',
           enteredBy: user.id,
@@ -2097,8 +2101,10 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
   const j2 = req.body.judge2Mark !== undefined ? Number(req.body.judge2Mark) : resultObj.judge2Mark;
   resultObj.judge1Mark = j1;
   resultObj.judge2Mark = j2;
-  const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
-  resultObj.totalMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
+  const sheetTemp = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === resultObj.competitionId && !s.deletedAt);
+  const activeCount = sheetTemp?.numJudges || 2;
+  resultObj.totalMark = j1 + j2;
+  resultObj.averageMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
 
   // Rank overrides
   if (req.body.manualRankOverride !== undefined) {
@@ -2152,6 +2158,7 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
           { judgeNumber: 2, mark: resultObj.judge2Mark }
         ];
         score.totalMark = resultObj.totalMark;
+        score.averageMark = resultObj.averageMark;
         score.status = judgeScoreStatus;
         score.remarks = resultObj.remarks || '';
         if (resultObj.manualRankOverride && resultObj.rank) {
@@ -3544,8 +3551,8 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
         base.totalMark = publishedResult.totalMark;
         const j1Val = Number(publishedResult.judge1Mark) || 0;
         const j2Val = Number(publishedResult.judge2Mark) || 0;
-        const activeCount = (j1Val > 0 ? 1 : 0) + (j2Val > 0 ? 1 : 0) || 1;
-        base.averageMark = s.averageMark !== undefined ? s.averageMark : Math.round((publishedResult.totalMark / activeCount) * 100) / 100;
+        const activeCount = sheet.numJudges || 2;
+        base.averageMark = s.averageMark !== undefined ? s.averageMark : (publishedResult.averageMark !== undefined ? publishedResult.averageMark : Math.round((publishedResult.totalMark / activeCount) * 100) / 100);
         base.rank = publishedResult.rank;
         
         // Reconstruct judge scores for display if missing or overwrite with published
@@ -3736,10 +3743,10 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
 
   // Calculate ranks for participated entries
   const participatedScores = allScores.filter(s => s.status === JudgeScoreStatus.PARTICIPATED && s.judgeScores.length > 0);
-  participatedScores.sort((a, b) => b.totalMark - a.totalMark);
+  participatedScores.sort((a, b) => (b.averageMark || 0) - (a.averageMark || 0));
   let currentRank = 1;
   for (let i = 0; i < participatedScores.length; i++) {
-    if (i > 0 && participatedScores[i].totalMark < participatedScores[i - 1].totalMark) {
+    if (i > 0 && (participatedScores[i].averageMark || 0) < (participatedScores[i - 1].averageMark || 0)) {
       currentRank = i + 1;
     }
     participatedScores[i].rank = currentRank;
@@ -4490,7 +4497,9 @@ apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN,
       const j1 = r.judge1Mark || 0;
       const j2 = r.judge2Mark || 0;
       const total = j1 + j2;
-      const average = total / 2;
+      const sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === comp.id && !s.deletedAt);
+      const activeCount = sheet?.numJudges || 2;
+      const average = Math.round((total / activeCount) * 100) / 100;
       
       db.results.push({
         id: crypto.randomUUID(),
