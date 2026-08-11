@@ -41,6 +41,14 @@ export default function HighlightsStudio({ user }: HighlightsStudioProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeVideo, setActiveVideo] = useState<VideoHighlight | null>(null);
   const [realDurations, setRealDurations] = useState<Record<string, string>>({});
+
+  // Form state for Add Highlight modal
+  const [title, setTitle] = useState('');
+  const [event, setEvent] = useState('');
+  const [performer, setPerformer] = useState('');
+  const [duration, setDuration] = useState('');
+  const [stageName, setStageName] = useState('');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [backgroundTasks, setBackgroundTasks] = useState<BackgroundTask[]>(() => {
     try {
       const saved = localStorage.getItem('rendezvous_bg_tasks_highlights');
