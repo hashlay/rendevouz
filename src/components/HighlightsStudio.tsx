@@ -265,23 +265,14 @@ export default function HighlightsStudio({ user }: HighlightsStudioProps) {
                       src={thumbUrl} 
                       alt={item.title} 
                       referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-700" 
+                      className="w-full h-full object-cover opacity-90 sm:group-hover:scale-105 transition-transform duration-700 will-change-transform" 
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : item.videoUrl ? (
-                    <video 
-                      src={item.videoUrl} 
-                      preload="metadata"
-                      className="w-full h-full object-cover opacity-80"
-                      onLoadedMetadata={(e) => {
-                        const sec = Math.floor(e.currentTarget.duration);
-                        if (!isNaN(sec) && sec > 0) {
-                          const mins = Math.floor(sec / 60);
-                          const remSec = sec % 60;
-                          const formatted = `${String(mins).padStart(2, '0')}:${String(remSec).padStart(2, '0')}`;
-                          setRealDurations(prev => ({ ...prev, [item.id]: formatted }));
-                        }
-                      }}
-                    />
+                    <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+                      <Video className="w-8 h-8 text-slate-500" />
+                    </div>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-slate-800">
                       <Video className="w-12 h-12 text-slate-600" />

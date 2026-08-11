@@ -233,7 +233,7 @@ export default function GalleryStudio({ user }: GalleryStudioProps) {
           {gallery.map((item) => (
             <div key={item.id} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col">
               <div className="relative aspect-video overflow-hidden bg-slate-100">
-                <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover will-change-transform transition-transform duration-500 sm:group-hover:scale-105" loading="lazy" decoding="async" />
                 <div className="absolute top-2 right-2 flex gap-1">
                   <button
                     onClick={() => handleToggleFeatured(item.id, !!item.isFeatured)}
