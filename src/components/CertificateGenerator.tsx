@@ -4,6 +4,7 @@ import { X, Download, Printer, Settings2, ChevronLeft, ChevronRight } from 'luci
 interface CertificateGeneratorProps {
   participantNames: string[];
   competitionName: string;
+  competitionId?: string;
   rank: number;
   eventSettings?: any;
   user: any;
@@ -15,6 +16,7 @@ interface CertificateGeneratorProps {
 export default function CertificateGenerator({
   participantNames,
   competitionName,
+  competitionId,
   rank,
   eventSettings,
   user,
@@ -28,8 +30,12 @@ export default function CertificateGenerator({
   const [dragging, setDragging] = useState<'name' | 'comp' | null>(null);
   const lastMousePos = useRef<{x: number, y: number} | null>(null);
   
-  // Customization state
-  const templateConfig = eventSettings?.certificateTemplateConfig?.[rank] || {};
+  // Customization state - lookup competition-specific config first, then fallback to rank default
+  const compKey = `${competitionId || competitionName}_${rank}`;
+  const compSpecificConfig = eventSettings?.certificateTemplateConfig?.[compKey];
+  const globalRankConfig = eventSettings?.certificateTemplateConfig?.[rank] || {};
+  const templateConfig = compSpecificConfig || globalRankConfig;
+
   const [nameX, setNameX] = useState(templateConfig.nameX ?? (rank === 1 ? -151 : -125));
   const [nameY, setNameY] = useState(templateConfig.nameY ?? (rank === 1 ? 461 : 461));
   const [compX, setCompX] = useState(templateConfig.compX ?? (rank === 1 ? -37 : -30));
@@ -167,9 +173,11 @@ export default function CertificateGenerator({
     setSavingTemplate(true);
     try {
       const currentConfig = eventSettings?.certificateTemplateConfig || {};
+      const configData = { nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor };
       const newConfig = {
         ...currentConfig,
-        [rank]: { nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor }
+        [compKey]: configData,
+        [rank]: configData
       };
       
       const res = await fetch('/api/settings', {
@@ -183,7 +191,7 @@ export default function CertificateGenerator({
       
       if (!res.ok) throw new Error('Failed to save certificate layout');
       
-      alert(`Certificate layout for Rank ${rank} saved successfully!`);
+      alert(`Certificate layout for "${competitionName}" (Rank ${rank}) saved!`);
       if (onSettingsUpdated) onSettingsUpdated();
     } catch (err: any) {
       alert('Error saving certificate: ' + err.message);

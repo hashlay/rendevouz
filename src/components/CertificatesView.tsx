@@ -19,7 +19,7 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCertificate, setSelectedCertificate] = useState<{names: string[], comp: string, rank: number} | null>(null);
+  const [selectedCertificate, setSelectedCertificate] = useState<{names: string[], comp: string, compId: string, rank: number} | null>(null);
 
   // Filters
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
@@ -235,7 +235,7 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
                                 </div>
                                 <div className="mt-4 flex gap-2">
                                   <button 
-                                    onClick={() => setSelectedCertificate({ names: certNames.length > 0 ? certNames : [winnerName], comp: comp.name, rank: res.rank as number })}
+                                    onClick={() => setSelectedCertificate({ names: certNames.length > 0 ? certNames : [winnerName], comp: comp.name, compId: comp.id, rank: res.rank as number })}
                                     className="flex-1 flex items-center justify-center gap-2 py-2 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 rounded-lg text-xs font-bold transition-colors"
                                   >
                                     <FileBadge className="w-4 h-4" />
@@ -280,6 +280,7 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
         <CertificateGenerator
           participantNames={selectedCertificate.names}
           competitionName={selectedCertificate.comp}
+          competitionId={selectedCertificate.compId}
           rank={selectedCertificate.rank}
           eventSettings={eventSettings}
           user={user}
