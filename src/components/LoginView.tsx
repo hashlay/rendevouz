@@ -124,72 +124,75 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Decorative vector background */}
-      <div className="absolute top-0 left-0 right-0 h-80 bg-gradient-to-b from-emerald-900/10 via-emerald-700/5 to-transparent -skew-y-3 transform origin-top-left -z-10" />
-      <div className="absolute bottom-0 left-0 right-0 h-80 bg-gradient-to-t from-amber-500/10 to-transparent skew-y-3 transform origin-bottom-right -z-10" />
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center py-12 px-4 relative overflow-hidden">
+      {/* Background accents */}
+      <div className="absolute top-0 left-0 right-0 h-64 bg-emerald-700/5 -skew-y-3 transform origin-top-left -z-10" />
+      <div className="absolute bottom-0 left-0 right-0 h-64 bg-amber-500/5 skew-y-3 transform origin-bottom-right -z-10" />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-3">
-        {/* Logo and institution branding centered */}
-        {eventSettings?.fillLogo ? (
-          <div className="flex justify-center items-center py-2 text-center w-full">
-            {eventSettings?.ssfLogoUrl ? (
-              <img 
-                src={eventSettings.ssfLogoUrl} 
-                alt="Festival Logo" 
-                className="h-20 sm:h-24 max-h-24 w-auto max-w-[240px] object-contain shrink-0 mx-auto block drop-shadow-md" 
-                onError={(e) => (e.currentTarget.style.display = 'none')}
-              />
-            ) : (
-              <SSFLogo className="h-20 sm:h-24 w-auto text-emerald-600 shrink-0 mx-auto block" showText={false} />
-            )}
-          </div>
-        ) : (
-          <div className="flex justify-center items-center gap-3 py-2">
-            {eventSettings?.ssfLogoUrl ? (
-              <img 
-                src={eventSettings.ssfLogoUrl} 
-                alt="Festival Logo" 
-                className="h-12 w-12 object-contain shrink-0 drop-shadow-sm" 
-                onError={(e) => (e.currentTarget.style.display = 'none')}
-              />
-            ) : (
-              <SSFLogo className="h-12 w-12 text-emerald-600 shrink-0" showText={false} />
-            )}
-            <div className="h-9 w-px bg-slate-300" />
-            <div className="flex flex-col items-start text-left">
-              <span className="font-display font-bold text-emerald-900 text-lg tracking-tight leading-none uppercase">
-                {eventSettings?.festivalName || 'ZENITH'}
-              </span>
-              <span className="text-amber-600 font-mono text-[11px] font-semibold tracking-widest mt-1 uppercase">
-                {eventSettings?.campusName || eventSettings?.sectorName || 'MEELAD SOFTWARE'}
-              </span>
+      {/* Main Centered Content Box - Strictly max-w-[420px] */}
+      <div className="w-full max-w-[420px] mx-auto space-y-6">
+        
+        {/* Header Logo & Title */}
+        <div className="text-center space-y-2">
+          {eventSettings?.fillLogo ? (
+            <div className="flex justify-center items-center py-1 text-center w-full">
+              {eventSettings?.ssfLogoUrl ? (
+                <img 
+                  src={eventSettings.ssfLogoUrl} 
+                  alt="Festival Logo" 
+                  className="h-20 max-h-20 w-auto max-w-[200px] object-contain shrink-0 mx-auto block drop-shadow-sm" 
+                  onError={(e) => (e.currentTarget.style.display = 'none')}
+                />
+              ) : (
+                <SSFLogo className="h-20 w-auto text-emerald-600 shrink-0 mx-auto block" showText={false} />
+              )}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="flex justify-center items-center gap-3 py-1">
+              {eventSettings?.ssfLogoUrl ? (
+                <img 
+                  src={eventSettings.ssfLogoUrl} 
+                  alt="Festival Logo" 
+                  className="h-12 w-12 object-contain shrink-0 drop-shadow-sm" 
+                  onError={(e) => (e.currentTarget.style.display = 'none')}
+                />
+              ) : (
+                <SSFLogo className="h-12 w-12 text-emerald-600 shrink-0" showText={false} />
+              )}
+              <div className="h-8 w-px bg-slate-300" />
+              <div className="flex flex-col items-start text-left">
+                <span className="font-display font-bold text-emerald-900 text-lg tracking-tight leading-none uppercase">
+                  {eventSettings?.festivalName || 'ZENITH'}
+                </span>
+                <span className="text-amber-600 font-mono text-[11px] font-semibold tracking-widest mt-1 uppercase">
+                  {eventSettings?.campusName || eventSettings?.sectorName || 'MEELAD SOFTWARE'}
+                </span>
+              </div>
+            </div>
+          )}
 
-        <p className="text-xs sm:text-sm text-slate-500 font-sans font-medium">
-          Festival Management System • {eventSettings?.eventYear || '2026'}
-        </p>
-      </div>
+          <p className="text-xs text-slate-500 font-sans font-medium">
+            Festival Management System • {eventSettings?.eventYear || '2026'}
+          </p>
+        </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white/95 backdrop-blur-md py-8 px-6 sm:px-10 shadow-2xl shadow-slate-200/80 rounded-3xl border border-slate-100">
+        {/* Compact Form Card (Image 2 style) */}
+        <div className="bg-white p-6 sm:p-8 shadow-xl shadow-slate-200/60 rounded-2xl border border-slate-100/90">
           {!mustChange ? (
-            <form className="space-y-5" onSubmit={handleLogin} id="login_form">
+            <form className="space-y-4" onSubmit={handleLogin} id="login_form">
               {error && (
-                <div className="rounded-xl bg-red-50 p-3.5 border border-red-200">
-                  <p className="text-xs sm:text-sm font-medium text-red-800">{error}</p>
+                <div className="rounded-xl bg-red-50 p-3 border border-red-200">
+                  <p className="text-xs font-medium text-red-800">{error}</p>
                 </div>
               )}
 
               <div>
-                <label htmlFor="username" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label htmlFor="username" className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Username
                 </label>
                 <div className="relative rounded-xl">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Shield className="h-4 h-4" />
+                    <Shield className="h-4 w-4" />
                   </div>
                   <input
                     id="username"
@@ -198,19 +201,19 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="block w-full pl-10 pr-3.5 py-3 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all bg-slate-50/50 focus:bg-white"
+                    className="block w-full pl-10 pr-3.5 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all bg-slate-50/40 focus:bg-white"
                     placeholder="Enter username"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label htmlFor="password" className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Password
                 </label>
                 <div className="relative rounded-xl">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Key className="h-4 h-4" />
+                    <Key className="h-4 w-4" />
                   </div>
                   <input
                     id="password"
@@ -219,7 +222,7 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-3 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all bg-slate-50/50 focus:bg-white"
+                    className="block w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all bg-slate-50/40 focus:bg-white"
                     placeholder="••••••••"
                   />
                   <button
@@ -227,17 +230,17 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="h-4 h-4" /> : <Eye className="h-4 h-4" />}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <button
                   type="submit"
                   disabled={loading}
                   id="btn_login_submit"
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-emerald-600/20 text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
+                  className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-[#009661] hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.99]"
                 >
                   {loading ? 'Authenticating...' : 'Sign In'}
                 </button>
@@ -310,12 +313,14 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
             </form>
           )}
         </div>
-      </div>
 
-      <div className="mt-8 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-2 mb-8">
-        <span className="flex items-center gap-1 font-mono text-[10px] text-slate-400">
-          <BookOpen className="h-3.5 w-3.5 text-slate-400" /> SECURE SESSION VERIFICATION ACTIVE
-        </span>
+        {/* Secure Session Caption */}
+        <div className="pt-2 text-center text-xs text-slate-500 flex flex-col items-center justify-center">
+          <span className="flex items-center gap-1.5 font-mono text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
+            <BookOpen className="h-3.5 w-3.5 text-slate-400" /> SECURE SESSION VERIFICATION ACTIVE
+          </span>
+        </div>
+
       </div>
 
       <Footer eventSettings={eventSettings} />
