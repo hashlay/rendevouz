@@ -96,6 +96,20 @@ async function _connectToMongo() {
       } catch (_) {}
     }
 
+    // Sanitize broken legacy local uploads from gallery & videoHighlights
+    if (Array.isArray(db.gallery)) {
+      db.gallery = db.gallery.filter((g: any) => g.imageUrl && !g.imageUrl.startsWith('/data/uploads/'));
+      try {
+        await mongoDb.collection('gallery').deleteMany({ imageUrl: { $regex: '^/data/uploads/' } });
+      } catch (_) {}
+    }
+    if (Array.isArray(db.videoHighlights)) {
+      db.videoHighlights = db.videoHighlights.filter((v: any) => v.videoUrl && !v.videoUrl.startsWith('/data/uploads/'));
+      try {
+        await mongoDb.collection('videoHighlights').deleteMany({ videoUrl: { $regex: '^/data/uploads/' } });
+      } catch (_) {}
+    }
+
     // Write synchronized state to local file store
     try {
       fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');

@@ -547,13 +547,12 @@ apiRouter.post('/highlights/upload', authenticate, requireRole([UserRole.SUPER_A
 
     const collection = getCollection('videoHighlights');
     if (collection) {
-      await collection.insertOne({ ...highlight, _id: highlight.id });
-    } else {
-      const db = dbClient.get();
-      if (!Array.isArray(db.videoHighlights)) db.videoHighlights = [];
-      db.videoHighlights.unshift(highlight);
-      await dbClient.save();
+      await collection.insertOne({ ...highlight, _id: highlight.id }).catch(() => {});
     }
+    const db = dbClient.get();
+    if (!Array.isArray(db.videoHighlights)) db.videoHighlights = [];
+    db.videoHighlights.unshift(highlight);
+    await dbClient.save();
 
     await dbClient.logAudit(
       (req as any).user.id, (req as any).user.username, (req as any).user.role,
@@ -644,18 +643,22 @@ apiRouter.post('/gallery/upload', authenticate, requireRole([UserRole.SUPER_ADMI
         fs.unlinkSync(file.path);
       }
     } catch (cErr) {
-      console.warn("Cloudinary image upload failed, saving locally:", cErr);
-      const uploadDir = path.join(process.cwd(), 'data', 'uploads');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
+      console.warn("Cloudinary image upload failed, converting to permanent Base64 Data URL:", cErr);
+      try {
+        const imageBuffer = fs.readFileSync(file.path);
+        const mimeType = file.mimetype || 'image/jpeg';
+        imageUrl = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+      } catch (bErr) {
+        console.error("Base64 conversion failed:", bErr);
+        imageUrl = '';
       }
-      const filename = `gal_${Date.now()}_${path.basename(file.path)}`;
-      const destPath = path.join(uploadDir, filename);
-      fs.copyFileSync(file.path, destPath);
       if (fs.existsSync(file.path)) {
         fs.unlinkSync(file.path);
       }
-      imageUrl = `/data/uploads/${filename}`;
+    }
+
+    if (!imageUrl) {
+      return res.status(500).json({ error: 'Failed to process image file' });
     }
 
     const { title, category, caption, photographer, date } = req.body;
@@ -675,13 +678,12 @@ apiRouter.post('/gallery/upload', authenticate, requireRole([UserRole.SUPER_ADMI
 
     const collection = getCollection('gallery');
     if (collection) {
-      await collection.insertOne({ ...item, _id: item.id });
-    } else {
-      const db = dbClient.get();
-      if (!Array.isArray(db.gallery)) db.gallery = [];
-      db.gallery.unshift(item);
-      await dbClient.save();
+      await collection.insertOne({ ...item, _id: item.id }).catch(() => {});
     }
+    const db = dbClient.get();
+    if (!Array.isArray(db.gallery)) db.gallery = [];
+    db.gallery.unshift(item);
+    await dbClient.save();
 
     await dbClient.logAudit(
       (req as any).user.id, (req as any).user.username, (req as any).user.role,
