@@ -109,27 +109,56 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
     renderPreview();
   }, [nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, selectedRank]);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Helper to extract canvas / image X, Y coordinates from Mouse, Touch, or Pointer event
+  const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas || !imgRef.current) return;
+    if (!canvas || !imgRef.current) return null;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    // The canvas is scaled to 800px width, but visually it might be scaled by CSS.
-    // getBoundingClientRect gives CSS pixels. rect.width is the visual width.
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const canvasX = x * scaleX;
-    const canvasY = y * scaleY;
-    
+
+    let clientX = 0;
+    let clientY = 0;
+
+    if ('touches' in e && e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ('changedTouches' in e && (e as any).changedTouches && (e as any).changedTouches.length > 0) {
+      clientX = (e as any).changedTouches[0].clientX;
+      clientY = (e as any).changedTouches[0].clientY;
+    } else if ('clientX' in e) {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    } else {
+      return null;
+    }
+
+    const canvasX = (clientX - rect.left) * scaleX;
+    const canvasY = (clientY - rect.top) * scaleY;
     const scale = 800 / imgRef.current.width;
-    const imgX = canvasX / scale;
-    const imgY = canvasY / scale;
+
+    return {
+      imgX: canvasX / scale,
+      imgY: canvasY / scale
+    };
+  };
+
+  const handleDragStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
+    const coords = getCanvasCoords(e);
+    if (!coords || !imgRef.current) return;
+    const { imgX, imgY } = coords;
+
+    if ('pointerId' in e) {
+      try {
+        (e.target as HTMLElement).setPointerCapture((e as React.PointerEvent).pointerId);
+      } catch (_) {}
+    }
+
     const centerX = imgRef.current.width / 2;
     
-    // hit test (approximate bounding boxes based on size)
-    const nameHit = Math.abs(imgX - (centerX + nameX)) < 300 && imgY > nameY - nameSize - 20 && imgY < nameY + 20;
-    const compHit = Math.abs(imgX - (centerX + compX)) < 300 && imgY > compY - compSize - 20 && imgY < compY + 20;
+    // hit test with touch-friendly generous hit area
+    const nameHit = Math.abs(imgX - (centerX + nameX)) < 350 && imgY > nameY - nameSize - 35 && imgY < nameY + 35;
+    const compHit = Math.abs(imgX - (centerX + compX)) < 350 && imgY > compY - compSize - 35 && imgY < compY + 35;
     
     if (nameHit) {
       setDragging('name');
@@ -140,19 +169,16 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!dragging || !lastMousePos.current || !imgRef.current || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const canvasX = (e.clientX - rect.left) * scaleX;
-    const canvasY = (e.clientY - rect.top) * scaleY;
-    
-    const scale = 800 / imgRef.current.width;
-    const imgX = canvasX / scale;
-    const imgY = canvasY / scale;
-    
+  const handleDragMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
+    if (!dragging || !lastMousePos.current || !imgRef.current) return;
+    const coords = getCanvasCoords(e);
+    if (!coords) return;
+    const { imgX, imgY } = coords;
+
+    if ('touches' in e) {
+      try { e.preventDefault(); } catch (_) {}
+    }
+
     const dx = imgX - lastMousePos.current.x;
     const dy = imgY - lastMousePos.current.y;
     
@@ -167,7 +193,12 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
     lastMousePos.current = { x: imgX, y: imgY };
   };
 
-  const handleMouseUp = () => {
+  const handleDragEnd = (e?: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
+    if (e && 'pointerId' in e) {
+      try {
+        (e.target as HTMLElement).releasePointerCapture((e as React.PointerEvent).pointerId);
+      } catch (_) {}
+    }
     setDragging(null);
     lastMousePos.current = null;
   };
@@ -177,7 +208,7 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans min-w-0 w-full overflow-x-hidden">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div>
           <h1 className="text-2xl font-display font-bold text-slate-900">Certificate Studio</h1>
@@ -282,14 +313,25 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
           </div>
         </div>
         
-        <div className="lg:col-span-8 bg-slate-100 p-6 rounded-2xl flex items-center justify-center border border-slate-200 overflow-hidden relative">
+        <div className="lg:col-span-8 bg-slate-100 p-6 rounded-2xl flex flex-col items-center justify-center border border-slate-200 overflow-hidden relative">
+          <div className="mb-2 text-[10px] text-slate-500 font-mono flex items-center gap-1.5 bg-white/80 px-3 py-1 rounded-full shadow-xs border border-slate-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Touch & drag elements directly with your finger on canvas preview
+          </div>
           <canvas 
             ref={canvasRef} 
-            className="shadow-xl max-w-full h-auto bg-white rounded-lg cursor-move" 
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            className="shadow-xl max-w-full h-auto bg-white rounded-lg cursor-move touch-none select-none" 
+            onMouseDown={handleDragStart}
+            onMouseMove={handleDragMove}
+            onMouseUp={handleDragEnd}
+            onMouseLeave={handleDragEnd}
+            onTouchStart={handleDragStart}
+            onTouchMove={handleDragMove}
+            onTouchEnd={handleDragEnd}
+            onPointerDown={handleDragStart}
+            onPointerMove={handleDragMove}
+            onPointerUp={handleDragEnd}
+            onPointerCancel={handleDragEnd}
           />
         </div>
       </div>

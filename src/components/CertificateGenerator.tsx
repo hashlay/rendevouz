@@ -153,8 +153,8 @@ export default function CertificateGenerator({
     }
 
     const centerX = templateImgRef.current.width / 2;
-    const nameHit = Math.abs(imgX - (centerX + nameX)) < 300 && imgY > nameY - nameSize - 20 && imgY < nameY + 20;
-    const compHit = Math.abs(imgX - (centerX + compX)) < 300 && imgY > compY - compSize - 20 && imgY < compY + 20;
+    const nameHit = Math.abs(imgX - (centerX + nameX)) < 350 && imgY > nameY - nameSize - 35 && imgY < nameY + 35;
+    const compHit = Math.abs(imgX - (centerX + compX)) < 350 && imgY > compY - compSize - 35 && imgY < compY + 35;
 
     if (nameHit) {
       setDragging('name');
@@ -309,8 +309,8 @@ export default function CertificateGenerator({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 font-sans backdrop-blur-sm">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 font-sans ">
+      <div className="bg-white rounded-3xl shadow-lg w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
         
         {/* Left: Preview */}
         <div className="w-full md:flex-1 bg-slate-100 p-3 sm:p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-200 shrink-0 min-h-0 relative">
@@ -320,7 +320,7 @@ export default function CertificateGenerator({
               Loading template...
             </div>
           ) : (
-            <div className="relative shadow-xl border border-slate-200 rounded-xl overflow-hidden bg-white max-w-full flex items-center justify-center shrink-0">
+            <div className="relative shadow-sm border border-slate-200 rounded-xl overflow-hidden bg-white max-w-full flex items-center justify-center shrink-0">
               <canvas 
                 ref={canvasRef} 
                 className="w-auto h-auto max-h-[30vh] sm:max-h-[40vh] md:max-h-[70vh] max-w-full object-contain cursor-move touch-none select-none"

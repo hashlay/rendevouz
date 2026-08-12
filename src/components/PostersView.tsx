@@ -498,7 +498,14 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
 
     const regions: { id: string, x: number, y: number, w: number, h: number }[] = [];
     const addRegion = (id: string, x: number, y: number, w: number, h: number) => {
-      regions.push({ id, x, y, w, h });
+      const touchPadding = 25;
+      regions.push({ 
+        id, 
+        x: x - touchPadding, 
+        y: y - touchPadding, 
+        w: Math.max(w + touchPadding * 2, 60), 
+        h: Math.max(h + touchPadding * 2, 60) 
+      });
       if (hoveredElement === id || dragging === id) {
         ctx.save();
         ctx.strokeStyle = dragging === id ? '#22d3ee' : 'rgba(34, 211, 238, 0.5)';
@@ -716,7 +723,7 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
   );
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans min-w-0 w-full overflow-x-hidden">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900 tracking-tight">
@@ -821,8 +828,8 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 font-sans backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[92vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 font-sans ">
+          <div className="bg-white rounded-3xl shadow-lg w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[92vh]">
             
             {/* Left: Preview Canvas Area (Certificate Generator style) */}
             <div className="w-full md:flex-1 bg-slate-100 p-3 sm:p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-200 shrink-0 min-h-0 relative">
@@ -830,7 +837,7 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                 Touch / Drag elements directly on canvas preview
               </div>
-              <div className="relative shadow-xl border border-slate-200 rounded-xl overflow-hidden bg-white max-w-full flex items-center justify-center shrink-0">
+              <div className="relative shadow-sm border border-slate-200 rounded-xl overflow-hidden bg-white max-w-full flex items-center justify-center shrink-0">
                 <canvas
                   ref={canvasRef}
                   className="w-auto h-auto max-h-[35vh] sm:max-h-[45vh] md:max-h-[75vh] max-w-full object-contain cursor-move touch-none select-none"

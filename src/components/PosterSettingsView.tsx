@@ -318,14 +318,46 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   // Hit test regions for drag
   const hitRegions = useRef<{ id: string, x: number, y: number, w: number, h: number }[]>([]);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Helper to extract canvas X, Y coordinates from Mouse, Touch, or Pointer event
+  const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const canvasX = (e.clientX - rect.left) * scaleX;
-    const canvasY = (e.clientY - rect.top) * scaleY;
+
+    let clientX = 0;
+    let clientY = 0;
+
+    if ('touches' in e && e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ('changedTouches' in e && (e as any).changedTouches && (e as any).changedTouches.length > 0) {
+      clientX = (e as any).changedTouches[0].clientX;
+      clientY = (e as any).changedTouches[0].clientY;
+    } else if ('clientX' in e) {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    } else {
+      return null;
+    }
+
+    return {
+      canvasX: (clientX - rect.left) * scaleX,
+      canvasY: (clientY - rect.top) * scaleY
+    };
+  };
+
+  const handleDragStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
+    const coords = getCanvasCoords(e);
+    if (!coords) return;
+    const { canvasX, canvasY } = coords;
+
+    if ('pointerId' in e) {
+      try {
+        (e.target as HTMLElement).setPointerCapture((e as React.PointerEvent).pointerId);
+      } catch (_) {}
+    }
 
     // Find the most specific (smallest) hit region
     let bestHit: string | null = null;
@@ -347,16 +379,15 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const canvasX = (e.clientX - rect.left) * scaleX;
-    const canvasY = (e.clientY - rect.top) * scaleY;
+  const handleDragMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
+    const coords = getCanvasCoords(e);
+    if (!coords) return;
+    const { canvasX, canvasY } = coords;
 
     if (dragging && lastMousePos.current) {
+      if ('touches' in e) {
+        try { e.preventDefault(); } catch (_) {}
+      }
       const dx = canvasX - lastMousePos.current.x;
       const dy = canvasY - lastMousePos.current.y;
       const posMap = dragPosMap[dragging];
@@ -378,7 +409,12 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     }
   };
 
-  const handleMouseUp = () => {
+  const handleDragEnd = (e?: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
+    if (e && 'pointerId' in e) {
+      try {
+        (e.target as HTMLElement).releasePointerCapture((e as React.PointerEvent).pointerId);
+      } catch (_) {}
+    }
     setDragging(null);
     lastMousePos.current = null;
   };
@@ -412,10 +448,18 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     const regions: { id: string, x: number, y: number, w: number, h: number }[] = [];
     const c = conf;
 
-    // Helper to add region
+    // Helper to add region with generous touch padding for mobile finger ease
     const addRegion = (id: string, x: number, y: number, w: number, h: number) => {
-      regions.push({ id, x, y, w, h });
-      // Draw highlight border if hovered or dragging
+      const touchPadding = 25;
+      regions.push({ 
+        id, 
+        x: x - touchPadding, 
+        y: y - touchPadding, 
+        w: Math.max(w + touchPadding * 2, 60), 
+        h: Math.max(h + touchPadding * 2, 60) 
+      });
+
+      // Draw visual highlight border around tight bounds
       if (hoveredElement === id || dragging === id) {
         ctx.save();
         ctx.strokeStyle = dragging === id ? '#22d3ee' : 'rgba(34, 211, 238, 0.5)';
@@ -618,9 +662,9 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   );
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 font-sans min-w-0 w-full overflow-x-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 p-6 rounded-3xl text-white shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 p-6 rounded-3xl text-white shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
@@ -1083,12 +1127,19 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
             <canvas
               ref={canvasRef}
-              className="max-w-full h-auto rounded-2xl shadow-xl border border-slate-800/10 cursor-move"
+              className="max-w-full h-auto rounded-2xl shadow-sm border border-slate-800/10 cursor-move touch-none select-none"
               style={{ maxHeight: '680px' }}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
+              onMouseDown={handleDragStart}
+              onMouseMove={handleDragMove}
+              onMouseUp={handleDragEnd}
+              onMouseLeave={handleDragEnd}
+              onTouchStart={handleDragStart}
+              onTouchMove={handleDragMove}
+              onTouchEnd={handleDragEnd}
+              onPointerDown={handleDragStart}
+              onPointerMove={handleDragMove}
+              onPointerUp={handleDragEnd}
+              onPointerCancel={handleDragEnd}
             />
           </div>
         </div>
