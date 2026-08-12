@@ -173,23 +173,23 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
         </p>
       </div>
 
-      <div className="mt-6 w-full max-w-md mx-auto px-4">
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-lg shadow-slate-200/50 rounded-2xl border border-slate-100">
+      <div className="mt-6 mx-auto w-full max-w-sm px-4">
+        <div className="bg-white py-6 px-6 sm:px-8 shadow-lg shadow-slate-200/50 rounded-2xl border border-slate-100">
           {!mustChange ? (
-            <form className="space-y-5" onSubmit={handleLogin} id="login_form">
+            <form className="space-y-4" onSubmit={handleLogin} id="login_form">
               {error && (
-                <div className="rounded-xl bg-red-50 p-3.5 border border-red-200">
-                  <p className="text-xs sm:text-sm font-medium text-red-800">{error}</p>
+                <div className="rounded-xl bg-red-50 p-3 border border-red-200">
+                  <p className="text-xs font-medium text-red-800">{error}</p>
                 </div>
               )}
 
               <div>
-                <label htmlFor="username" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label htmlFor="username" className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">
                   Username
                 </label>
-                <div className="relative rounded-xl shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Shield className="h-4 w-4 text-slate-400" />
+                <div className="relative rounded-xl shadow-xs">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Shield className="h-4 sm:h-5 w-4 sm:w-5 text-slate-400" />
                   </div>
                   <input
                     id="username"
@@ -198,19 +198,19 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="block w-full pl-10 pr-3.5 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                    className="block w-full pl-9 sm:pl-10 pr-3 py-2 sm:py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm transition-all"
                     placeholder="Enter username"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label htmlFor="password" className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1">
                   Password
                 </label>
-                <div className="relative rounded-xl shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Key className="h-4 w-4 text-slate-400" />
+                <div className="relative rounded-xl shadow-xs">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Key className="h-4 sm:h-5 w-4 sm:w-5 text-slate-400" />
                   </div>
                   <input
                     id="password"
@@ -219,25 +219,25 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                    className="block w-full pl-9 sm:pl-10 pr-10 py-2 sm:py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-xs sm:text-sm transition-all"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff className="h-4 sm:h-5 w-4 sm:w-5" /> : <Eye className="h-4 sm:h-5 w-4 sm:w-5" />}
                   </button>
                 </div>
               </div>
 
-              <div className="pt-1">
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={loading}
                   id="btn_login_submit"
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-colors cursor-pointer"
+                  className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-colors cursor-pointer"
                 >
                   {loading ? 'Authenticating...' : 'Sign In'}
                 </button>
