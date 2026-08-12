@@ -52,7 +52,7 @@ export default function Sidebar({
     { id: 'settings', label: 'Settings', icon: Settings, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
   ];
 
-  const filteredItems = menuItems.filter(item => 
+  const filteredItems = menuItems.filter(item =>
     user.role === UserRole.VIEWER || item.roles.includes(user.role as UserRole)
   );
 
@@ -61,17 +61,17 @@ export default function Sidebar({
       <div className="flex-1 overflow-y-auto min-h-0 sidebar-scroll">
         {/* Logo and Event Header */}
         {eventSettings?.fillLogo ? (
-          <div className="py-3.5 px-3 border-b border-emerald-900 bg-emerald-950/60 flex justify-center items-center text-center w-full min-h-[90px]">
+          <div className="py-3 px-3.5 border-b border-emerald-900 bg-emerald-950/60 flex justify-center items-center text-center w-full min-h-[80px]">
             {eventSettings?.ssfLogoUrl && !logoFailed ? (
               <img
                 src={eventSettings.ssfLogoUrl}
                 alt="SSF Logo"
                 referrerPolicy="no-referrer"
                 onError={() => setLogoFailed(true)}
-                className="h-16 sm:h-20 w-auto max-w-[85%] object-contain shrink-0 mx-auto block drop-shadow-md"
+                className="h-12 sm:h-16 w-auto max-w-[70%] object-contain shrink-0 mx-auto block drop-shadow-md"
               />
             ) : (
-              <SSFLogo className="h-16 sm:h-20 w-auto max-w-[85%] bg-white/10 p-2 rounded-xl text-emerald-400 shrink-0 mx-auto block" showText={false} />
+              <SSFLogo className="h-12 sm:h-16 w-auto max-w-[70%] bg-white/10 p-2 rounded-xl text-emerald-400 shrink-0 mx-auto block" showText={false} />
             )}
           </div>
         ) : (
@@ -82,10 +82,10 @@ export default function Sidebar({
                 alt="SSF Logo"
                 referrerPolicy="no-referrer"
                 onError={() => setLogoFailed(true)}
-                className="h-10 w-10 object-contain shrink-0"
+                className="h-10 sm:h-12 w-auto max-w-[50%] object-contain shrink-0 mx-auto block drop-shadow-md"
               />
             ) : (
-              <SSFLogo className="h-10 w-10 bg-white/10 p-1 rounded-xl text-emerald-400 shrink-0" showText={false} />
+              <SSFLogo className="h-10 sm:h-12 w-auto max-w-[50%] bg-white/10 p-2 rounded-xl text-emerald-400 shrink-0 mx-auto block" showText={false} />
             )}
             <div className="flex flex-col">
               <span className="font-display font-extrabold text-amber-400 text-sm tracking-wide leading-none uppercase">
@@ -117,8 +117,8 @@ export default function Sidebar({
                   setMobileOpen(false); // Close mobile drawer on selection
                 }}
                 className={`w-full flex items-center px-4 py-2.5 text-sm font-semibold rounded-lg transition-all group ${isActive
-                    ? 'bg-amber-500 text-slate-900 shadow-md shadow-amber-500/10'
-                    : 'text-emerald-200 hover:bg-emerald-900/60 hover:text-white'
+                  ? 'bg-amber-500 text-slate-900 shadow-md shadow-amber-500/10'
+                  : 'text-emerald-200 hover:bg-emerald-900/60 hover:text-white'
                   }`}
               >
                 <Icon className={`mr-3 h-5 w-5 shrink-0 ${isActive ? 'text-slate-900' : 'text-emerald-300 group-hover:text-amber-300'}`} />
