@@ -6,6 +6,17 @@ interface HighlightsStudioProps {
   user: User;
 }
 
+const getMediaUrl = (url: string | undefined): string => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  const baseUrl = (import.meta as any).env?.VITE_API_BASE_URL || '';
+  const cleanBase = baseUrl.replace(/\/$/, '');
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return `${cleanBase}${cleanPath}`;
+};
+
 interface BackgroundTask {
   id: string;
   title: string;
@@ -191,7 +202,7 @@ export default function HighlightsStudio({ user }: HighlightsStudioProps) {
   if (loading) return <div className="p-6 text-slate-500 flex items-center gap-2"><Loader2 className="animate-spin w-5 h-5"/> Loading highlights...</div>;
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
         <div>
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -255,24 +266,48 @@ export default function HighlightsStudio({ user }: HighlightsStudioProps) {
                 : '';
 
             return (
-              <div key={item.id} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col">
+              <div key={item.id} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm transition-colors group flex flex-col">
                 <div 
                   onClick={() => setActiveVideo(item)}
                   className="relative aspect-video bg-slate-900 overflow-hidden cursor-pointer group-hover:shadow-inner"
                 >
                   {thumbUrl ? (
                     <img 
-                      src={thumbUrl} 
+                      src={getMediaUrl(thumbUrl)} 
                       alt={item.title} 
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover opacity-90 sm:group-hover:scale-105 transition-transform duration-700 will-change-transform" 
                       loading="lazy"
                       decoding="async"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (!target.dataset.triedFallback && item.videoUrl) {
+                          target.dataset.triedFallback = 'true';
+                          if (item.videoUrl.startsWith('/data/uploads/')) {
+                            target.src = `/api${item.videoUrl}`;
+                          }
+                        }
+                      }}
                     />
                   ) : item.videoUrl ? (
-                    <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                      <Video className="w-8 h-8 text-slate-500" />
-                    </div>
+                    <video
+                      src={getMediaUrl(item.videoUrl)}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover opacity-90 sm:group-hover:scale-105 transition-transform duration-500 pointer-events-none"
+                      onError={(e) => {
+                        const target = e.target as HTMLVideoElement;
+                        if (!target.dataset.triedFallback && item.videoUrl) {
+                          target.dataset.triedFallback = 'true';
+                          if (item.videoUrl.startsWith('/data/uploads/')) {
+                            target.src = `/api${item.videoUrl}`;
+                          } else if (!item.videoUrl.startsWith('http')) {
+                            target.src = `https://rendevouz-8sfp.onrender.com/api/data/uploads/${item.videoUrl.split('/').pop()}`;
+                          }
+                        }
+                      }}
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-slate-800">
                       <Video className="w-12 h-12 text-slate-600" />
@@ -291,13 +326,13 @@ export default function HighlightsStudio({ user }: HighlightsStudioProps) {
                         e.stopPropagation();
                         handleDelete(item.id);
                       }}
-                      className="p-2 rounded-xl bg-black/40 text-white/70 hover:bg-red-500 hover:text-white backdrop-blur-md transition-colors"
+                      className="p-2 rounded-xl bg-black/40 text-white/70 hover:bg-red-500 hover:text-white  transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                   {displayDuration && (
-                    <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-mono font-bold text-white shadow">
+                    <div className="absolute bottom-3 right-3 bg-black/70  px-2 py-0.5 rounded-md text-[10px] font-mono font-bold text-white shadow">
                       {displayDuration}
                     </div>
                   )}
@@ -333,8 +368,8 @@ export default function HighlightsStudio({ user }: HighlightsStudioProps) {
 
       {/* Upload Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl border border-slate-200 w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/40  flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl border border-slate-200 w-full max-w-lg shadow-lg overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Upload className="w-5 h-5 text-emerald-500" /> Upload Highlight Video
@@ -447,8 +482,8 @@ export default function HighlightsStudio({ user }: HighlightsStudioProps) {
 
       {/* Admin Video Preview Modal */}
       {activeVideo && (
-        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl flex flex-col">
+        <div className="fixed inset-0 z-50 bg-slate-900/80  flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full overflow-hidden shadow-lg flex flex-col">
             <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
               <h3 className="font-bold text-white text-base truncate">{activeVideo.title}</h3>
               <button 
@@ -475,12 +510,23 @@ export default function HighlightsStudio({ user }: HighlightsStudioProps) {
                 }
                 return (
                   <video
-                    src={activeVideo.videoUrl}
+                    src={getMediaUrl(activeVideo.videoUrl)}
                     title={activeVideo.title}
                     className="w-full h-full object-contain"
                     autoPlay
                     controls
                     playsInline
+                    onError={(e) => {
+                      const target = e.target as HTMLVideoElement;
+                      if (!target.dataset.triedFallback && activeVideo.videoUrl) {
+                        target.dataset.triedFallback = 'true';
+                        if (activeVideo.videoUrl.startsWith('/data/uploads/')) {
+                          target.src = `/api${activeVideo.videoUrl}`;
+                        } else if (!activeVideo.videoUrl.startsWith('http')) {
+                          target.src = `https://rendevouz-8sfp.onrender.com/api/data/uploads/${activeVideo.videoUrl.split('/').pop()}`;
+                        }
+                      }
+                    }}
                   />
                 );
               })()}
