@@ -137,11 +137,27 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
               <img
                 src={eventSettings.ssfLogoUrl}
                 alt="Festival Logo"
-                className="h-20 max-h-20 w-auto max-w-[200px] object-contain shrink-0 mx-auto block drop-shadow-xs"
+                style={{
+                  height: '112px',
+                  width: 'auto',
+                  maxWidth: '260px',
+                  objectFit: 'contain',
+                  display: 'block',
+                  margin: '0 auto',
+                }}
                 onError={(e) => (e.currentTarget.style.display = 'none')}
               />
             ) : (
-              <SSFLogo className="h-20 w-auto text-emerald-600 shrink-0 mx-auto block" showText={false} />
+              <SSFLogo
+                className="text-emerald-600"
+                style={{
+                  height: '112px',
+                  width: 'auto',
+                  maxWidth: '260px',
+                  margin: '0 auto',
+                }}
+                showText={false}
+              />
             )}
           </div>
         ) : (

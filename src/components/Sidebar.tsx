@@ -68,10 +68,24 @@ export default function Sidebar({
                 alt="SSF Logo"
                 referrerPolicy="no-referrer"
                 onError={() => setLogoFailed(true)}
-                className="h-12 sm:h-16 w-auto max-w-[70%] object-contain shrink-0 mx-auto block drop-shadow-md"
+                style={{
+                  height: '72px',
+                  width: 'auto',
+                  maxWidth: '190px',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
               />
             ) : (
-              <SSFLogo className="h-12 sm:h-16 w-auto max-w-[70%] bg-white/10 p-2 rounded-xl text-emerald-400 shrink-0 mx-auto block" showText={false} />
+              <SSFLogo
+                className="text-emerald-400"
+                style={{
+                  height: '72px',
+                  width: 'auto',
+                  maxWidth: '190px',
+                }}
+                showText={false}
+              />
             )}
           </div>
         ) : (
