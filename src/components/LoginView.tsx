@@ -131,32 +131,29 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
 
       <div className="w-full max-w-sm text-center flex flex-col items-center mx-auto">
         {/* Top Header Branding: Logo + Vertical Line + Festival Name & Campus Name */}
-        <div className="flex justify-center items-center gap-3 mb-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl border border-slate-200/60 shadow-xs">
+        <div className="flex justify-center items-center gap-3.5 mb-2">
           {eventSettings?.ssfLogoUrl ? (
             <img 
               src={eventSettings.ssfLogoUrl} 
               alt="Festival Logo" 
-              className="h-10 w-10 object-contain shrink-0" 
+              className="h-11 w-11 object-contain shrink-0" 
               onError={(e) => (e.currentTarget.style.display = 'none')}
             />
           ) : (
-            <SSFLogo className="h-10 w-10 text-emerald-600 shrink-0" showText={false} />
+            <SSFLogo className="h-11 w-11 text-emerald-600 shrink-0" showText={false} />
           )}
-          <div className="h-8 w-px bg-slate-200" />
+          <div className="h-9 w-px bg-slate-300" />
           <div className="flex flex-col items-start text-left">
-            <span className="font-display font-bold text-emerald-700 text-sm sm:text-base tracking-tight leading-tight uppercase">
+            <span className="font-display font-bold text-emerald-800 text-base tracking-tight leading-tight uppercase">
               {eventSettings?.festivalName || 'ZENITH'}
             </span>
-            <span className="text-amber-600 font-mono text-[10px] sm:text-[11px] font-bold tracking-wider uppercase mt-0.5">
+            <span className="text-amber-600 font-mono text-[11px] font-bold tracking-wider uppercase mt-0.5">
               {eventSettings?.campusName || eventSettings?.sectorName || 'MEELAD SOFTWARE'}
             </span>
           </div>
         </div>
 
-        {/* Main Festival Title & Subtitle */}
-        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight mb-1">
-          {eventSettings?.festivalName || 'Zenith'}
-        </h1>
+        {/* Subtitle */}
         <p className="text-xs text-slate-500 font-sans font-medium mb-5">
           Festival Management System • {eventSettings?.eventYear || '2026'}
         </p>
