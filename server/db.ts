@@ -79,6 +79,19 @@ async function _connectToMongo() {
         { ...db },
         { upsert: true }
       );
+      // Also pull dedicated gallery & videoHighlights collections if present
+      try {
+        const galDocs = await mongoDb.collection('gallery').find({}).toArray();
+        if (galDocs && galDocs.length > 0) {
+          const formattedGal = galDocs.map((d: any) => ({ id: d.id || d._id, ...d }));
+          db.gallery = formattedGal as any;
+        }
+        const vidDocs = await mongoDb.collection('videoHighlights').find({}).toArray();
+        if (vidDocs && vidDocs.length > 0) {
+          const formattedVid = vidDocs.map((d: any) => ({ id: d.id || d._id, ...d }));
+          db.videoHighlights = formattedVid as any;
+        }
+      } catch (_) {}
     }
   } catch (err) {
     console.error("❌ Failed to connect to MongoDB. Falling back to local file store.", err);
@@ -113,6 +126,13 @@ export interface DatabaseSchema {
   greenRoomAssignments: GreenRoomAssignment[];
   judgmentSheets: JudgmentSheet[];
   judgeScores: JudgeScore[];
+  gallery?: any[];
+  videoHighlights?: any[];
+  dragBlocks?: any[];
+  heroMedia?: any[];
+  posterTemplateConfig?: any;
+  certificateTemplateConfig?: any;
+  cmsSettings?: any;
 }
 
 // Simple in-memory cache synchronized with the file
@@ -449,13 +469,63 @@ export function performHourlyBackup() {
 setTimeout(performHourlyBackup, 5000);
 setInterval(performHourlyBackup, 60 * 60 * 1000);
 
-function _syncMongoNow() {
-  if (isMongoConnected && mongoCollection && !isMongoConnecting && db && Array.isArray(db.participants)) {
-    mongoCollection.replaceOne(
-      { _id: 'global_state' as any },
-      { ...db },
-      { upsert: true }
-    ).catch(e => console.error("MongoDB sync error:", e));
+async function _syncMongoNow() {
+  if (isMongoConnected && mongoClient && !isMongoConnecting && db) {
+    try {
+      const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/') 
+        ? ((process.env.MONGO_URI || process.env.MONGODB_URI || '').split('/').pop()?.split('?')[0] || 'sahityotsav')
+        : 'sahityotsav';
+      const mongoDb = mongoClient.db(dbName);
+
+      // Dedicated per-collection updates to strictly prevent MongoDB 16MB document limit
+      const collectionKeys = [
+        'users', 'units', 'categories', 'competitions', 'participants', 'teams', 
+        'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments', 
+        'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
+      ];
+
+      for (const colName of collectionKeys) {
+        const items = (db as any)[colName];
+        if (Array.isArray(items) && items.length > 0) {
+          const col = mongoDb.collection(colName);
+          const ops = items.map((item: any) => {
+            const docId = item.id || item._id;
+            const { _id, ...rest } = item;
+            return {
+              updateOne: {
+                filter: { _id: docId },
+                update: { $set: { _id: docId, ...rest } },
+                upsert: true
+              }
+            };
+          });
+          await col.bulkWrite(ops, { ordered: false }).catch(err => {
+            if (err.code !== 11000) console.error(`Mongo sync error (${colName}):`, err.message);
+          });
+        }
+      }
+
+      // Sync event settings
+      if (db.eventSettings) {
+        await mongoDb.collection('settings').updateOne(
+          { _id: 'eventSettings' as any },
+          { $set: { _id: 'eventSettings', ...db.eventSettings } },
+          { upsert: true }
+        ).catch(() => {});
+      }
+
+      // Safe global_state sync only if total payload is strictly under 12MB
+      const jsonStr = JSON.stringify(db);
+      if (Buffer.byteLength(jsonStr, 'utf8') < 12 * 1024 * 1024 && mongoCollection) {
+        await mongoCollection.replaceOne(
+          { _id: 'global_state' as any },
+          { ...db },
+          { upsert: true }
+        ).catch(() => {});
+      }
+    } catch (e: any) {
+      console.error("MongoDB sync error:", e.message);
+    }
   }
 }
 

@@ -6,6 +6,17 @@ interface GalleryStudioProps {
   user: User;
 }
 
+const getMediaUrl = (url: string | undefined): string => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  const baseUrl = (import.meta as any).env?.VITE_API_BASE_URL || '';
+  const cleanBase = baseUrl.replace(/\/$/, '');
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return `${cleanBase}${cleanPath}`;
+};
+
 interface BackgroundTask {
   id: string;
   title: string;
@@ -176,7 +187,7 @@ export default function GalleryStudio({ user }: GalleryStudioProps) {
   if (loading) return <div className="p-6 text-slate-500 flex items-center gap-2"><Loader2 className="animate-spin w-5 h-5"/> Loading gallery...</div>;
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
         <div>
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -231,20 +242,37 @@ export default function GalleryStudio({ user }: GalleryStudioProps) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {gallery.map((item) => (
-            <div key={item.id} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col">
+            <div key={item.id} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm transition-colors group flex flex-col">
               <div className="relative aspect-video overflow-hidden bg-slate-100">
-                <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover will-change-transform transition-transform duration-500 sm:group-hover:scale-105" loading="lazy" decoding="async" />
+                <img 
+                  src={getMediaUrl(item.imageUrl)} 
+                  alt={item.title} 
+                  className="w-full h-full object-cover will-change-transform transition-transform duration-500 sm:group-hover:scale-105" 
+                  loading="lazy" 
+                  decoding="async" 
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (!target.dataset.triedFallback && item.imageUrl) {
+                      target.dataset.triedFallback = 'true';
+                      if (item.imageUrl.startsWith('/data/uploads/')) {
+                        target.src = `/api${item.imageUrl}`;
+                      } else if (!item.imageUrl.startsWith('http')) {
+                        target.src = `https://rendevouz-8sfp.onrender.com${item.imageUrl.startsWith('/') ? item.imageUrl : '/' + item.imageUrl}`;
+                      }
+                    }
+                  }}
+                />
                 <div className="absolute top-2 right-2 flex gap-1">
                   <button
                     onClick={() => handleToggleFeatured(item.id, !!item.isFeatured)}
-                    className={`p-1.5 rounded-lg backdrop-blur-md transition-colors ${item.isFeatured ? 'bg-amber-400 text-white shadow-lg' : 'bg-black/40 text-white/70 hover:bg-black/60'}`}
+                    className={`p-1.5 rounded-lg  transition-colors ${item.isFeatured ? 'bg-amber-400 text-white shadow-lg' : 'bg-black/40 text-white/70 hover:bg-black/60'}`}
                     title={item.isFeatured ? "Unfeature from Home" : "Feature on Home (Max 8)"}
                   >
                     <Star className={`w-4 h-4 ${item.isFeatured ? 'fill-current' : ''}`} />
                   </button>
                   <button
                     onClick={() => handleDelete(item.id)}
-                    className="p-1.5 rounded-lg bg-black/40 text-white/70 hover:bg-red-500 hover:text-white backdrop-blur-md transition-colors"
+                    className="p-1.5 rounded-lg bg-black/40 text-white/70 hover:bg-red-500 hover:text-white  transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -270,8 +298,8 @@ export default function GalleryStudio({ user }: GalleryStudioProps) {
 
       {/* Upload Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl border border-slate-200 w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/40  flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl border border-slate-200 w-full max-w-md shadow-lg overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Upload className="w-5 h-5 text-emerald-500" /> Upload Photo
