@@ -61,17 +61,17 @@ export default function Sidebar({
       <div className="flex-1 overflow-y-auto min-h-0 sidebar-scroll">
         {/* Logo and Event Header */}
         {eventSettings?.fillLogo ? (
-          <div className="py-4 px-3 border-b border-emerald-900 bg-emerald-950/60 flex justify-center items-center text-center w-full min-h-[90px]">
+          <div className="py-3 px-3 border-b border-emerald-900 bg-emerald-950/60 flex justify-center items-center text-center w-full min-h-[75px]">
             {eventSettings?.ssfLogoUrl && !logoFailed ? (
               <img
                 src={eventSettings.ssfLogoUrl}
                 alt="SSF Logo"
                 referrerPolicy="no-referrer"
                 onError={() => setLogoFailed(true)}
-                className="h-16 sm:h-20 w-auto max-w-[85%] object-contain shrink-0 mx-auto block drop-shadow-md"
+                className="h-12 sm:h-16 w-auto max-w-[78%] object-contain shrink-0 mx-auto block drop-shadow-md"
               />
             ) : (
-              <SSFLogo className="h-16 sm:h-20 w-auto max-w-[85%] bg-white/10 p-2 rounded-xl text-emerald-400 shrink-0 mx-auto block" showText={false} />
+              <SSFLogo className="h-12 sm:h-16 w-auto max-w-[78%] bg-white/10 p-2 rounded-xl text-emerald-400 shrink-0 mx-auto block" showText={false} />
             )}
           </div>
         ) : (
