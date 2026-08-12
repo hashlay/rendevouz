@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Globe, Video, Image as ImageIcon, Loader2, GripVertical, CheckCircle2 } from 'lucide-react';
+import { Settings, Save, Globe, Video, Image as ImageIcon, Loader2, GripVertical, CheckCircle2, Palette, RotateCcw } from 'lucide-react';
 import { User, DragBlock, CMSSettings, HeroMedia } from '../types';
 import { QRCodeSVG } from 'qrcode.react';
 import { Logo } from './Logo';
@@ -27,6 +27,35 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
   const [stage1LiveLink, setStage1LiveLink] = useState('');
   const [stage2LiveLink, setStage2LiveLink] = useState('');
   const [photoHubDriveLink, setPhotoHubDriveLink] = useState('');
+
+  const DEFAULT_COLOR_THEME: Record<string, string> = {
+    primaryAccent: '#FF2B2B',
+    bodyBg: '#0D0D0D',
+    cardBg: '#161619',
+    cardElevatedBg: '#1A1A1E',
+    borderSubtle: '#2A2A32',
+    textPrimary: '#FFFFFF',
+    textSecondary: '#E4E4E7',
+    textMuted: '#A1A1AA',
+    goldAccent: '#F59E0B',
+    successAccent: '#10B981',
+  };
+
+  const COLOR_ITEMS = [
+    { key: 'primaryAccent', label: 'Primary Brand Red Accent', desc: 'Main CTAs, buttons, active highlights, live badges, hover borders', default: '#FF2B2B' },
+    { key: 'bodyBg', label: 'Page Body & Modal Background', desc: 'Main background of public website & participant portal', default: '#0D0D0D' },
+    { key: 'cardBg', label: 'Card & Section Container Background', desc: 'Winner posters, video cards, result item containers, gallery frames', default: '#161619' },
+    { key: 'cardElevatedBg', label: 'Elevated Card & Header Background', desc: 'Table headers, inner card sections, video player header', default: '#1A1A1E' },
+    { key: 'borderSubtle', label: 'Subtle Border & Divider Lines', desc: 'Card borders, input fields, modal boundaries, section dividers', default: '#2A2A32' },
+    { key: 'textPrimary', label: 'Primary Heading & Title Text', desc: 'Participant name, main headings, modal titles, rank numbers', default: '#FFFFFF' },
+    { key: 'textSecondary', label: 'Secondary Sub-header Text', desc: 'Subheadings, card titles, chest number badges', default: '#E4E4E7' },
+    { key: 'textMuted', label: 'Muted Text & Timestamps', desc: 'Program categories, unit names, timestamps, durations', default: '#A1A1AA' },
+    { key: 'goldAccent', label: 'Gold Rank #1 & Distinction Badge', desc: 'Rank #1 Gold medals, A+ grade badges, logged-in status badge', default: '#F59E0B' },
+    { key: 'successAccent', label: 'Success & Verification Green', desc: 'Verified status badges, play buttons, green room indicators', default: '#10B981' },
+  ];
+
+  const [colorTheme, setColorTheme] = useState<Record<string, string>>(DEFAULT_COLOR_THEME);
+  const [colorSaveSuccess, setColorSaveSuccess] = useState(false);
 
   useEffect(() => {
     fetchCMSData();
@@ -110,6 +139,9 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           }
         });
         setSettings(finalSettings);
+        if (mergedSettings.colorTheme) {
+          setColorTheme({ ...DEFAULT_COLOR_THEME, ...mergedSettings.colorTheme });
+        }
       }
     } catch (err) {
       console.error('Failed to fetch CMS', err);
@@ -138,13 +170,18 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
     e.preventDefault();
     setSaving(true);
     try {
+      const updatedSettings = {
+        ...settings,
+        colorTheme
+      };
+
       const response = await fetch('/api/cms', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ dragBlocks, heroMedia, cmsSettings: settings })
+        body: JSON.stringify({ dragBlocks, heroMedia, cmsSettings: updatedSettings })
       });
       
       // Also save event settings for live/drive url
@@ -824,6 +861,106 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
 
             </div>
           </div>
+
+          {/* SECTION: Website Theme & Color Palette Customizer */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-indigo-50/40 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-600/10 text-indigo-600 rounded-xl">
+                  <Palette className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Website Theme & Color Palette Customizer</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Customize every color across the public website and participant portal. Changes apply live.</p>
+                </div>
+              </div>
+
+              {colorSaveSuccess && (
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs rounded-lg font-medium animate-in fade-in">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Color theme saved live!
+                </div>
+              )}
+            </div>
+
+            <div className="p-5 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {COLOR_ITEMS.map((item) => (
+                  <div key={item.key} className="p-3.5 bg-slate-50/80 border border-slate-200/70 rounded-xl space-y-2 hover:border-slate-300 transition-colors">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block">{item.label}</span>
+                        <span className="text-[11px] text-slate-500">{item.desc}</span>
+                      </div>
+                      <div 
+                        className="w-7 h-7 rounded-lg border border-slate-300 shadow-inner shrink-0" 
+                        style={{ backgroundColor: colorTheme[item.key] || item.default }} 
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <input 
+                        type="color" 
+                        value={colorTheme[item.key] || item.default} 
+                        onChange={(e) => setColorTheme({ ...colorTheme, [item.key]: e.target.value })}
+                        className="w-9 h-8 rounded cursor-pointer border border-slate-300 bg-white p-0.5" 
+                      />
+                      <input 
+                        type="text" 
+                        value={colorTheme[item.key] || item.default} 
+                        onChange={(e) => setColorTheme({ ...colorTheme, [item.key]: e.target.value })}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:ring-1 focus:ring-indigo-500 outline-none uppercase" 
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Action Buttons: Save & Reset */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to reset all colors back to default?')) {
+                      setColorTheme(DEFAULT_COLOR_THEME);
+                    }
+                  }}
+                  className="w-full sm:w-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Reset All Colors to Default
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const updatedSettings = {
+                      ...settings,
+                      colorTheme
+                    };
+                    setSettings(updatedSettings);
+                    try {
+                      const response = await fetch('/api/cms', {
+                        method: 'PUT',
+                        headers: {
+                          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ dragBlocks, heroMedia, cmsSettings: updatedSettings })
+                      });
+                      if (response.ok) {
+                        setColorSaveSuccess(true);
+                        setTimeout(() => setColorSaveSuccess(false), 3000);
+                      }
+                    } catch (err) {
+                      console.error('Failed to save color theme', err);
+                    }
+                  }}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-sm shadow-indigo-500/20 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" /> Save Color Palette
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* Right Column - Block Ordering */}
