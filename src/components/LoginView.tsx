@@ -124,15 +124,15 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center py-12 px-4 relative overflow-hidden">
-      {/* Background accents */}
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center py-10 px-4 relative overflow-hidden">
+      {/* Background vector accents */}
       <div className="absolute top-0 left-0 right-0 h-64 bg-emerald-700/5 -skew-y-3 transform origin-top-left -z-10" />
       <div className="absolute bottom-0 left-0 right-0 h-64 bg-amber-500/5 skew-y-3 transform origin-bottom-right -z-10" />
 
-      {/* Main Centered Content Box - Strictly max-w-[420px] */}
-      <div className="w-full max-w-[420px] mx-auto space-y-6">
+      {/* Main Centered Box - Strictly max-w-[380px] matching screenshot */}
+      <div className="w-full max-w-[380px] mx-auto space-y-5">
         
-        {/* Header Logo & Title */}
+        {/* Header Logo & Subtitle */}
         <div className="text-center space-y-2">
           {eventSettings?.fillLogo ? (
             <div className="flex justify-center items-center py-1 text-center w-full">
@@ -140,7 +140,7 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                 <img 
                   src={eventSettings.ssfLogoUrl} 
                   alt="Festival Logo" 
-                  className="h-20 max-h-20 w-auto max-w-[200px] object-contain shrink-0 mx-auto block drop-shadow-sm" 
+                  className="h-20 max-h-20 w-auto max-w-[200px] object-contain shrink-0 mx-auto block drop-shadow-xs" 
                   onError={(e) => (e.currentTarget.style.display = 'none')}
                 />
               ) : (
@@ -153,7 +153,7 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                 <img 
                   src={eventSettings.ssfLogoUrl} 
                   alt="Festival Logo" 
-                  className="h-12 w-12 object-contain shrink-0 drop-shadow-sm" 
+                  className="h-12 w-12 object-contain shrink-0 drop-shadow-xs" 
                   onError={(e) => (e.currentTarget.style.display = 'none')}
                 />
               ) : (
@@ -161,10 +161,10 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
               )}
               <div className="h-8 w-px bg-slate-300" />
               <div className="flex flex-col items-start text-left">
-                <span className="font-display font-bold text-emerald-900 text-lg tracking-tight leading-none uppercase">
+                <span className="font-display font-bold text-emerald-900 text-base tracking-tight leading-none uppercase">
                   {eventSettings?.festivalName || 'ZENITH'}
                 </span>
-                <span className="text-amber-600 font-mono text-[11px] font-semibold tracking-widest mt-1 uppercase">
+                <span className="text-amber-600 font-mono text-[10px] font-semibold tracking-widest mt-1 uppercase">
                   {eventSettings?.campusName || eventSettings?.sectorName || 'MEELAD SOFTWARE'}
                 </span>
               </div>
@@ -176,22 +176,22 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
           </p>
         </div>
 
-        {/* Compact Form Card (Image 2 style) */}
-        <div className="bg-white p-6 sm:p-8 shadow-xl shadow-slate-200/60 rounded-2xl border border-slate-100/90">
+        {/* Form Card (Exact match to screenshot) */}
+        <div className="bg-white p-6 sm:p-7 shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-200/60">
           {!mustChange ? (
             <form className="space-y-4" onSubmit={handleLogin} id="login_form">
               {error && (
-                <div className="rounded-xl bg-red-50 p-3 border border-red-200">
+                <div className="rounded-lg bg-red-50 p-3 border border-red-200">
                   <p className="text-xs font-medium text-red-800">{error}</p>
                 </div>
               )}
 
               <div>
-                <label htmlFor="username" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label htmlFor="username" className="block text-[13px] font-semibold text-slate-700 mb-1.5">
                   Username
                 </label>
-                <div className="relative rounded-xl">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <div className="relative rounded-lg">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <Shield className="h-4 w-4" />
                   </div>
                   <input
@@ -201,18 +201,18 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="block w-full pl-10 pr-3.5 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all bg-slate-50/40 focus:bg-white"
+                    className="block w-full pl-9 pr-3.5 py-2 border border-slate-300 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors bg-white"
                     placeholder="Enter username"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label htmlFor="password" className="block text-[13px] font-semibold text-slate-700 mb-1.5">
                   Password
                 </label>
-                <div className="relative rounded-xl">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <div className="relative rounded-lg">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <Key className="h-4 w-4" />
                   </div>
                   <input
@@ -222,25 +222,25 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm transition-all bg-slate-50/40 focus:bg-white"
+                    className="block w-full pl-9 pr-10 py-2 border border-slate-300 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors bg-white"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
 
-              <div className="pt-1">
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={loading}
                   id="btn_login_submit"
-                  className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-[#009661] hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.99]"
+                  className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-xs text-sm font-semibold text-white bg-[#009661] hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-colors cursor-pointer active:scale-[0.99]"
                 >
                   {loading ? 'Authenticating...' : 'Sign In'}
                 </button>
