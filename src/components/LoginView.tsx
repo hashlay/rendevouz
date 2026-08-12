@@ -124,58 +124,71 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center py-10 px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Decorative vector background */}
       <div className="absolute top-0 left-0 right-0 h-64 bg-emerald-700/10 -skew-y-3 transform origin-top-left -z-10" />
       <div className="absolute bottom-0 left-0 right-0 h-64 bg-amber-500/5 skew-y-3 transform origin-bottom-right -z-10" />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center flex flex-col items-center">
-        {/* Top Header Branding: Logo + Vertical Line + Festival Name & Campus Name */}
-        <div className="flex justify-center items-center gap-4 mb-3 bg-white py-3 px-6 rounded-2xl border border-slate-100 shadow-sm">
-          {eventSettings?.ssfLogoUrl ? (
-            <img 
-              src={eventSettings.ssfLogoUrl} 
-              alt="Festival Logo" 
-              className="h-14 w-14 object-contain shrink-0" 
-              onError={(e) => (e.currentTarget.style.display = 'none')}
-            />
-          ) : (
-            <SSFLogo className="h-14 w-14 text-emerald-600 shrink-0" showText={false} />
-          )}
-          <div className="h-10 w-px bg-slate-300" />
-          <div className="flex flex-col items-start text-left">
-            <span className="font-display font-bold text-emerald-800 text-lg tracking-tight leading-none uppercase">
-              {eventSettings?.festivalName || 'ZENITH'}
-            </span>
-            <span className="text-amber-600 font-mono text-xs font-semibold tracking-widest mt-1 uppercase">
-              {eventSettings?.campusName || eventSettings?.sectorName || 'MEELAD SOFTWARE'}
-            </span>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        {/* Logo and institution branding centered in place of title */}
+        {eventSettings?.fillLogo ? (
+          <div className="flex justify-center items-center mb-5 text-center w-full min-h-[140px]">
+            {eventSettings?.ssfLogoUrl ? (
+              <img 
+                src={eventSettings.ssfLogoUrl} 
+                alt="Festival Logo" 
+                className="h-32 sm:h-40 w-auto max-w-[85%] object-contain shrink-0 mx-auto block drop-shadow-sm" 
+                onError={(e) => (e.currentTarget.style.display = 'none')}
+              />
+            ) : (
+              <SSFLogo className="h-32 sm:h-40 w-auto max-w-[85%] text-emerald-600 shrink-0 mx-auto block" showText={false} />
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="flex justify-center items-center gap-4 mb-3">
+            {eventSettings?.ssfLogoUrl ? (
+              <img 
+                src={eventSettings.ssfLogoUrl} 
+                alt="Festival Logo" 
+                className="h-14 w-14 object-contain shrink-0" 
+                onError={(e) => (e.currentTarget.style.display = 'none')}
+              />
+            ) : (
+              <SSFLogo className="h-14 w-14 text-emerald-600 shrink-0" showText={false} />
+            )}
+            <div className="h-10 w-px bg-slate-300" />
+            <div className="flex flex-col items-start text-left">
+              <span className="font-display font-bold text-emerald-800 text-lg tracking-tight leading-none uppercase">
+                {eventSettings?.festivalName || 'ZENITH'}
+              </span>
+              <span className="text-amber-600 font-mono text-xs font-semibold tracking-widest mt-1 uppercase">
+                {eventSettings?.campusName || eventSettings?.sectorName || 'MEELAD SOFTWARE'}
+              </span>
+            </div>
+          </div>
+        )}
 
-        {/* Subtitle */}
-        <p className="text-xs sm:text-sm text-slate-500 font-sans font-medium mb-6">
+        <p className="text-xs sm:text-sm text-slate-500 font-sans font-medium">
           Festival Management System • {eventSettings?.eventYear || '2026'}
         </p>
       </div>
 
-      {/* Login Card Form - Exact Image 1 max-w-md container */}
-      <div className="w-full max-w-md mx-auto">
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-100">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow-sm sm:rounded-2xl sm:px-10 border border-slate-100">
           {!mustChange ? (
             <form className="space-y-6" onSubmit={handleLogin} id="login_form">
               {error && (
-                <div className="rounded-xl bg-red-50 p-3 border border-red-200">
-                  <p className="text-xs sm:text-sm font-medium text-red-800">{error}</p>
+                <div className="rounded-lg bg-red-50 p-4 border border-red-200">
+                  <p className="text-sm font-medium text-red-800">{error}</p>
                 </div>
               )}
 
               <div>
-                <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label htmlFor="username" className="block text-sm font-medium text-slate-700">
                   Username
                 </label>
-                <div className="relative rounded-xl shadow-xs">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Shield className="h-5 w-5 text-slate-400" />
                   </div>
                   <input
@@ -185,18 +198,18 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="block w-full pl-11 pr-3 py-3 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-all bg-white"
+                    className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
                     placeholder="Enter username"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700">
                   Password
                 </label>
-                <div className="relative rounded-xl shadow-xs">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Key className="h-5 w-5 text-slate-400" />
                   </div>
                   <input
@@ -206,25 +219,25 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-11 pr-11 py-3 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-all bg-white"
+                    className="block w-full pl-10 pr-10 py-2 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div>
                 <button
                   type="submit"
                   disabled={loading}
                   id="btn_login_submit"
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-semibold text-white bg-[#009661] hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.99]"
+                  className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-colors"
                 >
                   {loading ? 'Authenticating...' : 'Sign In'}
                 </button>
