@@ -98,7 +98,7 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
     try {
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${tempToken}`
         },
@@ -134,10 +134,10 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
         {eventSettings?.fillLogo ? (
           <div className="flex justify-center items-center py-1 text-center w-full">
             {eventSettings?.ssfLogoUrl ? (
-              <img 
-                src={eventSettings.ssfLogoUrl} 
-                alt="Festival Logo" 
-                className="h-20 max-h-20 w-auto max-w-[200px] object-contain shrink-0 mx-auto block drop-shadow-xs" 
+              <img
+                src={eventSettings.ssfLogoUrl}
+                alt="Festival Logo"
+                className="h-20 max-h-20 w-auto max-w-[200px] object-contain shrink-0 mx-auto block drop-shadow-xs"
                 onError={(e) => (e.currentTarget.style.display = 'none')}
               />
             ) : (
@@ -147,10 +147,10 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
         ) : (
           <div className="flex justify-center items-center gap-3 py-1">
             {eventSettings?.ssfLogoUrl ? (
-              <img 
-                src={eventSettings.ssfLogoUrl} 
-                alt="Festival Logo" 
-                className="h-12 w-12 object-contain shrink-0 drop-shadow-xs" 
+              <img
+                src={eventSettings.ssfLogoUrl}
+                alt="Festival Logo"
+                className="h-12 w-12 object-contain shrink-0 drop-shadow-xs"
                 onError={(e) => (e.currentTarget.style.display = 'none')}
               />
             ) : (
@@ -174,8 +174,16 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
       </div>
 
       {/* Form Card Container (exact size from previous code: sm:max-w-md, shadow-xl sm:rounded-2xl) */}
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-slate-100">
+      {/* Form Card Container */}
+      <div
+        className="mt-8 w-full mx-auto"
+        style={{
+          maxWidth: '520px',
+          paddingLeft: '16px',
+          paddingRight: '16px',
+        }}
+      >
+        <div className="w-full bg-white py-8 px-4 sm:px-10 shadow-xl rounded-2xl border border-slate-100">
           {!mustChange ? (
             <form className="space-y-6" onSubmit={handleLogin} id="login_form">
               {error && (
