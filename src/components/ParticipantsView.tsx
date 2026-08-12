@@ -394,7 +394,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   });
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       
       {/* Search and Filters Layout */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center no-print">
@@ -468,8 +468,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
       {/* Bulk Import Modal */}
       {showBulkModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 border border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60  ">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-lg space-y-4 border border-slate-200">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                 <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
@@ -704,8 +704,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
       {/* --- PROFILE DETAILS DRAWER MODAL --- */}
       {selectedPart && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex justify-end no-print">
-          <div className="bg-white w-full max-w-lg h-full p-6 overflow-y-auto shadow-2xl flex flex-col justify-between animate-slide-in">
+        <div className="fixed inset-0 bg-slate-900/60  z-50 flex justify-end no-print">
+          <div className="bg-white w-full max-w-lg h-full p-6 overflow-y-auto shadow-lg flex flex-col justify-between ">
             <div className="space-y-6">
               
               {/* Profile Header */}
@@ -822,8 +822,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
       {/* --- EDIT RECORD POPUP --- */}
       {editingPart && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 font-sans">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 animate-scale-up space-y-4">
+        <div className="fixed inset-0 bg-slate-900/60  z-50 flex items-center justify-center p-4 font-sans">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-lg w-full p-6  space-y-4">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="font-display font-bold text-slate-800 text-base">Edit Candidate Records</h3>
               <button onClick={() => setEditingPart(null)} className="p-1 rounded-lg hover:bg-slate-50 text-slate-400 hover:text-slate-600">
@@ -986,8 +986,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
       {/* --- CONFIRM DELETION DIALOG --- */}
       {deletingId && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 animate-scale-up space-y-4">
+        <div className="fixed inset-0 bg-slate-900/60  z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-md w-full p-6  space-y-4">
             <h3 className="font-display font-bold text-slate-800 text-base">Confirm Soft Deletion</h3>
             <p className="text-xs text-slate-400">
               The record will be safely soft-deleted and removed from normal directories. You must provide a valid deletion reason.

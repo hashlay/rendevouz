@@ -196,7 +196,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
   if (loading) return <div className="p-6 text-slate-500 flex items-center gap-2"><Loader2 className="animate-spin"/> Loading CMS Data...</div>;
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans pb-32">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans pb-32 min-w-0 w-full overflow-x-hidden">
       <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
         <div>
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">

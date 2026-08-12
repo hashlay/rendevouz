@@ -144,10 +144,10 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
   };
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans min-w-0 w-full overflow-x-hidden">
       
       {/* HEADER */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs print:hidden">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm print:hidden min-w-0 w-full overflow-hidden">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
             <Trophy className="h-6 w-6" />
@@ -181,13 +181,13 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
       </div>
 
       {/* FILTERS */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-4 print:hidden">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm space-y-4 print:hidden min-w-0 w-full overflow-hidden">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-800 border-b pb-2">
           <Filter className="h-4 w-4 text-amber-500" />
           <span>Filter Announced Results</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 min-w-0 w-full">
           {/* Search */}
           <div>
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Search Event</label>
@@ -277,7 +277,7 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
           <p className="text-xs text-slate-400 mt-1">None of the matching competitions have announced their official results yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 min-w-0 w-full">
           {competitionsWithAnnouncedResults.map(comp => {
             // Find category
             const category = categories.find(c => c.id === comp.categoryId);
@@ -305,7 +305,7 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
             compResults.sort((a, b) => (a.rank || 0) - (b.rank || 0));
 
             return (
-              <div key={comp.id} className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col justify-between min-w-0">
+              <div key={comp.id} className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between min-w-0 w-full">
                 <div>
                   {/* Event Title Section */}
                   <div className="p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-start gap-4">

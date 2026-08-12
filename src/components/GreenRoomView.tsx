@@ -278,7 +278,7 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
   const canGenerate = user.role === UserRole.SUPER_ADMIN || user.role === UserRole.SECTOR_TEAM || user.role === UserRole.GREEN_ROOM_MANAGER;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

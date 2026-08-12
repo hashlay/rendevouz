@@ -69,7 +69,7 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       
       {/* Filters Row */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center no-print">
@@ -252,8 +252,8 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
 
       {/* --- SCORE BREAKDOWN DRAWERS MODAL --- */}
       {selectedRow && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 no-print">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 animate-scale-up space-y-4">
+        <div className="fixed inset-0 bg-slate-900/60  z-50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-md w-full p-6  space-y-4">
             
             <div className="flex justify-between items-center border-b pb-3">
               <div>

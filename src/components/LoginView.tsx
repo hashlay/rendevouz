@@ -174,7 +174,7 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-slate-100">
+        <div className="bg-white py-8 px-4 shadow-sm sm:rounded-2xl sm:px-10 border border-slate-100">
           {!mustChange ? (
             <form className="space-y-6" onSubmit={handleLogin} id="login_form">
               {error && (

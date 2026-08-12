@@ -98,7 +98,7 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans min-w-0 w-full overflow-x-hidden">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-900 tracking-tight">

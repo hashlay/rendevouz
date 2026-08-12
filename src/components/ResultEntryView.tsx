@@ -469,10 +469,10 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
   );
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto font-sans">
+    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       {/* Toast Notification Banner */}
       {toast && (
-        <div className={`p-4 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm transition-all animate-fadeIn ${
+        <div className={`p-4 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm transition-all  ${
           toast.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
         }`}>
           <span>{toast.text}</span>
@@ -541,8 +541,8 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
 
       {/* Bulk Import Results Modal */}
       {showBulkResultModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 border border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60  ">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-lg space-y-4 border border-slate-200">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-emerald-600" />
@@ -727,8 +727,8 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
 
       {/* --- ENTRY MARKS SHEET DRAWER POPUP --- */}
       {activeCandidate && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 animate-scale-up space-y-4">
+        <div className="fixed inset-0 bg-slate-900/60  z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-lg w-full p-6  space-y-4">
             
             <div className="flex justify-between items-center border-b pb-3">
               <div>

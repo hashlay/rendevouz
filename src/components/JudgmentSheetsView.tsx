@@ -445,7 +445,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

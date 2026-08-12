@@ -155,7 +155,7 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
   );
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       
       {/* Filters and Registration button row */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center no-print">
@@ -208,7 +208,7 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
             const displayTeamName = team.teamName || `${unit?.name} Team`;
 
             return (
-              <div key={team.id} className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+              <div key={team.id} className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between transition-colors">
                 <div>
                   <div className="flex justify-between items-start border-b border-slate-100 pb-3">
                     <div>
@@ -257,8 +257,8 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
 
       {/* --- CREATE/REGISTER GROUP TEAM MODAL WIZARD --- */}
       {createOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 animate-scale-up space-y-4">
+        <div className="fixed inset-0 bg-slate-900/60  z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-lg w-full p-6  space-y-4">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="font-display font-bold text-slate-800 text-base">Register Group Team</h3>
               <button 

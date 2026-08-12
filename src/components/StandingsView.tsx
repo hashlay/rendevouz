@@ -52,15 +52,15 @@ export default function StandingsView({ user, token, eventSettings }: StandingsV
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       
       {/* 1. Visual Bento Standings Card lists */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-w-0 w-full">
         {standings.slice(0, 3).map((unit, index) => {
           return (
             <div 
               key={unit.unitId} 
-              className={`bg-gradient-to-br p-6 rounded-3xl border flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer ${
+              className={`bg-gradient-to-br p-5 sm:p-6 rounded-2xl sm:rounded-3xl border flex flex-col justify-between cursor-pointer min-w-0 w-full overflow-hidden ${
                 index === 0 ? 'from-emerald-900 to-emerald-950 text-emerald-100 border-emerald-800' : 'bg-white text-slate-800 border-slate-200/80'
               }`}
               onClick={() => setSelectedUnit(unit)}
@@ -163,7 +163,7 @@ export default function StandingsView({ user, token, eventSettings }: StandingsV
         </div>
 
         {/* Desktop Table Layout */}
-        <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden min-w-0 w-full">
           <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
             <div className="flex items-center gap-2">
               <BarChart2 className="h-5 w-5 text-emerald-600" />
@@ -171,8 +171,8 @@ export default function StandingsView({ user, token, eventSettings }: StandingsV
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
+          <div className="overflow-x-auto w-full min-w-0">
+            <table className="w-full text-left text-xs font-mono">
               <thead className="bg-slate-50 font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4 text-left">Standing</th>
@@ -233,8 +233,8 @@ export default function StandingsView({ user, token, eventSettings }: StandingsV
 
       {/* --- DETAILED CATEGORY BREAKDOWN DIALOG --- */}
       {selectedUnit && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 no-print">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 animate-scale-up space-y-4">
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-md w-full p-6 space-y-4">
             
             <div className="flex justify-between items-center border-b pb-3">
               <div>

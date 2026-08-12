@@ -145,7 +145,7 @@ export default function ChestNumbersView({ user, token, eventSettings }: ChestNu
   const canGenerate = isAdmin || user.role === UserRole.SECTOR_TEAM;
 
   return (
-    <div className="space-y-6 print:space-y-2">
+    <div className="space-y-6 print:space-y-2 min-w-0 w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>

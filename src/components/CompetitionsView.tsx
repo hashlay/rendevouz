@@ -324,7 +324,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
 
   const renderCompCard = (comp: Competition, cat?: Category) => {
     return (
-      <div key={comp.id} className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between min-w-0 overflow-hidden">
+      <div key={comp.id} className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between min-w-0 w-full overflow-hidden">
         <div>
           <div className="flex justify-between items-start border-b border-slate-100 pb-3">
             <div className="min-w-0 flex-1">
@@ -400,7 +400,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       
       {/* Search and Filters */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col lg:flex-row gap-4 justify-between items-center no-print">
@@ -519,8 +519,8 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
 
       {/* Bulk Import Competition Modal */}
       {showBulkCompModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 border border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-lg space-y-4 border border-slate-200">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-emerald-600" />
@@ -564,7 +564,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
 
       {/* Grid or Grouped list representation of Competitions */}
       {viewMode === 'grouped' ? (
-        <div className="space-y-8">
+        <div className="space-y-8 min-w-0 w-full overflow-hidden">
           {categories
             .filter(cat => !selectedCategoryId || cat.id === selectedCategoryId)
             .map(cat => {
@@ -575,7 +575,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
               const offStageComps = catComps.filter(c => c.stageType === StageType.OFF_STAGE);
 
               return (
-                <div key={cat.id} className="bg-slate-50/50 p-6 rounded-3xl border border-slate-200/60 shadow-xs space-y-5">
+                <div key={cat.id} className="bg-slate-50/50 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/60 shadow-sm space-y-5 min-w-0 w-full overflow-hidden">
                   {/* Category Header */}
                   <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                     <div className="flex items-center gap-2.5">
@@ -590,7 +590,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
                   </div>
 
                   {/* On Stage and Off Stage Subsections */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 min-w-0 w-full">
                     {/* On-Stage Subsection */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between bg-amber-50/60 border border-amber-100/60 px-3.5 py-1.5 rounded-xl">
@@ -603,7 +603,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
                       </div>
 
                       {onStageComps.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5 min-w-0 w-full">
                           {onStageComps.map(comp => renderCompCard(comp, cat))}
                         </div>
                       ) : (
@@ -625,7 +625,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
                       </div>
 
                       {offStageComps.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5 min-w-0 w-full">
                           {offStageComps.map(comp => renderCompCard(comp, cat))}
                         </div>
                       ) : (
@@ -647,7 +647,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
         </div>
       ) : (
         /* Regular grid representation */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 min-w-0 w-full">
           {sortedCompetitions.length > 0 ? (
             sortedCompetitions.map((comp) => {
               const cat = categories.find(c => c.id === comp.categoryId);
@@ -663,8 +663,8 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
 
       {/* --- DETAILED COMP INSIGHTS MODAL --- */}
       {selectedComp && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 no-print">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 animate-scale-up space-y-4">
+        <div className="fixed inset-0 bg-slate-900/60  z-50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-md w-full p-6  space-y-4">
             
             <div className="flex justify-between items-center border-b pb-3">
               <div>
@@ -737,8 +737,8 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
 
       {/* --- ADD / EDIT COMPETITION MODAL --- */}
       {showCompModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-4">
+        <div className="fixed inset-0 bg-slate-900/60  z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-lg w-full p-6 space-y-4">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="font-display font-extrabold text-slate-800 text-base flex items-center gap-2">
                 <Plus className="w-5 h-5 text-emerald-600" />
@@ -855,8 +855,8 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
 
       {/* --- CATEGORY MANAGEMENT CONSOLE MODAL --- */}
       {showCategoryModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/60  z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b pb-3">
               <div>
                 <h3 className="font-display font-extrabold text-slate-800 text-base flex items-center gap-2">

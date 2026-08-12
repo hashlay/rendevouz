@@ -245,7 +245,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 flex w-full max-w-full overflow-x-hidden relative">
       {/* Sidebar Slider drawer navigation panel */}
       <Sidebar 
         user={user} 
@@ -258,7 +258,7 @@ export default function App() {
       />
 
       {/* Main app display window */}
-      <div className="flex-1 flex flex-col md:pl-64 min-w-0">
+      <div className="flex-1 flex flex-col md:pl-64 min-w-0 max-w-full w-full overflow-x-hidden">
         <Header 
           user={user} 
           activeTab={activeTab} 
@@ -267,7 +267,7 @@ export default function App() {
           onShowLogs={user.role === UserRole.SUPER_ADMIN ? handleOpenLogs : undefined}
         />
 
-        <main className="flex-1 pb-6">
+        <main className="flex-1 pb-6 min-w-0 max-w-full w-full overflow-x-hidden">
           {renderTabContent()}
         </main>
 
@@ -276,8 +276,8 @@ export default function App() {
 
       {/* --- SUPER ADMIN SLIDING AUDIT LOG PANEL --- */}
       {showLogs && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex justify-end no-print">
-          <div className="bg-white w-full max-w-lg h-full p-6 overflow-y-auto shadow-2xl flex flex-col justify-between animate-slide-in">
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex justify-end no-print">
+          <div className="bg-white w-full max-w-lg h-full p-6 overflow-y-auto shadow-lg flex flex-col justify-between">
             <div className="space-y-6">
               
               <div className="flex justify-between items-start border-b border-slate-100 pb-4">

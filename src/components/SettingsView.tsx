@@ -457,7 +457,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto font-sans">
+    <div className="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       
       {/* 1. CMS Portal & Event Visual Branding */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">

@@ -100,7 +100,7 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
   });
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans min-w-0 w-full overflow-x-hidden">
       
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs print:hidden">

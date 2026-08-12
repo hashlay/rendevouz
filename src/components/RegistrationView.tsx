@@ -211,10 +211,10 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
   const filteredCompetitions = competitions.filter(c => c.categoryId === selectedCategoryId);
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto font-sans space-y-6">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto font-sans space-y-6 min-w-0 w-full overflow-x-hidden">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 p-6 rounded-3xl text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 p-5 sm:p-6 rounded-2xl sm:rounded-3xl text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-w-0 w-full overflow-hidden">
         <div>
           <h2 className="font-display font-extrabold text-2xl mt-1 text-white">Candidate Registration Portal</h2>
           <p className="text-emerald-200/80 text-xs mt-0.5">Register candidates rapidly in 1 single view with instant Chest Number assignment.</p>

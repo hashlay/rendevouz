@@ -94,10 +94,10 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
     : 0;
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       
       {/* 1. Quick Stats Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 min-w-0 w-full">
         
         {/* Total Participants */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
@@ -150,10 +150,10 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
       </div>
 
       {/* 2. Top Performers Bento Preview Row (Only for non-unit leaders or if data is available) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 min-w-0 w-full">
         
         {/* Leading Unit Standings Spot */}
-        <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 p-6 rounded-3xl text-white shadow-lg shadow-emerald-950/10 flex flex-col justify-between min-w-0 overflow-hidden">
+        <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 p-5 sm:p-6 rounded-2xl sm:rounded-3xl text-white shadow-sm flex flex-col justify-between min-w-0 w-full overflow-hidden">
           <div>
             <div className="flex items-center justify-between">
               <span className="bg-emerald-800 text-emerald-200 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase">Leaderboard Spot</span>
@@ -183,7 +183,7 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
         </div>
 
         {/* Top Individual Spot */}
-        <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-3xl text-white shadow-lg shadow-slate-950/10 flex flex-col justify-between min-w-0 overflow-hidden">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-5 sm:p-6 rounded-2xl sm:rounded-3xl text-white shadow-sm flex flex-col justify-between min-w-0 w-full overflow-hidden">
           <div>
             <div className="flex items-center justify-between">
               <span className="bg-slate-800 text-slate-300 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase">Champion Spot</span>
@@ -251,10 +251,10 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
       </div>
 
       {/* On-Stage & Off-Stage Champions Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 min-w-0 w-full">
         
         {/* On-Stage Top Individual Spot */}
-        <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 p-6 rounded-3xl text-white shadow-lg flex flex-col justify-between min-w-0 overflow-hidden">
+        <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 p-5 sm:p-6 rounded-2xl sm:rounded-3xl text-white shadow-sm flex flex-col justify-between min-w-0 w-full overflow-hidden">
           <div>
             <div className="flex items-center justify-between">
               <span className="bg-indigo-500/20 text-indigo-300 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase border border-indigo-500/30">
@@ -289,7 +289,7 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
         </div>
 
         {/* Off-Stage Top Individual Spot */}
-        <div className="bg-gradient-to-br from-teal-950 via-slate-900 to-teal-900 p-6 rounded-3xl text-white shadow-lg flex flex-col justify-between min-w-0 overflow-hidden">
+        <div className="bg-gradient-to-br from-teal-950 via-slate-900 to-teal-900 p-5 sm:p-6 rounded-2xl sm:rounded-3xl text-white shadow-sm flex flex-col justify-between min-w-0 w-full overflow-hidden">
           <div>
             <div className="flex items-center justify-between">
               <span className="bg-teal-500/20 text-teal-300 text-[10px] px-2.5 py-1 rounded-full font-mono font-bold tracking-widest uppercase border border-teal-500/30">
@@ -326,7 +326,7 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
       </div>
 
       {/* 3. Detailed visual bar charts / distribution tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 min-w-0 w-full">
         
         {/* Distribution of registrations by Campus Units */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
@@ -455,8 +455,8 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
 
       {/* Pending Results Modal */}
       {showPendingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 ">
+          <div className="bg-white rounded-2xl shadow-sm w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 <ClipboardList className="h-6 w-6 text-amber-500" />

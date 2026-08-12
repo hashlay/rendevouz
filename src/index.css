@@ -7,18 +7,42 @@
   --font-display: "Space Grotesk", sans-serif;
 }
 
+/* === GLOBAL LAYOUT CONSTRAINTS === */
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+}
+
 body {
   font-family: var(--font-sans);
-  background-color: #f8fafc; /* slate-50 */
-  color: #0f172a; /* slate-900 */
+  background-color: #f8fafc;
+  color: #0f172a;
   overflow-x: hidden;
   touch-action: manipulation;
   -webkit-overflow-scrolling: touch;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Mobile GPU Acceleration & Hardware Rendering Fixes for Scrolling Glitches */
+/* === ANTI-GLITCH: UNIVERSAL MOBILE FIX === */
 * {
   -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+/* Force compositing layer on scrollable containers to prevent tearing */
+main,
+aside,
+[class*="overflow-y-auto"],
+[class*="overflow-x-auto"] {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .gpu-accelerate {
@@ -27,23 +51,69 @@ body {
   backface-visibility: hidden;
 }
 
-/* Mobile GPU backdrop-blur fallback to prevent GPU black striping / cracked screen glitch in all mobile modes */
-@media (max-width: 1024px), (pointer: coarse) {
+/* === ANTI-GLITCH: KILL ALL BACKDROP-FILTER ON MOBILE & TOUCH DEVICES === */
+/* backdrop-filter is the #1 cause of horizontal striping/tearing on mobile GPU */
+@media (pointer: coarse) {
+  * {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+@media (max-width: 1280px) {
   .backdrop-blur-md,
   .backdrop-blur-lg,
   .backdrop-blur-xl,
   .backdrop-blur-2xl,
   .backdrop-blur,
   .backdrop-blur-sm,
-  .backdrop-blur-xs {
+  .backdrop-blur-xs,
+  [class*="backdrop-blur"] {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
 }
 
-/* Prevent flex and grid items from overflowing their cell bounds */
-.grid > * {
+/* === ANTI-GLITCH: REDUCE GPU SHADOW COMPOSITING ON TOUCH DEVICES === */
+@media (pointer: coarse) {
+  .shadow-lg,
+  .shadow-xl,
+  .shadow-2xl,
+  [class*="shadow-lg"],
+  [class*="shadow-xl"],
+  [class*="shadow-2xl"] {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* Simplify complex gradients that cause GPU compositing issues */
+  .bg-gradient-to-br,
+  .bg-gradient-to-r,
+  .bg-gradient-to-l,
+  .bg-gradient-to-t,
+  .bg-gradient-to-b {
+    background-attachment: scroll !important;
+  }
+}
+
+/* === LAYOUT OVERFLOW GUARDS === */
+/* Prevent flex and grid children from overflowing */
+.grid > *,
+.flex > * {
   min-width: 0;
+  max-width: 100%;
+}
+
+/* All view containers must respect viewport width */
+[class*="max-w-7xl"],
+[class*="max-w-6xl"],
+[class*="max-w-5xl"],
+[class*="max-w-4xl"],
+[class*="max-w-3xl"],
+[class*="max-w-2xl"],
+[class*="max-w-xl"],
+[class*="max-w-lg"],
+[class*="max-w-md"] {
+  overflow-x: hidden;
 }
 
 /* Responsive Table Horizontal Scroll Wrappers */
@@ -54,7 +124,19 @@ body {
   touch-action: pan-x pan-y;
 }
 
-/* Elegant Print Styles */
+/* Tables must not stretch beyond parent */
+table {
+  table-layout: auto;
+  max-width: 100%;
+}
+
+/* Images must not overflow */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* === ELEGANT PRINT STYLES === */
 @media print {
   @page {
     size: A4 portrait;
@@ -74,12 +156,11 @@ body {
     left: 0;
     top: 0;
     width: 100%;
-    max-width: 210mm !important; /* A4 width */
+    max-width: 210mm !important;
     margin: 0 !important;
     padding: 0 !important;
   }
   
-  /* Ensure table headers repeat on new pages */
   thead {
     display: table-header-group;
   }
@@ -91,17 +172,20 @@ body {
   .no-print {
     display: none !important;
   }
+
   body {
     background-color: white !important;
     color: black !important;
   }
+
   .print-card {
     border: 1px solid #cbd5e1 !important;
     box-shadow: none !important;
     break-inside: avoid;
   }
 }
-/* Elegant custom scrollbar styling */
+
+/* === CUSTOM SCROLLBAR === */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -121,11 +205,9 @@ body {
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: rgba(251, 191, 36, 0.15); /* matching amber accent */
+  background: rgba(251, 191, 36, 0.15);
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(251, 191, 36, 0.35);
 }
-
-

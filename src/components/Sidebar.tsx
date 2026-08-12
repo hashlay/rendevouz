@@ -164,7 +164,7 @@ export default function Sidebar({
       {/* Mobile Drawer Overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden"
+          className="fixed inset-0 bg-slate-900/50  z-30 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
