@@ -50,49 +50,56 @@ async function _connectToMongo() {
     console.log(`🍃 Connected successfully to MongoDB: "${dbName}"`);
     console.log(`=============================================================`);
 
-    // Synchronize current cache from MongoDB if it exists and has valid data
+    // Synchronize current cache from MongoDB dedicated collections & settings
+    const mongoSettingsDocs = await mongoDb.collection('settings').find({}).toArray().catch(() => []);
+    const mongoSettingsMap: Record<string, any> = {};
+    mongoSettingsDocs.forEach((doc: any) => {
+      if (doc._id) {
+        const { _id, ...rest } = doc;
+        mongoSettingsMap[doc._id] = rest;
+      }
+    });
+
     const existingState = await mongoCollection.findOne({ _id: 'global_state' as any });
     const hasMongoData = existingState && Array.isArray(existingState.participants) && existingState.participants.length > 0;
-    const hasLocalData = db && Array.isArray(db.participants) && db.participants.length > 0;
 
     if (hasMongoData) {
-      console.log(`Found existing database state in MongoDB (${existingState.participants.length} participants). Synchronizing cache...`);
+      console.log(`Found existing database state in MongoDB. Synchronizing base cache...`);
       const { _id, ...restOfState } = existingState;
       db = restOfState as any;
+    }
+
+    // Override settings from dedicated settings collection if present (prevents stale global_state revert)
+    if (mongoSettingsMap.eventSettings) db.eventSettings = { ...db.eventSettings, ...mongoSettingsMap.eventSettings };
+    if (mongoSettingsMap.cmsSettings) db.cmsSettings = { ...db.cmsSettings, ...mongoSettingsMap.cmsSettings };
+    if (mongoSettingsMap.posterTemplateConfig) db.posterTemplateConfig = { ...db.posterTemplateConfig, ...mongoSettingsMap.posterTemplateConfig };
+    if (mongoSettingsMap.certificateTemplateConfig) db.certificateTemplateConfig = { ...db.certificateTemplateConfig, ...mongoSettingsMap.certificateTemplateConfig };
+
+    // Pull each dedicated collection from MongoDB to ensure 100% fresh data
+    const collectionKeys = [
+      'users', 'units', 'categories', 'competitions', 'participants', 'teams', 
+      'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments', 
+      'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
+    ];
+
+    for (const colName of collectionKeys) {
       try {
-        fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
-      } catch (_) {}
-    } else if (hasLocalData) {
-      console.log(`MongoDB state was empty. Preserving local state (${db.participants.length} participants) and pushing to MongoDB Atlas...`);
-      await mongoCollection.replaceOne(
-        { _id: 'global_state' as any },
-        { ...db },
-        { upsert: true }
-      );
-    } else if (existingState) {
-      const { _id, ...restOfState } = existingState;
-      db = restOfState as any;
-    } else {
-      console.log("No existing database state in MongoDB. Uploading initial seeded state...");
-      await mongoCollection.replaceOne(
-        { _id: 'global_state' as any },
-        { ...db },
-        { upsert: true }
-      );
-      // Also pull dedicated gallery & videoHighlights collections if present
-      try {
-        const galDocs = await mongoDb.collection('gallery').find({}).toArray();
-        if (galDocs && galDocs.length > 0) {
-          const formattedGal = galDocs.map((d: any) => ({ id: d.id || d._id, ...d }));
-          db.gallery = formattedGal as any;
-        }
-        const vidDocs = await mongoDb.collection('videoHighlights').find({}).toArray();
-        if (vidDocs && vidDocs.length > 0) {
-          const formattedVid = vidDocs.map((d: any) => ({ id: d.id || d._id, ...d }));
-          db.videoHighlights = formattedVid as any;
+        const docs = await mongoDb.collection(colName).find({}).toArray();
+        if (docs && docs.length > 0) {
+          const formatted = docs.map((d: any) => {
+            const docId = d.id || d._id;
+            const { _id, ...rest } = d;
+            return { id: docId, ...rest };
+          });
+          (db as any)[colName] = formatted;
         }
       } catch (_) {}
     }
+
+    // Write synchronized state to local file store
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
+    } catch (_) {}
   } catch (err) {
     console.error("❌ Failed to connect to MongoDB. Falling back to local file store.", err);
     isMongoConnected = false;
@@ -505,11 +512,35 @@ async function _syncMongoNow() {
         }
       }
 
-      // Sync event settings
+      // Sync all configuration & branding settings
       if (db.eventSettings) {
         await mongoDb.collection('settings').updateOne(
           { _id: 'eventSettings' as any },
           { $set: { _id: 'eventSettings', ...db.eventSettings } },
+          { upsert: true }
+        ).catch(() => {});
+      }
+
+      if (db.cmsSettings) {
+        await mongoDb.collection('settings').updateOne(
+          { _id: 'cmsSettings' as any },
+          { $set: { _id: 'cmsSettings', ...db.cmsSettings } },
+          { upsert: true }
+        ).catch(() => {});
+      }
+
+      if (db.posterTemplateConfig) {
+        await mongoDb.collection('settings').updateOne(
+          { _id: 'posterTemplateConfig' as any },
+          { $set: { _id: 'posterTemplateConfig', ...db.posterTemplateConfig } },
+          { upsert: true }
+        ).catch(() => {});
+      }
+
+      if (db.certificateTemplateConfig) {
+        await mongoDb.collection('settings').updateOne(
+          { _id: 'certificateTemplateConfig' as any },
+          { $set: { _id: 'certificateTemplateConfig', ...db.certificateTemplateConfig } },
           { upsert: true }
         ).catch(() => {});
       }
@@ -600,17 +631,7 @@ export const dbClient = {
   },
 
   forceSync: async () => {
-    if (isMongoConnected && mongoCollection) {
-      try {
-        const existingState = await mongoCollection.findOne({ _id: 'global_state' as any });
-        if (existingState) {
-          const { _id, ...restOfState } = existingState;
-          db = restOfState as any;
-        }
-      } catch (e) {
-        console.error("Force sync failed", e);
-      }
-    }
+    await _syncMongoNow();
   },
 
   get: () => {
