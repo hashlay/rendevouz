@@ -148,16 +148,9 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                 onError={(e) => (e.currentTarget.style.display = 'none')}
               />
             ) : (
-              <SSFLogo
-                className="text-emerald-600"
-                style={{
-                  height: '112px',
-                  width: 'auto',
-                  maxWidth: '260px',
-                  margin: '0 auto',
-                }}
-                showText={false}
-              />
+              <div style={{ height: '112px', width: 'auto', maxWidth: '260px', margin: '0 auto' }}>
+                <SSFLogo className="text-emerald-600" showText={false} />
+              </div>
             )}
           </div>
         ) : (

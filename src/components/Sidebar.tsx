@@ -77,15 +77,9 @@ export default function Sidebar({
                 }}
               />
             ) : (
-              <SSFLogo
-                className="text-emerald-400"
-                style={{
-                  height: '72px',
-                  width: 'auto',
-                  maxWidth: '190px',
-                }}
-                showText={false}
-              />
+              <div style={{ height: '72px', width: 'auto', maxWidth: '190px' }}>
+                <SSFLogo className="text-emerald-400" showText={false} />
+              </div>
             )}
           </div>
         ) : (
