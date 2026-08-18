@@ -61,47 +61,52 @@ apiRouter.use('/uploads', express.static(path.join(process.cwd(), 'data/uploads'
 
 // --- SERVERLESS GLOBAL SYNC MIDDLEWARE ---
 // Connects to DB once and processes all requests instantly in memory.
+let dbNormalized = false;
+
 apiRouter.use(async (req, res, next) => {
   try {
     await dbClient.waitForSync();
     
-    // Auto-normalize legacy totalMark values and title-case participant/competition names
-    const db = dbClient.get();
-    if (db) {
-      if (db.results) {
-        db.results.forEach((r: any) => {
-          const j1 = Number(r.judge1Mark) || 0;
-          const j2 = Number(r.judge2Mark) || 0;
-          // Calculate true total and average
-          r.totalMark = j1 + j2;
-          const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
-          r.averageMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
-        });
-      }
-      if (db.judgeScores) {
-        db.judgeScores.forEach((s: any) => {
-          if (s.status === JudgeScoreStatus.PARTICIPATED || s.status === 'participated') {
-            const nonZeroMarks = (s.judgeScores || []).filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
-            const sumMarks = (s.judgeScores || []).reduce((sum: number, jm: any) => sum + (typeof jm.mark === 'number' && !Number.isNaN(jm.mark) ? jm.mark : 0), 0);
-            const activeJudgesCount = nonZeroMarks.length > 0 ? nonZeroMarks.length : 1;
-            const avg = Math.round((sumMarks / activeJudgesCount) * 100) / 100;
-            s.totalMark = sumMarks;
-            if (!s.averageMark || s.averageMark === 0) {
-              s.averageMark = avg;
+    // Auto-normalize legacy totalMark values and title-case participant/competition names ONCE on load
+    if (!dbNormalized) {
+      const db = dbClient.get();
+      if (db) {
+        if (db.results) {
+          db.results.forEach((r: any) => {
+            const j1 = Number(r.judge1Mark) || 0;
+            const j2 = Number(r.judge2Mark) || 0;
+            // Calculate true total and average
+            r.totalMark = j1 + j2;
+            const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
+            r.averageMark = Math.round(((j1 + j2) / activeCount) * 100) / 100;
+          });
+        }
+        if (db.judgeScores) {
+          db.judgeScores.forEach((s: any) => {
+            if (s.status === JudgeScoreStatus.PARTICIPATED || s.status === 'participated') {
+              const nonZeroMarks = (s.judgeScores || []).filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
+              const sumMarks = (s.judgeScores || []).reduce((sum: number, jm: any) => sum + (typeof jm.mark === 'number' && !Number.isNaN(jm.mark) ? jm.mark : 0), 0);
+              const activeJudgesCount = nonZeroMarks.length > 0 ? nonZeroMarks.length : 1;
+              const avg = Math.round((sumMarks / activeJudgesCount) * 100) / 100;
+              s.totalMark = sumMarks;
+              if (!s.averageMark || s.averageMark === 0) {
+                s.averageMark = avg;
+              }
             }
-          }
-        });
+          });
+        }
+        if (db.participants) {
+          db.participants.forEach((p: any) => {
+            if (p.fullName) p.fullName = toTitleCase(p.fullName);
+          });
+        }
+        if (db.competitions) {
+          db.competitions.forEach((c: any) => {
+            if (c.name) c.name = toTitleCase(c.name);
+          });
+        }
       }
-      if (db.participants) {
-        db.participants.forEach((p: any) => {
-          if (p.fullName) p.fullName = toTitleCase(p.fullName);
-        });
-      }
-      if (db.competitions) {
-        db.competitions.forEach((c: any) => {
-          if (c.name) c.name = toTitleCase(c.name);
-        });
-      }
+      dbNormalized = true;
     }
 
     next();
@@ -1825,52 +1830,55 @@ apiRouter.post('/participants/:id/delete', authenticate, async (req, res) => {
 });
 
 
-// 9. GROUP TEAM MANAGEMENT (Teams)
+let teamsHealed = false;
 
 apiRouter.get('/teams', authenticate, async (req, res) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
   
-  // Auto-heal team names & team capacity limits for existing database records
-  let modifiedDB = false;
-  for (let i = 0; i < db.teams.length; i++) {
-    const t = db.teams[i];
-    if (t.deletedAt) continue;
+  // Auto-heal team names & team capacity limits for existing database records (run once on load)
+  if (!teamsHealed) {
+    let modifiedDB = false;
+    for (let i = 0; i < db.teams.length; i++) {
+      const t = db.teams[i];
+      if (t.deletedAt) continue;
 
-    const comp = db.competitions.find(c => c.id === t.competitionId);
-    const maxCapacity = comp?.teamSize || 3;
+      const comp = db.competitions.find(c => c.id === t.competitionId);
+      const maxCapacity = comp?.teamSize || 3;
 
-    // 1. If team member count exceeds maxCapacity (e.g. 4 members when max is 3), split excess members into new team
-    if (t.memberIds.length > maxCapacity) {
-      const excessMemberIds = t.memberIds.slice(maxCapacity);
-      t.memberIds = t.memberIds.slice(0, maxCapacity);
+      // 1. If team member count exceeds maxCapacity (e.g. 4 members when max is 3), split excess members into new team
+      if (t.memberIds.length > maxCapacity) {
+        const excessMemberIds = t.memberIds.slice(maxCapacity);
+        t.memberIds = t.memberIds.slice(0, maxCapacity);
 
-      const firstExcessMember = db.participants.find(p => p.id === excessMemberIds[0]);
-      const newTeam: Team = {
-        id: `team_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        teamNumber: `T-${String(db.teams.length + 1).padStart(3, '0')}`,
-        teamName: firstExcessMember ? `${firstExcessMember.fullName} & Team` : 'New Group Team',
-        unitId: t.unitId,
-        categoryId: t.categoryId,
-        competitionId: t.competitionId,
-        memberIds: excessMemberIds,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      db.teams.push(newTeam);
-      modifiedDB = true;
+        const firstExcessMember = db.participants.find(p => p.id === excessMemberIds[0]);
+        const newTeam: Team = {
+          id: `team_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          teamNumber: `T-${String(db.teams.length + 1).padStart(3, '0')}`,
+          teamName: firstExcessMember ? `${firstExcessMember.fullName} & Team` : 'New Group Team',
+          unitId: t.unitId,
+          categoryId: t.categoryId,
+          competitionId: t.competitionId,
+          memberIds: excessMemberIds,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        db.teams.push(newTeam);
+        modifiedDB = true;
+      }
+
+      // 2. Format team name as First Registered Leader & Team
+      const firstMember = db.participants.find(p => p.id === t.memberIds[0]);
+      if (firstMember && (!t.teamName || (t.teamName.toLowerCase().includes('team') && !t.teamName.includes('&')))) {
+        t.teamName = `${firstMember.fullName} & Team`;
+        modifiedDB = true;
+      }
     }
 
-    // 2. Format team name as First Registered Leader & Team
-    const firstMember = db.participants.find(p => p.id === t.memberIds[0]);
-    if (firstMember && (!t.teamName || (t.teamName.toLowerCase().includes('team') && !t.teamName.includes('&')))) {
-      t.teamName = `${firstMember.fullName} & Team`;
-      modifiedDB = true;
+    if (modifiedDB) {
+      await dbClient.save();
     }
-  }
-
-  if (modifiedDB) {
-    await dbClient.save();
+    teamsHealed = true;
   }
 
   let teams = db.teams.filter(t => !t.deletedAt);

@@ -7,3 +7,5 @@ coverage/
 .env*
 !.env.example
 data/db.json
+data/backups/
+data/uploads/

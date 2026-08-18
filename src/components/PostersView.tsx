@@ -280,19 +280,19 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
 
     return {
       canvasX: (clientX - rect.left) * scaleX,
-      canvasY: (clientY - rect.top) * scaleY
+      canvasY: (clientY - rect.top) * scaleY,
+      clientX,
+      clientY
     };
   };
 
   const handleDragStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     const coords = getCanvasCoords(e);
     if (!coords) return;
-    const { canvasX, canvasY } = coords;
+    const { canvasX, canvasY, clientX, clientY } = coords;
 
-    if ('pointerId' in e) {
-      try {
-        (e.target as HTMLElement).setPointerCapture((e as React.PointerEvent).pointerId);
-      } catch (_) {}
+    if (e.cancelable) {
+      try { e.preventDefault(); } catch (_) {}
     }
 
     let bestHit: string | null = null;
@@ -310,51 +310,96 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
 
     if (bestHit) {
       setDragging(bestHit as DragTarget);
-      lastMousePos.current = { x: canvasX, y: canvasY };
+      lastMousePos.current = { x: clientX, y: clientY };
     }
   };
 
-  const handleDragMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
+  useEffect(() => {
+    if (!dragging) return;
+
+    const handleWindowMove = (e: MouseEvent | TouchEvent | PointerEvent) => {
+      if (!lastMousePos.current || !canvasRef.current) return;
+
+      let clientX = 0;
+      let clientY = 0;
+
+      if ('touches' in e && e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else if ('clientX' in e) {
+        clientX = (e as MouseEvent).clientX;
+        clientY = (e as MouseEvent).clientY;
+      } else {
+        return;
+      }
+
+      if (e.cancelable) {
+        try { e.preventDefault(); } catch (_) {}
+      }
+
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const deltaClientX = clientX - lastMousePos.current.x;
+      const deltaClientY = clientY - lastMousePos.current.y;
+
+      const dx = deltaClientX * scaleX;
+      const dy = deltaClientY * scaleY;
+
+      if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
+        const compIdx = getAnnouncementIndex(selectedCompId);
+        const themeIdx = getThemeIndexForResult(compIdx);
+        const c = getThemeConfig(themeIdx);
+
+        const posMap = dragPosMap[dragging];
+        if (posMap) {
+          updateLocalConf(posMap.xKey, Math.round((c[posMap.xKey] || 0) + dx));
+          updateLocalConf(posMap.yKey, Math.round((c[posMap.yKey] || 0) + dy));
+        }
+        lastMousePos.current = { x: clientX, y: clientY };
+      }
+    };
+
+    const handleWindowEnd = () => {
+      setDragging(null);
+      lastMousePos.current = null;
+    };
+
+    window.addEventListener('pointermove', handleWindowMove, { passive: false });
+    window.addEventListener('mousemove', handleWindowMove, { passive: false });
+    window.addEventListener('touchmove', handleWindowMove, { passive: false });
+
+    window.addEventListener('pointerup', handleWindowEnd);
+    window.addEventListener('mouseup', handleWindowEnd);
+    window.addEventListener('touchend', handleWindowEnd);
+
+    return () => {
+      window.removeEventListener('pointermove', handleWindowMove);
+      window.removeEventListener('mousemove', handleWindowMove);
+      window.removeEventListener('touchmove', handleWindowMove);
+
+      window.removeEventListener('pointerup', handleWindowEnd);
+      window.removeEventListener('mouseup', handleWindowEnd);
+      window.removeEventListener('touchend', handleWindowEnd);
+    };
+  }, [dragging, selectedCompId, customThemes, themeRules, themeConfigs, localThemeConfigs]);
+
+  const handleHoverMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (dragging) return;
     const coords = getCanvasCoords(e);
     if (!coords) return;
     const { canvasX, canvasY } = coords;
 
-    const compIdx = getAnnouncementIndex(selectedCompId);
-    const themeIdx = getThemeIndexForResult(compIdx);
-    const c = getThemeConfig(themeIdx);
-
-    if (dragging && lastMousePos.current) {
-      if ('touches' in e) {
-        try { e.preventDefault(); } catch (_) {}
+    let hovered: string | null = null;
+    for (const region of hitRegions.current) {
+      if (canvasX >= region.x && canvasX <= region.x + region.w &&
+        canvasY >= region.y && canvasY <= region.y + region.h) {
+        hovered = region.id;
       }
-      const dx = canvasX - lastMousePos.current.x;
-      const dy = canvasY - lastMousePos.current.y;
-      const posMap = dragPosMap[dragging];
-      if (posMap) {
-        updateLocalConf(posMap.xKey, Math.round((c[posMap.xKey] || 0) + dx));
-        updateLocalConf(posMap.yKey, Math.round((c[posMap.yKey] || 0) + dy));
-      }
-      lastMousePos.current = { x: canvasX, y: canvasY };
-    } else {
-      let hovered: string | null = null;
-      for (const region of hitRegions.current) {
-        if (canvasX >= region.x && canvasX <= region.x + region.w &&
-          canvasY >= region.y && canvasY <= region.y + region.h) {
-          hovered = region.id;
-        }
-      }
-      setHoveredElement(hovered);
     }
-  };
-
-  const handleDragEnd = (e?: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
-    if (e && 'pointerId' in e) {
-      try {
-        (e.target as HTMLElement).releasePointerCapture((e as React.PointerEvent).pointerId);
-      } catch (_) {}
-    }
-    setDragging(null);
-    lastMousePos.current = null;
+    setHoveredElement(hovered);
   };
 
   const RangeControl = ({ label, value, onChange, min, max }: { label: string, value: number, onChange: (v: number) => void, min: number, max: number }) => (
@@ -841,17 +886,10 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                 <canvas
                   ref={canvasRef}
                   className="w-auto h-auto max-h-[35vh] sm:max-h-[45vh] md:max-h-[75vh] max-w-full object-contain cursor-move touch-none select-none"
-                  onMouseDown={handleDragStart}
-                  onMouseMove={handleDragMove}
-                  onMouseUp={handleDragEnd}
-                  onMouseLeave={handleDragEnd}
-                  onTouchStart={handleDragStart}
-                  onTouchMove={handleDragMove}
-                  onTouchEnd={handleDragEnd}
                   onPointerDown={handleDragStart}
-                  onPointerMove={handleDragMove}
-                  onPointerUp={handleDragEnd}
-                  onPointerCancel={handleDragEnd}
+                  onTouchStart={handleDragStart}
+                  onMouseDown={handleDragStart}
+                  onMouseMove={handleHoverMove}
                 />
               </div>
             </div>

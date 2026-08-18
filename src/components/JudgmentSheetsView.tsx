@@ -372,7 +372,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
             <img
               src={eventSettings?.sahityotsavLogoUrl || '/logos/sahityotsav-logo.png'}
               alt="Sahityotsav"
-              className="h-20 w-auto object-contain"
+              className="h-12 max-h-12 w-auto object-contain"
+              style={{ height: '48px', maxHeight: '48px', maxWidth: '160px', width: 'auto', objectFit: 'contain' }}
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           </div>

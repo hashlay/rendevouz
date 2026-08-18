@@ -139,69 +139,106 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
 
     return {
       imgX: canvasX / scale,
-      imgY: canvasY / scale
+      imgY: canvasY / scale,
+      clientX,
+      clientY
     };
   };
 
   const handleDragStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     const coords = getCanvasCoords(e);
     if (!coords || !imgRef.current) return;
-    const { imgX, imgY } = coords;
+    const { imgX, imgY, clientX, clientY } = coords;
 
-    if ('pointerId' in e) {
-      try {
-        (e.target as HTMLElement).setPointerCapture((e as React.PointerEvent).pointerId);
-      } catch (_) {}
+    if (e.cancelable) {
+      try { e.preventDefault(); } catch (_) {}
     }
 
     const centerX = imgRef.current.width / 2;
     
     // hit test with touch-friendly generous hit area
-    const nameHit = Math.abs(imgX - (centerX + nameX)) < 350 && imgY > nameY - nameSize - 35 && imgY < nameY + 35;
-    const compHit = Math.abs(imgX - (centerX + compX)) < 350 && imgY > compY - compSize - 35 && imgY < compY + 35;
+    const nameHit = Math.abs(imgX - (centerX + nameX)) < 350 && imgY > nameY - nameSize - 40 && imgY < nameY + 40;
+    const compHit = Math.abs(imgX - (centerX + compX)) < 350 && imgY > compY - compSize - 40 && imgY < compY + 40;
     
     if (nameHit) {
       setDragging('name');
-      lastMousePos.current = { x: imgX, y: imgY };
+      lastMousePos.current = { x: clientX, y: clientY };
     } else if (compHit) {
       setDragging('comp');
-      lastMousePos.current = { x: imgX, y: imgY };
+      lastMousePos.current = { x: clientX, y: clientY };
     }
   };
 
-  const handleDragMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
-    if (!dragging || !lastMousePos.current || !imgRef.current) return;
-    const coords = getCanvasCoords(e);
-    if (!coords) return;
-    const { imgX, imgY } = coords;
+  useEffect(() => {
+    if (!dragging) return;
 
-    if ('touches' in e) {
-      try { e.preventDefault(); } catch (_) {}
-    }
+    const handleWindowMove = (e: MouseEvent | TouchEvent | PointerEvent) => {
+      if (!lastMousePos.current || !imgRef.current || !canvasRef.current) return;
+      
+      let clientX = 0;
+      let clientY = 0;
 
-    const dx = imgX - lastMousePos.current.x;
-    const dy = imgY - lastMousePos.current.y;
-    
-    if (dragging === 'name') {
-      handleUpdate(selectedRank, 'nameX', Math.round(nameX + dx));
-      handleUpdate(selectedRank, 'nameY', Math.round(nameY + dy));
-    } else if (dragging === 'comp') {
-      handleUpdate(selectedRank, 'compX', Math.round(compX + dx));
-      handleUpdate(selectedRank, 'compY', Math.round(compY + dy));
-    }
-    
-    lastMousePos.current = { x: imgX, y: imgY };
-  };
+      if ('touches' in e && e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else if ('clientX' in e) {
+        clientX = (e as MouseEvent).clientX;
+        clientY = (e as MouseEvent).clientY;
+      } else {
+        return;
+      }
 
-  const handleDragEnd = (e?: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
-    if (e && 'pointerId' in e) {
-      try {
-        (e.target as HTMLElement).releasePointerCapture((e as React.PointerEvent).pointerId);
-      } catch (_) {}
-    }
-    setDragging(null);
-    lastMousePos.current = null;
-  };
+      if (e.cancelable) {
+        try { e.preventDefault(); } catch (_) {}
+      }
+
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const imgScale = 800 / imgRef.current.width;
+
+      const deltaClientX = clientX - lastMousePos.current.x;
+      const deltaClientY = clientY - lastMousePos.current.y;
+
+      const dx = (deltaClientX * scaleX) / imgScale;
+      const dy = (deltaClientY * scaleY) / imgScale;
+
+      if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
+        if (dragging === 'name') {
+          handleUpdate(selectedRank, 'nameX', Math.round(nameX + dx));
+          handleUpdate(selectedRank, 'nameY', Math.round(nameY + dy));
+        } else if (dragging === 'comp') {
+          handleUpdate(selectedRank, 'compX', Math.round(compX + dx));
+          handleUpdate(selectedRank, 'compY', Math.round(compY + dy));
+        }
+        lastMousePos.current = { x: clientX, y: clientY };
+      }
+    };
+
+    const handleWindowEnd = () => {
+      setDragging(null);
+      lastMousePos.current = null;
+    };
+
+    window.addEventListener('pointermove', handleWindowMove, { passive: false });
+    window.addEventListener('mousemove', handleWindowMove, { passive: false });
+    window.addEventListener('touchmove', handleWindowMove, { passive: false });
+
+    window.addEventListener('pointerup', handleWindowEnd);
+    window.addEventListener('mouseup', handleWindowEnd);
+    window.addEventListener('touchend', handleWindowEnd);
+
+    return () => {
+      window.removeEventListener('pointermove', handleWindowMove);
+      window.removeEventListener('mousemove', handleWindowMove);
+      window.removeEventListener('touchmove', handleWindowMove);
+
+      window.removeEventListener('pointerup', handleWindowEnd);
+      window.removeEventListener('mouseup', handleWindowEnd);
+      window.removeEventListener('touchend', handleWindowEnd);
+    };
+  }, [dragging, nameX, nameY, compX, compY, selectedRank]);
 
   if (user.role !== UserRole.SUPER_ADMIN && user.role !== UserRole.SECTOR_TEAM) {
     return <div className="p-8 text-center">Access Denied</div>;
@@ -321,17 +358,9 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
           <canvas 
             ref={canvasRef} 
             className="shadow-xl max-w-full h-auto bg-white rounded-lg cursor-move touch-none select-none" 
-            onMouseDown={handleDragStart}
-            onMouseMove={handleDragMove}
-            onMouseUp={handleDragEnd}
-            onMouseLeave={handleDragEnd}
-            onTouchStart={handleDragStart}
-            onTouchMove={handleDragMove}
-            onTouchEnd={handleDragEnd}
             onPointerDown={handleDragStart}
-            onPointerMove={handleDragMove}
-            onPointerUp={handleDragEnd}
-            onPointerCancel={handleDragEnd}
+            onTouchStart={handleDragStart}
+            onMouseDown={handleDragStart}
           />
         </div>
       </div>

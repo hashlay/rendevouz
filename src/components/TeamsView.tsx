@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users2, UserPlus, Trash2, Search, Filter, RefreshCw, Check, CheckCircle2, AlertCircle, X, Plus 
+  Users2, UserPlus, Trash2, Search, Filter, RefreshCw, Check, CheckCircle2, AlertCircle, X, Plus, Edit2 
 } from 'lucide-react';
 import { User, UserRole, Category, Unit, Competition, Team, Participant, ParticipationType } from '../types';
 
@@ -34,6 +34,13 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
   const [teamName, setTeamName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Edit Team Modal
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [editingMemberIds, setEditingMemberIds] = useState<string[]>([]);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editSearchQuery, setEditSearchQuery] = useState('');
 
   const fetchLists = async () => {
     setLoading(true);
@@ -132,6 +139,73 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
     }
   };
 
+  // Edit Team Handlers
+  const handleOpenEdit = (team: Team) => {
+    setEditingTeam(team);
+    setEditingMemberIds([...team.memberIds]);
+    setEditSearchQuery('');
+    setEditOpen(true);
+  };
+
+  const handleRemoveEditMember = (memberId: string) => {
+    setEditingMemberIds(editingMemberIds.filter(id => id !== memberId));
+  };
+
+  const handleAddEditMember = (memberId: string, maxTeamSize: number) => {
+    if (editingMemberIds.length >= maxTeamSize) {
+      alert(`Team size cannot exceed ${maxTeamSize} members.`);
+      return;
+    }
+    if (!editingMemberIds.includes(memberId)) {
+      setEditingMemberIds([...editingMemberIds, memberId]);
+    }
+  };
+
+  const handleSaveEditTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTeam) return;
+
+    const comp = competitions.find(c => c.id === editingTeam.competitionId);
+    const maxCapacity = comp?.teamSize || 2;
+
+    if (editingMemberIds.length < 2) {
+      alert('Minimum 2 team members required.');
+      return;
+    }
+
+    if (editingMemberIds.length > maxCapacity) {
+      alert(`Team size cannot exceed ${maxCapacity} members for this event.`);
+      return;
+    }
+
+    setEditSubmitting(true);
+    try {
+      const res = await fetch(`/api/teams/${editingTeam.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          memberIds: editingMemberIds
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update group team');
+
+      setEditOpen(false);
+      setEditingTeam(null);
+      setEditingMemberIds([]);
+      fetchLists();
+      alert('Group team members updated successfully!');
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 min-h-[50vh]">
@@ -215,13 +289,22 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                       <h4 className="font-display font-extrabold text-slate-800 text-base">{displayTeamName}</h4>
                       <span className="text-xs font-semibold text-emerald-600 font-mono mt-0.5 block">{comp?.name} • {unit?.name}</span>
                     </div>
-                    <button
-                      onClick={() => handleDeleteTeam(team.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                      title="Delete Team"
-                    >
-                      <Trash2 className="h-4.5 w-4.5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleOpenEdit(team)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                        title="Edit Team Members"
+                      >
+                        <Edit2 className="h-4.5 w-4.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTeam(team.id)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        title="Delete Team"
+                      >
+                        <Trash2 className="h-4.5 w-4.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Team Members List */}
@@ -402,6 +485,207 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
           </div>
         </div>
       )}
+
+      {/* --- EDIT GROUP TEAM MODAL --- */}
+      {editOpen && editingTeam && (() => {
+        const comp = competitions.find(c => c.id === editingTeam.competitionId);
+        const unit = units.find(u => u.id === editingTeam.unitId);
+        const cat = categories.find(c => c.id === editingTeam.categoryId);
+        const maxCapacity = comp?.teamSize || 2;
+
+        // Eligible candidates from same unit and category, excluding current editing members & members in other teams for this comp
+        const eligibleCandidates = participants.filter(p => 
+          p.unitId === editingTeam.unitId &&
+          p.selectedCategoryId === editingTeam.categoryId &&
+          !p.deletedAt &&
+          !editingMemberIds.includes(p.id) &&
+          !teams.some(t => t.id !== editingTeam.id && t.competitionId === editingTeam.competitionId && t.memberIds.includes(p.id) && !t.deletedAt)
+        );
+
+        // Filter eligible candidates by search query
+        const filteredEligible = eligibleCandidates.filter(p => 
+          p.fullName.toLowerCase().includes(editSearchQuery.toLowerCase()) ||
+          (p.profilePhoto && p.profilePhoto.toLowerCase().includes(editSearchQuery.toLowerCase()))
+        );
+
+        const isSizeValid = editingMemberIds.length >= 2 && editingMemberIds.length <= maxCapacity;
+
+        return (
+          <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-xl max-w-xl w-full p-6 space-y-5 max-h-[90vh] flex flex-col">
+              {/* Header */}
+              <div className="flex justify-between items-start border-b pb-3 shrink-0">
+                <div>
+                  <h3 className="font-display font-bold text-slate-800 text-base flex items-center gap-2">
+                    <Edit2 className="h-4 w-4 text-emerald-600" />
+                    Edit Group Team Members
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    {comp?.name} • <span className="text-emerald-700 font-semibold">{unit?.name}</span> ({cat?.name})
+                  </p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setEditOpen(false);
+                    setEditingTeam(null);
+                    setEditingMemberIds([]);
+                  }} 
+                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Status Banner */}
+              <div className={`p-3 rounded-2xl border flex items-center justify-between text-xs font-semibold shrink-0 ${
+                isSizeValid ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'
+              }`}>
+                <span>Team Capacity: {editingMemberIds.length} / {maxCapacity} Members</span>
+                <span className="font-mono text-[11px]">Min: 2 • Max: {maxCapacity}</span>
+              </div>
+
+              <div className="overflow-y-auto space-y-5 pr-1 flex-1">
+                {/* 1. CURRENT MEMBERS */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono mb-2">
+                    Current Registered Members ({editingMemberIds.length})
+                  </label>
+                  <div className="space-y-2">
+                    {editingMemberIds.map((mid) => {
+                      const p = participants.find(part => part.id === mid);
+                      const canRemove = editingMemberIds.length > 2;
+                      return (
+                        <div 
+                          key={mid} 
+                          className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 bg-slate-50/80 hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs font-mono">
+                              {p?.profilePhoto || '#'}
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-800 text-xs">{p?.fullName || 'Deleted Participant'}</p>
+                              <p className="text-[10px] text-slate-400 font-mono font-medium">{unit?.name} • {cat?.name}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEditMember(mid)}
+                            disabled={!canRemove}
+                            className={`p-1.5 rounded-xl border flex items-center gap-1 text-xs font-semibold transition-all ${
+                              canRemove 
+                                ? 'text-rose-600 bg-rose-50 border-rose-200 hover:bg-rose-100 hover:border-rose-300' 
+                                : 'text-slate-300 border-slate-200 cursor-not-allowed bg-slate-100'
+                            }`}
+                            title={canRemove ? "Remove member from team" : "Cannot remove: Minimum 2 members required"}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span className="text-[11px]">Remove</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {editingMemberIds.length <= 2 && (
+                    <p className="text-[11px] text-amber-600 font-medium mt-1.5 flex items-center gap-1 font-mono">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Minimum 2 members are required per group team. Add another member before removing one.
+                    </p>
+                  )}
+                </div>
+
+                {/* 2. AVAILABLE ELIGIBLE PARTICIPANTS */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                      Add Participants from {unit?.name} ({cat?.name})
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {eligibleCandidates.length} eligible available
+                    </span>
+                  </div>
+
+                  {/* Search Bar */}
+                  {eligibleCandidates.length > 3 && (
+                    <div className="relative mb-2">
+                      <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={editSearchQuery}
+                        onChange={(e) => setEditSearchQuery(e.target.value)}
+                        placeholder="Search candidate by name or chest no..."
+                        className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none focus:bg-white focus:border-emerald-500"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {filteredEligible.length > 0 ? (
+                      filteredEligible.map((p) => {
+                        const isAtMax = editingMemberIds.length >= maxCapacity;
+                        return (
+                          <div
+                            key={p.id}
+                            className="p-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="font-mono text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">
+                                {p.profilePhoto || '#'}
+                              </span>
+                              <span className="font-semibold text-slate-800 text-xs">{p.fullName}</span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleAddEditMember(p.id, maxCapacity)}
+                              disabled={isAtMax}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
+                                isAtMax
+                                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                                  : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-600/20'
+                              }`}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Add
+                            </button>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-center py-4 text-slate-400 font-mono text-[11px] bg-slate-50 rounded-2xl border border-slate-200/80">
+                        {editSearchQuery ? 'No matching candidates found' : 'No available eligible candidates found in this unit & category'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end gap-3 pt-3 border-t shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditOpen(false);
+                    setEditingTeam(null);
+                    setEditingMemberIds([]);
+                  }}
+                  className="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEditTeam}
+                  disabled={editSubmitting || !isSizeValid}
+                  className="px-5 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-emerald-700 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                >
+                  {editSubmitting ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );
