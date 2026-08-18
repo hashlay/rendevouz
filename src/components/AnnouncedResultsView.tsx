@@ -308,12 +308,12 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
               <div key={comp.id} className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between min-w-0 w-full">
                 <div>
                   {/* Event Title Section */}
-                  <div className="p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-start gap-4">
-                    <div className="space-y-1">
-                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-mono text-[9px] font-bold rounded-md tracking-wider border border-emerald-100 uppercase">
+                  <div className="p-4 sm:p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-start gap-3 min-w-0">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <span className="inline-block px-2 py-0.5 bg-emerald-50 text-emerald-700 font-mono text-[9px] font-bold rounded-md tracking-wider border border-emerald-100 uppercase">
                         {category?.name || 'Unknown'}
                       </span>
-                      <h3 className="font-display font-extrabold text-slate-800 text-xs tracking-tight">{comp.name}</h3>
+                      <h3 className="font-display font-extrabold text-slate-800 text-xs sm:text-sm tracking-tight break-words">{comp.name}</h3>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold font-mono tracking-wider bg-amber-50 text-amber-700 border border-amber-200 uppercase">

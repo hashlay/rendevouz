@@ -34,15 +34,13 @@ body {
   box-sizing: border-box;
 }
 
-/* GPU compositing hint for scrollable containers (safe — does NOT break position:fixed) */
+/* Smooth momentum touch scrolling for containers without GPU layer bloat */
 [class*="overflow-y-auto"],
 [class*="overflow-x-auto"] {
-  will-change: scroll-position;
+  -webkit-overflow-scrolling: touch;
 }
 
 .gpu-accelerate {
-  transform: translateZ(0);
-  will-change: transform;
   backface-visibility: hidden;
 }
 

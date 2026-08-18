@@ -514,35 +514,35 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       {/* Participants List */}
       <div>
         {/* Mobile-Friendly Grid List: compact, touch-optimized cards, hidden on medium screens and up */}
-        <div className="block md:hidden space-y-3 print:hidden">
+        <div className="block md:hidden space-y-3 print:hidden min-w-0 w-full">
           {filteredParticipants.length > 0 ? (
             filteredParticipants.map((p) => {
               const unit = units.find(u => u.id === p.unitId);
               const cat = categories.find(c => c.id === p.selectedCategoryId);
               return (
-                <div key={p.id} className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-sm transition-shadow space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border">
+                <div key={p.id} className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-3 min-w-0 w-full overflow-hidden">
+                  <div className="flex justify-between items-start gap-2 min-w-0">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border shrink-0">
                           {p.profilePhoto}
                         </span>
-                        <h4 className="font-semibold text-slate-900 text-sm">{p.fullName}</h4>
+                        <h4 className="font-semibold text-slate-900 text-sm truncate">{p.fullName}</h4>
                       </div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">
                         {p.educationStatus.replace('_', ' ')}
                       </p>
                     </div>
-                    <span className="bg-amber-50 border border-amber-200 text-amber-800 text-[9px] font-bold px-2.5 py-0.5 rounded-lg">
+                    <span className="bg-amber-50 border border-amber-200 text-amber-800 text-[9px] font-bold px-2.5 py-0.5 rounded-lg shrink-0">
                       {cat ? cat.name : 'Unknown'}
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 text-xs">
-                    <div className="text-slate-500">
+                  <div className="flex justify-between items-center pt-2.5 border-t border-slate-100 text-xs min-w-0">
+                    <div className="text-slate-500 truncate">
                       {entityLabel}: <span className="font-semibold text-slate-700">{unit ? unit.name : 'Unknown'}</span>
                     </div>
-                    <div>
+                    <div className="shrink-0">
                       {renderPlacementBadges(p)}
                     </div>
                   </div>
@@ -551,17 +551,17 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                     DOB: {p.dob}
                   </div>
 
-                  <div className="flex gap-2 pt-2.5 border-t border-slate-100 justify-end">
+                  <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100 justify-end min-w-0 w-full">
                     <button 
                       onClick={() => viewProfile(p)}
-                      className="flex-1 py-2 rounded-xl text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200/50 flex items-center justify-center gap-1"
+                      className="flex-1 py-2 rounded-xl text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200/50 flex items-center justify-center gap-1 min-w-0"
                     >
-                      <Eye className="h-4 w-4" />
-                      <span>Profile</span>
+                      <Eye className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Profile</span>
                     </button>
                     <button 
                       onClick={() => openEdit(p)}
-                      className="py-2 px-3 rounded-xl text-slate-500 hover:text-amber-600 bg-slate-50 hover:bg-amber-50/50 border border-slate-200/50 flex items-center justify-center"
+                      className="py-2 px-3 rounded-xl text-slate-500 hover:text-amber-600 bg-slate-50 border border-slate-200/50 flex items-center justify-center shrink-0"
                       title="Edit Record"
                     >
                       <Edit3 className="h-4 w-4" />
@@ -570,7 +570,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                     {(user.role === UserRole.SUPER_ADMIN || user.role === UserRole.SECTOR_TEAM) && (
                       <button 
                         onClick={() => handleEditChestNo(p)}
-                        className="py-2 px-3 rounded-xl text-slate-500 hover:text-amber-600 bg-slate-50 hover:bg-amber-50/50 border border-slate-200/50 flex items-center justify-center"
+                        className="py-2 px-3 rounded-xl text-slate-500 hover:text-amber-600 bg-slate-50 border border-slate-200/50 flex items-center justify-center shrink-0"
                         title="Edit Chest No"
                       >
                         <Hash className="h-4 w-4" />
@@ -579,7 +579,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
                     <button 
                       onClick={() => setDeletingId(p.id)}
-                      className="py-2 px-3 rounded-xl text-slate-500 hover:text-rose-600 bg-slate-50 hover:bg-rose-50/50 border border-slate-200/50 flex items-center justify-center"
+                      className="py-2 px-3 rounded-xl text-slate-500 hover:text-rose-600 bg-slate-50 border border-slate-200/50 flex items-center justify-center shrink-0"
                       title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />

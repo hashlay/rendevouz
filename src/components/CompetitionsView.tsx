@@ -326,18 +326,18 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
     return (
       <div key={comp.id} className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between min-w-0 w-full overflow-hidden">
         <div>
-          <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+          <div className="flex justify-between items-start border-b border-slate-100 pb-3 gap-2 min-w-0">
             <div className="min-w-0 flex-1">
-              <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-widest block truncate">
                 {comp.id.replace('comp_', '').toUpperCase()}
               </span>
-              <h4 className="font-display font-extrabold text-slate-800 text-sm leading-tight mt-1 truncate">{comp.name}</h4>
+              <h4 className="font-display font-extrabold text-slate-800 text-xs sm:text-sm leading-tight mt-1 break-words">{comp.name}</h4>
             </div>
             
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => handleViewDetails(comp)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-slate-50"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-slate-50 shrink-0"
                 title="Inspect Registrations"
               >
                 <Eye className="h-4 w-4" />
@@ -356,14 +356,14 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
                       setCompFormNumJudges(comp.numJudges || 2);
                       setShowCompModal(true);
                     }}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 shrink-0"
                     title="Edit Competition"
                   >
                     <Edit3 className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDeleteComp(comp.id)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 shrink-0"
                     title="Delete Competition"
                   >
                     <Trash2 className="h-4 w-4" />
