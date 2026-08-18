@@ -18,7 +18,7 @@ async function migrate() {
     const db = client.db(dbName);
 
     console.log("Fetching global_state...");
-    const globalState = await db.collection('app_state').findOne({ _id: 'global_state' });
+    const globalState = await db.collection('app_state').findOne({ _id: 'global_state' as any });
     if (!globalState) {
       console.log("No global_state found. Nothing to migrate.");
       process.exit(0);
@@ -58,7 +58,7 @@ async function migrate() {
     if (globalState.cmsSettings) {
       console.log("Migrating cmsSettings...");
       await db.collection('settings').updateOne(
-        { _id: 'cmsSettings' },
+        { _id: 'cmsSettings' as any },
         { $set: globalState.cmsSettings },
         { upsert: true }
       );
@@ -67,7 +67,7 @@ async function migrate() {
     if (globalState.eventSettings) {
       console.log("Migrating eventSettings...");
       await db.collection('settings').updateOne(
-        { _id: 'eventSettings' },
+        { _id: 'eventSettings' as any },
         { $set: globalState.eventSettings },
         { upsert: true }
       );

@@ -125,6 +125,7 @@ export enum StageType {
 export interface Competition {
   id: string;
   name: string;
+  code?: string;
   categoryId: string; // References Category
   language?: string;
   participationType: ParticipationType;
@@ -134,6 +135,14 @@ export interface Competition {
   displayOrder: number;
   numJudges?: number;
   active: boolean;
+  maxDurationMinutes?: number;
+  basePoints?: number;
+  timeLimit?: string;
+  maxMarksPerJudge?: number;
+  isCompleted?: boolean;
+  isResultPublished?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Participant {
@@ -142,17 +151,21 @@ export interface Participant {
   dob: string; // YYYY-MM-DD
   unitId: string; // References Unit
   gender: Gender;
-  educationStatus: EducationStatus;
+  educationStatus?: EducationStatus;
   institution?: string;
   course?: string;
   yearSemester?: string;
   selectedCategoryId: string; // References Category
+  categoryId?: string; // Optional alias used in some routes
+  chestNumber?: string;
   phone?: string;
   guardianPhone?: string;
   address?: string;
   notes?: string;
   profilePhoto?: string;
   active: boolean;
+  registrationStatus?: string;
+  registeredAt?: string;
   
   // Soft delete fields
   deletedAt?: string;
@@ -295,12 +308,15 @@ export interface EventSettings {
 
 export interface ChestNumber {
   id: string;
-  chestNumber: number; // e.g. 1000, 1001, 2000
-  participantId: string;
+  chestNumber?: number; // e.g. 1000, 1001, 2000
+  codeNumber?: string;
+  participantId?: string;
+  entityId?: string;
+  participationType?: 'individual' | 'group' | ParticipationType;
   categoryId: string;
-  unitId: string;
-  generatedBy: string;
-  generatedAt: string;
+  unitId?: string;
+  generatedBy?: string;
+  generatedAt?: string;
   deletedAt?: string;
   deletedBy?: string;
 }

@@ -34,15 +34,10 @@ body {
   box-sizing: border-box;
 }
 
-/* Force compositing layer on scrollable containers to prevent tearing */
-main,
-aside,
+/* GPU compositing hint for scrollable containers (safe — does NOT break position:fixed) */
 [class*="overflow-y-auto"],
 [class*="overflow-x-auto"] {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
+  will-change: scroll-position;
 }
 
 .gpu-accelerate {

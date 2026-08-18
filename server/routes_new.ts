@@ -14,12 +14,9 @@ export const apiRouter = express.Router();
 
 const COOKIE_NAME = 'sahityotsav_admin_session';
 
-if (!process.env.AUTH_SECRET) {
-  console.warn("WARNING: AUTH_SECRET environment variable is missing.");
-}
 const JWT_SECRET = process.env.AUTH_SECRET || 'fallback_secret_for_development_only_12345';
 
-const storage = multer.diskRequest ? multer.memoryStorage() : multer.diskStorage({
+const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const uploadDir = path.join(process.cwd(), 'data', 'uploads');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });

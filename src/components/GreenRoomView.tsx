@@ -213,9 +213,14 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
     return (
       <div className="print-sheet bg-white p-8 max-w-[210mm] mx-auto text-black" id="green-room-print">
         {/* Print Header */}
-        <div className="text-center mb-10">
-          <div className="flex items-center justify-center mb-4">
-            <img src={eventSettings?.sahityotsavLogoUrl || '/logos/sahityotsav-logo.png'} alt="Sahityotsav" className="h-20 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center mb-3">
+            <img
+              src={eventSettings?.sahityotsavLogoUrl || '/logos/sahityotsav-logo.png'}
+              alt="Sahityotsav"
+              className="h-20 w-auto object-contain"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
           </div>
           <h1 className="text-2xl font-normal text-slate-800">{eventSettings?.festivalName || 'Festival'}</h1>
           <h2 className="text-lg font-normal text-slate-600 mt-1">Green Room Sheet</h2>
@@ -263,7 +268,7 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
         </div>
 
         <div className="mt-16 text-[11px] text-black flex justify-between">
-          <div>Copyright © 2026-2027 {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'}. All rights reserved.</div>
+          <div>Copyright © 2026-2027 {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'}. All rights reserved. Developed by Zenith Software.</div>
           <div></div>
         </div>
 

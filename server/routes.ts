@@ -4478,16 +4478,21 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
       const newCodeFormatted = `${prefix}${highestCode + 1}`;
       
       const newId = crypto.randomUUID();
+      const now = new Date().toISOString();
       db.participants.push({
         id: newId,
         fullName: p.fullName,
+        selectedCategoryId: cat.id,
         categoryId: cat.id,
         unitId: unit.id,
         chestNumber: newCodeFormatted,
         dob: p.dob || '2010-01-01',
         gender: p.gender || 'male',
+        active: true,
         registrationStatus: 'approved',
-        registeredAt: new Date().toISOString()
+        registeredAt: now,
+        createdAt: now,
+        updatedAt: now
       });
       
       db.chestNumbers.push({
@@ -4528,8 +4533,11 @@ apiRouter.post('/competitions/bulk', authenticate, requireRole([UserRole.SUPER_A
         id: crypto.randomUUID(),
         name: c.name,
         categoryId: cat.id,
-        participationType: c.participationType === 'group' ? 'group' : 'individual',
-        stageType: c.stageType === 'off_stage' ? 'off_stage' : 'on_stage',
+        participationType: c.participationType === 'group' ? ParticipationType.GROUP : ParticipationType.INDIVIDUAL,
+        stageType: c.stageType === 'off_stage' ? StageType.OFF_STAGE : StageType.ON_STAGE,
+        duration: c.duration || 5,
+        displayOrder: 0,
+        active: true,
         maxDurationMinutes: c.duration || 5,
         basePoints: 10,
         teamSize: c.participationType === 'group' ? 5 : 1,
@@ -4566,13 +4574,13 @@ apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN,
       const comp = db.competitions.find(c => c.name.toLowerCase() === r.competitionName.toLowerCase());
       if (!comp) continue;
       
-      const chestRecord = db.chestNumbers.find(cn => cn.codeNumber.toUpperCase() === r.chestNumber.toUpperCase() && cn.categoryId === comp.categoryId);
+      const chestRecord = db.chestNumbers.find(cn => cn.codeNumber && cn.codeNumber.toUpperCase() === r.chestNumber.toUpperCase() && cn.categoryId === comp.categoryId);
       if (!chestRecord) continue;
       
       let participantId: string | undefined;
       let teamId: string | undefined;
       
-      if (chestRecord.participationType === 'individual') {
+      if (chestRecord.participationType === 'individual' || (chestRecord.participationType as any) === 'individual') {
         participantId = chestRecord.entityId;
       } else {
         teamId = chestRecord.entityId;
@@ -4602,6 +4610,8 @@ apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN,
         averageMark: average,
         rank: 0,
         status: r.status === 'absent' ? ResultStatus.ABSENT : r.status === 'disqualified' ? ResultStatus.DISQUALIFIED : ResultStatus.PARTICIPATED,
+        publishedStatus: false,
+        createdBy: (req as any).user?.username || 'system',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });

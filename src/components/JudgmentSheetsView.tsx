@@ -41,7 +41,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
   const [currentScores, setCurrentScores] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'dashboard' | 'generate' | 'enter' | 'print'>('dashboard');
   const [printType, setPrintType] = useState<'blank' | 'filled'>('blank');
-  
+
   // Active Judge slot toggle (for judge users evaluating as Judge 1 or Judge 2)
   const [activeJudgeNumber, setActiveJudgeNumber] = useState<number>(1);
 
@@ -129,7 +129,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
       }
 
       const existingJm = { ...newJudgeScores[jIdx] };
-      
+
       if (isEmpty) {
         delete existingJm[critKey];
       } else {
@@ -143,16 +143,16 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
       const c4 = existingJm.c4 !== undefined ? existingJm.c4 : 0;
 
       if (existingJm.c1 === undefined && existingJm.c2 === undefined && existingJm.c3 === undefined && existingJm.c4 === undefined) {
-          delete existingJm.mark;
+        delete existingJm.mark;
       } else {
-          const autoSum = c1 + c2 + c3 + c4;
-          existingJm.mark = Math.min(Math.max(autoSum, 0), 100);
+        const autoSum = c1 + c2 + c3 + c4;
+        existingJm.mark = Math.min(Math.max(autoSum, 0), 100);
       }
 
       if (existingJm.mark === undefined) {
-         newJudgeScores.splice(jIdx, 1);
+        newJudgeScores.splice(jIdx, 1);
       } else {
-         newJudgeScores[jIdx] = existingJm;
+        newJudgeScores[jIdx] = existingJm;
       }
 
       const nonZeroMarks = newJudgeScores.filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
@@ -183,7 +183,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
 
       if (isEmpty) {
         if (jIdx >= 0) {
-           newJudgeScores.splice(jIdx, 1);
+          newJudgeScores.splice(jIdx, 1);
         }
       } else {
         if (jIdx >= 0) {
@@ -334,7 +334,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         headers: { 'Content-Type': 'application/json' }
       });
       if (!pubRes.ok) throw new Error((await pubRes.json()).error || 'Failed to publish results');
-      
+
       const data = await pubRes.json();
       setMessage({ type: 'success', text: data.message });
       loadSheet(currentSheet.id);
@@ -367,9 +367,14 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
     return (
       <div className="print-sheet bg-white p-8 max-w-[210mm] mx-auto text-black" id="judgment-sheet-print">
         {/* Print Header */}
-        <div className="text-center mb-10">
-          <div className="flex items-center justify-center mb-4">
-            <img src={eventSettings?.sahityotsavLogoUrl || '/logos/sahityotsav-logo.png'} alt="Sahityotsav" className="h-20 w-auto object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center mb-3">
+            <img
+              src={eventSettings?.sahityotsavLogoUrl || '/logos/sahityotsav-logo.png'}
+              alt="Sahityotsav"
+              className="h-20 w-auto object-contain"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
           </div>
           <h1 className="text-2xl font-normal text-slate-800">{eventSettings?.festivalName || 'Festival'}</h1>
           <h2 className="text-lg font-normal text-slate-600 mt-1">Judgement Sheet</h2>
@@ -432,7 +437,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         </div>
 
         <div className="mt-16 text-[11px] text-black flex justify-between">
-          <div>Copyright © 2026-2027 {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'}. All rights reserved.</div>
+          <div>Copyright © 2026-2027 {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'}. All rights reserved. Developed by Zenith Software.</div>
           <div></div>
         </div>
 
@@ -729,7 +734,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                   {currentScores.map((s: any, sIdx: number) => {
                     const isParticipated = s.status === JudgeScoreStatus.PARTICIPATED;
                     const isLocked = currentSheet.status === JudgmentSheetStatus.LOCKED;
-                    
+
                     // Judge slot entry (dynamic based on activeJudgeNumber selection)
                     const judgeSlotNum = activeJudgeNumber;
                     const activeJudgeEntry = s.judgeScores.find((x: any) => x.judgeNumber === judgeSlotNum);
