@@ -80,37 +80,64 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
     fetchLists();
   }, [token]);
 
-  // Filter competitions that have published results
-  const competitionsWithAnnouncedResults = competitions.filter(comp => {
-    // Category match
-    if (selectedCategoryId && comp.categoryId !== selectedCategoryId) return false;
-    // Stage type match
-    if (selectedStageType && comp.stageType !== selectedStageType) return false;
-    // Search match
-    if (search && !comp.name.toLowerCase().includes(search.toLowerCase())) return false;
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 12;
 
-    // Check if there are results for this comp
-    let compResults = results.filter(r => r.competitionId === comp.id && r.rank && r.rank <= 3);
-    
-    if (selectedPrize) {
-      compResults = compResults.filter(r => r.rank?.toString() === selectedPrize);
-    }
+  // Memoized O(1) Lookup Maps
+  const participantMap = React.useMemo(() => new Map(participants.map(p => [p.id, p])), [participants]);
+  const teamMap = React.useMemo(() => new Map(teams.map(t => [t.id, t])), [teams]);
+  const unitNameMap = React.useMemo(() => new Map(units.map(u => [u.name.toLowerCase(), u])), [units]);
+  const categoryMap = React.useMemo(() => new Map(categories.map(c => [c.id, c])), [categories]);
 
-    if (selectedUnitId) {
-      compResults = compResults.filter(r => {
+  // Pre-filter published top 3 results per competition
+  const resultsByCompMap = React.useMemo(() => {
+    const map = new Map<string, Result[]>();
+    results.forEach(r => {
+      if (!r.publishedStatus || r.deletedAt || !r.rank || r.rank > 3) return;
+      if (selectedPrize && r.rank.toString() !== selectedPrize) return;
+
+      if (selectedUnitId) {
+        let unitIdOfResult: string | undefined;
         if (r.participantId) {
-          const p = participants.find(part => part.id === r.participantId);
-          return p && p.unitId === selectedUnitId;
+          const p = participantMap.get(r.participantId);
+          unitIdOfResult = p?.unitId;
         } else if (r.teamId) {
-          const t = teams.find(team => team.id === r.teamId);
-          return t && t.unitId === selectedUnitId;
+          const t = teamMap.get(r.teamId);
+          unitIdOfResult = t?.unitId;
         }
-        return false;
-      });
-    }
+        if (unitIdOfResult !== selectedUnitId) return;
+      }
 
-    return compResults.length > 0;
-  });
+      const list = map.get(r.competitionId) || [];
+      list.push(r);
+      map.set(r.competitionId, list);
+    });
+    return map;
+  }, [results, selectedPrize, selectedUnitId, participantMap, teamMap]);
+
+  // Filter competitions that have published results in O(N) time
+  const competitionsWithAnnouncedResults = React.useMemo(() => {
+    const searchLower = search.trim().toLowerCase();
+    return competitions.filter(comp => {
+      if (selectedCategoryId && comp.categoryId !== selectedCategoryId) return false;
+      if (selectedStageType && comp.stageType !== selectedStageType) return false;
+      if (searchLower && !comp.name.toLowerCase().includes(searchLower) && !(comp.code || '').toLowerCase().includes(searchLower)) return false;
+      
+      const compRes = resultsByCompMap.get(comp.id);
+      return compRes && compRes.length > 0;
+    });
+  }, [competitions, selectedCategoryId, selectedStageType, search, resultsByCompMap]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategoryId, selectedUnitId, selectedStageType, selectedPrize, search]);
+
+  const totalPages = Math.ceil(competitionsWithAnnouncedResults.length / pageSize) || 1;
+  const paginatedCompetitions = React.useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return competitionsWithAnnouncedResults.slice(start, start + pageSize);
+  }, [competitionsWithAnnouncedResults, currentPage, pageSize]);
 
   // Get rank name badge
   const getRankBadge = (rank: number) => {
@@ -277,103 +304,121 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
           <p className="text-xs text-slate-400 mt-1">None of the matching competitions have announced their official results yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 min-w-0 w-full">
-          {competitionsWithAnnouncedResults.map(comp => {
-            // Find category
-            const category = categories.find(c => c.id === comp.categoryId);
-            
-            // Get sorted winners for this competition
-            let compResults = results.filter(r => r.competitionId === comp.id && r.rank && r.rank <= 3);
-            
-            if (selectedPrize) {
-              compResults = compResults.filter(r => r.rank?.toString() === selectedPrize);
-            }
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 min-w-0 w-full">
+            {paginatedCompetitions.map(comp => {
+              // Find category
+              const category = categoryMap.get(comp.categoryId);
+              
+              // Get pre-filtered winners for this competition
+              const compResults = [...(resultsByCompMap.get(comp.id) || [])].sort((a, b) => (a.rank || 0) - (b.rank || 0));
 
-            if (selectedUnitId) {
-              compResults = compResults.filter(r => {
-                if (r.participantId) {
-                  const p = participants.find(part => part.id === r.participantId);
-                  return p && p.unitId === selectedUnitId;
-                } else if (r.teamId) {
-                  const t = teams.find(team => team.id === r.teamId);
-                  return t && t.unitId === selectedUnitId;
-                }
-                return false;
-              });
-            }
-
-            compResults.sort((a, b) => (a.rank || 0) - (b.rank || 0));
-
-            return (
-              <div key={comp.id} className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between min-w-0 w-full">
-                <div>
-                  {/* Event Title Section */}
-                  <div className="p-4 sm:p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-start gap-3 min-w-0">
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <span className="inline-block px-2 py-0.5 bg-emerald-50 text-emerald-700 font-mono text-[9px] font-bold rounded-md tracking-wider border border-emerald-100 uppercase">
-                        {category?.name || 'Unknown'}
-                      </span>
-                      <h3 className="font-display font-extrabold text-slate-800 text-xs sm:text-sm tracking-tight break-words">{comp.name}</h3>
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold font-mono tracking-wider bg-amber-50 text-amber-700 border border-amber-200 uppercase">
-                        {comp.stageType}
-                      </span>
-                      {comp.language && (
-                        <span className="text-[8px] text-slate-400">Lang: {comp.language}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Winners List */}
-                  <div className="p-5 divide-y divide-slate-100">
-                    {compResults.map(res => {
-                      // Get winner name and unit
-                      let winnerName = 'Unknown Participant';
-                      let winnerUnitName = 'Unknown Unit';
-                      let winnerUnitCode = 'GEN';
-
-                      if (res.participantId) {
-                        winnerName = res.participantName || 'Unknown Participant';
-                        winnerUnitName = res.unitName || 'Unknown Unit';
-                        const u = units.find(unit => unit.name === res.unitName);
-                        winnerUnitCode = u ? u.code : 'GEN';
-                      } else if (res.teamId) {
-                        winnerName = res.teamName || 'Group Team';
-                        if (res.teamNumber) {
-                           winnerName = `${winnerName} (${res.teamNumber})`;
-                        }
-                        winnerUnitName = res.unitName || 'Unknown Unit';
-                        const u = units.find(unit => unit.name === res.unitName);
-                        winnerUnitCode = u ? u.code : 'GEN';
-                      }
-
-                      return (
-                        <div key={res.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
-                          <div className="space-y-0.5">
-                            <p className="font-bold text-slate-800 text-xs">{winnerName}</p>
-                            <p className="text-[10px] text-slate-500 font-medium">
-                              {entityLabel}: <strong className="text-slate-700">{winnerUnitName}</strong> ({winnerUnitCode})
-                            </p>
-                          </div>
-                          <div className="shrink-0">
-                            {getRankBadge(res.rank || 0)}
-                          </div>
+              return (
+                <div key={comp.id} className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between min-w-0 w-full">
+                  <div>
+                    {/* Event Title Section */}
+                    <div className="p-4 sm:p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-start gap-3 min-w-0">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block px-2 py-0.5 bg-emerald-50 text-emerald-700 font-mono text-[9px] font-bold rounded-md tracking-wider border border-emerald-100 uppercase">
+                            {category?.name || 'Unknown'}
+                          </span>
+                          <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 font-mono text-[9px] font-bold rounded-md tracking-wider border border-slate-200 uppercase">
+                            {comp.code || comp.id.replace('comp_', '').toUpperCase()}
+                          </span>
                         </div>
-                      );
-                    })}
+                        <h3 className="font-display font-extrabold text-slate-800 text-xs sm:text-sm tracking-tight break-words">{comp.name}</h3>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold font-mono tracking-wider bg-amber-50 text-amber-700 border border-amber-200 uppercase">
+                          {comp.stageType}
+                        </span>
+                        {comp.language && (
+                          <span className="text-[8px] text-slate-400">Lang: {comp.language}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Winners List */}
+                    <div className="p-5 divide-y divide-slate-100">
+                      {compResults.map(res => {
+                        let winnerName = 'Unknown Participant';
+                        let winnerUnitName = 'Unknown Unit';
+                        let winnerUnitCode = 'GEN';
+
+                        if (res.participantId) {
+                          winnerName = res.participantName || 'Unknown Participant';
+                          winnerUnitName = res.unitName || 'Unknown Unit';
+                          const u = res.unitName ? unitNameMap.get(res.unitName.toLowerCase()) : undefined;
+                          winnerUnitCode = u ? u.code : 'GEN';
+                        } else if (res.teamId) {
+                          winnerName = res.teamName || 'Group Team';
+                          if (res.teamNumber) {
+                             winnerName = `${winnerName} (${res.teamNumber})`;
+                          }
+                          winnerUnitName = res.unitName || 'Unknown Unit';
+                          const u = res.unitName ? unitNameMap.get(res.unitName.toLowerCase()) : undefined;
+                          winnerUnitCode = u ? u.code : 'GEN';
+                        }
+
+                        return (
+                          <div key={res.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
+                            <div className="space-y-0.5">
+                              <p className="font-bold text-slate-800 text-xs">{winnerName}</p>
+                              <p className="text-[10px] text-slate-500 font-medium">
+                                {entityLabel}: <strong className="text-slate-700">{winnerUnitName}</strong> ({winnerUnitCode})
+                              </p>
+                            </div>
+                            <div className="shrink-0">
+                              {getRankBadge(res.rank || 0)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Secure Notice Footer */}
+                  <div className="px-5 py-2.5 bg-slate-50/50 border-t border-slate-100 flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
+                    <span className="inline-block w-1 h-1 bg-emerald-500 rounded-full" />
+                    <span>Verified result announced officially</span>
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
-                {/* Secure Notice Footer */}
-                <div className="px-5 py-2.5 bg-slate-50/50 border-t border-slate-100 flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
-                  <span className="inline-block w-1 h-1 bg-emerald-500 rounded-full" />
-                  <span>Verified result announced officially</span>
-                </div>
+          {/* Pagination Bar */}
+          {competitionsWithAnnouncedResults.length > pageSize && (
+            <div className="mt-6 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 no-print">
+              <div className="text-xs font-mono text-slate-500">
+                Showing <span className="font-bold text-slate-800">{(currentPage - 1) * pageSize + 1}</span> to <span className="font-bold text-slate-800">{Math.min(currentPage * pageSize, competitionsWithAnnouncedResults.length)}</span> of <span className="font-bold text-emerald-600">{competitionsWithAnnouncedResults.length}</span> announced programs
               </div>
-            );
-          })}
-        </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-mono text-xs font-bold transition-all"
+                >
+                  Previous
+                </button>
+
+                <span className="text-xs font-mono font-bold text-slate-600 px-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+
+                <button
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-mono text-xs font-bold transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
       </div>
 

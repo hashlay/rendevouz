@@ -54,8 +54,14 @@ export default function StandingsView({ user, token, eventSettings }: StandingsV
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       
-      {/* 1. Visual Bento Standings Card lists */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-w-0 w-full">
+      {/* 1. Visual Bento Standings Card lists - Centered for 1, 2, or 3+ units */}
+      <div className={`gap-4 min-w-0 w-full ${
+        standings.length === 1 
+          ? 'flex justify-center max-w-md mx-auto' 
+          : standings.length === 2 
+          ? 'grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto' 
+          : 'grid grid-cols-1 md:grid-cols-3'
+      }`}>
         {standings.slice(0, 3).map((unit, index) => {
           return (
             <div 

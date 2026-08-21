@@ -101,8 +101,24 @@ apiRouter.use(async (req, res, next) => {
           });
         }
         if (db.competitions) {
+          const catCounterMap: Record<string, number> = {};
           db.competitions.forEach((c: any) => {
             if (c.name) c.name = toTitleCase(c.name);
+            if (!c.code || !c.code.trim()) {
+              const catId = c.categoryId || 'cat_general';
+              catCounterMap[catId] = (catCounterMap[catId] || 0) + 1;
+              const category = (db.categories || []).find((cat: any) => cat.id === catId);
+              let prefix = 'CMP';
+              if (category && category.name) {
+                const catLower = category.name.toLowerCase();
+                if (catLower.includes('sub')) prefix = 'SJ';
+                else if (catLower.includes('junior')) prefix = 'JR';
+                else if (catLower.includes('senior')) prefix = 'SR';
+                else if (catLower.includes('general')) prefix = 'GEN';
+                else prefix = category.name.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'CMP';
+              }
+              c.code = `${prefix}${String(catCounterMap[catId]).padStart(2, '0')}`;
+            }
           });
         }
       }
@@ -856,6 +872,13 @@ apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, User
   const db = dbClient.get();
   const prevSettings = { ...db.eventSettings };
   
+  if (req.body.posterTemplateConfig) {
+    db.posterTemplateConfig = req.body.posterTemplateConfig;
+  }
+  if (req.body.certificateTemplateConfig) {
+    db.certificateTemplateConfig = req.body.certificateTemplateConfig;
+  }
+
   db.eventSettings = {
     ...db.eventSettings,
     ...req.body
@@ -864,7 +887,12 @@ apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, User
   await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Update Event Settings', 'EventSettings', 'global', undefined, prevSettings, db.eventSettings);
   await dbClient.save();
   
-  res.json({ message: 'Settings updated successfully', settings: db.eventSettings });
+  res.json({ 
+    message: 'Settings updated successfully', 
+    settings: db.eventSettings,
+    posterTemplateConfig: db.posterTemplateConfig,
+    certificateTemplateConfig: db.certificateTemplateConfig
+  });
 });
 
 // GET CMS Settings (Admin View)
@@ -1116,6 +1144,50 @@ apiRouter.delete('/categories/:id', authenticate, requireRole([UserRole.SUPER_AD
 
 // 6. COMPETITIONS
 
+function generateCompCode(db: any, categoryId: string, name: string, requestedCode?: string): string {
+  if (requestedCode && requestedCode.trim()) {
+    return requestedCode.trim().toUpperCase();
+  }
+  const category = (db.categories || []).find((c: any) => c.id === categoryId);
+  let prefix = 'CMP';
+  if (category && category.name) {
+    const catLower = category.name.toLowerCase();
+    if (catLower.includes('sub') || catLower.includes('sj')) prefix = 'SJ';
+    else if (catLower.includes('junior') || catLower.includes('jr') || catLower.includes('jn')) prefix = 'JR';
+    else if (catLower.includes('senior') || catLower.includes('sr')) prefix = 'SR';
+    else if (catLower.includes('general') || catLower.includes('gen')) prefix = 'GEN';
+    else if (catLower.includes('primary') || catLower.includes('pr')) prefix = 'PR';
+    else if (catLower.includes('sec') || catLower.includes('high')) prefix = 'SEC';
+    else prefix = category.name.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'CMP';
+  }
+
+  // Find all existing competitions matching category or prefix to find max numeric index
+  const compsInCat = (db.competitions || []).filter((c: any) => 
+    c.categoryId === categoryId || 
+    (c.code && typeof c.code === 'string' && c.code.toUpperCase().startsWith(prefix))
+  );
+
+  let maxNum = 0;
+  for (const comp of compsInCat) {
+    if (comp.code) {
+      const match = String(comp.code).match(/(\d+)$/);
+      if (match) {
+        const n = parseInt(match[1], 10);
+        if (!isNaN(n) && n > maxNum) {
+          maxNum = n;
+        }
+      }
+    }
+  }
+
+  if (maxNum === 0) {
+    maxNum = compsInCat.length;
+  }
+
+  const nextNum = maxNum + 1;
+  return `${prefix}${String(nextNum).padStart(2, '0')}`;
+}
+
 apiRouter.get('/competitions', async (req, res) => {
   const db = dbClient.get();
   const comps = db.competitions.map(c => ({ ...c, name: toTitleCase(c.name) }));
@@ -1123,16 +1195,19 @@ apiRouter.get('/competitions', async (req, res) => {
 });
 
 apiRouter.post('/competitions', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
-  const { name, categoryId, language, participationType, teamSize, duration, stageType, displayOrder } = req.body;
+  const { name, code, categoryId, language, participationType, teamSize, duration, stageType, displayOrder } = req.body;
   const db = dbClient.get();
 
   if (!name || !categoryId || !participationType || !stageType) {
     return res.status(400).json({ error: 'Name, Category, Participation Type, and Stage Type are required.' });
   }
 
+  const assignedCode = generateCompCode(db, categoryId, name, code);
+
   const newComp: Competition = {
     id: `comp_${categoryId.replace('cat_', '')}_${Date.now()}`,
     name: toTitleCase(name),
+    code: assignedCode,
     categoryId,
     language: language ? language.trim() : undefined,
     participationType,
@@ -1159,10 +1234,14 @@ apiRouter.put('/competitions/:id', authenticate, requireRole([UserRole.SUPER_ADM
   }
 
   const oldComp = { ...db.competitions[compIndex] };
+  const catId = req.body.categoryId || oldComp.categoryId;
+  const assignedCode = req.body.code ? req.body.code.trim().toUpperCase() : (oldComp.code || generateCompCode(db, catId, req.body.name || oldComp.name));
+
   db.competitions[compIndex] = {
     ...db.competitions[compIndex],
     ...req.body,
     name: req.body.name ? toTitleCase(req.body.name) : oldComp.name,
+    code: assignedCode,
     // ensure casting
     teamSize: req.body.participationType === ParticipationType.INDIVIDUAL ? 1 : Number(req.body.teamSize || oldComp.teamSize),
     duration: req.body.duration !== undefined ? Number(req.body.duration) : oldComp.duration,
@@ -1179,25 +1258,45 @@ apiRouter.delete('/competitions/:id', authenticate, requireRole([UserRole.SUPER_
   const db = dbClient.get();
   const compId = req.params.id;
 
-  // Check if used in results or teams
-  const hasResults = db.results.some(r => r.competitionId === compId && !r.deletedAt);
-  const hasTeams = db.teams.some(t => t.competitionId === compId && !t.deletedAt);
-
-  if (hasResults || hasTeams) {
-    return res.status(400).json({ error: 'Cannot delete competition because it has registered results or team participants.' });
-  }
-
   const index = db.competitions.findIndex(c => c.id === compId);
   if (index === -1) {
     return res.status(404).json({ error: 'Competition not found' });
   }
 
   const deletedComp = db.competitions[index];
+  const now = new Date().toISOString();
+
+  // Cascade delete associated results, teams, registrations, and judgment sheets
+  (db.results || []).forEach(r => {
+    if (r.competitionId === compId) r.deletedAt = now;
+  });
+
+  (db.teams || []).forEach(t => {
+    if (t.competitionId === compId) t.deletedAt = now;
+  });
+
+  (db.greenRoomAssignments || []).forEach(gr => {
+    if (gr.competitionId === compId) gr.deletedAt = now;
+  });
+
+  (db.judgmentSheets || []).forEach(js => {
+    if (js.competitionId === compId) js.deletedAt = now;
+  });
+
+  (db.registrations || []).forEach(reg => {
+    if (Array.isArray(reg.selectedIndividualCompetitionIds)) {
+      reg.selectedIndividualCompetitionIds = reg.selectedIndividualCompetitionIds.filter((id: string) => id !== compId);
+    }
+    if (Array.isArray(reg.selectedGroupTeamIds)) {
+      reg.selectedGroupTeamIds = reg.selectedGroupTeamIds.filter((id: string) => id !== compId);
+    }
+  });
+
   db.competitions.splice(index, 1);
   await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Delete Competition', 'Competition', compId, undefined, deletedComp);
   await dbClient.save();
 
-  res.json({ message: 'Competition deleted successfully' });
+  res.json({ message: 'Competition and associated records deleted successfully' });
 });
 
 
@@ -1222,10 +1321,14 @@ apiRouter.post('/competitions/bulk', authenticate, requireRole([UserRole.SUPER_A
     );
     if (!cat && db.categories.length > 0) cat = db.categories[0];
 
+    const catId = cat ? cat.id : 'cat_general';
+    const assignedCode = generateCompCode(db, catId, name, item.code);
+
     const newComp: Competition = {
       id: `comp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       name: toTitleCase(name),
-      categoryId: cat ? cat.id : 'cat_general',
+      code: assignedCode,
+      categoryId: catId,
       participationType: (item.participationType || '').toString().toLowerCase().includes('group') ? ParticipationType.GROUP : ParticipationType.INDIVIDUAL,
       teamSize: (item.participationType || '').toString().toLowerCase().includes('group') ? (Number(item.teamSize) || 2) : 1,
       duration: Number(item.duration) || 5,
@@ -1783,7 +1886,7 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
   res.json({ message: 'Participant updated successfully', participant: existingPart });
 });
 
-// Soft Delete Participant
+// Soft Delete Participant (With Automatic Cascading Cleanup of Results, Teams, and Chest Numbers)
 apiRouter.post('/participants/:id/delete', authenticate, async (req, res) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
@@ -1808,26 +1911,48 @@ apiRouter.post('/participants/:id/delete', authenticate, async (req, res) => {
     return res.status(403).json({ error: 'Access denied. You can only delete participants from your own unit.' });
   }
 
-  // Safety checks: Is participant registered in group teams or has entered results?
-  const isMemberOfTeams = db.teams.some(t => t.memberIds.includes(partId) && !t.deletedAt);
-  const hasResults = db.results.some(r => r.participantId === partId && !r.deletedAt);
+  const now = new Date().toISOString();
 
-  if (isMemberOfTeams) {
-    return res.status(400).json({ error: 'Cannot delete participant. They are active members of a group team. Remove them from the team first.' });
-  }
-  if (hasResults) {
-    return res.status(400).json({ error: 'Cannot delete participant. They have results entered for competitions. Delete results first.' });
-  }
+  // Cascade soft delete associated results
+  (db.results || []).forEach(r => {
+    if (r.participantId === partId) {
+      r.deletedAt = now;
+    }
+  });
 
-  // Soft delete
-  part.deletedAt = new Date().toISOString();
+  // Cascade cleanup from group teams
+  (db.teams || []).forEach(t => {
+    if (Array.isArray(t.memberIds) && t.memberIds.includes(partId)) {
+      t.memberIds = t.memberIds.filter((mId: string) => mId !== partId);
+      if (t.memberIds.length === 0) {
+        t.deletedAt = now;
+      }
+    }
+  });
+
+  // Cascade soft delete chest numbers
+  (db.chestNumbers || []).forEach(cn => {
+    if (cn.participantId === partId || cn.entityId === partId) {
+      (cn as any).deletedAt = now;
+    }
+  });
+
+  // Cascade soft delete registrations
+  (db.registrations || []).forEach(reg => {
+    if (reg.participantId === partId) {
+      (reg as any).deletedAt = now;
+    }
+  });
+
+  // Soft delete participant
+  part.deletedAt = now;
   part.deletedBy = user.username;
   part.deletionReason = reason || 'Not specified';
 
   await dbClient.logAudit(user.id, user.username, user.role, 'Soft Delete Participant', 'Participant', partId, part.unitId, undefined, { deletionReason: part.deletionReason });
   await dbClient.save();
 
-  res.json({ message: 'Participant soft-deleted successfully' });
+  res.json({ message: 'Participant and associated results & team memberships cleared successfully' });
 });
 
 
@@ -4548,11 +4673,12 @@ apiRouter.post('/competitions/bulk', authenticate, requireRole([UserRole.SUPER_A
       const catNameStr = c.categoryName ? c.categoryName.toLowerCase() : '';
       let cat = db.categories.find(cat => cat.name.toLowerCase() === catNameStr);
       if (!cat && db.categories.length > 0) cat = db.categories[0];
-      if (!cat) continue;
-      
+      const compCode = generateCompCode(db, cat.id, c.name, c.code);
+
       db.competitions.push({
         id: crypto.randomUUID(),
-        name: c.name,
+        name: toTitleCase(c.name),
+        code: compCode,
         categoryId: cat.id,
         participationType: c.participationType === 'group' ? ParticipationType.GROUP : ParticipationType.INDIVIDUAL,
         stageType: c.stageType === 'off_stage' ? StageType.OFF_STAGE : StageType.ON_STAGE,
@@ -4653,5 +4779,55 @@ apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN,
     res.json({ success: true, imported, message: `Successfully imported ${imported} results` });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Database Backup Export Endpoint
+apiRouter.get('/backup/export', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+  const db = dbClient.get();
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename=sahityotsav_backup_${Date.now()}.json`);
+  res.send(JSON.stringify(db, null, 2));
+});
+
+// Database Backup Restore Endpoint
+apiRouter.post('/backup/restore', authenticate, requireRole([UserRole.SUPER_ADMIN]), upload.single('backup'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'No backup file uploaded' });
+    const content = fs.readFileSync(file.path, 'utf-8');
+    const parsed = JSON.parse(content);
+
+    const db = dbClient.get();
+    Object.assign(db, parsed);
+
+    await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Restore Database Backup', 'System', 'global');
+    await dbClient.save();
+    res.json({ success: true, message: 'Database restored successfully' });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || 'Failed to restore backup' });
+  }
+});
+
+// Full System Reset Endpoint (Wipes candidates, teams, results, chest numbers, registrations)
+apiRouter.post('/backup/reset', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+  try {
+    const db = dbClient.get();
+    db.participants = [];
+    db.registrations = [];
+    db.teams = [];
+    db.results = [];
+    db.chestNumbers = [];
+    db.counters = [];
+    db.greenRoomAssignments = [];
+    db.judgmentSheets = [];
+    db.judgeScores = [];
+
+    await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Full Reset System Database', 'System', 'global');
+    await dbClient.save();
+
+    res.json({ success: true, message: 'System wiped successfully. All candidate registrations, teams, and results cleared.' });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || 'Failed to reset system database' });
   }
 });

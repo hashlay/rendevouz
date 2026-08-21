@@ -40,6 +40,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
   const [showCompModal, setShowCompModal] = useState(false);
   const [editingComp, setEditingComp] = useState<Competition | null>(null);
   const [compFormName, setCompFormName] = useState('');
+  const [compFormCode, setCompFormCode] = useState('');
   const [compFormCatId, setCompFormCatId] = useState('');
   const [compFormType, setCompFormType] = useState<ParticipationType>(ParticipationType.INDIVIDUAL);
   const [compFormStageType, setCompFormStageType] = useState<StageType>(StageType.ON_STAGE);
@@ -122,6 +123,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
         },
         body: JSON.stringify({
           name: compFormName,
+          code: compFormCode,
           categoryId: compFormCatId,
           participationType: compFormType,
           stageType: compFormStageType,
@@ -134,6 +136,8 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
       if (!res.ok) throw new Error(data.error || 'Failed to save competition');
       setShowCompModal(false);
       setEditingComp(null);
+      setCompFormName('');
+      setCompFormCode('');
       fetchCompsAndCats();
       alert(editingComp ? 'Competition updated!' : 'Competition created successfully!');
     } catch (err: any) {
@@ -328,10 +332,12 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
         <div>
           <div className="flex justify-between items-start border-b border-slate-100 pb-3 gap-2 min-w-0">
             <div className="min-w-0 flex-1">
-              <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-widest block truncate">
-                {comp.id.replace('comp_', '').toUpperCase()}
-              </span>
-              <h4 className="font-display font-extrabold text-slate-800 text-xs sm:text-sm leading-tight mt-1 break-words">{comp.name}</h4>
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md shrink-0">
+                  {comp.code || comp.id.replace('comp_', '').toUpperCase()}
+                </span>
+              </div>
+              <h4 className="font-display font-extrabold text-slate-800 text-xs sm:text-sm leading-tight mt-1.5 break-words">{comp.name}</h4>
             </div>
             
             <div className="flex items-center gap-1 shrink-0">
@@ -348,6 +354,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
                     onClick={() => {
                       setEditingComp(comp);
                       setCompFormName(comp.name);
+                      setCompFormCode(comp.code || '');
                       setCompFormCatId(comp.categoryId);
                       setCompFormType(comp.participationType);
                       setCompFormStageType(comp.stageType);
@@ -750,16 +757,28 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
             </div>
 
             <form onSubmit={handleSaveComp} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Program Title</label>
-                <input
-                  type="text"
-                  required
-                  value={compFormName}
-                  onChange={(e) => setCompFormName(e.target.value)}
-                  placeholder="e.g. Arabic Elocution"
-                  className="mt-1 block w-full px-3.5 py-2 border rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                />
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Program Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={compFormName}
+                    onChange={(e) => setCompFormName(e.target.value)}
+                    placeholder="e.g. Arabic Elocution"
+                    className="mt-1 block w-full px-3.5 py-2 border rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Comp Code</label>
+                  <input
+                    type="text"
+                    value={compFormCode}
+                    onChange={(e) => setCompFormCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. SJ01"
+                    className="mt-1 block w-full px-3 py-2 border rounded-xl text-xs font-mono font-bold uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 text-emerald-800"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

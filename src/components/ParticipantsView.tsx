@@ -23,12 +23,24 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
   // Filters state
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState(user.role === UserRole.UNIT_TEAM_LEADER ? (user.assignedUnitId || '') : '');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedEdStatus, setSelectedEdStatus] = useState('');
   const [selectedPlacementFilter, setSelectedPlacementFilter] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 25;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // Selected participant details drawer/modal
   const [selectedPart, setSelectedPart] = useState<Participant | null>(null);
@@ -113,7 +125,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     setLoading(true);
     try {
       const [pRes, cRes, uRes, compRes, resRes, tRes] = await Promise.all([
-        fetch(`/api/participants?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}&search=${search}`, {
+        fetch(`/api/participants?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('/api/categories'),
@@ -147,7 +159,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
   useEffect(() => {
     fetchLists();
-  }, [selectedUnitId, selectedCategoryId, search, selectedEdStatus]);
+  }, [selectedUnitId, selectedCategoryId, selectedEdStatus]);
 
   // Fetch complete profile details (results, rankings, registered events)
   const viewProfile = async (p: Participant) => {
@@ -350,22 +362,31 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       alert(err.message);
     }
   };
-  // Helper to extract published ranks earned by a participant across individual & group events
-  const getParticipantRanks = (p: Participant) => {
-    const pRanks: number[] = [];
+  // Pre-calculate participant ranks in O(N) time with useMemo
+  const participantRanksMap = React.useMemo(() => {
+    const map = new Map<string, number[]>();
     results.forEach((r: any) => {
       if (!r.publishedStatus || r.deletedAt || !r.rank) return;
-      if (r.participantId === p.id) {
-        pRanks.push(Number(r.rank));
+      const rankNum = Number(r.rank);
+      if (r.participantId) {
+        const list = map.get(r.participantId) || [];
+        list.push(rankNum);
+        map.set(r.participantId, list);
       } else if (r.teamId) {
         const t = teams.find((team: any) => team.id === r.teamId);
-        if (t && t.memberIds && t.memberIds.includes(p.id)) {
-          pRanks.push(Number(r.rank));
+        if (t && t.memberIds) {
+          t.memberIds.forEach((mId: string) => {
+            const list = map.get(mId) || [];
+            list.push(rankNum);
+            map.set(mId, list);
+          });
         }
       }
     });
-    return pRanks;
-  };
+    return map;
+  }, [results, teams]);
+
+  const getParticipantRanks = (p: Participant) => participantRanksMap.get(p.id) || [];
 
   const renderPlacementBadges = (p: Participant) => {
     const pRanks = getParticipantRanks(p);
@@ -390,23 +411,37 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     );
   };
 
-  const filteredParticipants = participants.filter(p => {
-    if (selectedPlacementFilter) {
-      const pRanks = getParticipantRanks(p);
-      const hasRank1 = pRanks.includes(1);
-      const hasRank2 = pRanks.includes(2);
-      const hasRank3 = pRanks.includes(3);
-
-      if (selectedPlacementFilter === 'no_first_second') {
-        // No 1st Rank and No 2nd Rank
-        if (hasRank1 || hasRank2) return false;
-      } else if (selectedPlacementFilter === 'no_podium') {
-        // No 1st Rank, No 2nd Rank, and No 3rd Rank (Unawarded)
-        if (hasRank1 || hasRank2 || hasRank3) return false;
+  const filteredParticipants = React.useMemo(() => {
+    const searchLower = debouncedSearch.trim().toLowerCase();
+    return participants.filter(p => {
+      if (searchLower && !p.fullName.toLowerCase().includes(searchLower) && !(p.profilePhoto || '').toLowerCase().includes(searchLower)) {
+        return false;
       }
-    }
-    return true;
-  });
+      if (selectedPlacementFilter) {
+        const pRanks = participantRanksMap.get(p.id) || [];
+        const hasRank1 = pRanks.includes(1);
+        const hasRank2 = pRanks.includes(2);
+        const hasRank3 = pRanks.includes(3);
+
+        if (selectedPlacementFilter === 'no_first_second') {
+          if (hasRank1 || hasRank2) return false;
+        } else if (selectedPlacementFilter === 'no_podium') {
+          if (hasRank1 || hasRank2 || hasRank3) return false;
+        }
+      }
+      return true;
+    });
+  }, [participants, debouncedSearch, selectedPlacementFilter, participantRanksMap]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, selectedUnitId, selectedCategoryId, selectedEdStatus, selectedPlacementFilter]);
+
+  const totalPages = Math.ceil(filteredParticipants.length / pageSize) || 1;
+  const paginatedParticipants = React.useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredParticipants.slice(start, start + pageSize);
+  }, [filteredParticipants, currentPage, pageSize]);
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
@@ -530,8 +565,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       <div>
         {/* Mobile-Friendly Grid List: compact, touch-optimized cards, hidden on medium screens and up */}
         <div className="block md:hidden space-y-3 print:hidden min-w-0 w-full">
-          {filteredParticipants.length > 0 ? (
-            filteredParticipants.map((p) => {
+          {paginatedParticipants.length > 0 ? (
+            paginatedParticipants.map((p) => {
               const unit = units.find(u => u.id === p.unitId);
               const cat = categories.find(c => c.id === p.selectedCategoryId);
               return (
@@ -643,8 +678,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-100 text-sm">
-                {filteredParticipants.length > 0 ? (
-                  filteredParticipants.map((p) => {
+                {paginatedParticipants.length > 0 ? (
+                  paginatedParticipants.map((p) => {
                     const unit = units.find(u => u.id === p.unitId);
                     const cat = categories.find(c => c.id === p.selectedCategoryId);
                     return (
@@ -706,7 +741,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                   })
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-mono text-xs">
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-mono text-xs">
                       No participants registered under selected filters
                     </td>
                   </tr>
@@ -715,6 +750,37 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
             </table>
           </div>
         </div>
+
+        {/* Pagination Bar */}
+        {filteredParticipants.length > pageSize && (
+          <div className="mt-4 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 no-print">
+            <div className="text-xs font-mono text-slate-500">
+              Showing <span className="font-bold text-slate-800">{(currentPage - 1) * pageSize + 1}</span> to <span className="font-bold text-slate-800">{Math.min(currentPage * pageSize, filteredParticipants.length)}</span> of <span className="font-bold text-emerald-600">{filteredParticipants.length}</span> candidates
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-mono text-xs font-bold transition-all"
+              >
+                Previous
+              </button>
+
+              <span className="text-xs font-mono font-bold text-slate-600 px-2">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-mono text-xs font-bold transition-all"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* --- PROFILE DETAILS DRAWER MODAL --- */}
