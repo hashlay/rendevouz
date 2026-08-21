@@ -232,6 +232,18 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   const [themeRules, setThemeRules] = useState<any[]>(migratedConfig.themeRules || []);
   const [themeConfigs, setThemeConfigs] = useState<any>(migratedConfig.themeConfigs || {});
   const [selectedThemeIndex, setSelectedThemeIndex] = useState<number>(0);
+  const [categories, setCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/categories')
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCategories(data);
+        }
+      })
+      .catch(err => console.error('Failed to load categories in PosterSettingsView:', err));
+  }, []);
 
   // Get current theme's config (with defaults)
   const getThemeConfig = (idx: number) => {
@@ -816,36 +828,136 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
             <SectionHeader id="rules" title="Theme Assignment Rules" icon={Layers} />
             {expandedSection === 'rules' && (
               <>
-                <p className="text-[10px] text-slate-500">Map themes to result number ranges. Result #001 = first announced result.</p>
-                <button
-                  onClick={() => setThemeRules([...themeRules, { id: Date.now(), startResult: 1, endResult: 10, themeIndex: 0 }])}
-                  className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition-colors"
-                >
-                  <Plus className="w-3 h-3" /> Add Rule
-                </button>
-                {themeRules.map((rule, idx) => (
-                  <div key={rule.id} className="p-3 border border-slate-200 rounded-xl bg-slate-50 relative flex flex-col gap-2">
-                    <button
-                      onClick={() => setThemeRules(prev => prev.filter((_, i) => i !== idx))}
-                      className="absolute -top-2 -right-2 bg-slate-200 hover:bg-red-500 hover:text-white text-slate-600 rounded-full p-1 transition-colors z-10"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-600">Result</span>
-                      <input type="number" value={rule.startResult} onChange={e => { const newRules = [...themeRules]; newRules[idx].startResult = Number(e.target.value); setThemeRules(newRules); }} className="w-16 px-2 py-1 text-xs border rounded" />
-                      <span className="text-xs font-bold text-slate-600">to</span>
-                      <input type="number" value={rule.endResult} onChange={e => { const newRules = [...themeRules]; newRules[idx].endResult = Number(e.target.value); setThemeRules(newRules); }} className="w-16 px-2 py-1 text-xs border rounded" />
+                <p className="text-[10px] text-slate-500 mb-2">Map themes to result number ranges or competition categories.</p>
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <button
+                    onClick={() => setThemeRules([...themeRules, { id: Date.now(), type: 'resultRange', startResult: 1, endResult: 10, themeIndex: 0 }])}
+                    className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition-colors"
+                  >
+                    <Plus className="w-3 h-3" /> Add Result Range Rule
+                  </button>
+                  <button
+                    onClick={() => {
+                      const firstCat = categories[0];
+                      const firstCatId = firstCat ? (firstCat.id || firstCat.name || firstCat) : '';
+                      const firstCatName = firstCat ? (firstCat.name || firstCat) : '';
+                      setThemeRules([...themeRules, { id: Date.now(), type: 'category', categoryId: firstCatId, categoryName: firstCatName, themeIndex: 0 }]);
+                    }}
+                    className="flex items-center gap-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-200 transition-colors"
+                  >
+                    <Plus className="w-3 h-3" /> Add Category Rule
+                  </button>
+                </div>
+                {themeRules.map((rule, idx) => {
+                  const isCategoryRule = rule.type === 'category' || (!rule.type && (rule.categoryId || rule.categoryName));
+                  return (
+                    <div key={rule.id || idx} className="p-3 border border-slate-200 rounded-xl bg-slate-50 relative flex flex-col gap-2.5">
+                      <button
+                        onClick={() => setThemeRules(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute -top-2 -right-2 bg-slate-200 hover:bg-red-500 hover:text-white text-slate-600 rounded-full p-1 transition-colors z-10"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+
+                      {/* Rule Type Selector */}
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Rule Type</span>
+                        <select
+                          value={isCategoryRule ? 'category' : 'resultRange'}
+                          onChange={e => {
+                            const newType = e.target.value;
+                            const newRules = [...themeRules];
+                            if (newType === 'category') {
+                              const firstCat = categories[0];
+                              newRules[idx] = {
+                                ...newRules[idx],
+                                type: 'category',
+                                categoryId: newRules[idx].categoryId || (firstCat?.id || firstCat?.name || ''),
+                                categoryName: newRules[idx].categoryName || (firstCat?.name || '')
+                              };
+                            } else {
+                              newRules[idx] = {
+                                ...newRules[idx],
+                                type: 'resultRange',
+                                startResult: newRules[idx].startResult || 1,
+                                endResult: newRules[idx].endResult || 10
+                              };
+                            }
+                            setThemeRules(newRules);
+                          }}
+                          className="text-xs font-bold px-2 py-0.5 border rounded bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                          <option value="resultRange">Result Number Range</option>
+                          <option value="category">Category Wise</option>
+                        </select>
+                      </div>
+
+                      {/* Rule Inputs */}
+                      {isCategoryRule ? (
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Category</label>
+                          <select
+                            value={rule.categoryId || rule.categoryName || ''}
+                            onChange={e => {
+                              const val = e.target.value;
+                              const matched = categories.find(c => (c.id && c.id === val) || (c.name && c.name === val) || c === val);
+                              const catId = matched?.id || val;
+                              const catName = matched?.name || val;
+                              const newRules = [...themeRules];
+                              newRules[idx] = {
+                                ...newRules[idx],
+                                categoryId: catId,
+                                categoryName: catName
+                              };
+                              setThemeRules(newRules);
+                            }}
+                            className="w-full text-xs p-1.5 border rounded bg-white font-medium text-slate-800"
+                          >
+                            {categories.length === 0 && <option value="">No categories available</option>}
+                            {categories.map((cat, cIdx) => {
+                              const catVal = cat.id || cat.name || cat;
+                              const catLabel = cat.name || cat;
+                              return (
+                                <option key={cat.id || cIdx} value={catVal}>
+                                  {catLabel}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-600">Result</span>
+                          <input
+                            type="number"
+                            value={rule.startResult ?? 1}
+                            onChange={e => { const newRules = [...themeRules]; newRules[idx].startResult = Number(e.target.value); setThemeRules(newRules); }}
+                            className="w-16 px-2 py-1 text-xs border rounded bg-white text-slate-800"
+                          />
+                          <span className="text-xs font-bold text-slate-600">to</span>
+                          <input
+                            type="number"
+                            value={rule.endResult ?? 10}
+                            onChange={e => { const newRules = [...themeRules]; newRules[idx].endResult = Number(e.target.value); setThemeRules(newRules); }}
+                            className="w-16 px-2 py-1 text-xs border rounded bg-white text-slate-800"
+                          />
+                        </div>
+                      )}
+
+                      {/* Theme Selector */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Assigned Theme</label>
+                        <select
+                          value={rule.themeIndex ?? 0}
+                          onChange={e => { const newRules = [...themeRules]; newRules[idx].themeIndex = Number(e.target.value); setThemeRules(newRules); }}
+                          className="w-full text-xs p-1.5 border rounded bg-white font-medium text-slate-800"
+                        >
+                          {customThemes.map((_, i) => <option key={i} value={i}>Theme {i + 1}</option>)}
+                        </select>
+                      </div>
                     </div>
-                    <select
-                      value={rule.themeIndex ?? 0}
-                      onChange={e => { const newRules = [...themeRules]; newRules[idx].themeIndex = Number(e.target.value); setThemeRules(newRules); }}
-                      className="w-full text-xs p-1.5 border rounded"
-                    >
-                      {customThemes.map((_, i) => <option key={i} value={i}>Theme {i + 1}</option>)}
-                    </select>
-                  </div>
-                ))}
+                  );
+                })}
               </>
             )}
           </div>

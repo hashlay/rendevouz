@@ -186,7 +186,9 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
 
   const updateLocalConf = (key: string, value: any) => {
     const compIdx = getAnnouncementIndex(selectedCompId);
-    const themeIdx = getThemeIndexForResult(compIdx);
+    const aComp = competitions.find(c => c.id === selectedCompId);
+    const aCat = aComp ? categories.find(cat => cat.id === aComp.categoryId) : null;
+    const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
     setLocalThemeConfigs((prev: any) => ({
       ...prev,
       [themeIdx]: {
@@ -350,7 +352,9 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
 
       if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
         const compIdx = getAnnouncementIndex(selectedCompId);
-        const themeIdx = getThemeIndexForResult(compIdx);
+        const aComp = competitions.find(c => c.id === selectedCompId);
+        const aCat = aComp ? categories.find(cat => cat.id === aComp.categoryId) : null;
+        const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
         const c = getThemeConfig(themeIdx);
 
         const posMap = dragPosMap[dragging];
@@ -485,9 +489,19 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     return availableComps.findIndex(c => c.id === compId) + 1;
   };
 
-  // Determine which theme index to use for a given result number
-  const getThemeIndexForResult = (resultNum: number): number => {
-    const rule = themeRules.find((r: any) => resultNum >= r.startResult && resultNum <= r.endResult);
+  // Determine which theme index to use for a given result number or category
+  const getThemeIndexForResult = (resultNum: number, categoryName?: string, categoryId?: string): number => {
+    const rule = themeRules.find((r: any) => {
+      if (r.type === 'category' || r.categoryId || r.categoryName) {
+        if (categoryId && r.categoryId && r.categoryId === categoryId) return true;
+        if (categoryName && (r.categoryName || r.category)) {
+          const rCat = (r.categoryName || r.category).toString().trim().toLowerCase();
+          if (rCat === categoryName.trim().toLowerCase()) return true;
+        }
+        return false;
+      }
+      return resultNum >= r.startResult && resultNum <= r.endResult;
+    });
     if (rule && rule.themeIndex !== undefined && rule.themeIndex < customThemes.length) {
       return rule.themeIndex;
     }
@@ -512,7 +526,7 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     if (!ctx) return;
 
     const compIdx = getAnnouncementIndex(selectedCompId);
-    const themeIdx = getThemeIndexForResult(compIdx);
+    const themeIdx = getThemeIndexForResult(compIdx, activeCategory?.name, activeCategory?.id);
     const backgroundSource = customThemes[themeIdx] || customThemes[0];
 
     if (backgroundSource) {
@@ -897,7 +911,7 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
             {/* Right: Controls Sidebar (Certificate Generator style) */}
             {(() => {
               const compIdx = getAnnouncementIndex(selectedCompId);
-              const themeIdx = getThemeIndexForResult(compIdx);
+              const themeIdx = getThemeIndexForResult(compIdx, activeCategory?.name, activeCategory?.id);
               const c = getThemeConfig(themeIdx);
               return (
                 <div className="w-full md:w-80 lg:w-96 bg-white p-4 sm:p-6 overflow-y-auto flex flex-col max-h-[50vh] md:max-h-full justify-between">
