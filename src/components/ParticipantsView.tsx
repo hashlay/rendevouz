@@ -58,16 +58,31 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     setImportingBulk(true);
 
     try {
-      // Parse CSV lines: Name, Category, Unit/House, DOB, Gender
+      const cleanVal = (s?: string) => {
+        if (!s) return '';
+        const trimmed = s.trim();
+        if (trimmed === '-' || trimmed === '—' || trimmed === 'N/A' || trimmed === 'null') return '';
+        return trimmed;
+      };
+
+      // Parse CSV lines: Name, Category, Unit/House, DOB, Class, Gender
       const lines = bulkText.trim().split('\n');
       const participantsToImport = lines.map(line => {
         const parts = line.split(',').map(s => s.trim());
+        const fullName = cleanVal(parts[0]);
+        const categoryName = cleanVal(parts[1]);
+        const unitName = cleanVal(parts[2]);
+        const dob = cleanVal(parts[3]) || '2010-01-01';
+        const candidateClass = cleanVal(parts[4]);
+        const gender = cleanVal(parts[5]) || cleanVal(parts[4]) || 'male';
+
         return {
-          fullName: parts[0] || '',
-          categoryName: parts[1] || '',
-          unitName: parts[2] || '',
-          dob: parts[3] || '2010-01-01',
-          gender: parts[4] || 'male'
+          fullName,
+          categoryName,
+          unitName,
+          dob,
+          candidateClass,
+          gender
         };
       }).filter(p => p.fullName.length > 0);
 
@@ -482,8 +497,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
             <div className="p-3 bg-emerald-50 text-emerald-800 rounded-2xl text-xs space-y-1 border border-emerald-200">
               <p className="font-bold">Format: One participant per line (CSV format):</p>
-              <p className="font-mono text-[11px]">Full Name, Category, Unit/House, Date of Birth (YYYY-MM-DD), Gender (Male/Female)</p>
-              <p className="text-[10px] text-emerald-700 mt-1">Example: Muhammad Raihan, Junior, Red House, 2008-04-15, Male</p>
+              <p className="font-mono text-[11px]">Full Name, Category, Unit/House, Date of Birth (YYYY-MM-DD), Class, Gender (Male/Female)</p>
+              <p className="text-[10px] text-emerald-700 mt-1">Example: Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male (Use - for blank fields: Rayan, Junior, Zenith, -, Class 8, Male)</p>
             </div>
 
             <textarea

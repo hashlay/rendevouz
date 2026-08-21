@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Settings, Save, Database, Trash2, ShieldAlert, 
-  RefreshCw, CheckCircle2, Download, Upload, AlertTriangle, Sparkles 
+  RefreshCw, CheckCircle2, Download, Upload, AlertTriangle, Sparkles, UserCheck 
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 
@@ -144,6 +144,11 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [autoRemoveLogoBg, setAutoRemoveLogoBg] = useState(false);
   const [fillLogo, setFillLogo] = useState(false);
 
+  // Participant Login Criteria Settings
+  const [participantLoginCriteria, setParticipantLoginCriteria] = useState<'dob' | 'class'>('dob');
+  const [classRangeStart, setClassRangeStart] = useState<number>(1);
+  const [classRangeEnd, setClassRangeEnd] = useState<number>(10);
+
   // Units / Houses CRUD state
   const [units, setUnits] = useState<any[]>([]);
   const [newUnitName, setNewUnitName] = useState('');
@@ -204,6 +209,9 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       setEntityMode(data.entityMode || 'unit');
       setAutoRemoveLogoBg(data.autoRemoveLogoBg ?? false);
       setFillLogo(data.fillLogo ?? false);
+      setParticipantLoginCriteria(data.participantLoginCriteria || 'dob');
+      setClassRangeStart(data.classRangeStart ?? 1);
+      setClassRangeEnd(data.classRangeEnd ?? 10);
 
       if (uRes.ok) setUnits(await uRes.json());
       if (cRes.ok) setCategories(await cRes.json());
@@ -257,7 +265,11 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
           entityMode,
           entityLabel: entityMode === 'house' ? 'House' : entityMode === 'team' ? 'Team' : 'Unit',
           autoRemoveLogoBg,
-          fillLogo
+          fillLogo,
+          participantLoginCriteria,
+          classRangeStart,
+          classRangeEnd,
+          availableClasses: Array.from({ length: Math.max(1, classRangeEnd - classRangeStart + 1) }, (_, i) => `Class ${classRangeStart + i}`)
         })
       });
       const responseText = await res.text();
@@ -767,6 +779,83 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                     onChange={(e) => setMaxOffStageEvents(Number(e.target.value))}
                     className="block w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-sky-700 focus:ring-2 focus:ring-sky-500"
                   />
+                )}
+              </div>
+            </div>
+
+            {/* Participant Verification & Login Criteria */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-emerald-600" />
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">
+                  Participant Verification & Login Criteria
+                </h4>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Configure whether participant login and candidate registration verification relies on Date of Birth or Class/Grade.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono mb-1.5">
+                    Verification Criteria Mode
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 cursor-pointer bg-white px-3 py-2 rounded-xl border border-slate-200 hover:border-emerald-400 text-xs font-bold text-slate-700">
+                      <input
+                        type="radio"
+                        name="criteriaMode"
+                        value="dob"
+                        checked={participantLoginCriteria === 'dob'}
+                        onChange={() => setParticipantLoginCriteria('dob')}
+                        className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      Date of Birth Mode
+                    </label>
+
+                    <label className="flex items-center gap-1.5 cursor-pointer bg-white px-3 py-2 rounded-xl border border-slate-200 hover:border-emerald-400 text-xs font-bold text-slate-700">
+                      <input
+                        type="radio"
+                        name="criteriaMode"
+                        value="class"
+                        checked={participantLoginCriteria === 'class'}
+                        onChange={() => setParticipantLoginCriteria('class')}
+                        className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500"
+                      />
+                      Class / Grade Mode
+                    </label>
+                  </div>
+                </div>
+
+                {participantLoginCriteria === 'class' && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono mb-1.5">
+                      Available Class Range
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-600 font-mono">Class</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={classRangeStart}
+                        onChange={(e) => setClassRangeStart(Number(e.target.value))}
+                        className="w-16 px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800 text-center"
+                      />
+                      <span className="text-xs font-bold text-slate-600 font-mono">to Class</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={25}
+                        value={classRangeEnd}
+                        onChange={(e) => setClassRangeEnd(Number(e.target.value))}
+                        className="w-16 px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800 text-center"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                      Generated options: Class {classRangeStart} to Class {classRangeEnd}
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

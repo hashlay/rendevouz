@@ -56,16 +56,29 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
     setImportingBulkResult(true);
 
     try {
+      const cleanVal = (s?: string) => {
+        if (!s) return '';
+        const trimmed = s.trim();
+        if (trimmed === '-' || trimmed === '—' || trimmed === 'N/A' || trimmed === 'null') return '';
+        return trimmed;
+      };
+
       // Format: Competition Name, Candidate/Chest Number, Judge1 Mark, Judge2 Mark, Status (participated/absent/disqualified)
       const lines = bulkResultText.trim().split('\n');
       const resultsToImport = lines.map(line => {
         const parts = line.split(',').map(s => s.trim());
+        const compName = cleanVal(parts[0]);
+        const chestNo = cleanVal(parts[1]);
+        const j1Str = cleanVal(parts[2]);
+        const j2Str = cleanVal(parts[3]);
+        const statusStr = cleanVal(parts[4]) || 'participated';
+
         return {
-          competitionName: parts[0] || '',
-          chestNumber: parts[1] || '',
-          judge1Mark: Number(parts[2]) || 0,
-          judge2Mark: Number(parts[3]) || 0,
-          status: (parts[4] || 'participated').toLowerCase()
+          competitionName: compName,
+          chestNumber: chestNo,
+          judge1Mark: j1Str ? Number(j1Str) || 0 : 0,
+          judge2Mark: j2Str ? Number(j2Str) || 0 : 0,
+          status: statusStr.toLowerCase()
         };
       }).filter(r => r.competitionName.length > 0);
 

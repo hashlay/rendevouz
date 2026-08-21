@@ -158,6 +158,7 @@ export interface Participant {
   selectedCategoryId: string; // References Category
   categoryId?: string; // Optional alias used in some routes
   chestNumber?: string;
+  candidateClass?: string;
   phone?: string;
   guardianPhone?: string;
   address?: string;
@@ -297,6 +298,12 @@ export interface EventSettings {
   
   // Certificate Generation System
   certificateTemplateConfig?: any; // Stores themes and coordinates for dynamic certificate generation
+
+  // Participant Verification & Login Criteria
+  participantLoginCriteria?: 'dob' | 'class';
+  classRangeStart?: number;
+  classRangeEnd?: number;
+  availableClasses?: string[];
 
   // Media Hub
   photoHubDriveLink?: string;

@@ -41,6 +41,12 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
   const [dobMonth, setDobMonth] = useState('');
   const [dobYear, setDobYear] = useState('');
   const [dob, setDob] = useState('');
+  const [candidateClass, setCandidateClass] = useState('');
+
+  const criteriaMode = eventSettings?.participantLoginCriteria || 'dob';
+  const classStart = eventSettings?.classRangeStart ?? 1;
+  const classEnd = eventSettings?.classRangeEnd ?? 10;
+  const availableClasses: string[] = eventSettings?.availableClasses || Array.from({ length: Math.max(1, classEnd - classStart + 1) }, (_, i) => `Class ${classStart + i}`);
 
   const updateCombinedDob = (d: string, m: string, y: string) => {
     if (d && m && y && y.length === 4) {
@@ -151,12 +157,22 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
       return;
     }
 
+    if (criteriaMode === 'dob' && !dob) {
+      setMessage({ type: 'error', text: 'Please enter Date of Birth (DD / MM / YYYY)' });
+      return;
+    }
+    if (criteriaMode === 'class' && !candidateClass) {
+      setMessage({ type: 'error', text: 'Please select Candidate Class / Grade' });
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
 
     const payload = {
       fullName: fullName.trim(),
-      dob,
+      dob: dob || (criteriaMode === 'dob' ? '2010-01-01' : ''),
+      candidateClass: candidateClass || '',
       unitId: selectedUnitId,
       gender,
       educationStatus: 'student',
@@ -191,6 +207,7 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
       setDobMonth('');
       setDobYear('');
       setDob('');
+      setCandidateClass('');
       setSelectedComps([]);
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message });
@@ -297,7 +314,7 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
             {/* Date of Birth: 3 Distinct Numeric Boxes (DD / MM / YYYY) */}
             <div>
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">
-                Date of Birth (DD / MM / YYYY) <span className="text-rose-500">*</span>
+                Date of Birth (DD / MM / YYYY) {criteriaMode === 'dob' ? <span className="text-rose-500">*</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
               </label>
               <div className="mt-1 flex items-center gap-2">
                 <input
@@ -316,7 +333,7 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
                     }
                   }}
                   className="w-16 px-3 py-2 border border-slate-300 rounded-xl text-center text-xs font-mono font-extrabold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  required
+                  required={criteriaMode === 'dob'}
                 />
                 <span className="text-slate-400 font-bold">/</span>
                 <input
@@ -335,7 +352,7 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
                     }
                   }}
                   className="w-16 px-3 py-2 border border-slate-300 rounded-xl text-center text-xs font-mono font-extrabold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  required
+                  required={criteriaMode === 'dob'}
                 />
                 <span className="text-slate-400 font-bold">/</span>
                 <input
@@ -353,9 +370,29 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
                     }
                   }}
                   className="w-24 px-3 py-2 border border-slate-300 rounded-xl text-center text-xs font-mono font-extrabold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  required
+                  required={criteriaMode === 'dob'}
                 />
               </div>
+            </div>
+
+            {/* Class / Grade Field */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+                Class / Grade {criteriaMode === 'class' ? <span className="text-rose-500">*</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
+              </label>
+              <select
+                value={candidateClass}
+                onChange={(e) => setCandidateClass(e.target.value)}
+                required={criteriaMode === 'class'}
+                className="mt-1 block w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              >
+                <option value="">Select Class</option>
+                {availableClasses.map((cls, idx) => (
+                  <option key={idx} value={cls}>
+                    {cls}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

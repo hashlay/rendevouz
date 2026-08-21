@@ -1335,6 +1335,7 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
         id: participantId,
         fullName: toTitleCase(fullName),
         dob: item.dob || '2010-01-01',
+        candidateClass: item.candidateClass || item.class || '',
         unitId: unit?.id || 'unit_default',
         gender: (item.gender || '').toString().toLowerCase().includes('female') ? Gender.FEMALE : Gender.MALE,
         educationStatus: EducationStatus.STUDENT,
@@ -4286,7 +4287,7 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
 
 // Participant Auth
 apiRouter.post('/public/auth/participant-login', async (req, res) => {
-  const { chestNumber, dob } = req.body;
+  const { chestNumber, dob, candidateClass, classVal } = req.body;
   const db = dbClient.get();
   
   const cNum = db.chestNumbers.find(c => c.chestNumber.toString() === chestNumber);
@@ -4295,7 +4296,18 @@ apiRouter.post('/public/auth/participant-login', async (req, res) => {
   const participant = db.participants.find(p => p.id === cNum.participantId && !p.deletedAt);
   if (!participant) return res.status(401).json({ error: 'Participant not found' });
   
-  if (participant.dob !== dob) return res.status(401).json({ error: 'Incorrect Date of Birth' });
+  const criteriaMode = db.eventSettings?.participantLoginCriteria || 'dob';
+  if (criteriaMode === 'class') {
+    const val = (candidateClass || classVal || dob || '').toString().trim().toLowerCase();
+    const pClass = (participant.candidateClass || '').toString().trim().toLowerCase();
+    if (val && pClass && val !== pClass) {
+      return res.status(401).json({ error: 'Incorrect Class / Grade' });
+    }
+  } else {
+    if (dob && participant.dob && participant.dob !== dob) {
+      return res.status(401).json({ error: 'Incorrect Date of Birth' });
+    }
+  }
   
   const enriched = getEnrichedParticipant(participant, db, cNum.chestNumber.toString());
   const token = jwt.sign({ participantId: participant.id, role: 'participant' }, JWT_SECRET || 'fallback', { expiresIn: '8h' });
@@ -4495,6 +4507,7 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
         unitId: unit.id,
         chestNumber: newCodeFormatted,
         dob: p.dob || '2010-01-01',
+        candidateClass: p.candidateClass || p.class || '',
         gender: p.gender || 'male',
         active: true,
         registrationStatus: 'approved',
