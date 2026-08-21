@@ -4,10 +4,10 @@ dotenv.config();
 import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
-import { 
-  User, UserRole, Session, LoginAudit, AuditLog, 
-  Unit, Category, Competition, Participant, Team, 
-  Result, EventSettings, EducationStatus, ParticipationType, 
+import {
+  User, UserRole, Session, LoginAudit, AuditLog,
+  Unit, Category, Competition, Participant, Team,
+  Result, EventSettings, EducationStatus, ParticipationType,
   StageType, Gender, ResultStatus,
   ChestNumber, Counter, GreenRoomAssignment, JudgmentSheet, JudgeScore
 } from '../src/types.js';
@@ -39,7 +39,7 @@ async function _connectToMongo() {
     mongoClient = new MongoClient(mongoUri);
     await mongoClient.connect();
 
-    const dbName = mongoUri.includes('/') 
+    const dbName = mongoUri.includes('/')
       ? (mongoUri.split('/').pop()?.split('?')[0] || 'sahityotsav')
       : 'sahityotsav';
 
@@ -77,8 +77,8 @@ async function _connectToMongo() {
 
     // Pull each dedicated collection from MongoDB to ensure 100% fresh data
     const collectionKeys = [
-      'users', 'units', 'categories', 'competitions', 'participants', 'teams', 
-      'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments', 
+      'users', 'units', 'categories', 'competitions', 'participants', 'teams',
+      'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments',
       'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
     ];
 
@@ -93,7 +93,7 @@ async function _connectToMongo() {
           });
           (db as any)[colName] = formatted;
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // Sanitize broken legacy local uploads from gallery & videoHighlights
@@ -101,19 +101,19 @@ async function _connectToMongo() {
       db.gallery = db.gallery.filter((g: any) => g.imageUrl && !g.imageUrl.startsWith('/data/uploads/'));
       try {
         await mongoDb.collection('gallery').deleteMany({ imageUrl: { $regex: '^/data/uploads/' } });
-      } catch (_) {}
+      } catch (_) { }
     }
     if (Array.isArray(db.videoHighlights)) {
       db.videoHighlights = db.videoHighlights.filter((v: any) => v.videoUrl && !v.videoUrl.startsWith('/data/uploads/'));
       try {
         await mongoDb.collection('videoHighlights').deleteMany({ videoUrl: { $regex: '^/data/uploads/' } });
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // Write synchronized state to local file store
     try {
       fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
-    } catch (_) {}
+    } catch (_) { }
   } catch (err) {
     console.error("❌ Failed to connect to MongoDB. Falling back to local file store.", err);
     isMongoConnected = false;
@@ -192,7 +192,14 @@ function ensureDbExists() {
       if (!db.judgmentSheets) db.judgmentSheets = [];
       if (!db.judgeScores) db.judgeScores = [];
       if (!db.gallery) db.gallery = [];
-      if (!db.videoHighlights) db.videoHighlights = [];
+      if (!db.eventSettings) db.eventSettings = {} as any;
+      db.eventSettings.eventTitle = 'Zenith';
+      db.eventSettings.sectorName = 'Software';
+      db.eventSettings.eventYear = '2026';
+      db.eventSettings.venue = '---';
+      db.eventSettings.contactInfo = 'zenithorganizer@gmail.com';
+      db.eventSettings.ssfLogoUrl = '/zenith_logo.jpg';
+      db.eventSettings.sahityotsavLogoUrl = '/zenith_logo.jpg';
       return;
     } catch (e) {
       console.error("Error reading database file, initializing fresh one", e);
@@ -232,27 +239,191 @@ function ensureDbExists() {
     { id: 'cat_sub_junior', name: 'Sub-Junior', dobStart: '2014-05-01', dobEnd: '2020-04-30', active: true },
     { id: 'cat_junior', name: 'Junior', dobStart: '2009-05-01', dobEnd: '2014-04-30', active: true },
     { id: 'cat_senior', name: 'Senior', dobStart: '2003-05-01', dobEnd: '2009-04-30', active: true },
-    { id: 'cat_general', name: 'General', dobStart: '1995-05-01', dobEnd: '2003-04-30', active: true }
+    { id: 'cat_general', name: 'General', dobStart: '1995-05-01', dobEnd: '2003-04-30', active: true },
+    { id: 'cat_campus_junior', name: 'Campus Junior', dobStart: '1995-05-01', dobEnd: '2008-04-30', educationRequirements: [EducationStatus.UNDERGRADUATE], active: true },
+    { id: 'cat_campus_senior', name: 'Campus Senior', dobStart: '1995-05-01', dobEnd: '2008-04-30', educationRequirements: [EducationStatus.POSTGRADUATE], active: true },
+    { id: 'cat_campus_general', name: 'Campus General', dobStart: '1995-05-01', dobEnd: '2008-04-30', educationRequirements: [EducationStatus.UNDERGRADUATE, EducationStatus.POSTGRADUATE], active: true }
   ];
 
-  // Default competitions array starts empty (0 programs) as requested
   const initialCompetitions: Competition[] = [];
+  let order = 1;
+
+  // Helper to add competition
+  const addComp = (catId: string, name: string, type: ParticipationType, teamSize: number, duration: number, stage: StageType, lang?: string) => {
+    initialCompetitions.push({
+      id: `comp_${catId.replace('cat_', '')}_${order++}`,
+      name,
+      categoryId: catId,
+      language: lang,
+      participationType: type,
+      teamSize,
+      duration,
+      stageType: stage,
+      displayOrder: order,
+      active: true
+    });
+  };
+
+  // Seeding SUB-JUNIOR (7 events)
+  addComp('cat_sub_junior', 'Elocution (English)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'English');
+  addComp('cat_sub_junior', 'Elocution (Urdu)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_sub_junior', 'Elocution (Kannada)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Kannada');
+  addComp('cat_sub_junior', 'Naat (Urdu)', ParticipationType.INDIVIDUAL, 1, 5, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_sub_junior', 'Song (Kannada)', ParticipationType.INDIVIDUAL, 1, 5, StageType.ON_STAGE, 'Kannada');
+  addComp('cat_sub_junior', 'Pencil Drawing', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE);
+  addComp('cat_sub_junior', 'Storytelling (Kannada)', ParticipationType.INDIVIDUAL, 1, 3, StageType.ON_STAGE, 'Kannada');
+
+  // Seeding JUNIOR (24 events)
+  addComp('cat_junior', 'Elocution (English)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'English');
+  addComp('cat_junior', 'Elocution (Urdu)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_junior', 'Elocution (Kannada)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Kannada');
+  addComp('cat_junior', 'Manqabat (Urdu)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_junior', 'Naat (Urdu)', ParticipationType.GROUP, 3, 5, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_junior', 'Song (Kannada)', ParticipationType.INDIVIDUAL, 1, 5, StageType.ON_STAGE, 'Kannada');
+  addComp('cat_junior', 'Poetry Recitation (Urdu)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_junior', 'Poetry Recitation (Hindi)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Hindi');
+  addComp('cat_junior', 'Storytelling (Urdu)', ParticipationType.INDIVIDUAL, 1, 5, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_junior', 'Storytelling (Kannada)', ParticipationType.INDIVIDUAL, 1, 5, StageType.ON_STAGE, 'Kannada');
+  addComp('cat_junior', 'Reading (Urdu)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_junior', 'Reading (Hindi)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Hindi');
+  addComp('cat_junior', 'Reading (English)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'English');
+  addComp('cat_junior', 'Reading (Arabic)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Arabic');
+  addComp('cat_junior', 'Reading (Kannada)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_junior', 'Quiz', ParticipationType.INDIVIDUAL, 1, 0, StageType.ON_STAGE);
+  addComp('cat_junior', 'Language Game (English)', ParticipationType.INDIVIDUAL, 1, 0, StageType.OFF_STAGE, 'English');
+  addComp('cat_junior', 'Math Game (English)', ParticipationType.INDIVIDUAL, 1, 0, StageType.OFF_STAGE, 'English');
+  addComp('cat_junior', 'Handwriting (English)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'English');
+  addComp('cat_junior', 'Handwriting (Urdu)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_junior', 'Handwriting (Hindi)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Hindi');
+  addComp('cat_junior', 'Handwriting (Kannada)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_junior', 'Pencil Drawing', ParticipationType.INDIVIDUAL, 1, 45, StageType.OFF_STAGE);
+  addComp('cat_junior', 'Painting (Water Color)', ParticipationType.INDIVIDUAL, 1, 45, StageType.OFF_STAGE);
+
+  // Seeding SENIOR (26 events)
+  addComp('cat_senior', 'Elocution (English)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'English');
+  addComp('cat_senior', 'Elocution (Urdu)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_senior', 'Elocution (Hindi)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Hindi');
+  addComp('cat_senior', 'Elocution (Kannada)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Kannada');
+  addComp('cat_senior', 'Manqabat (Urdu)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_senior', 'Nasheeda (Arabic)', ParticipationType.GROUP, 4, 7, StageType.ON_STAGE, 'Arabic');
+  addComp('cat_senior', 'Burda Sharif', ParticipationType.GROUP, 4, 7, StageType.ON_STAGE, 'Arabic'); // 3+1
+  addComp('cat_senior', 'Salam-e-Raza', ParticipationType.GROUP, 3, 5, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_senior', 'Azan', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE);
+  addComp('cat_senior', 'Poetry Recitation (Urdu)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_senior', 'Poetry Recitation (Hindi)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Hindi');
+  addComp('cat_senior', 'Poetry Recitation (English)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'English');
+  addComp('cat_senior', 'Poetry Recitation (Kannada)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_senior', 'Quiz', ParticipationType.INDIVIDUAL, 1, 0, StageType.ON_STAGE);
+  addComp('cat_senior', 'Essay Writing (Urdu)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_senior', 'Essay Writing (Hindi)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Hindi');
+  addComp('cat_senior', 'Essay Writing (English)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'English');
+  addComp('cat_senior', 'Essay Writing (Kannada)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_senior', 'Story Writing (Urdu)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_senior', 'Story Writing (Hindi)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Hindi');
+  addComp('cat_senior', 'Story Writing (English)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'English');
+  addComp('cat_senior', 'Story Writing (Kannada)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_senior', 'Calligraphy (Arabic)', ParticipationType.INDIVIDUAL, 1, 45, StageType.OFF_STAGE, 'Arabic');
+  addComp('cat_senior', 'Kitab Test', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE);
+  addComp('cat_senior', 'Translation (Arabic to Kannada)', ParticipationType.INDIVIDUAL, 1, 40, StageType.OFF_STAGE);
+  addComp('cat_senior', 'Baith Hifz', ParticipationType.INDIVIDUAL, 1, 0, StageType.ON_STAGE);
+
+  // Seeding GENERAL (29 events)
+  addComp('cat_general', 'Elocution (English)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'English');
+  addComp('cat_general', 'Elocution (Urdu)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_general', 'Elocution (Hindi)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Hindi');
+  addComp('cat_general', 'Elocution (Arabic)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Arabic');
+  addComp('cat_general', 'Elocution (Kannada)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Kannada');
+  addComp('cat_general', 'Hamd (Urdu)', ParticipationType.INDIVIDUAL, 1, 5, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_general', 'Poetry Recitation (Urdu)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_general', 'Poetry Recitation (Hindi)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Hindi');
+  addComp('cat_general', 'Poetry Recitation (English)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'English');
+  addComp('cat_general', 'Poetry Recitation (Kannada)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_general', 'Qawwali (Urdu)', ParticipationType.GROUP, 5, 7, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_general', 'Nasheeda (Arabic)', ParticipationType.GROUP, 4, 7, StageType.ON_STAGE, 'Arabic');
+  addComp('cat_general', 'Burda Sharif', ParticipationType.GROUP, 4, 7, StageType.ON_STAGE, 'Arabic'); // 3+1
+  addComp('cat_general', 'Quiz', ParticipationType.INDIVIDUAL, 1, 0, StageType.ON_STAGE);
+  addComp('cat_general', 'Poster Making', ParticipationType.INDIVIDUAL, 1, 45, StageType.OFF_STAGE);
+  addComp('cat_general', 'Digital Designing', ParticipationType.INDIVIDUAL, 1, 60, StageType.OFF_STAGE);
+  addComp('cat_general', 'Essay Writing (Urdu)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_general', 'Essay Writing (Hindi)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Hindi');
+  addComp('cat_general', 'Essay Writing (English)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'English');
+  addComp('cat_general', 'Essay Writing (Arabic)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Arabic');
+  addComp('cat_general', 'Essay Writing (Kannada)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_general', 'Poetry Writing (English)', ParticipationType.INDIVIDUAL, 1, 40, StageType.OFF_STAGE, 'English');
+  addComp('cat_general', 'Poetry Writing (Kannada)', ParticipationType.INDIVIDUAL, 1, 40, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_general', 'Translation (Urdu to English)', ParticipationType.INDIVIDUAL, 1, 40, StageType.OFF_STAGE);
+  addComp('cat_general', 'Mushaira', ParticipationType.INDIVIDUAL, 1, 0, StageType.ON_STAGE);
+  addComp('cat_general', 'Ibarath Reading', ParticipationType.INDIVIDUAL, 1, 10, StageType.OFF_STAGE);
+  addComp('cat_general', 'Debate (Kannada)', ParticipationType.INDIVIDUAL, 1, 60, StageType.ON_STAGE, 'Kannada');
+  addComp('cat_general', 'Revolutionary Song Writing (Urdu)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_general', 'Slogan Writing (Urdu)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Urdu');
+
+  // Seeding CAMPUS JUNIOR (25 events)
+  addComp('cat_campus_junior', 'Elocution (English)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'English');
+  addComp('cat_campus_junior', 'Elocution (Urdu)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_campus_junior', 'Elocution (Hindi)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Hindi');
+  addComp('cat_campus_junior', 'Elocution (Kannada)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Kannada');
+  addComp('cat_campus_junior', 'Poetry Recitation (English)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'English');
+  addComp('cat_campus_junior', 'Poetry Recitation (Hindi)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Hindi');
+  addComp('cat_campus_junior', 'Poetry Recitation (Kannada)', ParticipationType.INDIVIDUAL, 1, 3, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_campus_junior', 'Hamd (Urdu)', ParticipationType.INDIVIDUAL, 1, 5, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_campus_junior', 'Song (Kannada)', ParticipationType.INDIVIDUAL, 1, 5, StageType.ON_STAGE, 'Kannada');
+  addComp('cat_campus_junior', 'Digital Designing', ParticipationType.INDIVIDUAL, 1, 60, StageType.OFF_STAGE);
+  addComp('cat_campus_junior', 'Essay Writing (Urdu)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_campus_junior', 'Essay Writing (Hindi)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Hindi');
+  addComp('cat_campus_junior', 'Essay Writing (English)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'English');
+  addComp('cat_campus_junior', 'Essay Writing (Kannada)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_campus_junior', 'Story Writing (English)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'English');
+  addComp('cat_campus_junior', 'Story Writing (Hindi)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Hindi');
+  addComp('cat_campus_junior', 'Story Writing (Kannada)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_campus_junior', 'Translation (Urdu to English)', ParticipationType.INDIVIDUAL, 1, 40, StageType.OFF_STAGE);
+  addComp('cat_campus_junior', 'Translation (English to Hindi)', ParticipationType.INDIVIDUAL, 1, 40, StageType.OFF_STAGE);
+  addComp('cat_campus_junior', 'Social Tweet (English)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'English');
+  addComp('cat_campus_junior', 'News Report Writing (English)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'English');
+  addComp('cat_campus_junior', 'News Report Writing (Urdu)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_campus_junior', 'News Report Writing (Kannada)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Kannada');
+  addComp('cat_campus_junior', 'AI Prompting', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE);
+  addComp('cat_campus_junior', 'Reel Making', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE);
+
+  // Seeding CAMPUS GENERAL (5 events)
+  addComp('cat_campus_general', 'Naat (Urdu)', ParticipationType.GROUP, 3, 5, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_campus_general', 'Quiz', ParticipationType.GROUP, 2, 0, StageType.ON_STAGE);
+  addComp('cat_campus_general', 'Spot Magazine', ParticipationType.GROUP, 5, 60, StageType.OFF_STAGE);
+  addComp('cat_campus_general', 'Collage', ParticipationType.GROUP, 3, 60, StageType.OFF_STAGE);
+  addComp('cat_campus_general', 'Project Submission', ParticipationType.GROUP, 5, 60, StageType.OFF_STAGE);
+
+  // Seeding CAMPUS SENIOR (15 events)
+  addComp('cat_campus_senior', 'Hamd (Urdu)', ParticipationType.INDIVIDUAL, 1, 5, StageType.ON_STAGE, 'Urdu');
+  addComp('cat_campus_senior', 'PPT Presentation', ParticipationType.GROUP, 2, 20, StageType.ON_STAGE);
+  addComp('cat_campus_senior', 'Thematic Presentation', ParticipationType.INDIVIDUAL, 1, 7, StageType.ON_STAGE);
+  addComp('cat_campus_senior', 'Newsletter', ParticipationType.GROUP, 3, 20, StageType.OFF_STAGE);
+  addComp('cat_campus_senior', 'Literary Criticism', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE);
+  addComp('cat_campus_senior', 'Revolutionary Song Writing (Urdu)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_campus_senior', 'Debate', ParticipationType.INDIVIDUAL, 1, 60, StageType.ON_STAGE);
+  addComp('cat_campus_senior', 'Feature Writing', ParticipationType.INDIVIDUAL, 1, 60, StageType.OFF_STAGE);
+  addComp('cat_campus_senior', 'Abstract Writing', ParticipationType.INDIVIDUAL, 1, 60, StageType.OFF_STAGE);
+  addComp('cat_campus_senior', 'Essay (Urdu)', ParticipationType.INDIVIDUAL, 1, 20, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_campus_senior', 'Slogan Writing (Urdu)', ParticipationType.INDIVIDUAL, 1, 30, StageType.OFF_STAGE, 'Urdu');
+  addComp('cat_campus_senior', 'Ideathon', ParticipationType.INDIVIDUAL, 1, 15, StageType.ON_STAGE);
+  addComp('cat_campus_senior', 'Vlog Making', ParticipationType.INDIVIDUAL, 1, 7, StageType.OFF_STAGE);
+  addComp('cat_campus_senior', 'Song (Kannada)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Kannada');
+  addComp('cat_campus_senior', 'Elocution (Kannada)', ParticipationType.INDIVIDUAL, 1, 4, StageType.ON_STAGE, 'Kannada');
 
   const initialSettings: EventSettings = {
-    eventTitle: 'SSF Ninthikal Sector Sahityotsav',
-    sectorName: 'Ninthikal Sector',
+    eventTitle: 'Zenith',
+    sectorName: 'Software',
     eventYear: '2026',
     cutoffDate: '2026-05-01',
     eventDate: '2026-08-15',
-    venue: 'Ninthikal Town Hall',
-    contactInfo: 'info@ssf-ninthikal.org',
+    venue: '---',
+    contactInfo: 'zenithorganizer@gmail.com',
     maxIndividualEvents: 3,
     maxGroupEvents: 2,
     maxOnStageEvents: null,
     maxOffStageEvents: null,
     registrationOpen: true,
-    ssfLogoUrl: 'https://i.pinimg.com/736x/db/ce/0f/dbce0ffa11c023edfc378a85a0259145.jpg', // Official SSF Logo
-    sahityotsavLogoUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=128&q=80', // Beautiful literary art vector placeholder
+    ssfLogoUrl: '/zenith_logo.jpg',
+    sahityotsavLogoUrl: '/zenith_logo.jpg',
     primaryColor: 'emerald',
     accentColor: 'amber',
     numJudges: 2,
@@ -260,12 +431,15 @@ function ensureDbExists() {
     autoRankingEnabled: true
   };
 
-  // Chest number counters - one per default category, starting at the specified base values
+  // Chest number counters - one per category, starting at the specified base values
   const initialCounters: Counter[] = [
     { id: 'counter_sub_junior', categoryId: 'cat_sub_junior', currentValue: 999 },
     { id: 'counter_junior', categoryId: 'cat_junior', currentValue: 1999 },
     { id: 'counter_senior', categoryId: 'cat_senior', currentValue: 2999 },
-    { id: 'counter_general', categoryId: 'cat_general', currentValue: 5999 }
+    { id: 'counter_campus_junior', categoryId: 'cat_campus_junior', currentValue: 3999 },
+    { id: 'counter_campus_senior', categoryId: 'cat_campus_senior', currentValue: 4999 },
+    { id: 'counter_general', categoryId: 'cat_general', currentValue: 5999 },
+    { id: 'counter_campus_general', categoryId: 'cat_campus_general', currentValue: 6999 }
   ];
 
   db = {
@@ -326,15 +500,15 @@ setInterval(performHourlyBackup, 60 * 60 * 1000);
 async function _syncMongoNow() {
   if (isMongoConnected && mongoClient && !isMongoConnecting && db) {
     try {
-      const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/') 
+      const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/')
         ? ((process.env.MONGO_URI || process.env.MONGODB_URI || '').split('/').pop()?.split('?')[0] || 'sahityotsav')
         : 'sahityotsav';
       const mongoDb = mongoClient.db(dbName);
 
       // Dedicated per-collection updates to strictly prevent MongoDB 16MB document limit
       const collectionKeys = [
-        'users', 'units', 'categories', 'competitions', 'participants', 'teams', 
-        'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments', 
+        'users', 'units', 'categories', 'competitions', 'participants', 'teams',
+        'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments',
         'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
       ];
 
@@ -365,7 +539,7 @@ async function _syncMongoNow() {
           { _id: 'eventSettings' as any },
           { $set: { _id: 'eventSettings', ...db.eventSettings } },
           { upsert: true }
-        ).catch(() => {});
+        ).catch(() => { });
       }
 
       if (db.cmsSettings) {
@@ -373,7 +547,7 @@ async function _syncMongoNow() {
           { _id: 'cmsSettings' as any },
           { $set: { _id: 'cmsSettings', ...db.cmsSettings } },
           { upsert: true }
-        ).catch(() => {});
+        ).catch(() => { });
       }
 
       if (db.posterTemplateConfig) {
@@ -381,7 +555,7 @@ async function _syncMongoNow() {
           { _id: 'posterTemplateConfig' as any },
           { $set: { _id: 'posterTemplateConfig', ...db.posterTemplateConfig } },
           { upsert: true }
-        ).catch(() => {});
+        ).catch(() => { });
       }
 
       if (db.certificateTemplateConfig) {
@@ -389,7 +563,7 @@ async function _syncMongoNow() {
           { _id: 'certificateTemplateConfig' as any },
           { $set: { _id: 'certificateTemplateConfig', ...db.certificateTemplateConfig } },
           { upsert: true }
-        ).catch(() => {});
+        ).catch(() => { });
       }
 
       // Safe global_state sync only if total payload is strictly under 12MB
@@ -399,7 +573,7 @@ async function _syncMongoNow() {
           { _id: 'global_state' as any },
           { ...db },
           { upsert: true }
-        ).catch(() => {});
+        ).catch(() => { });
       }
     } catch (e: any) {
       console.error("MongoDB sync error:", e.message);
@@ -458,7 +632,7 @@ connectToMongo();
 
 export function getCollection(name: string): Collection<any> | null {
   if (!mongoClient || !isMongoConnected) return null;
-  const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/') 
+  const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/')
     ? ((process.env.MONGO_URI || process.env.MONGODB_URI || '').split('/').pop()?.split('?')[0] || 'sahityotsav')
     : 'sahityotsav';
   return mongoClient.db(dbName).collection(name);
@@ -466,7 +640,7 @@ export function getCollection(name: string): Collection<any> | null {
 
 export function getDb() {
   if (!mongoClient || !isMongoConnected) return null;
-  const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/') 
+  const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/')
     ? ((process.env.MONGO_URI || process.env.MONGODB_URI || '').split('/').pop()?.split('?')[0] || 'sahityotsav')
     : 'sahityotsav';
   return mongoClient.db(dbName);
@@ -485,7 +659,7 @@ export const dbClient = {
     ensureDbExists();
     return db;
   },
-  
+
   save: async () => {
     await saveDb();
   },
