@@ -110,10 +110,13 @@ async function _connectToMongo() {
       } catch (_) { }
     }
 
-    // Write synchronized state to local file store
+    // Write synchronized state to local file store and sync to MongoDB collections
     try {
       fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
     } catch (_) { }
+
+    // Sync all categories, competitions, units, settings to MongoDB collections
+    await _syncMongoNow();
   } catch (err) {
     console.error("❌ Failed to connect to MongoDB. Falling back to local file store.", err);
     isMongoConnected = false;
