@@ -660,8 +660,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 font-mono">View Judge Slot:</span>
+                <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 font-mono">Judge Slots:</span>
                   {[...Array(currentSheet.numJudges || 2)].map((_, i) => {
                     const slotNum = i + 1;
                     const claimedInfo = currentSheet.claimedJudges?.[slotNum];
@@ -669,15 +669,23 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                       <button
                         key={`judge_slot_${slotNum}`}
                         onClick={() => setActiveJudgeNumber(slotNum)}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 font-mono ${
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 font-mono ${
                           activeJudgeNumber === slotNum
                             ? 'bg-indigo-600 text-white shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                            : 'text-slate-700 hover:bg-slate-200/80 bg-white border border-slate-200/60'
                         }`}
-                        title={claimedInfo ? `Claimed by ${claimedInfo.username}` : `Judge Slot ${slotNum}`}
+                        title={claimedInfo ? `Judge ${slotNum} is assigned to user: ${claimedInfo.username}` : `Judge ${slotNum} is unclaimed`}
                       >
                         <span>Judge {slotNum}</span>
-                        {claimedInfo && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                        {claimedInfo ? (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase ${
+                            activeJudgeNumber === slotNum ? 'bg-emerald-500/30 text-white border-emerald-300/40' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          }`}>
+                            @{claimedInfo.username}
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-slate-400 font-normal italic">(Unassigned)</span>
+                        )}
                       </button>
                     );
                   })}
@@ -742,9 +750,22 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                       </>
                     ) : (
                       <>
-                        {[...Array(currentSheet.numJudges)].map((_, i) => (
-                          <th key={`h${i}`} className="text-center px-3 py-3 font-semibold text-slate-600 w-24">Judge {i + 1}</th>
-                        ))}
+                        {[...Array(currentSheet.numJudges || 2)].map((_, i) => {
+                          const slotNum = i + 1;
+                          const claimedObj = currentSheet.claimedJudges?.[slotNum];
+                          return (
+                            <th key={`h${i}`} className="text-center px-3 py-2 font-semibold text-slate-600 w-28">
+                              <span className="block">Judge {slotNum}</span>
+                              {claimedObj ? (
+                                <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-block font-bold mt-0.5">
+                                  @{claimedObj.username}
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-mono text-slate-400 font-normal italic block mt-0.5">(Unassigned)</span>
+                              )}
+                            </th>
+                          );
+                        })}
                         <th className="text-center px-3 py-3 font-semibold text-slate-600 w-24">Avg Mark</th>
                       </>
                     )}
