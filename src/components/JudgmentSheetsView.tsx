@@ -651,13 +651,36 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                 </div>
               </div>
 
-              {isJudge && (
+              {isJudge ? (
                 <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 shadow-sm">
                   <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Evaluating as:</span>
                   <span className="px-2.5 py-1 bg-indigo-600 text-white rounded font-mono font-bold text-xs flex items-center gap-1.5 shadow-inner">
                     <Lock className="w-3 h-3 text-indigo-200" />
-                    Judge {activeJudgeNumber} (Locked to your account)
+                    Judge {activeJudgeNumber} (Auto-Assigned & Locked)
                   </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 font-mono">View Judge Slot:</span>
+                  {[...Array(currentSheet.numJudges || 2)].map((_, i) => {
+                    const slotNum = i + 1;
+                    const claimedInfo = currentSheet.claimedJudges?.[slotNum];
+                    return (
+                      <button
+                        key={`judge_slot_${slotNum}`}
+                        onClick={() => setActiveJudgeNumber(slotNum)}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 font-mono ${
+                          activeJudgeNumber === slotNum
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                        }`}
+                        title={claimedInfo ? `Claimed by ${claimedInfo.username}` : `Judge Slot ${slotNum}`}
+                      >
+                        <span>Judge {slotNum}</span>
+                        {claimedInfo && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
