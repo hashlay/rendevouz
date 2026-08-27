@@ -135,40 +135,77 @@ img {
     size: A4 portrait;
     margin: 15mm;
   }
-  
-  body * {
-    visibility: hidden;
+
+  /* Reset all layout constraints that block multi-page pagination */
+  html, body, #root {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
   }
-  
-  .print-sheet, .print-sheet * {
-    visibility: visible;
-  }
-  
-  .print-sheet {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    max-width: 210mm !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  
-  thead {
-    display: table-header-group;
-  }
-  
-  tr {
-    page-break-inside: avoid;
-  }
-  
-  .no-print {
+
+  /* Hide everything except print-sheet by default */
+  body > #root > * {
     display: none !important;
   }
 
-  body {
-    background-color: white !important;
-    color: black !important;
+  /* Hide sidebar, header, footer, and all non-print elements */
+  aside, nav, header, footer,
+  .no-print,
+  [class*="print:hidden"] {
+    display: none !important;
+  }
+
+  /* Reset flex/overflow layout wrappers so content flows naturally for pagination */
+  .min-h-screen,
+  .overflow-x-hidden,
+  .flex-1,
+  [class*="md:pl-64"],
+  [class*="max-w-full"],
+  main {
+    display: block !important;
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Make print-sheet visible and flow naturally for multi-page */
+  .print-sheet {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .print-sheet * {
+    visibility: visible !important;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
   }
 
   .print-card {

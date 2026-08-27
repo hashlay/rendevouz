@@ -1539,19 +1539,6 @@ export default function ChestNumberPrintingView({
       {/* Global CSS for Print Mode */}
       <style>{`
         @media print {
-          html, body, #root, .min-h-screen, .flex-1, .md\\:pl-64 {
-            height: auto !important;
-            min-height: auto !important;
-            overflow: visible !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          .overflow-x-hidden {
-            overflow: visible !important;
-          }
-          aside, header, footer, .print\\:hidden, nav {
-            display: none !important;
-          }
           .chest-print-container {
             width: 100% !important;
             margin: 0 !important;
