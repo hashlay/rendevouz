@@ -246,7 +246,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
             return pReg && pReg.selectedIndividualCompetitionIds && pReg.selectedIndividualCompetitionIds.includes(selectedCompId);
           });
 
-          setCandidatesList(filteredParticipants.length > 0 ? filteredParticipants : partData);
+          setCandidatesList(filteredParticipants);
         } else {
           // Fetch group teams registered in this competition
           const teamRes = await fetch(`/api/teams?competitionId=${selectedCompId}`, {

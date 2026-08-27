@@ -22,6 +22,8 @@ import RegisteredEventsView from './components/RegisteredEventsView';
 import AnnouncedResultsView from './components/AnnouncedResultsView';
 import CertificatesView from './components/CertificatesView';
 import ChestNumbersView from './components/ChestNumbersView';
+import ChestNumberPrintingView from './components/ChestNumberPrintingView';
+
 import GreenRoomView from './components/GreenRoomView';
 import JudgmentSheetsView from './components/JudgmentSheetsView';
 import PostersView from './components/PostersView';
@@ -227,6 +229,9 @@ export default function App() {
         return <ScoreboardView user={user} token={token} eventSettings={eventSettings} />;
       case 'chest-numbers':
         return <ChestNumbersView user={user} token={token} eventSettings={eventSettings} />;
+      case 'chest-number-studio':
+        return <ChestNumberPrintingView user={user} token={token} eventSettings={eventSettings} onSettingsUpdated={fetchEventConfig} />;
+
       case 'green-room':
         return <GreenRoomView user={user} token={token} eventSettings={eventSettings} />;
       case 'judgment-sheets':

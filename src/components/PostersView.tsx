@@ -213,13 +213,44 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
         body: JSON.stringify({ posterTemplateConfig: config })
       });
       if (!res.ok) throw new Error('Failed to save');
-      alert('Poster template layout saved successfully!');
+      alert('Poster default template layout saved successfully!');
     } catch (e) {
       alert('Failed to save poster layout');
     } finally {
       setSavingTemplate(false);
     }
   };
+
+  const handleSaveThisPosterOnly = async () => {
+    if (!selectedCompId) return;
+    setSavingTemplate(true);
+    try {
+      const aComp = competitions.find(c => c.id === selectedCompId);
+      const aCat = aComp ? categories.find(cat => cat.id === aComp.categoryId) : null;
+      const compIdx = getAnnouncementIndex(selectedCompId);
+      const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
+      const currentThemeConf = localThemeConfigs[themeIdx] || {};
+
+      const updatedOverrides = {
+        ...(eventSettings?.posterOverrides || {}),
+        [selectedCompId]: currentThemeConf,
+        [aComp?.name || '']: currentThemeConf
+      };
+
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ posterOverrides: updatedOverrides })
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      alert(`Saved custom layout positions specifically for poster "${aComp?.name}"!`);
+    } catch (e) {
+      alert('Failed to save poster override');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -1014,15 +1045,26 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                       </button>
 
                       {(user.role === UserRole.SUPER_ADMIN || user.role === UserRole.SECTOR_TEAM) && (
-                        <button
-                          onClick={handleSaveTemplate}
-                          disabled={savingTemplate}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
-                        >
-                          <Save className="w-4 h-4" />
-                          {savingTemplate ? 'Saving...' : 'Save Default Template'}
-                        </button>
+                        <>
+                          <button
+                            onClick={handleSaveThisPosterOnly}
+                            disabled={savingTemplate}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-sm"
+                          >
+                            <Save className="w-4 h-4" />
+                            {savingTemplate ? 'Saving...' : 'Save for THIS Poster Only'}
+                          </button>
+                          <button
+                            onClick={handleSaveTemplate}
+                            disabled={savingTemplate}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                          >
+                            <Save className="w-4 h-4" />
+                            {savingTemplate ? 'Saving...' : 'Save as Default Template (All)'}
+                          </button>
+                        </>
                       )}
+
 
                       <button
                         onClick={() => setIsModalOpen(false)}

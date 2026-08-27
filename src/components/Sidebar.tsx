@@ -3,7 +3,7 @@ import {
   LayoutDashboard, UserPlus, Users, Trophy, Award,
   Settings, Users2, ShieldAlert, FileSpreadsheet,
   LogOut, ClipboardList, BookOpen, Menu, X,
-  Hash, Theater, Scale, FileBadge, Image, Camera, Globe
+  Hash, Theater, Scale, FileBadge, Image, Camera, Globe, Printer
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 import SSFLogo from './SSFLogo';
@@ -32,6 +32,8 @@ export default function Sidebar({
     { id: 'participants', label: 'Participants', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.UNIT_TEAM_LEADER] },
     { id: 'teams', label: 'Group Teams', icon: Users2, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.UNIT_TEAM_LEADER] },
     { id: 'chest-numbers', label: 'Chest Numbers', icon: Hash, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.GREEN_ROOM_MANAGER] },
+    { id: 'chest-number-studio', label: 'Chest Number Printing', icon: Printer, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.GREEN_ROOM_MANAGER] },
+
     { id: 'green-room', label: 'Green Room', icon: Theater, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.GREEN_ROOM_MANAGER] },
     { id: 'judgment-sheets', label: 'Judgment Sheets', icon: Scale, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.JUDGE, UserRole.RESULT_MANAGER] },
     { id: 'registered-events', label: 'Registered Events', icon: ClipboardList, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.UNIT_TEAM_LEADER] },
