@@ -442,7 +442,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     });
 
     // Sort CATEGORY-WISE according to registered category order (not alphabetical!)
-    // Within the same category, order by chest number / registration order
+    // Within the same category, strictly order by registration order (original array index)
     return filtered.sort((a, b) => {
       const catIdA = a.selectedCategoryId || a.categoryId || '';
       const catIdB = b.selectedCategoryId || b.categoryId || '';
@@ -453,12 +453,10 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         return idxA - idxB;
       }
 
-      const chestA = parseInt(a.codeNumber || a.chestNumber || '0', 10);
-      const chestB = parseInt(b.codeNumber || b.chestNumber || '0', 10);
-      if (!isNaN(chestA) && !isNaN(chestB) && chestA !== chestB) {
-        return chestA - chestB;
-      }
-      return (a.fullName || '').localeCompare(b.fullName || '');
+      // Tie-breaker: Registration Order (Original Array Index)
+      const origA = participants.indexOf(a);
+      const origB = participants.indexOf(b);
+      return origA - origB;
     });
   }, [participants, debouncedSearch, selectedPlacementFilter, participantRanksMap, categoryOrderMap]);
 

@@ -122,6 +122,28 @@ export default function App() {
     try {
       const res = await fetch('/api/settings');
       const data = await res.json();
+      
+      // Enforce specific category order globally
+      if (data && Array.isArray(data.categories)) {
+        const order = [
+          'Sub-Junior',
+          'Junior',
+          'Senior',
+          'Campus Junior',
+          'Campus Senior',
+          'General',
+          'Campus General'
+        ];
+        data.categories.sort((a: any, b: any) => {
+          const idxA = order.indexOf(a.name);
+          const idxB = order.indexOf(b.name);
+          if (idxA === -1 && idxB === -1) return 0;
+          if (idxA === -1) return 1;
+          if (idxB === -1) return -1;
+          return idxA - idxB;
+        });
+      }
+
       setEventSettings(data);
       localStorage.setItem('eventSettings_cache', JSON.stringify(data));
     } catch (e) {
