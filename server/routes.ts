@@ -4515,6 +4515,28 @@ apiRouter.post('/public/auth/participant-login', async (req, res) => {
   res.json({ token, participant: enriched });
 });
 
+apiRouter.get('/public/participant/by-chest/:chestNo', async (req, res) => {
+  const { chestNo } = req.params;
+  const db = dbClient.get();
+  
+  const cNum = (db.chestNumbers || []).find((c: any) => c.chestNumber.toString().toLowerCase() === chestNo.trim().toLowerCase());
+  let participant = cNum ? (db.participants || []).find((p: any) => p.id === cNum.participantId && !p.deletedAt) : null;
+  
+  if (!participant) {
+    participant = (db.participants || []).find((p: any) => 
+      !p.deletedAt && (
+        (p.chestNumber && p.chestNumber.toString().toLowerCase() === chestNo.trim().toLowerCase()) ||
+        (p.codeNumber && p.codeNumber.toString().toLowerCase() === chestNo.trim().toLowerCase())
+      )
+    );
+  }
+  
+  if (!participant) return res.status(404).json({ error: 'Participant not found' });
+  
+  const enriched = getEnrichedParticipant(participant, db, chestNo.trim());
+  res.json({ participant: enriched });
+});
+
 apiRouter.get('/public/participant/me', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
