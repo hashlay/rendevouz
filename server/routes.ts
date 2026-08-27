@@ -1150,16 +1150,20 @@ function generateCompCode(db: any, categoryId: string, name: string, requestedCo
   }
   const category = (db.categories || []).find((c: any) => c.id === categoryId);
   let prefix = 'CMP';
-  if (category && category.name) {
-    const catLower = category.name.toLowerCase();
-    if (catLower.includes('sub') || catLower.includes('sj')) prefix = 'SJ';
-    else if (catLower.includes('junior') || catLower.includes('jr') || catLower.includes('jn')) prefix = 'JR';
-    else if (catLower.includes('senior') || catLower.includes('sr')) prefix = 'SR';
-    else if (catLower.includes('general') || catLower.includes('gen')) prefix = 'GEN';
-    else if (catLower.includes('primary') || catLower.includes('pr')) prefix = 'PR';
-    else if (catLower.includes('sec') || catLower.includes('high')) prefix = 'SEC';
-    else prefix = category.name.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'CMP';
-  }
+    if (catLower.includes('campus')) {
+      if (catLower.includes('junior')) prefix = 'CJ';
+      else if (catLower.includes('senior')) prefix = 'CS';
+      else if (catLower.includes('general')) prefix = 'CG';
+      else prefix = 'CP';
+    } else {
+      if (catLower.includes('sub') || catLower.includes('sj')) prefix = 'SJ';
+      else if (catLower.includes('junior') || catLower.includes('jr')) prefix = 'JR';
+      else if (catLower.includes('senior') || catLower.includes('sr')) prefix = 'SR';
+      else if (catLower.includes('general') || catLower.includes('gen')) prefix = 'GR';
+      else if (catLower.includes('primary') || catLower.includes('pr')) prefix = 'PR';
+      else if (catLower.includes('sec') || catLower.includes('high')) prefix = 'SEC';
+      else prefix = category.name.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'CMP';
+    }
 
   // Find all existing competitions matching category or prefix to find max numeric index
   const compsInCat = (db.competitions || []).filter((c: any) => 

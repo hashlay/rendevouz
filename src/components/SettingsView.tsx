@@ -156,6 +156,50 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
 
   // Categories & Rank Points State
   const [categories, setCategories] = useState<any[]>([]);
+  const [draggedCatId, setDraggedCatId] = useState<string | null>(null);
+  
+  const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, id: string) => {
+    setDraggedCatId(id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLTableRowElement>, targetId: string) => {
+    e.preventDefault();
+    if (!draggedCatId || draggedCatId === targetId) return;
+
+    const newCats = [...categories];
+    const draggedIdx = newCats.findIndex(c => c.id === draggedCatId);
+    const targetIdx = newCats.findIndex(c => c.id === targetId);
+    
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    const [draggedItem] = newCats.splice(draggedIdx, 1);
+    newCats.splice(targetIdx, 0, draggedItem);
+    
+    setCategories(newCats);
+    setDraggedCatId(null);
+
+    // Save new order to backend
+    try {
+      const categoryIds = newCats.map(c => c.id);
+      await fetch('/api/categories/reorder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ categoryIds })
+      });
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [catName, setCatName] = useState('');
   const [catStartChestNo, setCatStartChestNo] = useState(1001);
@@ -898,7 +942,14 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
             </thead>
             <tbody className="divide-y divide-slate-100">
               {categories.map(cat => (
-                <tr key={cat.id} className="hover:bg-slate-50/80 font-medium">
+                <tr 
+                  key={cat.id} 
+                  className={`hover:bg-slate-50/80 font-medium ${draggedCatId === cat.id ? 'opacity-50 border-2 border-dashed border-emerald-400' : ''}`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, cat.id)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, cat.id)}
+                >
                   <td className="p-3 font-bold text-slate-800">{cat.name}</td>
                   <td className="p-3 font-mono font-bold text-purple-900">{cat.startingChestNumber || 1001}</td>
                   <td className="p-3 text-slate-600">
