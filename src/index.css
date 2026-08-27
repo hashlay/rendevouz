@@ -135,77 +135,40 @@ img {
     size: A4 portrait;
     margin: 15mm;
   }
-
-  /* Reset all layout constraints that block multi-page pagination */
-  html, body, #root {
+  
+  /* Reset layout constraints so pages can break */
+  html, body, #root, .min-h-screen, .flex-1, .md\:pl-64, [class*="overflow-"] {
     height: auto !important;
     min-height: auto !important;
-    max-height: none !important;
     overflow: visible !important;
-    background: white !important;
-    color: black !important;
-  }
-
-  /* Hide everything except print-sheet by default */
-  body > #root > * {
-    display: none !important;
-  }
-
-  /* Hide sidebar, header, footer, and all non-print elements */
-  aside, nav, header, footer,
-  .no-print,
-  [class*="print:hidden"] {
-    display: none !important;
-  }
-
-  /* Reset flex/overflow layout wrappers so content flows naturally for pagination */
-  .min-h-screen,
-  .overflow-x-hidden,
-  .flex-1,
-  [class*="md:pl-64"],
-  [class*="max-w-full"],
-  main {
-    display: block !important;
-    position: static !important;
-    overflow: visible !important;
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    width: 100% !important;
-    max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
   }
-
-  /* Make print-sheet visible and flow naturally for multi-page */
+  
+  /* Hide navigation, sidebars, and explicitly non-printing elements */
+  aside, header, footer, .print\:hidden, nav, .no-print {
+    display: none !important;
+  }
+  
   .print-sheet {
-    display: block !important;
-    visibility: visible !important;
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
-    width: 100% !important;
+    position: relative;
+    width: 100%;
     max-width: 210mm !important;
     margin: 0 auto !important;
     padding: 0 !important;
-    overflow: visible !important;
   }
-
-  .print-sheet * {
-    visibility: visible !important;
-  }
-
+  
   thead {
     display: table-header-group;
   }
-
+  
   tr {
     page-break-inside: avoid;
   }
 
-  table {
-    width: 100% !important;
-    border-collapse: collapse !important;
+  body {
+    background-color: white !important;
+    color: black !important;
   }
 
   .print-card {

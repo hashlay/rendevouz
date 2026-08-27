@@ -1536,7 +1536,7 @@ export default function ChestNumberPrintingView({
         </div>
       )}
 
-      {/* Global CSS for Print Mode */}
+      {/* Component CSS for Print Mode */}
       <style>{`
         @media print {
           .chest-print-container {
