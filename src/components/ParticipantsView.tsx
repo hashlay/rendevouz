@@ -411,9 +411,18 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     );
   };
 
+  // Pre-calculate Category order map (registered category order)
+  const categoryOrderMap = React.useMemo(() => {
+    const map = new Map<string, number>();
+    categories.forEach((cat, index) => {
+      map.set(cat.id, index);
+    });
+    return map;
+  }, [categories]);
+
   const filteredParticipants = React.useMemo(() => {
     const searchLower = debouncedSearch.trim().toLowerCase();
-    return participants.filter(p => {
+    const filtered = participants.filter(p => {
       if (searchLower && !p.fullName.toLowerCase().includes(searchLower) && !(p.profilePhoto || '').toLowerCase().includes(searchLower)) {
         return false;
       }
@@ -431,7 +440,27 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       }
       return true;
     });
-  }, [participants, debouncedSearch, selectedPlacementFilter, participantRanksMap]);
+
+    // Sort CATEGORY-WISE according to registered category order (not alphabetical!)
+    // Within the same category, order by chest number / registration order
+    return filtered.sort((a, b) => {
+      const catIdA = a.selectedCategoryId || a.categoryId || '';
+      const catIdB = b.selectedCategoryId || b.categoryId || '';
+      const idxA = categoryOrderMap.has(catIdA) ? categoryOrderMap.get(catIdA)! : 999;
+      const idxB = categoryOrderMap.has(catIdB) ? categoryOrderMap.get(catIdB)! : 999;
+
+      if (idxA !== idxB) {
+        return idxA - idxB;
+      }
+
+      const chestA = parseInt(a.codeNumber || a.chestNumber || '0', 10);
+      const chestB = parseInt(b.codeNumber || b.chestNumber || '0', 10);
+      if (!isNaN(chestA) && !isNaN(chestB) && chestA !== chestB) {
+        return chestA - chestB;
+      }
+      return (a.fullName || '').localeCompare(b.fullName || '');
+    });
+  }, [participants, debouncedSearch, selectedPlacementFilter, participantRanksMap, categoryOrderMap]);
 
   useEffect(() => {
     setCurrentPage(1);

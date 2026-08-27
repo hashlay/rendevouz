@@ -116,10 +116,19 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
     return map;
   }, [results, selectedPrize, selectedUnitId, participantMap, teamMap]);
 
-  // Filter competitions that have published results in O(N) time
+  // Pre-calculate Category order map (registered category order)
+  const categoryOrderMap = React.useMemo(() => {
+    const map = new Map<string, number>();
+    categories.forEach((cat, index) => {
+      map.set(cat.id, index);
+    });
+    return map;
+  }, [categories]);
+
+  // Filter competitions that have published results and sort CATEGORY-WISE by registered category order
   const competitionsWithAnnouncedResults = React.useMemo(() => {
     const searchLower = search.trim().toLowerCase();
-    return competitions.filter(comp => {
+    const filtered = competitions.filter(comp => {
       if (selectedCategoryId && comp.categoryId !== selectedCategoryId) return false;
       if (selectedStageType && comp.stageType !== selectedStageType) return false;
       if (searchLower && !comp.name.toLowerCase().includes(searchLower) && !(comp.code || '').toLowerCase().includes(searchLower)) return false;
@@ -127,7 +136,16 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
       const compRes = resultsByCompMap.get(comp.id);
       return compRes && compRes.length > 0;
     });
-  }, [competitions, selectedCategoryId, selectedStageType, search, resultsByCompMap]);
+
+    return filtered.sort((a, b) => {
+      const idxA = categoryOrderMap.has(a.categoryId) ? categoryOrderMap.get(a.categoryId)! : 999;
+      const idxB = categoryOrderMap.has(b.categoryId) ? categoryOrderMap.get(b.categoryId)! : 999;
+      if (idxA !== idxB) {
+        return idxA - idxB;
+      }
+      return 0;
+    });
+  }, [competitions, selectedCategoryId, selectedStageType, search, resultsByCompMap, categoryOrderMap]);
 
   React.useEffect(() => {
     setCurrentPage(1);

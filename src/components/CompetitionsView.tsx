@@ -313,6 +313,11 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
     return matchesSearch && matchesCategory && matchesType && matchesStageType && c.active;
   });
 
+  const categoryIndexMap = new Map<string, number>();
+  categories.forEach((cat, index) => {
+    categoryIndexMap.set(cat.id, index);
+  });
+
   const sortedCompetitions = [...filteredCompetitions].sort((a, b) => {
     if (sortBy === 'name') {
       return a.name.localeCompare(b.name);
@@ -323,7 +328,10 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
     if (sortBy === 'duration') {
       return (a.duration || 0) - (b.duration || 0);
     }
-    return 0;
+    const idxA = categoryIndexMap.has(a.categoryId) ? categoryIndexMap.get(a.categoryId)! : 999;
+    const idxB = categoryIndexMap.has(b.categoryId) ? categoryIndexMap.get(b.categoryId)! : 999;
+    if (idxA !== idxB) return idxA - idxB;
+    return (a.displayOrder || 0) - (b.displayOrder || 0);
   });
 
   const renderCompCard = (comp: Competition, cat?: Category) => {

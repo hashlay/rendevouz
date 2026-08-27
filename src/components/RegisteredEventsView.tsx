@@ -82,21 +82,15 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
     return true;
   });
 
-  // Define Category display order: sub_junior first, junior, senior, general, etc.
-  const categoryOrderMap: { [key: string]: number } = {
-    'cat_sub_junior': 1,
-    'cat_junior': 2,
-    'cat_senior': 3,
-    'cat_general': 4,
-    'cat_campus_junior': 5,
-    'cat_campus_senior': 6,
-    'cat_campus_general': 7
-  };
+  const categoryIndexMap = new Map<string, number>();
+  categories.forEach((cat, index) => {
+    categoryIndexMap.set(cat.id, index);
+  });
 
   const sortedCategories = [...categoriesToDisplay].sort((a, b) => {
-    const orderA = categoryOrderMap[a.id] || 99;
-    const orderB = categoryOrderMap[b.id] || 99;
-    return orderA - orderB;
+    const idxA = categoryIndexMap.has(a.id) ? categoryIndexMap.get(a.id)! : 99;
+    const idxB = categoryIndexMap.has(b.id) ? categoryIndexMap.get(b.id)! : 99;
+    return idxA - idxB;
   });
 
   return (
