@@ -52,6 +52,7 @@ export default function ChestNumberPrintingView({
     accentColor: '#f59e0b',
     bgImageUrl: eventSettings?.chestNumberTemplateUrl || '',
     showBgImage: true,
+    publicPortalUrl: eventSettings?.publicPortalUrl || '',
     
     // Element Toggles
     showName: true,
@@ -163,7 +164,8 @@ export default function ChestNumberPrintingView({
           chestNumberTemplateUrl: config.bgImageUrl,
           chestNumberTemplateMode: templateMode,
           chestNumberCategoryBgs: categoryBgImages,
-          chestNumberUnitBgs: unitBgImages
+          chestNumberUnitBgs: unitBgImages,
+          publicPortalUrl: config.publicPortalUrl
         })
       });
       if (res.ok) {
@@ -238,7 +240,7 @@ export default function ChestNumberPrintingView({
   const selectedChestNumbers = filtered.filter(cn => selectedIds.includes(cn.id));
 
   // Determine host URL for QR code scan
-  const originUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const originUrl = config.publicPortalUrl || (typeof window !== 'undefined' ? window.location.origin : '');
 
   // Canvas Drag & Drop State for Individual Editor & Studio Editor
   const canvasRefModal = useRef<HTMLCanvasElement>(null);
@@ -300,13 +302,13 @@ export default function ChestNumberPrintingView({
 
       ctx.fillStyle = cardConf.catColor || '#ffffff';
       ctx.font = `800 ${cardConf.catSize || 24}px sans-serif`;
-      ctx.textAlign = 'left';
+      ctx.textAlign = 'center';
       const catText = (cnData.categoryName || 'SENIOR CATEGORY').toUpperCase();
       const catMetrics = ctx.measureText(catText);
       const catX = cardConf.catX ?? 400;
       const catY = cardConf.catY ?? 45;
       ctx.fillText(catText, catX, catY);
-      addRegion('cat', catX, catY - (cardConf.catSize || 24), catMetrics.width, (cardConf.catSize || 24));
+      addRegion('cat', catX - catMetrics.width / 2, catY - (cardConf.catSize || 24), catMetrics.width, (cardConf.catSize || 24));
     }
 
     // Chest Number
@@ -767,11 +769,10 @@ export default function ChestNumberPrintingView({
                           {/* Card Header (Category Name & Badge) */}
                           {cardConf.showCategory !== false && (
                             <div 
-                              className="px-3 py-1.5 text-white flex justify-between items-center font-bold tracking-wider uppercase"
+                              className="px-3 py-1.5 text-white flex justify-center items-center font-bold tracking-wider uppercase"
                               style={{ backgroundColor: catColor, fontSize: `${cardConf.catSize || 14}px` }}
                             >
                               <span>{cn.categoryName}</span>
-                              <span className="opacity-80 text-[10px] font-mono">CHEST BADGE</span>
                             </div>
                           )}
 
@@ -1094,6 +1095,56 @@ export default function ChestNumberPrintingView({
 
                 <div>
                   <div className="flex justify-between font-bold text-slate-700 mb-1">
+                    <span>Category Position (X, Y)</span>
+                    <span>{config.catX}, {config.catY}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="range"
+                      min="50"
+                      max="750"
+                      value={config.catX}
+                      onChange={(e) => setConfig({ ...config, catX: Number(e.target.value) })}
+                      className="w-full accent-emerald-600"
+                    />
+                    <input
+                      type="range"
+                      min="10"
+                      max="480"
+                      value={config.catY}
+                      onChange={(e) => setConfig({ ...config, catY: Number(e.target.value) })}
+                      className="w-full accent-emerald-600"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between font-bold text-slate-700 mb-1">
+                    <span>Unit/Team Position (X, Y)</span>
+                    <span>{config.unitX}, {config.unitY}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="range"
+                      min="50"
+                      max="750"
+                      value={config.unitX}
+                      onChange={(e) => setConfig({ ...config, unitX: Number(e.target.value) })}
+                      className="w-full accent-emerald-600"
+                    />
+                    <input
+                      type="range"
+                      min="50"
+                      max="480"
+                      value={config.unitY}
+                      onChange={(e) => setConfig({ ...config, unitY: Number(e.target.value) })}
+                      className="w-full accent-emerald-600"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between font-bold text-slate-700 mb-1">
                     <span>QR Code Position (X, Y)</span>
                     <span>{config.qrX}, {config.qrY}</span>
                   </div>
@@ -1101,7 +1152,7 @@ export default function ChestNumberPrintingView({
                     <input
                       type="range"
                       min="50"
-                      max="700"
+                      max="750"
                       value={config.qrX}
                       onChange={(e) => setConfig({ ...config, qrX: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
@@ -1109,13 +1160,25 @@ export default function ChestNumberPrintingView({
                     <input
                       type="range"
                       min="50"
-                      max="420"
+                      max="480"
                       value={config.qrY}
                       onChange={(e) => setConfig({ ...config, qrY: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
                   </div>
                 </div>
+              </div>
+
+              <div className="pt-2 border-t">
+                <label className="block font-bold text-slate-700 mb-1">Public Portal Base URL (for QR Scans)</label>
+                <input
+                  type="text"
+                  value={config.publicPortalUrl}
+                  onChange={(e) => setConfig({ ...config, publicPortalUrl: e.target.value })}
+                  placeholder="https://rendevouz-three.vercel.app"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">If blank, it will point to this admin app.</p>
               </div>
             </div>
 
@@ -1286,6 +1349,100 @@ export default function ChestNumberPrintingView({
                     </div>
                   </div>
 
+                  {/* Category Controls */}
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                    <span className="font-bold text-slate-800 block">Category Position & Size</span>
+                    <div>
+                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
+                        <span>Category X</span>
+                        <span>{individualConfig.catX ?? 400}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="50"
+                        max="750"
+                        value={individualConfig.catX ?? 400}
+                        onChange={(e) => setIndividualConfig({ ...individualConfig, catX: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
+                        <span>Category Y</span>
+                        <span>{individualConfig.catY ?? 45}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="10"
+                        max="480"
+                        value={individualConfig.catY ?? 45}
+                        onChange={(e) => setIndividualConfig({ ...individualConfig, catY: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
+                        <span>Category Size</span>
+                        <span>{individualConfig.catSize ?? 24}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="12"
+                        max="72"
+                        value={individualConfig.catSize ?? 24}
+                        onChange={(e) => setIndividualConfig({ ...individualConfig, catSize: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Unit Controls */}
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                    <span className="font-bold text-slate-800 block">Unit/Team Position & Size</span>
+                    <div>
+                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
+                        <span>Unit X</span>
+                        <span>{individualConfig.unitX ?? 400}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="50"
+                        max="750"
+                        value={individualConfig.unitX ?? 400}
+                        onChange={(e) => setIndividualConfig({ ...individualConfig, unitX: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
+                        <span>Unit Y</span>
+                        <span>{individualConfig.unitY ?? 450}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="50"
+                        max="480"
+                        value={individualConfig.unitY ?? 450}
+                        onChange={(e) => setIndividualConfig({ ...individualConfig, unitY: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
+                        <span>Unit Size</span>
+                        <span>{individualConfig.unitSize ?? 26}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="12"
+                        max="72"
+                        value={individualConfig.unitSize ?? 26}
+                        onChange={(e) => setIndividualConfig({ ...individualConfig, unitSize: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                  </div>
+
                   {/* QR Code Controls */}
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                     <span className="font-bold text-slate-800 block">QR Code Position & Size</span>
@@ -1297,7 +1454,7 @@ export default function ChestNumberPrintingView({
                       <input
                         type="range"
                         min="50"
-                        max="700"
+                        max="750"
                         value={individualConfig.qrX ?? 660}
                         onChange={(e) => setIndividualConfig({ ...individualConfig, qrX: Number(e.target.value) })}
                         className="w-full accent-emerald-600"
@@ -1311,7 +1468,7 @@ export default function ChestNumberPrintingView({
                       <input
                         type="range"
                         min="50"
-                        max="420"
+                        max="480"
                         value={individualConfig.qrY ?? 380}
                         onChange={(e) => setIndividualConfig({ ...individualConfig, qrY: Number(e.target.value) })}
                         className="w-full accent-emerald-600"
@@ -1382,9 +1539,18 @@ export default function ChestNumberPrintingView({
       {/* Global CSS for Print Mode */}
       <style>{`
         @media print {
-          body {
-            background: white !important;
-            color: black !important;
+          html, body, #root, .min-h-screen, .flex-1, .md\\:pl-64 {
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .overflow-x-hidden {
+            overflow: visible !important;
+          }
+          aside, header, footer, .print\\:hidden, nav {
+            display: none !important;
           }
           .chest-print-container {
             width: 100% !important;
@@ -1394,11 +1560,13 @@ export default function ChestNumberPrintingView({
           .a4-page {
             box-shadow: none !important;
             border: none !important;
-            margin: 0 !important;
+            margin: 0 auto !important;
             padding: 0.5cm !important;
             page-break-after: always !important;
             page-break-inside: avoid !important;
-            height: 100vh !important;
+            height: 297mm !important;
+            max-height: 297mm !important;
+            overflow: hidden !important;
           }
         }
       `}</style>

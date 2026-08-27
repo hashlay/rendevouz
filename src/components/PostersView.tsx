@@ -231,10 +231,11 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
       const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
       const currentThemeConf = localThemeConfigs[themeIdx] || {};
 
+      const overridePayload = { ...currentThemeConf, _savedThemeIndex: themeIdx };
       const updatedOverrides = {
         ...(eventSettings?.posterOverrides || {}),
-        [selectedCompId]: currentThemeConf,
-        [aComp?.name || '']: currentThemeConf
+        [selectedCompId]: overridePayload,
+        [aComp?.name || '']: overridePayload
       };
 
       const res = await fetch('/api/settings', {
