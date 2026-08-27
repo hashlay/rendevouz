@@ -137,7 +137,7 @@ img {
   }
   
   /* Reset layout constraints so pages can break */
-  html, body, #root, .min-h-screen, .flex-1, .md\:pl-64, [class*="overflow-"] {
+  html, body, #root, .min-h-screen, .flex-1, .md\:pl-64, [class*="overflow-"], [class*="max-w-"], .mobile-scroll-table {
     height: auto !important;
     min-height: auto !important;
     overflow: visible !important;
