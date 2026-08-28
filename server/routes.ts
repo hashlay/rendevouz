@@ -4465,7 +4465,16 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
   const indPrograms = indCompIds.map((compId: string) => {
     const comp = (db.competitions || []).find((c: any) => c.id === compId);
     const cat = (db.categories || []).find((c: any) => c.id === (comp?.categoryId || participant.selectedCategoryId || participant.categoryId));
-    const hasResult = (db.results || []).some((res: any) => res.competitionId === compId && (res.participantId === participant.id || res.codeNumber === chestNumStr || res.participantName === participant.fullName));
+    const hasResult = (db.results || []).some((res: any) => {
+      if (res.competitionId !== compId) return false;
+      const rPartId = res.participantId || res.raw?.participantId;
+      const rCode = (res.codeNumber || res.chestNumber || res.raw?.codeNumber || res.raw?.chestNumber || '').toString();
+      
+      return (rPartId && rPartId === participant.id) || 
+             (rCode && chestNumStr && rCode === chestNumStr) ||
+             (!rPartId && !rCode && res.participantName === participant.fullName);
+    });
+    
     return {
       id: compId,
       competitionId: compId,
@@ -4481,7 +4490,12 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
   const groupPrograms = groupTeams.map((t: any) => {
     const comp = (db.competitions || []).find((c: any) => c.id === t.competitionId);
     const cat = (db.categories || []).find((c: any) => c.id === (comp?.categoryId || participant.selectedCategoryId || participant.categoryId));
-    const hasResult = (db.results || []).some((res: any) => res.competitionId === t.competitionId && (res.teamId === t.id || (res.raw && Array.isArray(res.raw.teamMemberIds) && res.raw.teamMemberIds.includes(participant.id))));
+    const hasResult = (db.results || []).some((res: any) => {
+      if (res.competitionId !== t.competitionId) return false;
+      return (res.teamId === t.id) || 
+             (res.raw && Array.isArray(res.raw.teamMemberIds) && res.raw.teamMemberIds.includes(participant.id));
+    });
+    
     return {
       id: t.id,
       competitionId: t.competitionId,
