@@ -3358,7 +3358,6 @@ apiRouter.get('/public/participant/by-chest/:chestNo', async (req, res) => {
   const db = dbClient.get();
   const searchChest = req.params.chestNo.toString().trim().toLowerCase();
 
-  // Find chest number object or participant directly
   let targetParticipantId: string | null = null;
   const cnObj = (db.chestNumbers || []).find((cn: any) => !cn.deletedAt && cn.chestNumber.toString().toLowerCase() === searchChest);
   if (cnObj) {
@@ -3366,7 +3365,8 @@ apiRouter.get('/public/participant/by-chest/:chestNo', async (req, res) => {
   } else {
     const partObj = (db.participants || []).find((p: any) => !p.deletedAt && (
       (p.profilePhoto && p.profilePhoto.toLowerCase() === searchChest) ||
-      (p.codeNumber && p.codeNumber.toLowerCase() === searchChest)
+      (p.codeNumber && p.codeNumber.toLowerCase() === searchChest) ||
+      (p.chestNumber && p.chestNumber.toString().toLowerCase() === searchChest)
     ));
     if (partObj) targetParticipantId = partObj.id;
   }
@@ -3380,52 +3380,8 @@ apiRouter.get('/public/participant/by-chest/:chestNo', async (req, res) => {
     return res.status(404).json({ error: 'Participant record not found.' });
   }
 
-  const unit = (db.units || []).find((u: any) => u.id === participant.unitId);
-  const category = (db.categories || []).find((c: any) => c.id === (participant.selectedCategoryId || participant.categoryId));
-  const chestRecord = (db.chestNumbers || []).find((cn: any) => !cn.deletedAt && cn.participantId === participant.id);
-  const chestNo = chestRecord ? chestRecord.chestNumber.toString() : (participant.profilePhoto || 'N/A');
-
-  // Registered Events
-  const userRegs = (db.registrations || []).filter((r: any) => !r.deletedAt && r.participantId === participant.id);
-  const schedule = userRegs.map((reg: any) => {
-    const comp: any = (db.competitions || []).find((c: any) => c.id === reg.competitionId);
-    return {
-      id: reg.id,
-      program: comp?.name || 'Competition',
-      category: category?.name || 'General',
-      stage: comp?.stageType || 'Off Stage',
-      time: comp?.startTime || comp?.time || 'Scheduled',
-      status: reg.status || 'Confirmed'
-    };
-  });
-
-  // Participant Results
-  const userResults = (db.results || []).filter((r: any) => !r.deletedAt && r.participantId === participant.id && r.publishedStatus);
-  const resultsData = userResults.map((resItem: any) => {
-    const comp: any = (db.competitions || []).find((c: any) => c.id === resItem.competitionId);
-    return {
-      id: resItem.id,
-      program: comp?.name || 'Competition',
-      rank: resItem.rank ? `Rank ${resItem.rank}` : 'Participated',
-      points: resItem.points || 0
-    };
-  });
-
-  const part: any = participant;
-  res.json({
-    id: part.id,
-    name: part.fullName,
-    codeNumber: chestNo,
-    chestNumber: chestNo,
-    dob: part.dateOfBirth || part.dob || '',
-    category: category?.name || 'General',
-    department: unit?.name || 'Unit',
-    institution: unit?.name || 'Unit',
-    phone: part.parentPhone || part.phone || '',
-    avatarUrl: part.profilePhotoUrl || part.avatarUrl || '',
-    schedule,
-    results: resultsData
-  });
+  const enriched = getEnrichedParticipant(participant, db, searchChest);
+  res.json({ participant: enriched, ...enriched });
 });
 
 
