@@ -4451,7 +4451,7 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
   );
 
   // 1. Registered Individual Programs
-  const indRegs = (db.registrations || []).filter((r: any) => r.participantId === participant.id);
+  const indRegs = (db.registrations || []).filter((r: any) => !r.deletedAt && r.participantId === participant.id);
   const indCompIds: string[] = [];
   indRegs.forEach((r: any) => {
     if (r.competitionId) indCompIds.push(r.competitionId);
@@ -4463,9 +4463,10 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
   });
 
   const indPrograms = indCompIds.map((compId: string) => {
-    const comp = (db.competitions || []).find((c: any) => c.id === compId);
+    const comp = (db.competitions || []).find((c: any) => c.id === compId && !c.deletedAt);
     const cat = (db.categories || []).find((c: any) => c.id === (comp?.categoryId || participant.selectedCategoryId || participant.categoryId));
     const hasResult = (db.results || []).some((res: any) => {
+      if (res.deletedAt) return false;
       if (res.competitionId !== compId) return false;
       const rPartId = res.participantId || res.raw?.participantId;
       const rCode = (res.codeNumber || res.chestNumber || res.raw?.codeNumber || res.raw?.chestNumber || '').toString();
@@ -4486,7 +4487,7 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
   });
 
   // 2. Registered Group Programs
-  const groupTeams = (db.teams || []).filter((t: any) => Array.isArray(t.memberIds) && t.memberIds.includes(participant.id));
+  const groupTeams = (db.teams || []).filter((t: any) => !t.deletedAt && Array.isArray(t.memberIds) && t.memberIds.includes(participant.id));
   const groupPrograms = groupTeams.map((t: any) => {
     const comp = (db.competitions || []).find((c: any) => c.id === t.competitionId);
     const cat = (db.categories || []).find((c: any) => c.id === (comp?.categoryId || participant.selectedCategoryId || participant.categoryId));
