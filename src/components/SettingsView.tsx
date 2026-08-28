@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Settings, Save, Database, Trash2, ShieldAlert, 
-  RefreshCw, CheckCircle2, Download, Upload, AlertTriangle, Sparkles, UserCheck 
+  RefreshCw, CheckCircle2, Download, Upload, AlertTriangle, Sparkles, UserCheck,
+  GripVertical, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 
@@ -158,6 +159,9 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [categories, setCategories] = useState<any[]>([]);
   const [draggedCatId, setDraggedCatId] = useState<string | null>(null);
   
+  const [savingCatOrder, setSavingCatOrder] = useState(false);
+  const [hasReorderedCats, setHasReorderedCats] = useState(false);
+
   const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, id: string) => {
     setDraggedCatId(id);
     e.dataTransfer.effectAllowed = 'move';
@@ -183,8 +187,9 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
     
     setCategories(newCats);
     setDraggedCatId(null);
+    setHasReorderedCats(true);
 
-    // Save new order to backend
+    // Auto-save new order to backend
     try {
       const categoryIds = newCats.map(c => c.id);
       await fetch('/api/categories/reorder', {
@@ -195,9 +200,55 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
         },
         body: JSON.stringify({ categoryIds })
       });
+      setHasReorderedCats(false);
     } catch(err) {
-      console.error(err);
+      console.error("Error auto-saving category order:", err);
     }
+  };
+
+  const handleSaveCategoryOrder = async () => {
+    setSavingCatOrder(true);
+    try {
+      const categoryIds = categories.map(c => c.id);
+      const res = await fetch('/api/categories/reorder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ categoryIds })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save category order');
+
+      setHasReorderedCats(false);
+      alert('Category order saved successfully!');
+    } catch (err: any) {
+      alert(err.message || 'Error saving category order');
+    } finally {
+      setSavingCatOrder(false);
+    }
+  };
+
+  const moveCategory = (index: number, direction: 'up' | 'down') => {
+    const newIdx = direction === 'up' ? index - 1 : index + 1;
+    if (newIdx < 0 || newIdx >= categories.length) return;
+    const newCats = [...categories];
+    const [moved] = newCats.splice(index, 1);
+    newCats.splice(newIdx, 0, moved);
+    setCategories(newCats);
+    setHasReorderedCats(true);
+    
+    // Auto-save category order
+    const categoryIds = newCats.map(c => c.id);
+    fetch('/api/categories/reorder', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ categoryIds })
+    }).then(() => setHasReorderedCats(false)).catch(err => console.error(err));
   };
 
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
@@ -920,13 +971,28 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
 
       {/* 2. Category & Rank Points Manager (1st to 10th Place) */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
-        <div className="border-b pb-4 flex items-center justify-between">
+        <div className="border-b pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="font-display font-extrabold text-slate-800 text-lg flex items-center gap-2">
               <span>Category Manager & Rank Points System (1st to 10th Place)</span>
             </h3>
-            <p className="text-xs text-slate-400 mt-1">Configure competition categories, starting chest numbers, and points distribution for 1st through 10th place.</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Drag & drop rows or use ↑ ↓ arrows to reorder categories. Click "Save Category Order" to apply permanently.
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={handleSaveCategoryOrder}
+            disabled={savingCatOrder}
+            className={`px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer ${
+              hasReorderedCats 
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400 animate-pulse' 
+                : 'bg-purple-600 hover:bg-purple-700 text-white'
+            }`}
+          >
+            <Save className="w-4 h-4" />
+            {savingCatOrder ? 'Saving Order...' : 'Save Category Order'}
+          </button>
         </div>
 
         {/* Categories Table */}
@@ -934,27 +1000,57 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b text-slate-500 font-mono uppercase text-[10px]">
               <tr>
+                <th className="p-3 w-12 text-center">Order</th>
                 <th className="p-3">Category Name</th>
                 <th className="p-3">Start Chest No</th>
                 <th className="p-3">Criteria</th>
+                <th className="p-3 text-center">Move</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {categories.map(cat => (
+              {categories.map((cat, idx) => (
                 <tr 
                   key={cat.id} 
-                  className={`hover:bg-slate-50/80 font-medium ${draggedCatId === cat.id ? 'opacity-50 border-2 border-dashed border-emerald-400' : ''}`}
+                  className={`hover:bg-slate-50/80 font-medium transition-colors ${draggedCatId === cat.id ? 'opacity-50 border-2 border-dashed border-emerald-400 bg-emerald-50' : ''}`}
                   draggable
                   onDragStart={(e) => handleDragStart(e, cat.id)}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, cat.id)}
                 >
+                  <td className="p-3 text-center cursor-grab text-slate-400 hover:text-slate-600 font-mono font-bold" title="Drag to reorder">
+                    <div className="flex items-center justify-center gap-1">
+                      <GripVertical className="w-4 h-4 text-slate-400" />
+                      <span>{idx + 1}</span>
+                    </div>
+                  </td>
                   <td className="p-3 font-bold text-slate-800">{cat.name}</td>
                   <td className="p-3 font-mono font-bold text-purple-900">{cat.startingChestNumber || 1001}</td>
                   <td className="p-3 text-slate-600">
                     {cat.criteriaType === 'dob' && (cat.dobStart || cat.dobEnd) ? `DOB: ${cat.dobStart || '*'} to ${cat.dobEnd || '*'}` : ''}
                     {cat.criteriaType === 'class' && (cat.classStart || cat.classEnd) ? `Class: ${cat.classStart || '*'} to ${cat.classEnd || '*'}` : ''}
+                  </td>
+                  <td className="p-3 text-center">
+                    <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => moveCategory(idx, 'up')}
+                        disabled={idx === 0}
+                        className="p-1 hover:bg-white rounded text-slate-600 disabled:opacity-30 cursor-pointer"
+                        title="Move Up"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveCategory(idx, 'down')}
+                        disabled={idx === categories.length - 1}
+                        className="p-1 hover:bg-white rounded text-slate-600 disabled:opacity-30 cursor-pointer"
+                        title="Move Down"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                   <td className="p-3 text-right space-x-2">
                     <button

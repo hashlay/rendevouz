@@ -1053,6 +1053,62 @@ apiRouter.get('/categories', async (req, res) => {
   res.json(enrichedCategories);
 });
 
+apiRouter.post('/categories/reorder', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const { categoryIds } = req.body;
+  const db = dbClient.get();
+
+  if (!Array.isArray(categoryIds)) {
+    return res.status(400).json({ error: 'categoryIds array is required.' });
+  }
+
+  const catMap = new Map<string, any>();
+  (db.categories || []).forEach((c: any) => catMap.set(c.id, c));
+
+  const newCategories: any[] = [];
+  categoryIds.forEach((id: string) => {
+    if (catMap.has(id)) {
+      newCategories.push(catMap.get(id));
+      catMap.delete(id);
+    }
+  });
+
+  catMap.forEach((c: any) => newCategories.push(c));
+
+  db.categories = newCategories;
+  await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Reorder Categories', 'Category', 'bulk');
+  await dbClient.save();
+
+  res.json({ message: 'Category order saved successfully', categories: db.categories });
+});
+
+apiRouter.put('/categories/reorder', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const { categoryIds } = req.body;
+  const db = dbClient.get();
+
+  if (!Array.isArray(categoryIds)) {
+    return res.status(400).json({ error: 'categoryIds array is required.' });
+  }
+
+  const catMap = new Map<string, any>();
+  (db.categories || []).forEach((c: any) => catMap.set(c.id, c));
+
+  const newCategories: any[] = [];
+  categoryIds.forEach((id: string) => {
+    if (catMap.has(id)) {
+      newCategories.push(catMap.get(id));
+      catMap.delete(id);
+    }
+  });
+
+  catMap.forEach((c: any) => newCategories.push(c));
+
+  db.categories = newCategories;
+  await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Reorder Categories', 'Category', 'bulk');
+  await dbClient.save();
+
+  res.json({ message: 'Category order saved successfully', categories: db.categories });
+});
+
 apiRouter.post('/categories', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const { name, code, criteriaType, dobStart, dobEnd, classStart, classEnd, pointsRank1, pointsRank2, pointsRank3, startingChestNumber } = req.body;
   const db = dbClient.get();
