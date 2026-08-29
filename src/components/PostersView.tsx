@@ -212,7 +212,7 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     setLocalThemeConfigs((prev: any) => ({
       ...prev,
       [themeIdx]: {
-        ...getThemeConfig(themeIdx),
+        ...(prev[themeIdx] || {}),
         [key]: value
       }
     }));
@@ -517,7 +517,7 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
         value={value}
         onInput={e => onChange(Number((e.target as HTMLInputElement).value))}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer touch-none"
+        className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer"
       />
     </div>
   );

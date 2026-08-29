@@ -55,10 +55,22 @@ export default function CertificateGenerator({
   const [compY, setCompY] = useState(templateConfig.compY ?? (rank === 1 ? 553 : 553));
   const [nameSize, setNameSize] = useState(templateConfig.nameSize ?? (rank === 1 ? 33 : 33));
   const [compSize, setCompSize] = useState(templateConfig.compSize ?? (rank === 1 ? 25 : 25));
-  
   // Custom text overrides for long names & competition titles
-  const [customParticipantNames, setCustomParticipantNames] = useState<Record<number, string>>({});
-  const [customCompName, setCustomCompName] = useState<string>(competitionName);
+  const [customParticipantNames, setCustomParticipantNames] = useState<Record<number, string>>(() => {
+    const overrides = eventSettings?.certificateOverrides || {};
+    const initNames: Record<number, string> = {};
+    const compKey = `comp_${competitionId || competitionName}`;
+    participantNames.forEach((origName, idx) => {
+      const savedName = overrides[`${compKey}_${idx}`] || overrides[`${compKey}_${origName}`] || overrides[origName];
+      if (savedName) initNames[idx] = savedName;
+    });
+    return initNames;
+  });
+
+  const [customCompName, setCustomCompName] = useState<string>(() => {
+    const overrides = eventSettings?.certificateOverrides || {};
+    return overrides[`comp_${competitionId || competitionName}`] || overrides[`comp_${competitionName}`] || competitionName;
+  });
 
   // Font choices
   const [nameFont, setNameFont] = useState(templateConfig.nameFont || '"Montserrat", "Inter", sans-serif');

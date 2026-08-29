@@ -365,12 +365,14 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
                         let winnerUnitCode = 'GEN';
 
                         if (res.participantId) {
-                          winnerName = res.participantName || 'Unknown Participant';
+                          const origName = res.participantName || 'Unknown Participant';
+                          winnerName = eventSettings?.certificateOverrides?.[origName] || origName;
                           winnerUnitName = res.unitName || 'Unknown Unit';
                           const u = res.unitName ? unitNameMap.get(res.unitName.toLowerCase()) : undefined;
                           winnerUnitCode = u ? u.code : 'GEN';
                         } else if (res.teamId) {
-                          winnerName = res.teamName || 'Group Team';
+                          const origName = res.teamName || 'Group Team';
+                          winnerName = eventSettings?.certificateOverrides?.[origName] || origName;
                           if (res.teamNumber) {
                              winnerName = `${winnerName} (${res.teamNumber})`;
                           }
