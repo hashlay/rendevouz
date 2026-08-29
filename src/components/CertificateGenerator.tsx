@@ -265,18 +265,38 @@ export default function CertificateGenerator({
         [rank]: configData
       };
       
+      const currentOverrides = eventSettings?.certificateOverrides || {};
+      const updatedOverrides = { ...currentOverrides };
+
+      participantNames.forEach((origName, idx) => {
+        const customName = customParticipantNames[idx];
+        if (customName) {
+          updatedOverrides[`${compKey}_${idx}`] = customName;
+          updatedOverrides[`${compKey}_${origName}`] = customName;
+          updatedOverrides[origName] = customName;
+        }
+      });
+
+      if (customCompName && customCompName !== competitionName) {
+        updatedOverrides[`comp_${competitionId || competitionName}`] = customCompName;
+        updatedOverrides[`comp_${competitionName}`] = customCompName;
+      }
+
       const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ certificateTemplateConfig: newConfig })
+        body: JSON.stringify({ 
+          certificateTemplateConfig: newConfig,
+          certificateOverrides: updatedOverrides
+        })
       });
       
       if (!res.ok) throw new Error('Failed to save certificate layout');
       
-      alert(`Certificate layout for "${competitionName}" (Rank ${rank}) saved!`);
+      alert(`Certificate layout and text overrides for "${competitionName}" (Rank ${rank}) saved successfully!`);
       if (onSettingsUpdated) onSettingsUpdated();
     } catch (err: any) {
       alert('Error saving certificate: ' + err.message);

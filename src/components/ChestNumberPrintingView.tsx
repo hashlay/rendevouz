@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Printer, Download, Search, RefreshCw, Palette, Settings, 
+import {
+  Printer, Download, Search, RefreshCw, Palette, Settings,
   Layers, Upload, Move, Save, CheckCircle2, LayoutGrid, Eye,
   Hash, QrCode, User as UserIcon, Shield, Sparkles, Filter, Edit3, X, Image as ImageIcon
 } from 'lucide-react';
@@ -176,8 +176,8 @@ const ChestCardSvg: React.FC<{
   );
 };
 
-export default function ChestNumberPrintingView({ 
-  user, token, eventSettings, onSettingsUpdated 
+export default function ChestNumberPrintingView({
+  user, token, eventSettings, onSettingsUpdated
 }: ChestNumberPrintingViewProps) {
   const [chestNumbers, setChestNumbers] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -217,21 +217,21 @@ export default function ChestNumberPrintingView({
     showCategoryBg: false, // Default false so solid purple/blue bar doesn't obscure template artwork
     aspectRatio: 800 / 520, // Default 1.53846 ratio
     publicPortalUrl: eventSettings?.publicPortalUrl || '',
-    
+
     // Element Toggles
     showName: true,
     showCategory: true,
     showUnit: true,
     showQr: true,
     enableCategoryColors: true,
-    
+
     // Chest Number Position & Styling
     chestX: 400, // px on 800x520 canvas
     chestY: 210,
     chestSize: 84, // px
     chestColor: '#0f172a',
     chestWeight: '800',
-    
+
     // Participant Name Position & Styling
     nameX: 400,
     nameY: 340,
@@ -239,7 +239,7 @@ export default function ChestNumberPrintingView({
     nameColor: '#1e293b',
     nameWeight: '700',
     nameMaxLines: 2,
-    
+
     // Category Name Position & Styling
     catX: 400,
     catY: 45,
@@ -335,7 +335,9 @@ export default function ChestNumberPrintingView({
     if (templateMode === 'unit' && cn?.unitName && unitBgImages[cn.unitName]) {
       return unitBgImages[cn.unitName];
     }
-    return cardConf.showBgImage ? cardConf.bgImageUrl : '';
+    const bg = cardConf?.bgImageUrl || config?.bgImageUrl || '';
+    const show = cardConf?.showBgImage !== undefined ? cardConf.showBgImage : (config?.showBgImage ?? true);
+    return show ? bg : '';
   };
 
   const handleSaveConfig = async () => {
@@ -440,9 +442,9 @@ export default function ChestNumberPrintingView({
 
   // Helper: Draw Card to Canvas
   const drawCardCanvas = (
-    canvas: HTMLCanvasElement, 
-    cardConf: any, 
-    cnData: any, 
+    canvas: HTMLCanvasElement,
+    cardConf: any,
+    cnData: any,
     draggingElem: DragElement,
     onHitRegions?: (regions: { id: string, x: number, y: number, w: number, h: number }[]) => void
   ) => {
@@ -567,9 +569,9 @@ export default function ChestNumberPrintingView({
   useEffect(() => {
     if (editingCn && individualConfig && canvasRefModal.current) {
       drawCardCanvas(
-        canvasRefModal.current, 
-        individualConfig, 
-        editingCn, 
+        canvasRefModal.current,
+        individualConfig,
+        editingCn,
         draggingModal,
         (regions) => { modalHitRegions.current = regions; }
       );
@@ -581,9 +583,9 @@ export default function ChestNumberPrintingView({
     if (activeTab === 'editor' && canvasRefStudio.current) {
       const mockCn = chestNumbers[0] || { chestNumber: '1042', participantName: 'MUHAMMED RASHID AHMAD', categoryName: 'SENIOR', unitName: 'NINTHIKAL UNIT' };
       drawCardCanvas(
-        canvasRefStudio.current, 
-        config, 
-        mockCn, 
+        canvasRefStudio.current,
+        config,
+        mockCn,
         draggingStudio,
         (regions) => { studioHitRegions.current = regions; }
       );
@@ -948,7 +950,7 @@ export default function ChestNumberPrintingView({
               {/* Render into A4 Pages */}
               {Array.from({ length: Math.ceil(selectedChestNumbers.length / gridPerSheet) }).map((_, pageIdx) => {
                 const pageItems = selectedChestNumbers.slice(pageIdx * gridPerSheet, (pageIdx + 1) * gridPerSheet);
-                
+
                 let gridClass = 'grid-cols-2 grid-rows-3'; // 6 default
                 if (gridPerSheet === 4) gridClass = 'grid-cols-2 grid-rows-2';
                 if (gridPerSheet === 8) gridClass = 'grid-cols-2 grid-rows-4';
@@ -956,8 +958,8 @@ export default function ChestNumberPrintingView({
                 if (gridPerSheet === 12) gridClass = 'grid-cols-3 grid-rows-4';
 
                 return (
-                  <div 
-                    key={pageIdx} 
+                  <div
+                    key={pageIdx}
                     className={`a4-page bg-white p-6 mb-8 border border-slate-300 rounded-2xl shadow-lg grid ${gridClass} gap-4 place-items-center print:p-2 print:m-0 print:border-none print:shadow-none print:w-full print:h-screen print:page-break-after`}
                     style={{
                       minHeight: '297mm',
@@ -1445,7 +1447,7 @@ export default function ChestNumberPrintingView({
                   </div>
                   <div>
                     <input
-                      type="range" min="40" max="180"
+                      type="range" min="40" max="360"
                       value={config.qrSize || 100}
                       onChange={(e) => setConfig({ ...config, qrSize: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
@@ -1500,7 +1502,7 @@ export default function ChestNumberPrintingView({
       {editingCn && individualConfig && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 print:hidden font-sans">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[92vh]">
-            
+
             {/* Left: Interactive Drag-and-Drop Canvas Preview */}
             <div className="w-full md:flex-1 bg-slate-100 p-4 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-200 shrink-0 min-h-0 relative">
               <div className="mb-2 text-[10px] text-slate-500 font-mono flex items-center gap-1.5 shrink-0 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
