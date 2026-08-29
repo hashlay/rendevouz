@@ -116,8 +116,8 @@ const ChestCardSvg: React.FC<{
       viewBox={`0 0 ${W} ${H}`}
       className="w-full h-full object-contain rounded-xl select-none"
       style={{
-        backgroundColor: cardConf.cardBgColor || '#ffffff',
-        border: `1px solid ${cardConf.cardBorderColor || '#cbd5e1'}`
+        backgroundColor: cardConf.cardBgColor || 'transparent',
+        border: (cardConf.cardBorderColor && cardConf.cardBorderColor !== 'transparent' && cardConf.cardBorderColor !== '#cbd5e1') ? `1px solid ${cardConf.cardBorderColor}` : 'none'
       }}
     >
       {/* Background Image if uploaded */}
@@ -973,28 +973,45 @@ export default function ChestNumberPrintingView({
               <style>{`
                 @media print {
                   @page {
-                    size: A4 portrait;
-                    margin: 5mm;
+                    size: 210mm 297mm;
+                    margin: 0;
                   }
-                  body {
+                  html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 210mm !important;
+                    height: 297mm !important;
                     background: white !important;
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                   }
+                  .chest-print-container {
+                    width: 210mm !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                  }
                   .a4-page {
                     margin: 0 !important;
-                    padding: 3mm !important;
+                    padding: 4mm 6mm !important;
                     box-shadow: none !important;
                     border: none !important;
-                    width: 100% !important;
-                    height: 100vh !important;
+                    width: 210mm !important;
+                    height: 297mm !important;
+                    max-height: 297mm !important;
                     page-break-after: always !important;
                     break-after: page !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
                     box-sizing: border-box !important;
+                    display: grid !important;
+                    overflow: hidden !important;
                   }
                   .chest-card {
                     box-shadow: none !important;
-                    border-color: #cbd5e1 !important;
+                    border: none !important;
+                    outline: none !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
                     image-rendering: -webkit-optimize-contrast !important;
                     image-rendering: crisp-edges !important;
                   }
@@ -1005,16 +1022,16 @@ export default function ChestNumberPrintingView({
               {Array.from({ length: Math.ceil(selectedChestNumbers.length / gridPerSheet) }).map((_, pageIdx) => {
                 const pageItems = selectedChestNumbers.slice(pageIdx * gridPerSheet, (pageIdx + 1) * gridPerSheet);
 
-                let gridClass = 'grid-cols-2 grid-rows-3'; // 6 default
-                if (gridPerSheet === 4) gridClass = 'grid-cols-2 grid-rows-2';
-                if (gridPerSheet === 8) gridClass = 'grid-cols-2 grid-rows-4';
-                if (gridPerSheet === 9) gridClass = 'grid-cols-3 grid-rows-3';
-                if (gridPerSheet === 12) gridClass = 'grid-cols-3 grid-rows-4';
+                let gridClass = 'grid-cols-2 grid-rows-3 gap-4'; // 6 default
+                if (gridPerSheet === 4) gridClass = 'grid-cols-2 grid-rows-2 gap-4';
+                if (gridPerSheet === 8) gridClass = 'grid-cols-2 grid-rows-4 gap-2';
+                if (gridPerSheet === 9) gridClass = 'grid-cols-3 grid-rows-3 gap-3';
+                if (gridPerSheet === 12) gridClass = 'grid-cols-3 grid-rows-4 gap-1.5';
 
                 return (
                   <div
                     key={pageIdx}
-                    className={`a4-page bg-white p-6 mb-8 border border-slate-300 rounded-2xl shadow-lg grid ${gridClass} gap-4 place-items-center print:p-2 print:m-0 print:border-none print:shadow-none print:w-full print:h-screen print:page-break-after`}
+                    className={`a4-page bg-white p-6 mb-8 border border-slate-300 rounded-2xl shadow-lg grid ${gridClass} place-items-center print:p-2 print:m-0 print:border-none print:shadow-none print:w-[210mm] print:h-[297mm] print:page-break-after`}
                     style={{
                       minHeight: '297mm',
                       width: '210mm',
@@ -1030,7 +1047,7 @@ export default function ChestNumberPrintingView({
                       return (
                         <div
                           key={cn.id}
-                          className="chest-card relative overflow-hidden rounded-xl border border-slate-300 bg-white flex items-center justify-center shadow-sm print:shadow-none print:border-slate-400 group w-full max-h-full"
+                          className="chest-card relative overflow-hidden rounded-xl border border-slate-300 bg-white flex items-center justify-center shadow-sm print:shadow-none print:border-none group w-full max-h-full"
                           style={{
                             aspectRatio: cardRatio
                           }}
