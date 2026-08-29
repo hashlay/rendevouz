@@ -195,7 +195,13 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
   }, [isModalOpen, themeConfigs]);
 
   const getThemeConfig = (idx: number) => {
-    return { ...getDefaultThemeConfig(), ...(localThemeConfigs[idx] || themeConfigs[idx] || {}) };
+    const aComp = competitions.find(c => c.id === selectedCompId);
+    const compOverride = (eventSettings?.posterOverrides && aComp?.name && eventSettings.posterOverrides[aComp.name]) ||
+                         (eventSettings?.posterOverrides && selectedCompId && eventSettings.posterOverrides[selectedCompId]);
+    const isOverrideValid = compOverride && (compOverride._savedThemeIndex === undefined || compOverride._savedThemeIndex === idx);
+    const baseTheme = { ...getDefaultThemeConfig(), ...(themeConfigs[idx] || {}) };
+    const savedLocal = localThemeConfigs[idx] || {};
+    return { ...baseTheme, ...(isOverrideValid ? compOverride : {}), ...savedLocal };
   };
 
   const updateLocalConf = (key: string, value: any) => {
@@ -206,8 +212,7 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     setLocalThemeConfigs((prev: any) => ({
       ...prev,
       [themeIdx]: {
-        ...getDefaultThemeConfig(),
-        ...(prev[themeIdx] || themeConfigs[themeIdx] || {}),
+        ...getThemeConfig(themeIdx),
         [key]: value
       }
     }));
@@ -243,9 +248,9 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
       const aCat = aComp ? categories.find(cat => cat.id === aComp.categoryId) : null;
       const compIdx = getAnnouncementIndex(selectedCompId);
       const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
-      const currentThemeConf = localThemeConfigs[themeIdx] || {};
+      const fullConf = getThemeConfig(themeIdx);
 
-      const overridePayload = { ...currentThemeConf, _savedThemeIndex: themeIdx };
+      const overridePayload = { ...fullConf, _savedThemeIndex: themeIdx };
       const updatedOverrides = {
         ...(eventSettings?.posterOverrides || {}),
         [selectedCompId]: overridePayload,
@@ -258,7 +263,8 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
         body: JSON.stringify({ posterOverrides: updatedOverrides })
       });
       if (!res.ok) throw new Error('Failed to save');
-      alert(`Saved custom layout positions specifically for poster "${aComp?.name}"!`);
+      alert(`Saved custom layout positions & text overrides specifically for poster "${aComp?.name}"!`);
+      if (onSettingsUpdated) onSettingsUpdated();
     } catch (e) {
       alert('Failed to save poster override');
     } finally {
@@ -481,8 +487,9 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
         min={min}
         max={max}
         value={value}
+        onInput={e => onChange(Number((e.target as HTMLInputElement).value))}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer touch-pan-x"
+        className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer touch-none"
       />
     </div>
   );

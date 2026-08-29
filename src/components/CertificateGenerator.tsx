@@ -180,8 +180,25 @@ export default function CertificateGenerator({
     const canvas = canvasRef.current;
     if (!canvas || !templateImgRef.current) return null;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+
+    const canvasAspect = canvas.width / canvas.height;
+    const rectAspect = rect.width / rect.height;
+
+    let actualWidth = rect.width;
+    let actualHeight = rect.height;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (rectAspect > canvasAspect) {
+      actualWidth = rect.height * canvasAspect;
+      offsetX = (rect.width - actualWidth) / 2;
+    } else {
+      actualHeight = rect.width / canvasAspect;
+      offsetY = (rect.height - actualHeight) / 2;
+    }
+
+    const scaleX = canvas.width / actualWidth;
+    const scaleY = canvas.height / actualHeight;
 
     let clientX = 0;
     let clientY = 0;
@@ -199,8 +216,8 @@ export default function CertificateGenerator({
       return null;
     }
 
-    const imgX = (clientX - rect.left) * scaleX;
-    const imgY = (clientY - rect.top) * scaleY;
+    const imgX = (clientX - rect.left - offsetX) * scaleX;
+    const imgY = (clientY - rect.top - offsetY) * scaleY;
     return { imgX, imgY, clientX, clientY };
   };
 
