@@ -100,6 +100,7 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
     ctx.fillText('PARTICIPANT NAME', centerX + nameX, nameY);
 
     // Competition
+    ctx.textAlign = 'left';
     ctx.fillStyle = compColor;
     ctx.font = `bold ${compSize}px "Montserrat", "Inter", sans-serif`;
     ctx.fillText('COMPETITION NAME', centerX + compX, compY);
@@ -158,7 +159,8 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
     
     // hit test with touch-friendly generous hit area
     const nameHit = Math.abs(imgX - (centerX + nameX)) < 350 && imgY > nameY - nameSize - 40 && imgY < nameY + 40;
-    const compHit = Math.abs(imgX - (centerX + compX)) < 350 && imgY > compY - compSize - 40 && imgY < compY + 40;
+    const compStartX = centerX + compX;
+    const compHit = imgX >= compStartX - 30 && imgX <= compStartX + 500 && imgY > compY - compSize - 40 && imgY < compY + 40;
     
     if (nameHit) {
       setDragging('name');

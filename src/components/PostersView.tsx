@@ -313,8 +313,24 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const canvasAspect = canvas.width / canvas.height;
+    const rectAspect = rect.width / rect.height;
+
+    let actualWidth = rect.width;
+    let actualHeight = rect.height;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (rectAspect > canvasAspect) {
+      actualWidth = rect.height * canvasAspect;
+      offsetX = (rect.width - actualWidth) / 2;
+    } else {
+      actualHeight = rect.width / canvasAspect;
+      offsetY = (rect.height - actualHeight) / 2;
+    }
+
+    const scaleX = canvas.width / actualWidth;
+    const scaleY = canvas.height / actualHeight;
 
     let clientX = 0;
     let clientY = 0;
@@ -333,8 +349,8 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     }
 
     return {
-      canvasX: (clientX - rect.left) * scaleX,
-      canvasY: (clientY - rect.top) * scaleY,
+      canvasX: (clientX - rect.left - offsetX) * scaleX,
+      canvasY: (clientY - rect.top - offsetY) * scaleY,
       clientX,
       clientY
     };
@@ -393,8 +409,20 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
 
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
+      const canvasAspect = canvas.width / canvas.height;
+      const rectAspect = rect.width / rect.height;
+
+      let actualWidth = rect.width;
+      let actualHeight = rect.height;
+
+      if (rectAspect > canvasAspect) {
+        actualWidth = rect.height * canvasAspect;
+      } else {
+        actualHeight = rect.width / canvasAspect;
+      }
+
+      const scaleX = canvas.width / actualWidth;
+      const scaleY = canvas.height / actualHeight;
 
       const deltaClientX = clientX - lastMousePos.current.x;
       const deltaClientY = clientY - lastMousePos.current.y;
