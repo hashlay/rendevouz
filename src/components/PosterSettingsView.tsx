@@ -37,8 +37,14 @@ function getDefaultThemeConfig(): any {
     categoryFont: 'sans-serif',
 
     // Competition (independent element)
-    compNameSize: 52,
-    compNameColor: '#ffffff',
+    titleX: 540,
+    titleY: 110,
+    campusNameX: 540,
+    campusNameY: 70,
+    festNameX: 540,
+    festNameY: 120,
+    categoryX: 540,
+    categoryY: 260,
     compNameX: 540,
     compNameY: 330,
     compNameFont: 'sans-serif',
