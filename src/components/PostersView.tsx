@@ -11,6 +11,20 @@ interface PosterGeneratorViewProps {
   eventSettings?: any;
 }
 
+const FONT_OPTIONS = [
+  { label: 'Inter (Clean Sans)', value: 'Inter, sans-serif' },
+  { label: 'Montserrat (Modern Bold)', value: 'Montserrat, sans-serif' },
+  { label: 'Outfit (Sleek Geometric)', value: 'Outfit, sans-serif' },
+  { label: 'Roboto (Standard)', value: 'Roboto, sans-serif' },
+  { label: 'Poppins (Friendly)', value: 'Poppins, sans-serif' },
+  { label: 'Playfair Display (Luxury Serif)', value: 'Playfair Display, serif' },
+  { label: 'Cinzel (Classical Elegant)', value: 'Cinzel, serif' },
+  { label: 'Oswald (Tall Block)', value: 'Oswald, sans-serif' },
+  { label: 'Courier New (Monospace)', value: 'Courier New, monospace' },
+  { label: 'Georgia (Editorial Serif)', value: 'Georgia, serif' },
+  { label: 'Great Vibes (Script Signature)', value: 'Great Vibes, cursive' }
+];
+
 // Default config for a single theme (must match PosterSettingsView)
 function getDefaultThemeConfig(): any {
   return {
@@ -1053,6 +1067,62 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                           >
                             Reset to Theme Defaults
                           </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2.5">Typography & Font Styles</h4>
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Competition Name Font</label>
+                            <select
+                              value={c.compNameFont || c.fontFamily || 'Inter, sans-serif'}
+                              onChange={e => updateLocalConf('compNameFont', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                            >
+                              {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Winner Names Font</label>
+                            <select
+                              value={c.winnerFont || c.fontFamily || 'Inter, sans-serif'}
+                              onChange={e => updateLocalConf('winnerFont', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                            >
+                              {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Unit / Team Names Font</label>
+                            <select
+                              value={c.unitFont || c.fontFamily || 'Inter, sans-serif'}
+                              onChange={e => updateLocalConf('unitFont', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                            >
+                              {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Category Font</label>
+                            <select
+                              value={c.categoryFont || c.fontFamily || 'Inter, sans-serif'}
+                              onChange={e => updateLocalConf('categoryFont', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                            >
+                              {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Header Campus Font</label>
+                            <select
+                              value={c.campusNameFont || c.fontFamily || 'Inter, sans-serif'}
+                              onChange={e => updateLocalConf('campusNameFont', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                            >
+                              {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                            </select>
+                          </div>
                         </div>
                       </div>
 

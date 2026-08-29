@@ -104,11 +104,12 @@ export default function CertificateGenerator({
     fontSize: number,
     fontStyle: string,
     color: string,
-    transformUpper: boolean = true
+    transformUpper: boolean = true,
+    align: CanvasTextAlign = 'center'
   ) => {
     ctx.fillStyle = color;
     ctx.font = fontStyle;
-    ctx.textAlign = 'center';
+    ctx.textAlign = align;
     ctx.textBaseline = 'bottom';
 
     const textStr = transformUpper ? (rawText || '').toUpperCase() : (rawText || '');
@@ -135,7 +136,7 @@ export default function CertificateGenerator({
     // Center text horizontally
     const centerX = img.width / 2;
 
-    // Draw Name
+    // Draw Name (Centered)
     const displayName = pName || 'PARTICIPANT NAME';
     fillMultiLineCanvasText(
       ctx,
@@ -144,10 +145,12 @@ export default function CertificateGenerator({
       nameY,
       nameSize,
       `bold ${nameSize}px ${nameFont}`,
-      nameColor
+      nameColor,
+      true,
+      'center'
     );
 
-    // Draw Competition
+    // Draw Competition (Left-aligned starting from X coordinate)
     const displayComp = overrideCompName || customCompName || competitionName || 'COMPETITION';
     fillMultiLineCanvasText(
       ctx,
@@ -156,7 +159,9 @@ export default function CertificateGenerator({
       compY,
       compSize,
       `bold ${compSize}px ${compFont}`,
-      compColor
+      compColor,
+      true,
+      'left'
     );
   };
 

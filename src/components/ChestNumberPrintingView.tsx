@@ -70,7 +70,8 @@ const ChestCardSvg: React.FC<{
     fontSize: number,
     fontWeight: string,
     fontFamily: string,
-    upper: boolean = true
+    upper: boolean = true,
+    anchor: 'start' | 'middle' = 'start'
   ) => {
     const textStr = upper ? (rawText || '').toUpperCase() : (rawText || '');
     const lines = textStr.split('\n').filter(Boolean);
@@ -79,7 +80,7 @@ const ChestCardSvg: React.FC<{
         <text
           x={x}
           y={y}
-          textAnchor="middle"
+          textAnchor={anchor}
           fill={fill}
           fontSize={fontSize}
           fontWeight={fontWeight}
@@ -95,7 +96,7 @@ const ChestCardSvg: React.FC<{
       <text
         x={x}
         y={startY}
-        textAnchor="middle"
+        textAnchor={anchor}
         fill={fill}
         fontSize={fontSize}
         fontWeight={fontWeight}
@@ -536,50 +537,62 @@ export default function ChestNumberPrintingView({
 
       ctx.fillStyle = cardConf.catColor || '#ffffff';
       ctx.font = `800 ${cardConf.catSize || 24}px ${cardConf.catFont || cardConf.fontFamily || 'sans-serif'}`;
-      ctx.textAlign = 'center';
+      ctx.textAlign = 'left';
       const catText = (cnData.categoryName || 'SENIOR CATEGORY').toUpperCase();
       const catMetrics = ctx.measureText(catText);
       const catX = cardConf.catX ?? 400;
       const catY = cardConf.catY ?? 45;
       ctx.fillText(catText, catX, catY);
-      addRegion('cat', catX - catMetrics.width / 2, catY - (cardConf.catSize || 24), catMetrics.width, (cardConf.catSize || 24));
+      addRegion('cat', catX - 5, catY - (cardConf.catSize || 24), catMetrics.width + 10, (cardConf.catSize || 24) + 10);
     }
 
     // Chest Number
     ctx.fillStyle = cardConf.chestColor || '#0f172a';
     ctx.font = `${cardConf.chestWeight || '800'} ${cardConf.chestSize || 84}px ${cardConf.chestFont || cardConf.fontFamily || 'sans-serif'}`;
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left';
     const chestText = cardConf.chestNumberOverride || cnData.chestNumberOverride || cnData.chestNumber?.toString() || '1042';
     const chestMetrics = ctx.measureText(chestText);
     const chestX = cardConf.chestX ?? 400;
     const chestY = cardConf.chestY ?? 210;
     ctx.fillText(chestText, chestX, chestY);
-    addRegion('chest', chestX - chestMetrics.width / 2, chestY - (cardConf.chestSize || 84), chestMetrics.width, (cardConf.chestSize || 84));
+    addRegion('chest', chestX - 5, chestY - (cardConf.chestSize || 84), chestMetrics.width + 10, (cardConf.chestSize || 84) + 10);
 
     // Participant Name
     if (cardConf.showName !== false) {
       ctx.fillStyle = cardConf.nameColor || '#1e293b';
       ctx.font = `${cardConf.nameWeight || '700'} ${cardConf.nameSize || 36}px ${cardConf.nameFont || cardConf.fontFamily || 'sans-serif'}`;
-      ctx.textAlign = 'center';
+      ctx.textAlign = 'left';
       const nameText = (cardConf.participantNameOverride || cnData.participantNameOverride || cnData.participantName || 'MUHAMMED RASHID AHMAD').toUpperCase();
-      const nameMetrics = ctx.measureText(nameText);
+      const nameLines = nameText.split('\n').filter(Boolean);
+      const nameGap = (cardConf.nameSize || 36) * 1.15;
       const nameX = cardConf.nameX ?? 400;
       const nameY = cardConf.nameY ?? 340;
-      ctx.fillText(nameText, nameX, nameY);
-      addRegion('name', nameX - nameMetrics.width / 2, nameY - (cardConf.nameSize || 36), nameMetrics.width, (cardConf.nameSize || 36));
+      let maxW = 0;
+      nameLines.forEach((line, i) => {
+        ctx.fillText(line, nameX, nameY + i * nameGap);
+        const w = ctx.measureText(line).width;
+        if (w > maxW) maxW = w;
+      });
+      addRegion('name', nameX - 5, nameY - (cardConf.nameSize || 36), maxW + 10, (nameLines.length * nameGap) + 10);
     }
 
     // Unit Name
     if (cardConf.showUnit !== false) {
       ctx.fillStyle = cardConf.unitColor || '#64748b';
       ctx.font = `700 ${cardConf.unitSize || 26}px ${cardConf.unitFont || cardConf.fontFamily || 'sans-serif'}`;
-      ctx.textAlign = 'center';
+      ctx.textAlign = 'left';
       const unitText = (cardConf.unitNameOverride || cnData.unitNameOverride || cnData.unitName || 'NINTHIKAL UNIT').toUpperCase();
-      const unitMetrics = ctx.measureText(unitText);
+      const unitLines = unitText.split('\n').filter(Boolean);
+      const unitGap = (cardConf.unitSize || 26) * 1.15;
       const unitX = cardConf.unitX ?? 400;
       const unitY = cardConf.unitY ?? 450;
-      ctx.fillText(unitText, unitX, unitY);
-      addRegion('unit', unitX - unitMetrics.width / 2, unitY - (cardConf.unitSize || 26), unitMetrics.width, (cardConf.unitSize || 26));
+      let maxUnitW = 0;
+      unitLines.forEach((line, i) => {
+        ctx.fillText(line, unitX, unitY + i * unitGap);
+        const w = ctx.measureText(line).width;
+        if (w > maxUnitW) maxUnitW = w;
+      });
+      addRegion('unit', unitX - 5, unitY - (cardConf.unitSize || 26), maxUnitW + 10, (unitLines.length * unitGap) + 10);
     }
 
     // QR Code Box Placeholder / Icon
