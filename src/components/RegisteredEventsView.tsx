@@ -263,7 +263,7 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
                                   <div className="flex items-center gap-2">
                                     <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0 print:hidden" />
                                     <div>
-                                      <p className="font-semibold text-slate-900 text-xs">{eventSettings?.certificateOverrides?.[participant.fullName] || participant.fullName}</p>
+                                      <p className="font-semibold text-slate-900 text-xs">{participant.fullName}</p>
                                       <span className="text-[10px] text-slate-400 font-mono">Chest No: {participant.profilePhoto || 'N/A'}</span>
                                     </div>
                                   </div>
@@ -294,8 +294,7 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
                               const tUnit = units.find(u => u.id === team.unitId);
                               const teamMembers = team.memberIds.map(mid => {
                                 const p = participants.find(part => part.id === mid);
-                                if (!p) return 'Unknown';
-                                return eventSettings?.certificateOverrides?.[p.fullName] || p.fullName;
+                                return p ? p.fullName : 'Unknown';
                               }).join(', ');
 
                               return (

@@ -61,7 +61,7 @@ export default function CertificateGenerator({
     const initNames: Record<number, string> = {};
     const compKey = `comp_${competitionId || competitionName}`;
     participantNames.forEach((origName, idx) => {
-      const savedName = overrides[`${compKey}_${idx}`] || overrides[`${compKey}_${origName}`] || overrides[origName];
+      const savedName = overrides[`${compKey}_${idx}`] || overrides[`${compKey}_${origName}`];
       if (savedName) initNames[idx] = savedName;
     });
     return initNames;
@@ -345,7 +345,6 @@ export default function CertificateGenerator({
         if (customName) {
           updatedOverrides[`${compKey}_${idx}`] = customName;
           updatedOverrides[`${compKey}_${origName}`] = customName;
-          updatedOverrides[origName] = customName;
         }
       });
 

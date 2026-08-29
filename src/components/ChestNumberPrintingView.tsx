@@ -574,8 +574,7 @@ export default function ChestNumberPrintingView({
       ctx.fillStyle = cardConf.nameColor || '#1e293b';
       ctx.font = `${cardConf.nameWeight || '700'} ${cardConf.nameSize || 36}px ${cardConf.nameFont || cardConf.fontFamily || 'sans-serif'}`;
       ctx.textAlign = 'left';
-      const globalShortName = eventSettings?.certificateOverrides?.[cnData.participantName] || cnData.participantName;
-      const nameText = (cardConf.participantNameOverride || cnData.participantNameOverride || globalShortName || 'MUHAMMED RASHID AHMAD').toUpperCase();
+      const nameText = (cardConf.participantNameOverride || cnData.participantNameOverride || cnData.participantName || 'MUHAMMED RASHID AHMAD').toUpperCase();
       const nameLines = nameText.split('\n').filter(Boolean);
       const nameGap = (cardConf.nameSize || 36) * 1.15;
       const nameX = cardConf.nameX ?? 400;
