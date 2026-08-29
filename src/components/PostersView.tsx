@@ -713,37 +713,43 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     addRegion('compName', compX - 10, compY - (c.compNameSize ?? 52) - 5, maxCompW + 20, (compLines.length * compLineGap) + 15);
 
     // Draw each rank with per-rank positions
-    compResults.forEach((res) => {
-      const rank = res.rank || 1;
-      if (rank > 3) return;
+    [1, 2, 3].forEach((rank) => {
+      const res = compResults.find(r => r.rank === rank);
+      const hasNameOverride = !!c[`rank${rank}NameOverride`];
+      const hasUnitOverride = !!c[`rank${rank}UnitOverride`];
+
+      // Skip drawing this rank if no database result and no manual text overrides exist
+      if (!res && !hasNameOverride && !hasUnitOverride) return;
 
       let winnerName = 'Participant Name';
       let winnerUnit = 'Unit Name';
 
-      if (res.participantId) {
-        const p = participants.find(part => part.id === res.participantId);
-        if (p) {
-          const rawName = p.fullName;
-          winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawName.toUpperCase() : rawName;
-          const u = units.find(unit => unit.id === p.unitId);
-          winnerUnit = u ? u.name : '';
-        }
-      } else if (res.teamId) {
-        const t = teams.find(team => team.id === res.teamId);
-        if (t) {
-          const rawName = t.teamName || 'Group Team';
-          winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawName.toUpperCase() : rawName;
-          const u = units.find(unit => unit.id === t.unitId);
-          winnerUnit = u ? u.name : '';
+      if (res) {
+        if (res.participantId) {
+          const p = participants.find(part => part.id === res.participantId);
+          if (p) {
+            const rawName = p.fullName;
+            winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawName.toUpperCase() : rawName;
+            const u = units.find(unit => unit.id === p.unitId);
+            winnerUnit = u ? u.name : '';
+          }
+        } else if (res.teamId) {
+          const t = teams.find(team => team.id === res.teamId);
+          if (t) {
+            const rawName = t.teamName || 'Group Team';
+            winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawName.toUpperCase() : rawName;
+            const u = units.find(unit => unit.id === t.unitId);
+            winnerUnit = u ? u.name : '';
+          }
         }
       }
 
-      if (c[`rank${rank}NameOverride`]) {
+      if (hasNameOverride) {
         const rawOverride = c[`rank${rank}NameOverride`];
         winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawOverride.toUpperCase() : rawOverride;
       }
 
-      if (c[`rank${rank}UnitOverride`]) {
+      if (hasUnitOverride) {
         winnerUnit = c[`rank${rank}UnitOverride`];
       }
 
