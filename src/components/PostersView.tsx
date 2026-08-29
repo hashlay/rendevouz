@@ -674,15 +674,13 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     ctx.textAlign = 'left';
     ctx.font = `900 ${c.compNameSize ?? 52}px ${c.compNameFont || c.fontFamily || 'sans-serif'}`;
     ctx.fillStyle = c.compNameColor || '#ffffff';
-    const rawComp = activeComp.name;
+    const rawComp = c.compNameOverride || activeComp.name;
     const compText = c.compNameUppercase ? rawComp.toUpperCase() : rawComp;
     const compMetrics = ctx.measureText(compText);
     const compX = c.compNameX ?? 540;
     const compY = c.compNameY ?? 330;
     ctx.fillText(compText, compX, compY);
     addRegion('compName', compX - 10, compY - (c.compNameSize ?? 52) - 5, compMetrics.width + 20, (c.compNameSize ?? 52) + 20);
-
-
 
     // Draw each rank with per-rank positions
     compResults.forEach((res) => {
@@ -708,6 +706,15 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
           const u = units.find(unit => unit.id === t.unitId);
           winnerUnit = u ? u.name : '';
         }
+      }
+
+      if (c[`rank${rank}NameOverride`]) {
+        const rawOverride = c[`rank${rank}NameOverride`];
+        winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawOverride.toUpperCase() : rawOverride;
+      }
+
+      if (c[`rank${rank}UnitOverride`]) {
+        winnerUnit = c[`rank${rank}UnitOverride`];
       }
 
       const bx = c[`rank${rank}BadgeX`] ?? 140;
@@ -967,6 +974,48 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                     </div>
 
                     <div className="space-y-5">
+                      <div>
+                        <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2.5">Manual Text Overrides</h4>
+                        <div className="p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 space-y-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">Competition Display Name</label>
+                            <input
+                              type="text"
+                              value={c.compNameOverride ?? activeComp?.name ?? ''}
+                              onChange={(e) => updateLocalConf('compNameOverride', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                              placeholder="Shorten or edit competition name..."
+                            />
+                          </div>
+
+                          {[1, 2, 3].map(rank => (
+                            <div key={rank} className="pt-2 border-t border-emerald-200/50 space-y-2">
+                              <span className="text-[10px] font-extrabold text-emerald-900 block">Rank {rank} Winner Text</span>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Winner Name</label>
+                                <input
+                                  type="text"
+                                  value={c[`rank${rank}NameOverride`] ?? ''}
+                                  onChange={(e) => updateLocalConf(`rank${rank}NameOverride`, e.target.value)}
+                                  className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                                  placeholder={`Shorten Rank ${rank} winner name...`}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Unit Name</label>
+                                <input
+                                  type="text"
+                                  value={c[`rank${rank}UnitOverride`] ?? ''}
+                                  onChange={(e) => updateLocalConf(`rank${rank}UnitOverride`, e.target.value)}
+                                  className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                                  placeholder={`Shorten Rank ${rank} unit name...`}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
                       <div>
                         <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2.5">Header Position</h4>
                         <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">

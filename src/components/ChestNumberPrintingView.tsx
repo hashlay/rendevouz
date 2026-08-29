@@ -1221,6 +1221,24 @@ export default function ChestNumberPrintingView({
               </div>
 
               <div>
+                <label className="block font-bold text-slate-700 mb-1">Category Text Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={config.catColor || '#ffffff'}
+                    onChange={(e) => setConfig({ ...config, catColor: e.target.value })}
+                    className="h-8 w-12 rounded cursor-pointer border border-slate-300"
+                  />
+                  <input
+                    type="text"
+                    value={config.catColor || '#ffffff'}
+                    onChange={(e) => setConfig({ ...config, catColor: e.target.value })}
+                    className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
                 <label className="block font-bold text-slate-700 mb-1">Unit / Team Name Text Color</label>
                 <div className="flex items-center gap-2">
                   <input
@@ -1284,127 +1302,152 @@ export default function ChestNumberPrintingView({
                 </div>
               </div>
 
-              <div className="space-y-3 pt-2 border-t">
-                <div>
-                  <div className="flex justify-between font-bold text-slate-700 mb-1">
-                    <span>Chest Number Position (X, Y)</span>
-                    <span>{config.chestX}, {config.chestY}</span>
+              <div className="space-y-4 pt-2 border-t">
+                {/* Chest Number Position & Size */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <div className="flex justify-between font-bold text-slate-700">
+                    <span>Chest Number (X, Y & Size)</span>
+                    <span className="font-mono text-[11px] text-emerald-700">Size: {config.chestSize || 84}px</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <input
-                      type="range"
-                      min="50"
-                      max="750"
+                      type="range" min="50" max="750"
                       value={config.chestX}
                       onChange={(e) => setConfig({ ...config, chestX: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
                     <input
-                      type="range"
-                      min="50"
-                      max="480"
+                      type="range" min="50" max="480"
                       value={config.chestY}
                       onChange={(e) => setConfig({ ...config, chestY: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
                   </div>
+                  <div>
+                    <input
+                      type="range" min="24" max="140"
+                      value={config.chestSize || 84}
+                      onChange={(e) => setConfig({ ...config, chestSize: Number(e.target.value) })}
+                      className="w-full accent-emerald-600"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <div className="flex justify-between font-bold text-slate-700 mb-1">
-                    <span>Participant Name Position (X, Y)</span>
-                    <span>{config.nameX}, {config.nameY}</span>
+                {/* Participant Name Position & Size */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <div className="flex justify-between font-bold text-slate-700">
+                    <span>Participant Name (X, Y & Size)</span>
+                    <span className="font-mono text-[11px] text-emerald-700">Size: {config.nameSize || 36}px</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <input
-                      type="range"
-                      min="50"
-                      max="750"
+                      type="range" min="50" max="750"
                       value={config.nameX}
                       onChange={(e) => setConfig({ ...config, nameX: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
                     <input
-                      type="range"
-                      min="50"
-                      max="480"
+                      type="range" min="50" max="480"
                       value={config.nameY}
                       onChange={(e) => setConfig({ ...config, nameY: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
                   </div>
+                  <div>
+                    <input
+                      type="range" min="14" max="80"
+                      value={config.nameSize || 36}
+                      onChange={(e) => setConfig({ ...config, nameSize: Number(e.target.value) })}
+                      className="w-full accent-emerald-600"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <div className="flex justify-between font-bold text-slate-700 mb-1">
-                    <span>Category Position (X, Y)</span>
-                    <span>{config.catX}, {config.catY}</span>
+                {/* Category Position & Size */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <div className="flex justify-between font-bold text-slate-700">
+                    <span>Category Name (X, Y & Size)</span>
+                    <span className="font-mono text-[11px] text-emerald-700">Size: {config.catSize || 24}px</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <input
-                      type="range"
-                      min="50"
-                      max="750"
+                      type="range" min="50" max="750"
                       value={config.catX}
                       onChange={(e) => setConfig({ ...config, catX: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
                     <input
-                      type="range"
-                      min="10"
-                      max="480"
+                      type="range" min="10" max="480"
                       value={config.catY}
                       onChange={(e) => setConfig({ ...config, catY: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
                   </div>
+                  <div>
+                    <input
+                      type="range" min="12" max="60"
+                      value={config.catSize || 24}
+                      onChange={(e) => setConfig({ ...config, catSize: Number(e.target.value) })}
+                      className="w-full accent-emerald-600"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <div className="flex justify-between font-bold text-slate-700 mb-1">
-                    <span>Unit/Team Position (X, Y)</span>
-                    <span>{config.unitX}, {config.unitY}</span>
+                {/* Unit/Team Position & Size */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <div className="flex justify-between font-bold text-slate-700">
+                    <span>Unit / Team Name (X, Y & Size)</span>
+                    <span className="font-mono text-[11px] text-emerald-700">Size: {config.unitSize || 26}px</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <input
-                      type="range"
-                      min="50"
-                      max="750"
+                      type="range" min="50" max="750"
                       value={config.unitX}
                       onChange={(e) => setConfig({ ...config, unitX: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
                     <input
-                      type="range"
-                      min="50"
-                      max="480"
+                      type="range" min="50" max="480"
                       value={config.unitY}
                       onChange={(e) => setConfig({ ...config, unitY: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
                   </div>
+                  <div>
+                    <input
+                      type="range" min="12" max="60"
+                      value={config.unitSize || 26}
+                      onChange={(e) => setConfig({ ...config, unitSize: Number(e.target.value) })}
+                      className="w-full accent-emerald-600"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <div className="flex justify-between font-bold text-slate-700 mb-1">
-                    <span>QR Code Position (X, Y)</span>
-                    <span>{config.qrX}, {config.qrY}</span>
+                {/* QR Code Position & Size */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <div className="flex justify-between font-bold text-slate-700">
+                    <span>QR Code (X, Y & Size)</span>
+                    <span className="font-mono text-[11px] text-emerald-700">Size: {config.qrSize || 100}px</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <input
-                      type="range"
-                      min="50"
-                      max="750"
+                      type="range" min="50" max="750"
                       value={config.qrX}
                       onChange={(e) => setConfig({ ...config, qrX: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
                     <input
-                      type="range"
-                      min="50"
-                      max="480"
+                      type="range" min="50" max="480"
                       value={config.qrY}
                       onChange={(e) => setConfig({ ...config, qrY: Number(e.target.value) })}
+                      className="w-full accent-emerald-600"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="range" min="40" max="180"
+                      value={config.qrSize || 100}
+                      onChange={(e) => setConfig({ ...config, qrSize: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
                   </div>
