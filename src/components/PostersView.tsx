@@ -843,7 +843,6 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
         if (w > maxUnitW) maxUnitW = w;
       });
       addRegion(`rank${rank}Unit`, (ux ?? calcUx) - 5, (uy ?? calcUy) - (c.unitSize ?? 30) - 5, maxUnitW + 10, (unitLines.length * unitGap) + 10);
-      addRegion(`rank${rank}Unit`, ux - 5, uy - (c.unitSize ?? 30) - 5, unitMetrics.width + 10, (c.unitSize ?? 30) + 15);
     });
 
     // Footer
