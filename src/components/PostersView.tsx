@@ -671,16 +671,25 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
     addRegion('category', catX - 10, catY - (c.categorySize ?? 32) - 5, catMetrics.width + 20, (c.categorySize ?? 32) + 20);
 
     // Competition Name
-    ctx.textAlign = 'left';
-    ctx.font = `900 ${c.compNameSize ?? 52}px ${c.compNameFont || c.fontFamily || 'sans-serif'}`;
-    ctx.fillStyle = c.compNameColor || '#ffffff';
+    const compFont = `900 ${c.compNameSize ?? 52}px ${c.compNameFont || c.fontFamily || 'sans-serif'}`;
     const rawComp = c.compNameOverride || activeComp.name;
     const compText = c.compNameUppercase ? rawComp.toUpperCase() : rawComp;
-    const compMetrics = ctx.measureText(compText);
     const compX = c.compNameX ?? 540;
     const compY = c.compNameY ?? 330;
-    ctx.fillText(compText, compX, compY);
-    addRegion('compName', compX - 10, compY - (c.compNameSize ?? 52) - 5, compMetrics.width + 20, (c.compNameSize ?? 52) + 20);
+
+    const compLines = compText.split('\n').filter(Boolean);
+    const compLineGap = (c.compNameSize ?? 52) * 1.15;
+    ctx.textAlign = 'left';
+    ctx.font = compFont;
+    ctx.fillStyle = c.compNameColor || '#ffffff';
+
+    let maxCompW = 0;
+    compLines.forEach((line, i) => {
+      ctx.fillText(line, compX, compY + i * compLineGap);
+      const w = ctx.measureText(line).width;
+      if (w > maxCompW) maxCompW = w;
+    });
+    addRegion('compName', compX - 10, compY - (c.compNameSize ?? 52) - 5, maxCompW + 20, (compLines.length * compLineGap) + 15);
 
     // Draw each rank with per-rank positions
     compResults.forEach((res) => {
@@ -749,20 +758,36 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
       ctx.fillText(rankText, bx, by);
       addRegion(`rank${rank}Badge`, bx - textWidth / 2 - 25, by - 42, textWidth + 50, 60);
 
-      // Winner name
+      // Winner name (Supports 2-line text with \n)
       ctx.textAlign = 'left';
       ctx.font = `800 ${c.winnerSize}px ${c.winnerFont || c.fontFamily || 'sans-serif'}`;
       ctx.fillStyle = c.winnerColor;
-      ctx.fillText(winnerName, nx, ny);
-      const nameMetrics = ctx.measureText(winnerName);
-      addRegion(`rank${rank}Name`, nx - 5, ny - (c.winnerSize ?? 44) - 5, nameMetrics.width + 10, (c.winnerSize ?? 44) + 15);
 
-      // Unit name
+      const nameLines = winnerName.split('\n').filter(Boolean);
+      const nameGap = (c.winnerSize ?? 44) * 1.15;
+      let maxNameW = 0;
+      nameLines.forEach((line, i) => {
+        ctx.fillText(line, nx, ny + i * nameGap);
+        const w = ctx.measureText(line).width;
+        if (w > maxNameW) maxNameW = w;
+      });
+      addRegion(`rank${rank}Name`, nx - 5, ny - (c.winnerSize ?? 44) - 5, maxNameW + 10, (nameLines.length * nameGap) + 10);
+
+      // Unit name (Supports 2-line text with \n)
       ctx.font = `700 ${c.unitSize}px ${c.unitFont || 'monospace'}`;
       ctx.fillStyle = c.unitColor;
       const unitText = c.unitUppercase !== false ? winnerUnit.toUpperCase() : winnerUnit;
-      ctx.fillText(unitText, ux, uy);
-      const unitMetrics = ctx.measureText(unitText);
+      const unitLines = unitText.split('\n').filter(Boolean);
+      const unitGap = (c.unitSize ?? 30) * 1.15;
+      const calcUx = nx; 
+      const calcUy = ny + (nameLines.length * nameGap) + 5;
+      let maxUnitW = 0;
+      unitLines.forEach((line, i) => {
+        ctx.fillText(line, ux ?? calcUx, (uy ?? calcUy) + i * unitGap);
+        const w = ctx.measureText(line).width;
+        if (w > maxUnitW) maxUnitW = w;
+      });
+      addRegion(`rank${rank}Unit`, (ux ?? calcUx) - 5, (uy ?? calcUy) - (c.unitSize ?? 30) - 5, maxUnitW + 10, (unitLines.length * unitGap) + 10);
       addRegion(`rank${rank}Unit`, ux - 5, uy - (c.unitSize ?? 30) - 5, unitMetrics.width + 10, (c.unitSize ?? 30) + 15);
     });
 
@@ -978,13 +1003,13 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                         <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2.5">Manual Text Overrides</h4>
                         <div className="p-3.5 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 space-y-3">
                           <div>
-                            <label className="block text-[11px] font-bold text-slate-700 mb-1">Competition Display Name</label>
-                            <input
-                              type="text"
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">Competition Display Name (Enter key for 2 lines)</label>
+                            <textarea
+                              rows={2}
                               value={c.compNameOverride ?? activeComp?.name ?? ''}
                               onChange={(e) => updateLocalConf('compNameOverride', e.target.value)}
                               className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
-                              placeholder="Shorten or edit competition name..."
+                              placeholder="Type competition name... Press Enter for 2 lines"
                             />
                           </div>
 
@@ -992,27 +1017,42 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                             <div key={rank} className="pt-2 border-t border-emerald-200/50 space-y-2">
                               <span className="text-[10px] font-extrabold text-emerald-900 block">Rank {rank} Winner Text</span>
                               <div>
-                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Winner Name</label>
-                                <input
-                                  type="text"
+                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Winner Name (Enter key for 2 lines)</label>
+                                <textarea
+                                  rows={2}
                                   value={c[`rank${rank}NameOverride`] ?? ''}
                                   onChange={(e) => updateLocalConf(`rank${rank}NameOverride`, e.target.value)}
                                   className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
-                                  placeholder={`Shorten Rank ${rank} winner name...`}
+                                  placeholder={`Rank ${rank} winner name... Press Enter for 2 lines`}
                                 />
                               </div>
                               <div>
-                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Unit Name</label>
-                                <input
-                                  type="text"
+                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Unit Name (Enter key for 2 lines)</label>
+                                <textarea
+                                  rows={2}
                                   value={c[`rank${rank}UnitOverride`] ?? ''}
                                   onChange={(e) => updateLocalConf(`rank${rank}UnitOverride`, e.target.value)}
                                   className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
-                                  placeholder={`Shorten Rank ${rank} unit name...`}
+                                  placeholder={`Rank ${rank} unit name... Press Enter for 2 lines`}
                                 />
                               </div>
                             </div>
                           ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('Reset poster layout and overrides to theme defaults?')) {
+                                const def = getDefaultThemeConfig(selectedThemeIdx);
+                                setLocalThemeConfigs(prev => ({
+                                  ...prev,
+                                  [selectedThemeIdx]: def
+                                }));
+                              }
+                            }}
+                            className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-300 transition mt-2"
+                          >
+                            Reset to Theme Defaults
+                          </button>
                         </div>
                       </div>
 

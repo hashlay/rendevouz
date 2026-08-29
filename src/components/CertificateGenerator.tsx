@@ -96,6 +96,34 @@ export default function CertificateGenerator({
     };
   }, [rank, eventSettings]);
 
+  const fillMultiLineCanvasText = (
+    ctx: CanvasRenderingContext2D,
+    rawText: string,
+    x: number,
+    y: number,
+    fontSize: number,
+    fontStyle: string,
+    color: string,
+    transformUpper: boolean = true
+  ) => {
+    ctx.fillStyle = color;
+    ctx.font = fontStyle;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+
+    const textStr = transformUpper ? (rawText || '').toUpperCase() : (rawText || '');
+    const lines = textStr.split('\n').filter(Boolean);
+    if (lines.length <= 1) {
+      ctx.fillText(lines[0] || '', x, y);
+      return;
+    }
+    const lineGap = fontSize * 1.15;
+    const startY = y - ((lines.length - 1) * lineGap);
+    lines.forEach((line, i) => {
+      ctx.fillText(line, x, startY + i * lineGap);
+    });
+  };
+
   const drawCertificate = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, pName: string, overrideCompName?: string) => {
     // Set canvas size to match image resolution exactly for high quality
     ctx.canvas.width = img.width;
@@ -108,19 +136,28 @@ export default function CertificateGenerator({
     const centerX = img.width / 2;
 
     // Draw Name
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillStyle = nameColor;
-    
-    ctx.font = `bold ${nameSize}px ${nameFont}`;
     const displayName = pName || 'PARTICIPANT NAME';
-    ctx.fillText(displayName.toUpperCase(), centerX + nameX, nameY);
+    fillMultiLineCanvasText(
+      ctx,
+      displayName,
+      centerX + nameX,
+      nameY,
+      nameSize,
+      `bold ${nameSize}px ${nameFont}`,
+      nameColor
+    );
 
     // Draw Competition
-    ctx.fillStyle = compColor;
-    ctx.font = `bold ${compSize}px ${compFont}`;
     const displayComp = overrideCompName || customCompName || competitionName || 'COMPETITION';
-    ctx.fillText(displayComp.toUpperCase(), centerX + compX, compY);
+    fillMultiLineCanvasText(
+      ctx,
+      displayComp,
+      centerX + compX,
+      compY,
+      compSize,
+      `bold ${compSize}px ${compFont}`,
+      compColor
+    );
   };
 
   const currentDisplayName = customParticipantNames[currentIndex] ?? participantNames[currentIndex];
@@ -438,13 +475,13 @@ export default function CertificateGenerator({
               <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Participant Name Settings</h3>
               
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Edit / Shorten Display Name</label>
-                <input
-                  type="text"
+                <label className="block text-xs font-bold text-slate-700 mb-1">Edit / Shorten Display Name (Enter key for 2 lines)</label>
+                <textarea
+                  rows={2}
                   value={customParticipantNames[currentIndex] ?? participantNames[currentIndex] ?? ''}
                   onChange={(e) => setCustomParticipantNames(prev => ({ ...prev, [currentIndex]: e.target.value }))}
                   className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Override participant name..."
+                  placeholder="Override name... Press Enter for 2 lines"
                 />
               </div>
 
@@ -510,13 +547,13 @@ export default function CertificateGenerator({
               <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Competition Name Settings</h3>
               
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Edit / Shorten Competition Name</label>
-                <input
-                  type="text"
+                <label className="block text-xs font-bold text-slate-700 mb-1">Edit / Shorten Competition Name (Enter key for 2 lines)</label>
+                <textarea
+                  rows={2}
                   value={customCompName}
                   onChange={(e) => setCustomCompName(e.target.value)}
                   className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Override competition name..."
+                  placeholder="Override competition name... Press Enter for 2 lines"
                 />
               </div>
 

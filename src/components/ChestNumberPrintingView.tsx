@@ -59,8 +59,56 @@ const ChestCardSvg: React.FC<{
   const qrY = cardConf.qrY ?? 380;
   const qrSize = cardConf.qrSize || 100;
 
-  const displayName = (cardConf.participantNameOverride || cn.participantNameOverride || cn.participantName || 'PARTICIPANT NAME').toUpperCase();
-  const displayUnit = (cardConf.unitNameOverride || cn.unitNameOverride || cn.unitName || 'UNIT NAME').toUpperCase();
+  const displayName = cardConf.participantNameOverride || cn.participantNameOverride || cn.participantName || 'PARTICIPANT NAME';
+  const displayUnit = cardConf.unitNameOverride || cn.unitNameOverride || cn.unitName || 'UNIT NAME';
+
+  const renderSvgLines = (
+    rawText: string,
+    x: number,
+    y: number,
+    fill: string,
+    fontSize: number,
+    fontWeight: string,
+    fontFamily: string,
+    upper: boolean = true
+  ) => {
+    const textStr = upper ? (rawText || '').toUpperCase() : (rawText || '');
+    const lines = textStr.split('\n').filter(Boolean);
+    if (lines.length <= 1) {
+      return (
+        <text
+          x={x}
+          y={y}
+          textAnchor="middle"
+          fill={fill}
+          fontSize={fontSize}
+          fontWeight={fontWeight}
+          fontFamily={fontFamily}
+        >
+          {lines[0] || ''}
+        </text>
+      );
+    }
+    const lineGap = fontSize * 1.15;
+    const startY = y - ((lines.length - 1) * lineGap) / 2;
+    return (
+      <text
+        x={x}
+        y={startY}
+        textAnchor="middle"
+        fill={fill}
+        fontSize={fontSize}
+        fontWeight={fontWeight}
+        fontFamily={fontFamily}
+      >
+        {lines.map((line, i) => (
+          <tspan key={i} x={x} dy={i === 0 ? 0 : lineGap}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    );
+  };
 
   return (
     <svg
@@ -89,62 +137,55 @@ const ChestCardSvg: React.FC<{
       )}
 
       {/* Category Name Text */}
-      {cardConf.showCategory !== false && (
-        <text
-          x={catX}
-          y={catY}
-          textAnchor="middle"
-          fill={cardConf.catColor || '#ffffff'}
-          fontSize={cardConf.catSize || 24}
-          fontWeight="800"
-          fontFamily={cardConf.catFont || cardConf.fontFamily || 'Inter, sans-serif'}
-        >
-          {(cn.categoryName || 'SENIOR CATEGORY').toUpperCase()}
-        </text>
-      )}
+      {cardConf.showCategory !== false &&
+        renderSvgLines(
+          cn.categoryName || 'SENIOR CATEGORY',
+          catX,
+          catY,
+          cardConf.catColor || '#ffffff',
+          cardConf.catSize || 24,
+          '800',
+          cardConf.catFont || cardConf.fontFamily || 'Inter, sans-serif'
+        )
+      }
 
       {/* Chest Number Text */}
-      <text
-        x={chestX}
-        y={chestY}
-        textAnchor="middle"
-        fill={cardConf.chestColor || '#0f172a'}
-        fontSize={cardConf.chestSize || 84}
-        fontWeight={cardConf.chestWeight || '800'}
-        fontFamily={cardConf.chestFont || cardConf.fontFamily || 'Inter, sans-serif'}
-      >
-        {displayChestNo}
-      </text>
+      {renderSvgLines(
+        displayChestNo?.toString() || '',
+        chestX,
+        chestY,
+        cardConf.chestColor || '#0f172a',
+        cardConf.chestSize || 84,
+        cardConf.chestWeight || '800',
+        cardConf.chestFont || cardConf.fontFamily || 'Inter, sans-serif',
+        false
+      )}
 
       {/* Participant Name Text */}
-      {cardConf.showName !== false && (
-        <text
-          x={nameX}
-          y={nameY}
-          textAnchor="middle"
-          fill={cardConf.nameColor || '#1e293b'}
-          fontSize={cardConf.nameSize || 36}
-          fontWeight={cardConf.nameWeight || '700'}
-          fontFamily={cardConf.nameFont || cardConf.fontFamily || 'Inter, sans-serif'}
-        >
-          {displayName}
-        </text>
-      )}
+      {cardConf.showName !== false &&
+        renderSvgLines(
+          displayName,
+          nameX,
+          nameY,
+          cardConf.nameColor || '#1e293b',
+          cardConf.nameSize || 36,
+          cardConf.nameWeight || '700',
+          cardConf.nameFont || cardConf.fontFamily || 'Inter, sans-serif'
+        )
+      }
 
       {/* Unit / Team Name Text */}
-      {cardConf.showUnit !== false && (
-        <text
-          x={unitX}
-          y={unitY}
-          textAnchor="middle"
-          fill={cardConf.unitColor || '#64748b'}
-          fontSize={cardConf.unitSize || 26}
-          fontWeight="700"
-          fontFamily={cardConf.unitFont || cardConf.fontFamily || 'Inter, sans-serif'}
-        >
-          {displayUnit}
-        </text>
-      )}
+      {cardConf.showUnit !== false &&
+        renderSvgLines(
+          displayUnit,
+          unitX,
+          unitY,
+          cardConf.unitColor || '#64748b',
+          cardConf.unitSize || 26,
+          '700',
+          cardConf.unitFont || cardConf.fontFamily || 'Inter, sans-serif'
+        )
+      }
 
       {/* HD Vector QR Code */}
       {cardConf.showQr !== false && (
@@ -1549,29 +1590,29 @@ export default function ChestNumberPrintingView({
                       Manual Text Overrides (Shorten / Edit)
                     </span>
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Participant Name Override</label>
-                      <input
-                        type="text"
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Participant Name Override (Enter key for 2 lines)</label>
+                      <textarea
+                        rows={2}
                         value={individualConfig.participantNameOverride ?? editingCn.participantNameOverride ?? editingCn.participantName ?? ''}
                         onChange={(e) => {
                           setIndividualConfig({ ...individualConfig, participantNameOverride: e.target.value });
                           setEditingCn({ ...editingCn, participantNameOverride: e.target.value });
                         }}
                         className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
-                        placeholder="Shortened or edited participant name..."
+                        placeholder="Type name... Press Enter for 2-line name"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Unit / Team Name Override</label>
-                      <input
-                        type="text"
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Unit / Team Name Override (Enter key for 2 lines)</label>
+                      <textarea
+                        rows={2}
                         value={individualConfig.unitNameOverride ?? editingCn.unitNameOverride ?? editingCn.unitName ?? ''}
                         onChange={(e) => {
                           setIndividualConfig({ ...individualConfig, unitNameOverride: e.target.value });
                           setEditingCn({ ...editingCn, unitNameOverride: e.target.value });
                         }}
                         className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
-                        placeholder="Shortened or edited unit name..."
+                        placeholder="Type unit name... Press Enter for 2 lines"
                       />
                     </div>
                     <div>
@@ -1587,6 +1628,21 @@ export default function ChestNumberPrintingView({
                         placeholder="Chest number text..."
                       />
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIndividualConfig({ ...config });
+                        setEditingCn({
+                          ...editingCn,
+                          participantNameOverride: undefined,
+                          unitNameOverride: undefined,
+                          chestNumberOverride: undefined
+                        });
+                      }}
+                      className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-300 transition"
+                    >
+                      Reset to Theme Defaults
+                    </button>
                   </div>
                   {/* Participant Name Controls */}
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
