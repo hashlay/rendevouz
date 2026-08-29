@@ -14,6 +14,19 @@ interface ChestNumberPrintingViewProps {
   onSettingsUpdated?: () => void;
 }
 
+const FONT_OPTIONS = [
+  { label: 'Inter (Sans)', value: 'Inter, sans-serif' },
+  { label: 'Montserrat (Sans)', value: 'Montserrat, sans-serif' },
+  { label: 'Outfit (Sans)', value: 'Outfit, sans-serif' },
+  { label: 'Roboto (Sans)', value: 'Roboto, sans-serif' },
+  { label: 'Poppins (Sans)', value: 'Poppins, sans-serif' },
+  { label: 'Playfair Display (Serif)', value: '"Playfair Display", serif' },
+  { label: 'Cinzel (Serif)', value: 'Cinzel, serif' },
+  { label: 'Oswald (Display)', value: 'Oswald, sans-serif' },
+  { label: 'Courier New (Mono)', value: '"Courier New", monospace' },
+  { label: 'Georgia (Serif)', value: 'Georgia, serif' }
+];
+
 // Unified Scalable Chest Card SVG Component (Preserves dynamic aspect ratio & 1:1 canvas coordinates)
 const ChestCardSvg: React.FC<{
   cn: any;
@@ -27,7 +40,8 @@ const ChestCardSvg: React.FC<{
 
   const bgImg = getCardBgImage(cn, cardConf);
   const portalBase = cardConf.publicPortalUrl ? cardConf.publicPortalUrl.replace(/\/+$/, '') : originUrl;
-  const qrUrl = `${portalBase}/?chestNo=${cn.chestNumber}`;
+  const displayChestNo = cardConf.chestNumberOverride || cn.chestNumberOverride || cn.chestNumber;
+  const qrUrl = `${portalBase}/?chestNo=${displayChestNo}`;
 
   const catColor = (cardConf.enableCategoryColors !== false && cardConf.categoryColors?.[cn.categoryName]) || cardConf.headerBgColor || '#065f46';
   // Hide solid header bar by default when custom template image exists unless explicitly toggled on
@@ -44,6 +58,9 @@ const ChestCardSvg: React.FC<{
   const qrX = cardConf.qrX ?? 660;
   const qrY = cardConf.qrY ?? 380;
   const qrSize = cardConf.qrSize || 100;
+
+  const displayName = (cardConf.participantNameOverride || cn.participantNameOverride || cn.participantName || 'PARTICIPANT NAME').toUpperCase();
+  const displayUnit = (cardConf.unitNameOverride || cn.unitNameOverride || cn.unitName || 'UNIT NAME').toUpperCase();
 
   return (
     <svg
@@ -80,7 +97,7 @@ const ChestCardSvg: React.FC<{
           fill={cardConf.catColor || '#ffffff'}
           fontSize={cardConf.catSize || 24}
           fontWeight="800"
-          fontFamily="sans-serif"
+          fontFamily={cardConf.catFont || cardConf.fontFamily || 'Inter, sans-serif'}
         >
           {(cn.categoryName || 'SENIOR CATEGORY').toUpperCase()}
         </text>
@@ -94,9 +111,9 @@ const ChestCardSvg: React.FC<{
         fill={cardConf.chestColor || '#0f172a'}
         fontSize={cardConf.chestSize || 84}
         fontWeight={cardConf.chestWeight || '800'}
-        fontFamily="sans-serif"
+        fontFamily={cardConf.chestFont || cardConf.fontFamily || 'Inter, sans-serif'}
       >
-        {cn.chestNumber}
+        {displayChestNo}
       </text>
 
       {/* Participant Name Text */}
@@ -108,9 +125,9 @@ const ChestCardSvg: React.FC<{
           fill={cardConf.nameColor || '#1e293b'}
           fontSize={cardConf.nameSize || 36}
           fontWeight={cardConf.nameWeight || '700'}
-          fontFamily="sans-serif"
+          fontFamily={cardConf.nameFont || cardConf.fontFamily || 'Inter, sans-serif'}
         >
-          {(cn.participantName || 'PARTICIPANT NAME').toUpperCase()}
+          {displayName}
         </text>
       )}
 
@@ -123,9 +140,9 @@ const ChestCardSvg: React.FC<{
           fill={cardConf.unitColor || '#64748b'}
           fontSize={cardConf.unitSize || 26}
           fontWeight="700"
-          fontFamily="sans-serif"
+          fontFamily={cardConf.unitFont || cardConf.fontFamily || 'Inter, sans-serif'}
         >
-          {(cn.unitName || 'UNIT NAME').toUpperCase()}
+          {displayUnit}
         </text>
       )}
 
@@ -475,7 +492,7 @@ export default function ChestNumberPrintingView({
       }
 
       ctx.fillStyle = cardConf.catColor || '#ffffff';
-      ctx.font = `800 ${cardConf.catSize || 24}px sans-serif`;
+      ctx.font = `800 ${cardConf.catSize || 24}px ${cardConf.catFont || cardConf.fontFamily || 'sans-serif'}`;
       ctx.textAlign = 'center';
       const catText = (cnData.categoryName || 'SENIOR CATEGORY').toUpperCase();
       const catMetrics = ctx.measureText(catText);
@@ -487,9 +504,9 @@ export default function ChestNumberPrintingView({
 
     // Chest Number
     ctx.fillStyle = cardConf.chestColor || '#0f172a';
-    ctx.font = `${cardConf.chestWeight || '800'} ${cardConf.chestSize || 84}px sans-serif`;
+    ctx.font = `${cardConf.chestWeight || '800'} ${cardConf.chestSize || 84}px ${cardConf.chestFont || cardConf.fontFamily || 'sans-serif'}`;
     ctx.textAlign = 'center';
-    const chestText = cnData.chestNumber?.toString() || '1042';
+    const chestText = cardConf.chestNumberOverride || cnData.chestNumberOverride || cnData.chestNumber?.toString() || '1042';
     const chestMetrics = ctx.measureText(chestText);
     const chestX = cardConf.chestX ?? 400;
     const chestY = cardConf.chestY ?? 210;
@@ -499,9 +516,9 @@ export default function ChestNumberPrintingView({
     // Participant Name
     if (cardConf.showName !== false) {
       ctx.fillStyle = cardConf.nameColor || '#1e293b';
-      ctx.font = `${cardConf.nameWeight || '700'} ${cardConf.nameSize || 36}px sans-serif`;
+      ctx.font = `${cardConf.nameWeight || '700'} ${cardConf.nameSize || 36}px ${cardConf.nameFont || cardConf.fontFamily || 'sans-serif'}`;
       ctx.textAlign = 'center';
-      const nameText = (cnData.participantName || 'MUHAMMED RASHID AHMAD').toUpperCase();
+      const nameText = (cardConf.participantNameOverride || cnData.participantNameOverride || cnData.participantName || 'MUHAMMED RASHID AHMAD').toUpperCase();
       const nameMetrics = ctx.measureText(nameText);
       const nameX = cardConf.nameX ?? 400;
       const nameY = cardConf.nameY ?? 340;
@@ -512,9 +529,9 @@ export default function ChestNumberPrintingView({
     // Unit Name
     if (cardConf.showUnit !== false) {
       ctx.fillStyle = cardConf.unitColor || '#64748b';
-      ctx.font = `700 ${cardConf.unitSize || 26}px sans-serif`;
+      ctx.font = `700 ${cardConf.unitSize || 26}px ${cardConf.unitFont || cardConf.fontFamily || 'sans-serif'}`;
       ctx.textAlign = 'center';
-      const unitText = (cnData.unitName || 'NINTHIKAL UNIT').toUpperCase();
+      const unitText = (cardConf.unitNameOverride || cnData.unitNameOverride || cnData.unitName || 'NINTHIKAL UNIT').toUpperCase();
       const unitMetrics = ctx.measureText(unitText);
       const unitX = cardConf.unitX ?? 400;
       const unitY = cardConf.unitY ?? 450;
@@ -1203,6 +1220,70 @@ export default function ChestNumberPrintingView({
                 </div>
               </div>
 
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Unit / Team Name Text Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={config.unitColor || '#64748b'}
+                    onChange={(e) => setConfig({ ...config, unitColor: e.target.value })}
+                    className="h-8 w-12 rounded cursor-pointer border border-slate-300"
+                  />
+                  <input
+                    type="text"
+                    value={config.unitColor || '#64748b'}
+                    onChange={(e) => setConfig({ ...config, unitColor: e.target.value })}
+                    className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t space-y-3">
+                <label className="block font-bold text-slate-700">Typography & Font Styles</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Chest Number Font</label>
+                    <select
+                      value={config.chestFont || 'Inter, sans-serif'}
+                      onChange={(e) => setConfig({ ...config, chestFont: e.target.value })}
+                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+                    >
+                      {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Participant Font</label>
+                    <select
+                      value={config.nameFont || 'Inter, sans-serif'}
+                      onChange={(e) => setConfig({ ...config, nameFont: e.target.value })}
+                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+                    >
+                      {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Category Font</label>
+                    <select
+                      value={config.catFont || 'Inter, sans-serif'}
+                      onChange={(e) => setConfig({ ...config, catFont: e.target.value })}
+                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+                    >
+                      {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Unit / Team Font</label>
+                    <select
+                      value={config.unitFont || 'Inter, sans-serif'}
+                      onChange={(e) => setConfig({ ...config, unitFont: e.target.value })}
+                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+                    >
+                      {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-3 pt-2 border-t">
                 <div>
                   <div className="flex justify-between font-bold text-slate-700 mb-1">
@@ -1416,6 +1497,52 @@ export default function ChestNumberPrintingView({
                 </div>
 
                 <div className="space-y-4 text-xs">
+                  {/* Manual Text Overrides Card */}
+                  <div className="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 space-y-2.5">
+                    <span className="font-bold text-emerald-950 flex items-center gap-1.5 text-xs">
+                      <Edit3 className="w-3.5 h-3.5 text-emerald-600" />
+                      Manual Text Overrides (Shorten / Edit)
+                    </span>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Participant Name Override</label>
+                      <input
+                        type="text"
+                        value={individualConfig.participantNameOverride ?? editingCn.participantNameOverride ?? editingCn.participantName ?? ''}
+                        onChange={(e) => {
+                          setIndividualConfig({ ...individualConfig, participantNameOverride: e.target.value });
+                          setEditingCn({ ...editingCn, participantNameOverride: e.target.value });
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                        placeholder="Shortened or edited participant name..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Unit / Team Name Override</label>
+                      <input
+                        type="text"
+                        value={individualConfig.unitNameOverride ?? editingCn.unitNameOverride ?? editingCn.unitName ?? ''}
+                        onChange={(e) => {
+                          setIndividualConfig({ ...individualConfig, unitNameOverride: e.target.value });
+                          setEditingCn({ ...editingCn, unitNameOverride: e.target.value });
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                        placeholder="Shortened or edited unit name..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Chest Number Override</label>
+                      <input
+                        type="text"
+                        value={individualConfig.chestNumberOverride ?? editingCn.chestNumberOverride ?? editingCn.chestNumber ?? ''}
+                        onChange={(e) => {
+                          setIndividualConfig({ ...individualConfig, chestNumberOverride: e.target.value });
+                          setEditingCn({ ...editingCn, chestNumberOverride: e.target.value });
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                        placeholder="Chest number text..."
+                      />
+                    </div>
+                  </div>
                   {/* Participant Name Controls */}
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                     <span className="font-bold text-slate-800 block">Participant Name Position & Size</span>

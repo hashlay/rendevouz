@@ -13,6 +13,19 @@ interface CertificateGeneratorProps {
   onSettingsUpdated?: () => void;
 }
 
+const FONT_OPTIONS = [
+  { label: 'Montserrat (Modern)', value: '"Montserrat", sans-serif' },
+  { label: 'Inter (Sans)', value: '"Inter", sans-serif' },
+  { label: 'Outfit (Sans)', value: '"Outfit", sans-serif' },
+  { label: 'Playfair Display (Serif)', value: '"Playfair Display", serif' },
+  { label: 'Cinzel (Decorative)', value: '"Cinzel", serif' },
+  { label: 'Great Vibes (Script)', value: '"Great Vibes", cursive' },
+  { label: 'Alex Brush (Script)', value: '"Alex Brush", cursive' },
+  { label: 'Pinyon Script (Classic Script)', value: '"Pinyon Script", cursive' },
+  { label: 'Roboto (Sans)', value: '"Roboto", sans-serif' },
+  { label: 'Poppins (Sans)', value: '"Poppins", sans-serif' }
+];
+
 export default function CertificateGenerator({
   participantNames,
   competitionName,
@@ -43,6 +56,14 @@ export default function CertificateGenerator({
   const [nameSize, setNameSize] = useState(templateConfig.nameSize ?? (rank === 1 ? 33 : 33));
   const [compSize, setCompSize] = useState(templateConfig.compSize ?? (rank === 1 ? 25 : 25));
   
+  // Custom text overrides for long names & competition titles
+  const [customParticipantNames, setCustomParticipantNames] = useState<Record<number, string>>({});
+  const [customCompName, setCustomCompName] = useState<string>(competitionName);
+
+  // Font choices
+  const [nameFont, setNameFont] = useState(templateConfig.nameFont || '"Montserrat", "Inter", sans-serif');
+  const [compFont, setCompFont] = useState(templateConfig.compFont || '"Montserrat", "Inter", sans-serif');
+  
   // Base on rank, pick default colors
   // 1st place has a red/burgundy theme. 2nd and 3rd place use black text.
   const defaultColor = rank === 1 ? '#cc0000' : '#000000';
@@ -57,9 +78,6 @@ export default function CertificateGenerator({
 
   useEffect(() => {
     const img = new Image();
-    // 1st place -> certTheme1Url || /certificate_1.jpg
-    // 2nd place -> certTheme2Url || /certificate_2.jpg
-    // 3rd place -> certTheme3Url || /certificate_3.jpg || /certificate_2.jpg
     const customUrl = rank === 1 
       ? eventSettings?.certTheme1Url 
       : rank === 2 
@@ -74,12 +92,11 @@ export default function CertificateGenerator({
       setImageLoaded(true);
     };
     img.onerror = () => {
-      // Fallback if custom URL fails to load
       img.src = fallbackUrl;
     };
   }, [rank, eventSettings]);
 
-  const drawCertificate = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, pName: string) => {
+  const drawCertificate = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, pName: string, overrideCompName?: string) => {
     // Set canvas size to match image resolution exactly for high quality
     ctx.canvas.width = img.width;
     ctx.canvas.height = img.height;
@@ -87,7 +104,7 @@ export default function CertificateGenerator({
     // Draw background
     ctx.drawImage(img, 0, 0, img.width, img.height);
 
-    // We want to center the text horizontally.
+    // Center text horizontally
     const centerX = img.width / 2;
 
     // Draw Name
@@ -95,23 +112,27 @@ export default function CertificateGenerator({
     ctx.textBaseline = 'bottom';
     ctx.fillStyle = nameColor;
     
-    ctx.font = `bold ${nameSize}px "Montserrat", "Inter", sans-serif`;
-    ctx.fillText(pName.toUpperCase(), centerX + nameX, nameY);
+    ctx.font = `bold ${nameSize}px ${nameFont}`;
+    const displayName = pName || 'PARTICIPANT NAME';
+    ctx.fillText(displayName.toUpperCase(), centerX + nameX, nameY);
 
     // Draw Competition
     ctx.fillStyle = compColor;
-    ctx.font = `bold ${compSize}px "Montserrat", "Inter", sans-serif`;
-    ctx.fillText(competitionName.toUpperCase(), centerX + compX, compY);
+    ctx.font = `bold ${compSize}px ${compFont}`;
+    const displayComp = overrideCompName || customCompName || competitionName || 'COMPETITION';
+    ctx.fillText(displayComp.toUpperCase(), centerX + compX, compY);
   };
+
+  const currentDisplayName = customParticipantNames[currentIndex] ?? participantNames[currentIndex];
 
   useEffect(() => {
     if (imageLoaded && templateImgRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      drawCertificate(ctx, templateImgRef.current, participantNames[currentIndex]);
+      drawCertificate(ctx, templateImgRef.current, currentDisplayName);
     }
-  }, [imageLoaded, nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, participantNames, currentIndex, competitionName]);
+  }, [imageLoaded, nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, nameFont, compFont, currentDisplayName, customCompName, currentIndex, competitionName]);
 
   const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -237,7 +258,7 @@ export default function CertificateGenerator({
     setSavingTemplate(true);
     try {
       const currentConfig = eventSettings?.certificateTemplateConfig || {};
-      const configData = { nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor };
+      const configData = { nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, nameFont, compFont };
       const newConfig = {
         ...currentConfig,
         [compKey]: configData,
@@ -273,20 +294,21 @@ export default function CertificateGenerator({
     // Download all participants
     participantNames.forEach((name, index) => {
       setTimeout(() => {
-        drawCertificate(ctx, templateImgRef.current!, name);
+        const pName = customParticipantNames[index] ?? name;
+        drawCertificate(ctx, templateImgRef.current!, pName);
         const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
         const link = document.createElement('a');
-        link.download = `${name}_Rank${rank}_Certificate.jpg`;
+        link.download = `${pName}_Rank${rank}_Certificate.jpg`;
         link.href = dataUrl;
         link.click();
         
         // Restore to current index view after finishing
         if (index === participantNames.length - 1) {
           setTimeout(() => {
-            drawCertificate(ctx, templateImgRef.current!, participantNames[currentIndex]);
+            drawCertificate(ctx, templateImgRef.current!, currentDisplayName);
           }, 500);
         }
-      }, index * 300); // 300ms delay between downloads to prevent browser blocking
+      }, index * 300);
     });
   };
 
@@ -298,13 +320,14 @@ export default function CertificateGenerator({
 
     // Generate data URLs for all participants
     const dataUrls: string[] = [];
-    participantNames.forEach((name) => {
-      drawCertificate(ctx, templateImgRef.current!, name);
+    participantNames.forEach((name, index) => {
+      const pName = customParticipantNames[index] ?? name;
+      drawCertificate(ctx, templateImgRef.current!, pName);
       dataUrls.push(canvas.toDataURL('image/jpeg', 1.0));
     });
     
     // Restore current view
-    drawCertificate(ctx, templateImgRef.current!, participantNames[currentIndex]);
+    drawCertificate(ctx, templateImgRef.current!, currentDisplayName);
     
     const printWindow = window.open('', '_blank');
     if (printWindow) {
@@ -348,44 +371,27 @@ export default function CertificateGenerator({
         
         {/* Left: Preview */}
         <div className="w-full md:flex-1 bg-slate-100 p-3 sm:p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-200 shrink-0 min-h-0 relative">
-          {!imageLoaded ? (
-            <div className="flex flex-col items-center text-slate-400 py-6">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400 mb-4"></div>
-              Loading template...
-            </div>
-          ) : (
-            <div className="relative shadow-sm border border-slate-200 rounded-xl overflow-hidden bg-white max-w-full flex items-center justify-center shrink-0">
-              <canvas 
-                ref={canvasRef} 
-                className="w-auto h-auto max-h-[30vh] sm:max-h-[40vh] md:max-h-[70vh] max-w-full object-contain cursor-move touch-none select-none"
-                onPointerDown={handleDragStart}
-                onTouchStart={handleDragStart}
-                onMouseDown={handleDragStart}
-              />
-            </div>
-          )}
+          <div className="mb-2 text-xs text-slate-500 font-medium flex items-center gap-2 shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Drag & drop text on certificate preview to position
+          </div>
+          
+          <div className="relative shadow-xl border-2 border-white rounded-lg overflow-hidden bg-white max-w-full flex items-center justify-center shrink-0">
+            <canvas 
+              ref={canvasRef} 
+              className="w-auto h-auto max-h-[45vh] md:max-h-[65vh] max-w-full object-contain cursor-move touch-none"
+              onPointerDown={handleDragStart}
+              onTouchStart={handleDragStart}
+              onMouseDown={handleDragStart}
+            />
+          </div>
         </div>
 
-        {/* Right: Controls */}
-        <div className="w-full md:w-80 bg-white p-4 sm:p-6 overflow-y-auto flex flex-col max-h-[55vh] md:max-h-full">
-          <div className="flex justify-between items-center mb-6 border-b pb-4">
-            <div>
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Settings2 className="w-5 h-5 text-emerald-600" />
-                Customize
-              </h2>
-              <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-bold">Rank {rank} Certificate</p>
-            </div>
-            <button 
-              onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
+        {/* Right: Controls Sidebar */}
+        <div className="w-full md:w-80 lg:w-96 bg-white p-6 overflow-y-auto flex flex-col max-h-[45vh] md:max-h-full justify-between shrink-0">
+          
           {participantNames.length > 1 && (
-            <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-100 mb-6">
+            <div className="flex items-center justify-between bg-slate-50 p-2 rounded-xl mb-4 border border-slate-200">
               <button 
                 onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
                 disabled={currentIndex === 0}
@@ -407,10 +413,32 @@ export default function CertificateGenerator({
           )}
 
           <div className="space-y-6 flex-1">
-            {/* Name Controls */}
+            {/* Participant Name Controls */}
             <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Participant Name</h3>
+              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Participant Name Settings</h3>
               
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Edit / Shorten Display Name</label>
+                <input
+                  type="text"
+                  value={customParticipantNames[currentIndex] ?? participantNames[currentIndex] ?? ''}
+                  onChange={(e) => setCustomParticipantNames(prev => ({ ...prev, [currentIndex]: e.target.value }))}
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Override participant name..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Font Family</label>
+                <select
+                  value={nameFont}
+                  onChange={(e) => setNameFont(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                >
+                  {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                </select>
+              </div>
+
               <div>
                 <label className="flex justify-between text-xs text-slate-500 mb-1">
                   <span>Font Size</span>
@@ -459,8 +487,30 @@ export default function CertificateGenerator({
 
             {/* Competition Controls */}
             <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Competition Name</h3>
+              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Competition Name Settings</h3>
               
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Edit / Shorten Competition Name</label>
+                <input
+                  type="text"
+                  value={customCompName}
+                  onChange={(e) => setCustomCompName(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Override competition name..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Font Family</label>
+                <select
+                  value={compFont}
+                  onChange={(e) => setCompFont(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                >
+                  {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                </select>
+              </div>
+
               <div>
                 <label className="flex justify-between text-xs text-slate-500 mb-1">
                   <span>Font Size</span>
