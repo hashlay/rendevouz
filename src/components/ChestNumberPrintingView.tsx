@@ -14,6 +14,151 @@ interface ChestNumberPrintingViewProps {
   onSettingsUpdated?: () => void;
 }
 
+// Unified Scalable Chest Card SVG Component (Preserves dynamic aspect ratio & 1:1 canvas coordinates)
+const ChestCardSvg: React.FC<{
+  cn: any;
+  cardConf: any;
+  originUrl: string;
+  getCardBgImage: (cn: any, cardConf: any) => string;
+}> = ({ cn, cardConf, originUrl, getCardBgImage }) => {
+  const W = 800;
+  const aspectRatio = cardConf.aspectRatio || (800 / 520);
+  const H = Math.round(W / aspectRatio);
+
+  const bgImg = getCardBgImage(cn, cardConf);
+  const portalBase = cardConf.publicPortalUrl ? cardConf.publicPortalUrl.replace(/\/+$/, '') : originUrl;
+  const qrUrl = `${portalBase}/?chestNo=${cn.chestNumber}`;
+
+  const catColor = (cardConf.enableCategoryColors !== false && cardConf.categoryColors?.[cn.categoryName]) || cardConf.headerBgColor || '#065f46';
+  // Hide solid header bar by default when custom template image exists unless explicitly toggled on
+  const showCatBg = cardConf.showCategoryBg === true || (!bgImg && cardConf.showCategoryBg !== false);
+
+  const catX = cardConf.catX ?? 400;
+  const catY = cardConf.catY ?? 45;
+  const chestX = cardConf.chestX ?? 400;
+  const chestY = cardConf.chestY ?? 210;
+  const nameX = cardConf.nameX ?? 400;
+  const nameY = cardConf.nameY ?? 340;
+  const unitX = cardConf.unitX ?? 400;
+  const unitY = cardConf.unitY ?? 450;
+  const qrX = cardConf.qrX ?? 660;
+  const qrY = cardConf.qrY ?? 380;
+  const qrSize = cardConf.qrSize || 100;
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="w-full h-full object-contain rounded-xl select-none"
+      style={{
+        backgroundColor: cardConf.cardBgColor || '#ffffff',
+        border: `1px solid ${cardConf.cardBorderColor || '#cbd5e1'}`
+      }}
+    >
+      {/* Background Image if uploaded */}
+      {bgImg && (
+        <image
+          href={bgImg}
+          x="0"
+          y="0"
+          width={W}
+          height={H}
+          preserveAspectRatio="none"
+        />
+      )}
+
+      {/* Solid Category Header Bar Overlay (Only if enabled or no template image) */}
+      {cardConf.showCategory !== false && showCatBg && (
+        <rect x="0" y="0" width={W} height="80" fill={catColor} />
+      )}
+
+      {/* Category Name Text */}
+      {cardConf.showCategory !== false && (
+        <text
+          x={catX}
+          y={catY}
+          textAnchor="middle"
+          fill={cardConf.catColor || '#ffffff'}
+          fontSize={cardConf.catSize || 24}
+          fontWeight="800"
+          fontFamily="sans-serif"
+        >
+          {(cn.categoryName || 'SENIOR CATEGORY').toUpperCase()}
+        </text>
+      )}
+
+      {/* Chest Number Text */}
+      <text
+        x={chestX}
+        y={chestY}
+        textAnchor="middle"
+        fill={cardConf.chestColor || '#0f172a'}
+        fontSize={cardConf.chestSize || 84}
+        fontWeight={cardConf.chestWeight || '800'}
+        fontFamily="sans-serif"
+      >
+        {cn.chestNumber}
+      </text>
+
+      {/* Participant Name Text */}
+      {cardConf.showName !== false && (
+        <text
+          x={nameX}
+          y={nameY}
+          textAnchor="middle"
+          fill={cardConf.nameColor || '#1e293b'}
+          fontSize={cardConf.nameSize || 36}
+          fontWeight={cardConf.nameWeight || '700'}
+          fontFamily="sans-serif"
+        >
+          {(cn.participantName || 'PARTICIPANT NAME').toUpperCase()}
+        </text>
+      )}
+
+      {/* Unit / Team Name Text */}
+      {cardConf.showUnit !== false && (
+        <text
+          x={unitX}
+          y={unitY}
+          textAnchor="middle"
+          fill={cardConf.unitColor || '#64748b'}
+          fontSize={cardConf.unitSize || 26}
+          fontWeight="700"
+          fontFamily="sans-serif"
+        >
+          {(cn.unitName || 'UNIT NAME').toUpperCase()}
+        </text>
+      )}
+
+      {/* HD Vector QR Code */}
+      {cardConf.showQr !== false && (
+        <foreignObject x={qrX} y={qrY} width={qrSize} height={qrSize}>
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: '#ffffff',
+              padding: '4px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              boxSizing: 'border-box',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <QRCodeSVG
+              value={qrUrl}
+              size={qrSize - 8}
+              level="M"
+              style={{ width: '100%', height: '100%' }}
+            />
+          </div>
+        </foreignObject>
+      )}
+    </svg>
+  );
+};
+
 export default function ChestNumberPrintingView({ 
   user, token, eventSettings, onSettingsUpdated 
 }: ChestNumberPrintingViewProps) {
@@ -52,6 +197,8 @@ export default function ChestNumberPrintingView({
     accentColor: '#f59e0b',
     bgImageUrl: eventSettings?.chestNumberTemplateUrl || '',
     showBgImage: true,
+    showCategoryBg: false, // Default false so solid purple/blue bar doesn't obscure template artwork
+    aspectRatio: 800 / 520, // Default 1.53846 ratio
     publicPortalUrl: eventSettings?.publicPortalUrl || '',
     
     // Element Toggles
@@ -105,6 +252,29 @@ export default function ChestNumberPrintingView({
   const [config, setConfig] = useState<any>(() => {
     return { ...defaultConfig, ...(eventSettings?.chestNumberConfig || {}) };
   });
+
+  // Helper to measure dynamic image aspect ratio of uploaded template
+  const updateImageAspectRatio = (imgUrl: string, targetConfigSetter?: any) => {
+    if (!imgUrl) return;
+    const img = new Image();
+    img.onload = () => {
+      if (img.naturalWidth && img.naturalHeight) {
+        const ratio = img.naturalWidth / img.naturalHeight;
+        if (targetConfigSetter) {
+          targetConfigSetter((prev: any) => ({ ...prev, aspectRatio: ratio }));
+        } else {
+          setConfig((prev: any) => ({ ...prev, aspectRatio: ratio }));
+        }
+      }
+    };
+    img.src = imgUrl;
+  };
+
+  useEffect(() => {
+    if (config.bgImageUrl) {
+      updateImageAspectRatio(config.bgImageUrl);
+    }
+  }, [config.bgImageUrl]);
 
   const [activeTab, setActiveTab] = useState<'print' | 'editor'>('print');
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -263,7 +433,8 @@ export default function ChestNumberPrintingView({
     if (!ctx) return;
 
     const W = 800;
-    const H = 520;
+    const aspectRatio = cardConf.aspectRatio || (800 / 520);
+    const H = Math.round(W / aspectRatio);
     canvas.width = W;
     canvas.height = H;
 
@@ -296,9 +467,12 @@ export default function ChestNumberPrintingView({
 
     // Category Badge
     if (cardConf.showCategory !== false) {
-      const catColor = (cardConf.enableCategoryColors !== false && cardConf.categoryColors[cnData.categoryName]) || cardConf.headerBgColor || '#065f46';
-      ctx.fillStyle = catColor;
-      ctx.fillRect(0, 0, W, 80);
+      const catColor = (cardConf.enableCategoryColors !== false && cardConf.categoryColors?.[cnData.categoryName]) || cardConf.headerBgColor || '#065f46';
+      const showCatBg = cardConf.showCategoryBg === true || (!bgUrl && cardConf.showCategoryBg !== false);
+      if (showCatBg) {
+        ctx.fillStyle = catColor;
+        ctx.fillRect(0, 0, W, 80);
+      }
 
       ctx.fillStyle = cardConf.catColor || '#ffffff';
       ctx.font = `800 ${cardConf.catSize || 24}px sans-serif`;
@@ -690,6 +864,16 @@ export default function ChestNumberPrintingView({
                   Unit
                 </label>
 
+                <label className="flex items-center gap-1.5 cursor-pointer" title="Solid Header Bar Overlay">
+                  <input
+                    type="checkbox"
+                    checked={config.showCategoryBg === true}
+                    onChange={(e) => setConfig({ ...config, showCategoryBg: e.target.checked })}
+                    className="h-3.5 w-3.5 accent-emerald-600 rounded"
+                  />
+                  Solid Header Bar
+                </label>
+
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -712,6 +896,38 @@ export default function ChestNumberPrintingView({
             </div>
           ) : (
             <div className="chest-print-container">
+              {/* High-DPI Print Styles */}
+              <style>{`
+                @media print {
+                  @page {
+                    size: A4 portrait;
+                    margin: 5mm;
+                  }
+                  body {
+                    background: white !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                  }
+                  .a4-page {
+                    margin: 0 !important;
+                    padding: 3mm !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    width: 100% !important;
+                    height: 100vh !important;
+                    page-break-after: always !important;
+                    break-after: page !important;
+                    box-sizing: border-box !important;
+                  }
+                  .chest-card {
+                    box-shadow: none !important;
+                    border-color: #cbd5e1 !important;
+                    image-rendering: -webkit-optimize-contrast !important;
+                    image-rendering: crisp-edges !important;
+                  }
+                }
+              `}</style>
+
               {/* Render into A4 Pages */}
               {Array.from({ length: Math.ceil(selectedChestNumbers.length / gridPerSheet) }).map((_, pageIdx) => {
                 const pageItems = selectedChestNumbers.slice(pageIdx * gridPerSheet, (pageIdx + 1) * gridPerSheet);
@@ -725,7 +941,7 @@ export default function ChestNumberPrintingView({
                 return (
                   <div 
                     key={pageIdx} 
-                    className={`a4-page bg-white p-6 mb-8 border border-slate-300 rounded-2xl shadow-lg grid ${gridClass} gap-4 print:p-4 print:m-0 print:border-none print:shadow-none print:w-full print:h-screen print:page-break-after`}
+                    className={`a4-page bg-white p-6 mb-8 border border-slate-300 rounded-2xl shadow-lg grid ${gridClass} gap-4 place-items-center print:p-2 print:m-0 print:border-none print:shadow-none print:w-full print:h-screen print:page-break-after`}
                     style={{
                       minHeight: '297mm',
                       width: '210mm',
@@ -735,22 +951,15 @@ export default function ChestNumberPrintingView({
                   >
                     {pageItems.map((cn) => {
                       const cardConf = getCardConfig(cn);
-                      const catColor = (cardConf.enableCategoryColors !== false && cardConf.categoryColors[cn.categoryName]) || cardConf.headerBgColor || '#065f46';
-                      const bgImg = getCardBgImage(cn, cardConf);
-                      const qrUrl = `${originUrl}/?chestNo=${cn.chestNumber}`;
                       const hasOverride = !!(eventSettings?.chestNumberOverrides?.[cn.id] || eventSettings?.chestNumberOverrides?.[cn.chestNumber]);
+                      const cardRatio = cardConf.aspectRatio || (800 / 520);
 
                       return (
                         <div
                           key={cn.id}
-                          className="chest-card relative overflow-hidden rounded-xl border border-slate-300 bg-white flex flex-col justify-between shadow-sm print:shadow-none print:border-slate-400 group"
+                          className="chest-card relative overflow-hidden rounded-xl border border-slate-300 bg-white flex items-center justify-center shadow-sm print:shadow-none print:border-slate-400 group w-full max-h-full"
                           style={{
-                            backgroundColor: cardConf.cardBgColor,
-                            borderColor: cardConf.cardBorderColor,
-                            backgroundImage: bgImg ? `url(${bgImg})` : undefined,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            minHeight: gridPerSheet >= 9 ? '180px' : '230px'
+                            aspectRatio: cardRatio
                           }}
                         >
                           {/* Quick Edit Position Action (Hidden on print) */}
@@ -766,74 +975,13 @@ export default function ChestNumberPrintingView({
                             {hasOverride ? 'Customized' : 'Customize'}
                           </button>
 
-                          {/* Card Header (Category Name & Badge) */}
-                          {cardConf.showCategory !== false && (
-                            <div 
-                              className="px-3 py-1.5 text-white flex justify-center items-center font-bold tracking-wider uppercase"
-                              style={{ backgroundColor: catColor, fontSize: `${cardConf.catSize || 14}px` }}
-                            >
-                              <span>{cn.categoryName}</span>
-                            </div>
-                          )}
-
-                          {/* Card Content Area */}
-                          <div className="p-4 flex-1 flex flex-col justify-center items-center text-center relative">
-                            {/* Giant Chest Number */}
-                            <div
-                              className="font-extrabold tracking-tighter leading-none"
-                              style={{
-                                color: cardConf.chestColor,
-                                fontSize: gridPerSheet >= 9 ? `${(cardConf.chestSize || 42) * 0.8}px` : `${cardConf.chestSize || 42}px`,
-                                fontWeight: cardConf.chestWeight
-                              }}
-                            >
-                              {cn.chestNumber}
-                            </div>
-
-                            {/* Participant Name (Auto 2-line wrap & center align for long names) */}
-                            {cardConf.showName !== false && (
-                              <div
-                                className="font-bold text-center leading-tight mt-2 px-2 w-full truncate-2-lines"
-                                style={{
-                                  color: cardConf.nameColor,
-                                  fontSize: gridPerSheet >= 9 ? `${(cardConf.nameSize || 18) * 0.85}px` : `${cardConf.nameSize || 18}px`,
-                                  fontWeight: cardConf.nameWeight,
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: cardConf.nameMaxLines,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis'
-                                }}
-                                title={cn.participantName}
-                              >
-                                {cn.participantName}
-                              </div>
-                            )}
-
-                            {/* Unit / Team Name */}
-                            {cardConf.showUnit !== false && (
-                              <div
-                                className="text-slate-500 font-semibold mt-1 tracking-wide uppercase"
-                                style={{
-                                  color: cardConf.unitColor,
-                                  fontSize: `${cardConf.unitSize || 12}px`
-                                }}
-                              >
-                                {cn.unitName}
-                              </div>
-                            )}
-
-                            {/* Embedded QR Code (Scans directly to Participant Portal) */}
-                            {cardConf.showQr !== false && (
-                              <div className="absolute right-2 bottom-2 bg-white p-1 rounded-lg border border-slate-200 shadow-sm print:shadow-none">
-                                <QRCodeSVG 
-                                  value={qrUrl} 
-                                  size={gridPerSheet >= 9 ? Math.max(36, (cardConf.qrSize || 52) * 0.75) : (cardConf.qrSize || 52)} 
-                                  level="M"
-                                />
-                              </div>
-                            )}
-                          </div>
+                          {/* Unified HD Vector SVG Chest Card */}
+                          <ChestCardSvg
+                            cn={cn}
+                            cardConf={cardConf}
+                            originUrl={originUrl}
+                            getCardBgImage={getCardBgImage}
+                          />
                         </div>
                       );
                     })}
@@ -898,7 +1046,8 @@ export default function ChestNumberPrintingView({
                           const reader = new FileReader();
                           reader.onload = (ev) => {
                             const res = ev.target?.result as string;
-                            setConfig({ ...config, bgImageUrl: res, showBgImage: true });
+                            setConfig((prev: any) => ({ ...prev, bgImageUrl: res, showBgImage: true, showCategoryBg: false }));
+                            updateImageAspectRatio(res);
                           };
                           reader.readAsDataURL(file);
                         }
@@ -939,6 +1088,7 @@ export default function ChestNumberPrintingView({
                               reader.onload = (ev) => {
                                 const res = ev.target?.result as string;
                                 setCategoryBgImages(prev => ({ ...prev, [cat.name]: res }));
+                                updateImageAspectRatio(res);
                               };
                               reader.readAsDataURL(file);
                             }
@@ -970,6 +1120,7 @@ export default function ChestNumberPrintingView({
                               reader.onload = (ev) => {
                                 const res = ev.target?.result as string;
                                 setUnitBgImages(prev => ({ ...prev, [unit.name]: res }));
+                                updateImageAspectRatio(res);
                               };
                               reader.readAsDataURL(file);
                             }
@@ -1004,6 +1155,16 @@ export default function ChestNumberPrintingView({
                     className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
                   />
                 </div>
+                <label className="flex items-center gap-2 mt-2 font-bold text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.showCategoryBg === true}
+                    onChange={(e) => setConfig({ ...config, showCategoryBg: e.target.checked })}
+                    className="h-4 w-4 rounded accent-emerald-600"
+                  />
+                  <span>Fill Solid Header Background Bar</span>
+                </label>
+                <p className="text-[10px] text-slate-500 mt-0.5">Uncheck this if your template image already has header design artwork.</p>
               </div>
 
               <div>

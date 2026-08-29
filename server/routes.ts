@@ -1205,6 +1205,7 @@ function generateCompCode(db: any, categoryId: string, name: string, requestedCo
     return requestedCode.trim().toUpperCase();
   }
   const category = (db.categories || []).find((c: any) => c.id === categoryId);
+  const catLower = (category?.name || '').toLowerCase();
   let prefix = 'CMP';
     if (catLower.includes('campus')) {
       if (catLower.includes('junior')) prefix = 'CJ';
