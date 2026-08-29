@@ -1027,31 +1027,36 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
                             />
                           </div>
 
-                          {[1, 2, 3].map(rank => (
-                            <div key={rank} className="pt-2 border-t border-emerald-200/50 space-y-2">
-                              <span className="text-[10px] font-extrabold text-emerald-900 block">Rank {rank} Winner Text</span>
-                              <div>
-                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Winner Name (Enter key for 2 lines)</label>
-                                <textarea
-                                  rows={2}
-                                  value={c[`rank${rank}NameOverride`] ?? ''}
-                                  onChange={(e) => updateLocalConf(`rank${rank}NameOverride`, e.target.value)}
-                                  className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
-                                  placeholder={`Rank ${rank} winner name... Press Enter for 2 lines`}
-                                />
+                          {[1, 2, 3].map(rank => {
+                            const rankRes = compResults.find(r => r.rank === rank);
+                            const defaultWinnerName = rankRes ? (rankRes.participantName || '') : '';
+                            const defaultUnitName = rankRes ? (rankRes.unitName || '') : '';
+                            return (
+                              <div key={rank} className="pt-2 border-t border-emerald-200/50 space-y-2">
+                                <span className="text-[10px] font-extrabold text-emerald-900 block">Rank {rank} Winner Text</span>
+                                <div>
+                                  <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Winner Name (Enter key for 2 lines)</label>
+                                  <textarea
+                                    rows={2}
+                                    value={c[`rank${rank}NameOverride`] !== undefined ? c[`rank${rank}NameOverride`] : defaultWinnerName}
+                                    onChange={(e) => updateLocalConf(`rank${rank}NameOverride`, e.target.value)}
+                                    className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                                    placeholder={`Rank ${rank} winner name... Press Enter for 2 lines`}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Unit Name (Enter key for 2 lines)</label>
+                                  <textarea
+                                    rows={2}
+                                    value={c[`rank${rank}UnitOverride`] !== undefined ? c[`rank${rank}UnitOverride`] : defaultUnitName}
+                                    onChange={(e) => updateLocalConf(`rank${rank}UnitOverride`, e.target.value)}
+                                    className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                                    placeholder={`Rank ${rank} unit name... Press Enter for 2 lines`}
+                                  />
+                                </div>
                               </div>
-                              <div>
-                                <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Unit Name (Enter key for 2 lines)</label>
-                                <textarea
-                                  rows={2}
-                                  value={c[`rank${rank}UnitOverride`] ?? ''}
-                                  onChange={(e) => updateLocalConf(`rank${rank}UnitOverride`, e.target.value)}
-                                  className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
-                                  placeholder={`Rank ${rank} unit name... Press Enter for 2 lines`}
-                                />
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                           <button
                             type="button"
                             onClick={() => {

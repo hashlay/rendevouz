@@ -366,7 +366,14 @@ export default function ChestNumberPrintingView({
 
   const getCardConfig = (cn: any) => {
     const override = eventSettings?.chestNumberOverrides?.[cn.id] || eventSettings?.chestNumberOverrides?.[cn.chestNumber];
-    return { ...config, ...(override || {}) };
+    if (!override) return config;
+
+    const activeBg = getCardBgImage(cn, config);
+    // If the individual override was saved under a previous template background image, ignore stale positions/sizes/colors
+    if (override._savedBgImageUrl && override._savedBgImageUrl !== activeBg) {
+      return config;
+    }
+    return { ...config, ...override };
   };
 
   // Determine Background Image URL based on mode
@@ -416,10 +423,15 @@ export default function ChestNumberPrintingView({
     if (!editingCn || !individualConfig) return;
     setSaving(true);
     try {
+      const activeBg = getCardBgImage(editingCn, individualConfig);
+      const overrideWithBg = {
+        ...individualConfig,
+        _savedBgImageUrl: activeBg
+      };
       const updatedOverrides = {
         ...(eventSettings?.chestNumberOverrides || {}),
-        [editingCn.id]: individualConfig,
-        [editingCn.chestNumber]: individualConfig
+        [editingCn.id]: overrideWithBg,
+        [editingCn.chestNumber]: overrideWithBg
       };
 
       const res = await fetch('/api/settings', {
