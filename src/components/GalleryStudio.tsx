@@ -257,7 +257,7 @@ export default function GalleryStudio({ user }: GalleryStudioProps) {
                       if (item.imageUrl.startsWith('/data/uploads/')) {
                         target.src = `/api${item.imageUrl}`;
                       } else if (!item.imageUrl.startsWith('http')) {
-                        target.src = `https://rendevouz-8sfp.onrender.com${item.imageUrl.startsWith('/') ? item.imageUrl : '/' + item.imageUrl}`;
+                        target.src = item.imageUrl.startsWith('/') ? item.imageUrl : '/' + item.imageUrl;
                       }
                     }
                   }}

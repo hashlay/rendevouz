@@ -1,6 +1,11 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { X, Download, Printer, Settings2, ChevronLeft, ChevronRight } from 'lucide-react';
 
+const getBgHash = (bg: string) => {
+  if (!bg || typeof bg !== 'string') return '';
+  return bg.length > 200 ? `hash_${bg.length}_${bg.slice(-30)}` : bg;
+};
+
 interface CertificateGeneratorProps {
   participantNames: string[];
   competitionName: string;
@@ -43,11 +48,26 @@ export default function CertificateGenerator({
   const [dragging, setDragging] = useState<'name' | 'comp' | null>(null);
   const lastMousePos = useRef<{x: number, y: number} | null>(null);
   
+  const activeBg = rank === 1 
+      ? eventSettings?.certTheme1Url 
+      : rank === 2 
+        ? eventSettings?.certTheme2Url 
+        : eventSettings?.certTheme3Url;
+  const fallbackBg = rank === 1 ? '/certificate_1.jpg' : '/certificate_2.jpg';
+  const resolvedBg = activeBg || fallbackBg;
+
   // Customization state - lookup competition-specific config first, then fallback to rank default
   const compKey = `${competitionId || competitionName}_${rank}`;
   const compSpecificConfig = eventSettings?.certificateTemplateConfig?.[compKey];
   const globalRankConfig = eventSettings?.certificateTemplateConfig?.[rank] || {};
-  const templateConfig = compSpecificConfig || globalRankConfig;
+  
+  // Invalidate overrides if they were saved for a different background image (or legacy overrides)
+  const isCompValid = compSpecificConfig && compSpecificConfig._savedBgImageUrl === getBgHash(resolvedBg);
+  const isGlobalValid = globalRankConfig && globalRankConfig._savedBgImageUrl === getBgHash(resolvedBg);
+
+  const validCompConfig = isCompValid ? compSpecificConfig : null;
+  const validGlobalConfig = isGlobalValid ? globalRankConfig : {};
+  const templateConfig = validCompConfig || validGlobalConfig;
 
   const [nameX, setNameX] = useState(templateConfig.nameX ?? (rank === 1 ? -151 : -125));
   const [nameY, setNameY] = useState(templateConfig.nameY ?? (rank === 1 ? 461 : 461));
@@ -330,7 +350,19 @@ export default function CertificateGenerator({
     setSavingTemplate(true);
     try {
       const currentConfig = eventSettings?.certificateTemplateConfig || {};
-      const configData = { nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, nameFont, compFont };
+      
+      const activeBg = rank === 1 
+        ? eventSettings?.certTheme1Url 
+        : rank === 2 
+          ? eventSettings?.certTheme2Url 
+          : eventSettings?.certTheme3Url;
+      const fallbackBg = rank === 1 ? '/certificate_1.jpg' : '/certificate_2.jpg';
+      const resolvedBg = activeBg || fallbackBg;
+
+      const configData = { 
+        nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, nameFont, compFont,
+        _savedBgImageUrl: getBgHash(resolvedBg)
+      };
       const newConfig = {
         ...currentConfig,
         [compKey]: configData,

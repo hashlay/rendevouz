@@ -700,15 +700,21 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
               )}
 
               {canGenerate && currentSheet.status !== JudgmentSheetStatus.LOCKED && (
-                <button onClick={handleLockAndPublish} disabled={savingScores} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition shadow-sm min-h-[44px]">
-                  {savingScores ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                  Lock & Publish
-                </button>
+                <>
+                  <button onClick={handleLockResults} disabled={savingScores} className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition shadow-sm min-h-[44px]">
+                    <Lock className="h-4 w-4" />
+                    Lock
+                  </button>
+                  <button onClick={handlePublishResults} disabled={savingScores} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition shadow-sm min-h-[44px]">
+                    {savingScores ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                    Publish Result
+                  </button>
+                </>
               )}
 
-              {canGenerate && currentSheet.status === JudgmentSheetStatus.LOCKED && !currentSheet.publishedToResults && (
+              {canGenerate && currentSheet.status === JudgmentSheetStatus.LOCKED && (
                 <button onClick={handlePublishResults} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px]">
-                  <CheckCircle className="h-4 w-4" /> Publish to Results
+                  <CheckCircle className="h-4 w-4" /> Publish Result
                 </button>
               )}
             </div>

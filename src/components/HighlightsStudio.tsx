@@ -303,7 +303,7 @@ export default function HighlightsStudio({ user }: HighlightsStudioProps) {
                           if (item.videoUrl.startsWith('/data/uploads/')) {
                             target.src = `/api${item.videoUrl}`;
                           } else if (!item.videoUrl.startsWith('http')) {
-                            target.src = `https://rendevouz-8sfp.onrender.com/api/data/uploads/${item.videoUrl.split('/').pop()}`;
+                            target.src = `/api/data/uploads/${item.videoUrl.split('/').pop()}`;
                           }
                         }
                       }}
@@ -523,7 +523,7 @@ export default function HighlightsStudio({ user }: HighlightsStudioProps) {
                         if (activeVideo.videoUrl.startsWith('/data/uploads/')) {
                           target.src = `/api${activeVideo.videoUrl}`;
                         } else if (!activeVideo.videoUrl.startsWith('http')) {
-                          target.src = `https://rendevouz-8sfp.onrender.com/api/data/uploads/${activeVideo.videoUrl.split('/').pop()}`;
+                          target.src = `/api/data/uploads/${activeVideo.videoUrl.split('/').pop()}`;
                         }
                       }
                     }}

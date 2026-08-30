@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UserRole } from '../types';
 import { Save } from 'lucide-react';
 
+const getBgHash = (bg: string) => { if (!bg || typeof bg !== 'string') return ''; return bg.length > 200 ? `hash_${bg.length}_${bg.slice(-30)}` : bg; };
+
 export default function CertificateSettingsView({ user, token, eventSettings, onSettingsUpdated }: any) {
   const [loading, setLoading] = useState(false);
   const ranks = [1, 2, 3];
@@ -26,7 +28,15 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
   const handleSave = async () => {
     setLoading(true);
     try {
-      const payload: any = { certificateTemplateConfig: config };
+      const finalConfig = { ...config };
+      [1, 2, 3].forEach(r => {
+        if (finalConfig[r]) {
+          const bg = r === 1 ? certTheme1Url : r === 2 ? certTheme2Url : certTheme3Url;
+          finalConfig[r] = { ...finalConfig[r], _savedBgImageUrl: getBgHash(bg || (r === 1 ? '/certificate_1.jpg' : '/certificate_2.jpg')) };
+        }
+      });
+      
+      const payload: any = { certificateTemplateConfig: finalConfig };
       if (certTheme1Url !== eventSettings?.certTheme1Url) payload.certTheme1Url = certTheme1Url;
       if (certTheme2Url !== eventSettings?.certTheme2Url) payload.certTheme2Url = certTheme2Url;
       if (certTheme3Url !== eventSettings?.certTheme3Url) payload.certTheme3Url = certTheme3Url;

@@ -5,6 +5,11 @@ import {
 } from 'lucide-react';
 import { User, Category, Unit, Participant, Competition, Result, Team, UserRole } from '../types';
 
+const getBgHash = (bg: string) => {
+  if (!bg || typeof bg !== 'string') return '';
+  return bg.length > 200 ? `hash_${bg.length}_${bg.slice(-30)}` : bg;
+};
+
 interface PosterGeneratorViewProps {
   user: User;
   token: string;
@@ -252,13 +257,17 @@ export default function PosterGeneratorView({ user, token, eventSettings }: Post
       const aCat = aComp ? categories.find(cat => cat.id === aComp.categoryId) : null;
       const compIdx = getAnnouncementIndex(selectedCompId);
       const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
-      const fullConf = getThemeConfig(themeIdx);
+      
+      const individualConfig = {
+        ...localThemeConfigs[themeIdx],
+        _savedThemeIndex: themeIdx,
+        _savedBgImageUrl: getBgHash(customThemes[themeIdx] || customThemes[0])
+      };
 
-      const overridePayload = { ...fullConf, _savedThemeIndex: themeIdx };
       const updatedOverrides = {
         ...(eventSettings?.posterOverrides || {}),
-        [selectedCompId]: overridePayload,
-        [aComp?.name || '']: overridePayload
+        [selectedCompId]: individualConfig,
+        [aComp?.name || '']: individualConfig
       };
 
       const res = await fetch('/api/settings', {

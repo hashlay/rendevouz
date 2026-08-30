@@ -879,19 +879,39 @@ apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     db.certificateTemplateConfig = req.body.certificateTemplateConfig;
   }
 
+  // Aggressively clean up redundant base64 strings in overrides to prevent massive JSON bloat
+  const cleanOverrides = (overrides: any) => {
+    if (!overrides || typeof overrides !== 'object') return;
+    Object.keys(overrides).forEach(key => {
+      const ov = overrides[key];
+      if (ov && typeof ov._savedBgImageUrl === 'string' && ov._savedBgImageUrl.length > 200) {
+        const bg = ov._savedBgImageUrl;
+        ov._savedBgImageUrl = `hash_${bg.length}_${bg.slice(-30)}`;
+      }
+    });
+  };
+
+  if (req.body.chestNumberOverrides) cleanOverrides(req.body.chestNumberOverrides);
+  if (req.body.posterOverrides) cleanOverrides(req.body.posterOverrides);
+  if (req.body.certificateOverrides) cleanOverrides(req.body.certificateOverrides);
+
   db.eventSettings = {
     ...db.eventSettings,
     ...req.body
   };
+
+  // Clean existing database bloat
+  cleanOverrides(db.eventSettings.chestNumberOverrides);
+  cleanOverrides(db.eventSettings.posterOverrides);
+  cleanOverrides(db.eventSettings.certificateOverrides);
   
   await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Update Event Settings', 'EventSettings', 'global', undefined, prevSettings, db.eventSettings);
   await dbClient.save();
   
+  // Do NOT return massive settings object back to the client!
   res.json({ 
-    message: 'Settings updated successfully', 
-    settings: db.eventSettings,
-    posterTemplateConfig: db.posterTemplateConfig,
-    certificateTemplateConfig: db.certificateTemplateConfig
+    message: 'Settings updated successfully',
+    success: true
   });
 });
 

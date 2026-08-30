@@ -364,14 +364,26 @@ export default function ChestNumberPrintingView({
     fetchData();
   }, []);
 
+  const getBgHash = (bg: string) => {
+    if (!bg || typeof bg !== 'string') return '';
+    return bg.length > 200 ? `hash_${bg.length}_${bg.slice(-30)}` : bg;
+  };
+
   const getCardConfig = (cn: any) => {
     const override = eventSettings?.chestNumberOverrides?.[cn.id] || eventSettings?.chestNumberOverrides?.[cn.chestNumber];
     if (!override) return config;
 
     const activeBg = getCardBgImage(cn, config);
     // If the individual override was saved under a previous template background image, ignore stale positions/sizes/colors
-    if (override._savedBgImageUrl && override._savedBgImageUrl !== activeBg) {
-      return config;
+    // Also invalidate legacy overrides that lack a _savedBgImageUrl
+    if (override._savedBgImageUrl !== getBgHash(activeBg)) {
+      return {
+        ...config,
+        participantNameOverride: override.participantNameOverride,
+        unitNameOverride: override.unitNameOverride,
+        categoryNameOverride: override.categoryNameOverride,
+        chestNumberOverride: override.chestNumberOverride
+      };
     }
     return { ...config, ...override };
   };
@@ -426,7 +438,7 @@ export default function ChestNumberPrintingView({
       const activeBg = getCardBgImage(editingCn, individualConfig);
       const overrideWithBg = {
         ...individualConfig,
-        _savedBgImageUrl: activeBg
+        _savedBgImageUrl: getBgHash(activeBg)
       };
       const updatedOverrides = {
         ...(eventSettings?.chestNumberOverrides || {}),
@@ -1670,21 +1682,37 @@ export default function ChestNumberPrintingView({
                         placeholder="Chest number text..."
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIndividualConfig({ ...config });
-                        setEditingCn({
-                          ...editingCn,
-                          participantNameOverride: undefined,
-                          unitNameOverride: undefined,
-                          chestNumberOverride: undefined
-                        });
-                      }}
-                      className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-300 transition"
-                    >
-                      Reset to Theme Defaults
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIndividualConfig({ 
+                            ...config,
+                            participantNameOverride: individualConfig.participantNameOverride,
+                            unitNameOverride: individualConfig.unitNameOverride,
+                            chestNumberOverride: individualConfig.chestNumberOverride
+                          });
+                        }}
+                        className="w-full py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold text-[11px] rounded-lg border border-emerald-300 transition"
+                      >
+                        Sync Layout to Global Theme
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIndividualConfig({ ...config });
+                          setEditingCn({
+                            ...editingCn,
+                            participantNameOverride: undefined,
+                            unitNameOverride: undefined,
+                            chestNumberOverride: undefined
+                          });
+                        }}
+                        className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-300 transition"
+                      >
+                        Reset ALL to Defaults
+                      </button>
+                    </div>
                   </div>
                   {/* Participant Name Controls */}
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
