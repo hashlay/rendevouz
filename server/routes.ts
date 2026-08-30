@@ -4981,3 +4981,121 @@ apiRouter.post('/backup/reset', authenticate, requireRole([UserRole.SUPER_ADMIN]
     res.status(500).json({ error: e.message || 'Failed to reset system database' });
   }
 });
+
+// ==========================================
+// 🌐 PUBLIC WEBSITE APIs
+// ==========================================
+
+// Public Event Settings
+apiRouter.get('/public/settings', async (req, res) => {
+  const db = dbClient.get();
+  res.json(db.eventSettings || {});
+});
+
+// Public Units
+apiRouter.get('/public/units', async (req, res) => {
+  const db = dbClient.get();
+  res.json((db.units || []).filter((u: any) => u.active));
+});
+
+// Public Categories
+apiRouter.get('/public/categories', async (req, res) => {
+  const db = dbClient.get();
+  res.json((db.categories || []).filter((c: any) => c.active));
+});
+
+// Public Competitions
+apiRouter.get('/public/competitions', async (req, res) => {
+  const db = dbClient.get();
+  res.json((db.competitions || []).filter((c: any) => c.active));
+});
+
+// Public Published Results
+apiRouter.get('/public/results', async (req, res) => {
+  const db = dbClient.get();
+  const enrichedResults = (db.results || [])
+    .filter((r: any) => !r.deletedAt && (r.publishedStatus || (r.rank !== undefined && r.rank > 0)))
+    .map((r: any) => {
+      const comp = (db.competitions || []).find((c: any) => c.id === r.competitionId);
+      const cat = (db.categories || []).find((c: any) => c.id === r.categoryId);
+      let participantName = r.participantName || '';
+      let codeNumber = r.codeNumber || r.chestNumber || '';
+      let department = r.department || r.unitName || '';
+      let participationType = comp?.participationType === 'group' ? 'Group' : 'Individual';
+
+      if (r.participantId && !participantName) {
+        const p = (db.participants || []).find((p: any) => p.id === r.participantId);
+        if (p) {
+          participantName = p.fullName;
+          const chest = (db.chestNumbers || []).find((c: any) => c.entityId === p.id);
+          codeNumber = chest ? chest.codeNumber || chest.chestNumber.toString() : '';
+          const unit = (db.units || []).find((u: any) => u.id === p.unitId);
+          department = unit ? unit.name : '';
+        }
+      }
+
+      let points = r.points || 0;
+      if (!points) {
+        if (r.rank === 1) points = db.eventSettings?.globalPointsRank1 || 20;
+        else if (r.rank === 2) points = db.eventSettings?.globalPointsRank2 || 15;
+        else if (r.rank === 3) points = db.eventSettings?.globalPointsRank3 || 10;
+      }
+
+      let grade = r.grade || 'A';
+      return {
+        id: r.id,
+        competitionId: r.competitionId,
+        eventName: comp ? comp.name : (r.eventName || r.program || 'Competition'),
+        category: cat ? cat.name : (r.category || 'General'),
+        participationType,
+        participantName,
+        codeNumber,
+        department,
+        rank: r.rank || 0,
+        grade,
+        points,
+        raw: r
+      };
+    });
+  res.json(enrichedResults);
+});
+
+// Public Standings / House Scores
+apiRouter.get('/public/standings', async (req, res) => {
+  const db = dbClient.get();
+  const units = (db.units || []).filter((u: any) => u.active);
+  const standings = units.map((u: any) => {
+    let overallPoints = 0;
+    let firstPlaceCount = 0;
+    let secondPlaceCount = 0;
+    let thirdPlaceCount = 0;
+
+    (db.results || []).forEach((r: any) => {
+      if (!r.deletedAt && (r.publishedStatus || (r.rank !== undefined && r.rank > 0))) {
+        const p = (db.participants || []).find((p: any) => p.id === r.participantId);
+        const t = (db.teams || []).find((t: any) => t.id === r.teamId);
+        const unitId = p ? p.unitId : (t ? t.unitId : null);
+        if (unitId === u.id || r.department === u.name) {
+          const pts = r.points || (r.rank === 1 ? 20 : r.rank === 2 ? 15 : r.rank === 3 ? 10 : 0);
+          overallPoints += pts;
+          if (r.rank === 1) firstPlaceCount++;
+          if (r.rank === 2) secondPlaceCount++;
+          if (r.rank === 3) thirdPlaceCount++;
+        }
+      }
+    });
+
+    return {
+      unitId: u.id,
+      unitName: u.name,
+      unitCode: u.code,
+      overallPoints,
+      firstPlaceCount,
+      secondPlaceCount,
+      thirdPlaceCount
+    };
+  }).sort((a: any, b: any) => b.overallPoints - a.overallPoints);
+
+  res.json(standings);
+});
+
