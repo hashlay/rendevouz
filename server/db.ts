@@ -36,7 +36,13 @@ async function _connectToMongo() {
 
   try {
     console.log("Attempting to connect to MongoDB...");
-    mongoClient = new MongoClient(mongoUri);
+    mongoClient = new MongoClient(mongoUri, {
+      maxPoolSize: 20,
+      minPoolSize: 2,
+      maxIdleTimeMS: 30000,
+      connectTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 5000
+    });
     await mongoClient.connect();
 
     const mongoUriStr = mongoUri || '';
@@ -464,12 +470,8 @@ export async function saveDb() {
     console.error("Failed to serialize database", e);
   }
 
-  // Sync to MongoDB Atlas immediately on Vercel or when running serverless
-  if (process.env.VERCEL) {
-    await _syncMongoNow();
-  } else {
-    _scheduleMongSync();
-  }
+  // Sync to MongoDB Atlas immediately for 100% instant persistence across all environments
+  await _syncMongoNow();
 }
 
 // Initialize on import
