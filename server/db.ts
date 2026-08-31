@@ -197,13 +197,15 @@ function ensureDbExists() {
       if (!db.gallery) db.gallery = [];
       if (!db.videoHighlights) db.videoHighlights = [];
       if (!db.eventSettings) db.eventSettings = {} as any;
-      if (!db.eventSettings.eventTitle) db.eventSettings.eventTitle = 'Zenith';
-      if (!db.eventSettings.sectorName) db.eventSettings.sectorName = 'Software';
+      if (!db.eventSettings.eventTitle) db.eventSettings.eventTitle = 'A SMILE THAT BRINGS HEART TOGETHER';
+      if (!db.eventSettings.festivalName) db.eventSettings.festivalName = 'Tabassum';
+      if (!db.eventSettings.campusName) db.eventSettings.campusName = 'Noorul Islam Madrasa, Jeppu';
+      if (!db.eventSettings.sectorName) db.eventSettings.sectorName = 'Noorul Islam Madrasa, Jeppu';
       if (!db.eventSettings.eventYear) db.eventSettings.eventYear = '2026';
-      if (!db.eventSettings.venue) db.eventSettings.venue = '---';
-      if (!db.eventSettings.contactInfo) db.eventSettings.contactInfo = 'zenithorganizer@gmail.com';
-      if (!db.eventSettings.ssfLogoUrl) db.eventSettings.ssfLogoUrl = '/zenith_logo.jpg';
-      if (!db.eventSettings.sahityotsavLogoUrl) db.eventSettings.sahityotsavLogoUrl = '/zenith_logo.jpg';
+      if (!db.eventSettings.venue) db.eventSettings.venue = 'Jeppu';
+      if (!db.eventSettings.contactInfo) db.eventSettings.contactInfo = 'tabassumfestival@gmail.com';
+      if (!db.eventSettings.ssfLogoUrl) db.eventSettings.ssfLogoUrl = '/tabassum_logo.png';
+      if (!db.eventSettings.sahityotsavLogoUrl) db.eventSettings.sahityotsavLogoUrl = '/tabassum_logo.png';
       return;
     } catch (e) {
       console.error("Error reading database file, initializing fresh one", e);
@@ -230,40 +232,39 @@ function ensureDbExists() {
   ];
 
   const initialUnits: Unit[] = [
-    { id: 'unit_nekkila', name: 'Nekkila', code: 'NEK', active: true },
-    { id: 'unit_muchila', name: 'Muchila', code: 'MUC', active: true },
-    { id: 'unit_yenmoor', name: 'Yenmoor', code: 'YEN', active: true },
-    { id: 'unit_ninthikal', name: 'Ninthikal', code: 'NIN', active: true },
-    { id: 'unit_alekkadi', name: 'Alekkadi', code: 'ALE', active: true },
-    { id: 'unit_samahadi', name: 'Samahadi', code: 'SAM', active: true },
-    { id: 'unit_karimbila', name: 'Karimbila', code: 'KAR', active: true }
+    { id: 'unit_ash_shukr', name: 'Ash-Shukr', code: 'SHK', active: true },
+    { id: 'unit_as_sabr', name: 'As-Sabr', code: 'SBR', active: true }
   ];
 
   const initialCategories: Category[] = [
-    { id: 'cat_sub_junior', name: 'Sub-Junior', dobStart: '2014-05-01', dobEnd: '2020-04-30', active: true },
-    { id: 'cat_junior', name: 'Junior', dobStart: '2009-05-01', dobEnd: '2014-04-30', active: true },
-    { id: 'cat_senior', name: 'Senior', dobStart: '2003-05-01', dobEnd: '2009-04-30', active: true },
-    { id: 'cat_general', name: 'General', dobStart: '1995-05-01', dobEnd: '2003-04-30', active: true }
+    { id: 'cat_kids', name: 'Kids', dobStart: '2019-01-01', dobEnd: '2026-12-31', active: true },
+    { id: 'cat_sub_junior', name: 'Sub-Junior', dobStart: '2016-01-01', dobEnd: '2018-12-31', active: true },
+    { id: 'cat_junior', name: 'Junior', dobStart: '2014-01-01', dobEnd: '2015-12-31', active: true },
+    { id: 'cat_senior', name: 'Senior', dobStart: '2010-01-01', dobEnd: '2013-12-31', active: true }
   ];
 
   // Default initial competitions array starts empty (0 programs) for new databases
   const initialCompetitions: Competition[] = [];
 
   const initialSettings: EventSettings = {
-    eventTitle: 'Zenith',
-    sectorName: 'Software',
+    eventTitle: 'A SMILE THAT BRINGS HEART TOGETHER',
+    festivalName: 'Tabassum',
+    campusName: 'Noorul Islam Madrasa, Jeppu',
+    sectorName: 'Noorul Islam Madrasa, Jeppu',
     eventYear: '2026',
     cutoffDate: '2026-05-01',
     eventDate: '2026-08-15',
-    venue: '---',
-    contactInfo: 'zenithorganizer@gmail.com',
-    maxIndividualEvents: 3,
-    maxGroupEvents: 2,
+    venue: 'Jeppu',
+    contactInfo: 'tabassumfestival@gmail.com',
+    maxIndividualEvents: 10,
+    maxGroupEvents: 10,
     maxOnStageEvents: null,
     maxOffStageEvents: null,
     registrationOpen: true,
-    ssfLogoUrl: '/zenith_logo.jpg',
-    sahityotsavLogoUrl: '/zenith_logo.jpg',
+    fillLogo: true,
+    autoRemoveLogoBg: false,
+    ssfLogoUrl: '/tabassum_logo.png',
+    sahityotsavLogoUrl: '/tabassum_logo.png',
     primaryColor: 'emerald',
     accentColor: 'amber',
     numJudges: 2,
@@ -273,10 +274,10 @@ function ensureDbExists() {
 
   // Chest number counters - one per category, starting at the specified base values
   const initialCounters: Counter[] = [
-    { id: 'counter_sub_junior', categoryId: 'cat_sub_junior', currentValue: 999 },
-    { id: 'counter_junior', categoryId: 'cat_junior', currentValue: 1999 },
-    { id: 'counter_senior', categoryId: 'cat_senior', currentValue: 2999 },
-    { id: 'counter_general', categoryId: 'cat_general', currentValue: 5999 }
+    { id: 'counter_kids', categoryId: 'cat_kids', currentValue: 999 },
+    { id: 'counter_sub_junior', categoryId: 'cat_sub_junior', currentValue: 1999 },
+    { id: 'counter_junior', categoryId: 'cat_junior', currentValue: 2999 },
+    { id: 'counter_senior', categoryId: 'cat_senior', currentValue: 3999 }
   ];
 
   db = {
