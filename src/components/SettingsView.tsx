@@ -146,7 +146,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [fillLogo, setFillLogo] = useState(false);
 
   // Participant Login Criteria Settings
-  const [participantLoginCriteria, setParticipantLoginCriteria] = useState<'dob' | 'class'>('dob');
+  const [participantLoginCriteria, setParticipantLoginCriteria] = useState<'dob' | 'class'>('class');
   const [classRangeStart, setClassRangeStart] = useState<number>(1);
   const [classRangeEnd, setClassRangeEnd] = useState<number>(10);
 
@@ -269,15 +269,15 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
     setLoading(true);
     try {
       const [sRes, uRes, cRes] = await Promise.all([
-        fetch('/api/settings', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/units'),
-        fetch('/api/categories')
+        fetch(`/api/settings?t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`/api/units?t=${Date.now()}`),
+        fetch(`/api/categories?t=${Date.now()}`)
       ]);
       const data = await sRes.json();
       setSectorName(data.sectorName || '');
       setEventTitle(data.eventTitle || '');
-      setFestivalName(data.festivalName || 'Sahityotsav');
-      setCampusName(data.campusName || data.sectorName || 'Campus');
+      setFestivalName(data.festivalName || 'Tabassum');
+      setCampusName(data.campusName || data.sectorName || 'Noorul Islam Madrasa, Jeppu');
       setSsfLogoUrl(data.ssfLogoUrl || '');
       setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '');
       setCertTheme1Url(data.certTheme1Url || '');
@@ -285,8 +285,8 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       setCertTheme3Url(data.certTheme3Url || '');
       setRegistrationOpen(data.registrationOpen ?? true);
       setGradeSystemEnabled(data.gradeSystemEnabled ?? false);
-      setMaxIndividualEvents(data.maxIndividualEvents || 3);
-      setMaxGroupEvents(data.maxGroupEvents || 2);
+      setMaxIndividualEvents(data.maxIndividualEvents || 10);
+      setMaxGroupEvents(data.maxGroupEvents || 10);
       setHasOnStageLimit(data.maxOnStageEvents !== null && data.maxOnStageEvents !== undefined);
       setMaxOnStageEvents(data.maxOnStageEvents || 3);
       setHasOffStageLimit(data.maxOffStageEvents !== null && data.maxOffStageEvents !== undefined);
@@ -303,8 +303,8 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       setGlobalPoints10(data.globalPointsRank10 || 1);
       setEntityMode(data.entityMode || 'unit');
       setAutoRemoveLogoBg(data.autoRemoveLogoBg ?? false);
-      setFillLogo(data.fillLogo ?? false);
-      setParticipantLoginCriteria(data.participantLoginCriteria || 'dob');
+      setFillLogo(data.fillLogo ?? true);
+      setParticipantLoginCriteria(data.participantLoginCriteria || 'class');
       setClassRangeStart(data.classRangeStart ?? 1);
       setClassRangeEnd(data.classRangeEnd ?? 10);
 

@@ -70,7 +70,7 @@ async function _connectToMongo() {
     }
 
     // Override settings from dedicated settings collection if present (prevents stale global_state revert)
-    if (mongoSettingsMap.eventSettings) db.eventSettings = { ...db.eventSettings, ...mongoSettingsMap.eventSettings };
+    if (mongoSettingsMap.eventSettings) db.eventSettings = { ...mongoSettingsMap.eventSettings };
     if (mongoSettingsMap.cmsSettings) db.cmsSettings = { ...db.cmsSettings, ...mongoSettingsMap.cmsSettings };
     if (mongoSettingsMap.posterTemplateConfig) db.posterTemplateConfig = { ...db.posterTemplateConfig, ...mongoSettingsMap.posterTemplateConfig };
     if (mongoSettingsMap.certificateTemplateConfig) db.certificateTemplateConfig = { ...db.certificateTemplateConfig, ...mongoSettingsMap.certificateTemplateConfig };

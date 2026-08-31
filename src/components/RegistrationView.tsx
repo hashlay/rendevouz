@@ -43,7 +43,7 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
   const [dob, setDob] = useState('');
   const [candidateClass, setCandidateClass] = useState('');
 
-  const criteriaMode = eventSettings?.participantLoginCriteria || 'dob';
+  const criteriaMode = eventSettings?.participantLoginCriteria || 'class';
   const classStart = eventSettings?.classRangeStart ?? 1;
   const classEnd = eventSettings?.classRangeEnd ?? 10;
   const availableClasses: string[] = eventSettings?.availableClasses || Array.from({ length: Math.max(1, classEnd - classStart + 1) }, (_, i) => `Class ${classStart + i}`);
