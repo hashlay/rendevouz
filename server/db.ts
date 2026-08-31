@@ -197,13 +197,13 @@ function ensureDbExists() {
       if (!db.gallery) db.gallery = [];
       if (!db.videoHighlights) db.videoHighlights = [];
       if (!db.eventSettings) db.eventSettings = {} as any;
-      db.eventSettings.eventTitle = 'Zenith';
-      db.eventSettings.sectorName = 'Software';
-      db.eventSettings.eventYear = '2026';
-      db.eventSettings.venue = '---';
-      db.eventSettings.contactInfo = 'zenithorganizer@gmail.com';
-      db.eventSettings.ssfLogoUrl = '/zenith_logo.jpg';
-      db.eventSettings.sahityotsavLogoUrl = '/zenith_logo.jpg';
+      if (!db.eventSettings.eventTitle) db.eventSettings.eventTitle = 'Zenith';
+      if (!db.eventSettings.sectorName) db.eventSettings.sectorName = 'Software';
+      if (!db.eventSettings.eventYear) db.eventSettings.eventYear = '2026';
+      if (!db.eventSettings.venue) db.eventSettings.venue = '---';
+      if (!db.eventSettings.contactInfo) db.eventSettings.contactInfo = 'zenithorganizer@gmail.com';
+      if (!db.eventSettings.ssfLogoUrl) db.eventSettings.ssfLogoUrl = '/zenith_logo.jpg';
+      if (!db.eventSettings.sahityotsavLogoUrl) db.eventSettings.sahityotsavLogoUrl = '/zenith_logo.jpg';
       return;
     } catch (e) {
       console.error("Error reading database file, initializing fresh one", e);
@@ -351,22 +351,28 @@ async function _syncMongoNow() {
 
       for (const colName of collectionKeys) {
         const items = (db as any)[colName];
-        if (Array.isArray(items) && items.length > 0) {
+        if (Array.isArray(items)) {
           const col = mongoDb.collection(colName);
-          const ops = items.map((item: any) => {
-            const docId = item.id || item._id;
-            const { _id, ...rest } = item;
-            return {
-              updateOne: {
-                filter: { _id: docId },
-                update: { $set: { _id: docId, ...rest } },
-                upsert: true
-              }
-            };
-          });
-          await col.bulkWrite(ops, { ordered: false }).catch(err => {
-            if (err.code !== 11000) console.error(`Mongo sync error (${colName}):`, err.message);
-          });
+          if (items.length > 0) {
+            const ops = items.map((item: any) => {
+              const docId = item.id || item._id;
+              const { _id, ...rest } = item;
+              return {
+                updateOne: {
+                  filter: { _id: docId },
+                  update: { $set: { _id: docId, ...rest } },
+                  upsert: true
+                }
+              };
+            });
+            await col.bulkWrite(ops, { ordered: false }).catch(err => {
+              if (err.code !== 11000) console.error(`Mongo sync error (${colName}):`, err.message);
+            });
+            const currentIds = items.map((item: any) => item.id || item._id);
+            await col.deleteMany({ _id: { $nin: currentIds } }).catch(() => { });
+          } else {
+            await col.deleteMany({}).catch(() => { });
+          }
         }
       }
 
