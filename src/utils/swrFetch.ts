@@ -10,7 +10,7 @@
 
 export async function swrFetch<T>(
   url: string,
-  options?: RequestInit,
+  options?: RequestInit & { pollInterval?: number },
   onUpdate?: (data: T) => void
 ): Promise<T> {
   const isCacheable = !options?.method || options.method === 'GET';
@@ -67,6 +67,22 @@ export async function swrFetch<T>(
           resolve(JSON.parse(cachedStr) as T);
         }
       }, 300);
+    }
+
+    // 3. Setup background polling if requested
+    if (options?.pollInterval && onUpdate) {
+      setInterval(() => {
+        fetch(url, options)
+          .then(res => res.ok ? res.json() : Promise.reject(res))
+          .then(freshData => {
+            const freshStr = JSON.stringify(freshData);
+            if (localStorage.getItem(cacheKey) !== freshStr) {
+              localStorage.setItem(cacheKey, freshStr);
+              onUpdate(freshData);
+            }
+          })
+          .catch(() => {}); // Silently ignore polling errors
+      }, options.pollInterval);
     }
   });
 }
