@@ -4,6 +4,7 @@ import {
   RefreshCw, CheckCircle, Award, Compass, Sparkles, X, ChevronRight, ListCollapse, Hash, Printer 
 } from 'lucide-react';
 import { User, UserRole, Category, Unit, Participant, Competition, EducationStatus } from '../types';
+import { swrFetch } from '../utils/swrFetch';
 
 interface ParticipantsViewProps {
   user: User;
@@ -124,24 +125,15 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const fetchLists = async () => {
     setLoading(true);
     try {
-      const [pRes, cRes, uRes, compRes, resRes, tRes] = await Promise.all([
-        fetch(`/api/participants?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch('/api/categories'),
-        fetch('/api/units'),
-        fetch('/api/competitions'),
-        fetch('/api/results', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } })
-      ]);
-
-      if (!pRes.ok) {
-        const errorData = await pRes.json();
-        throw new Error(errorData.error || 'Failed to fetch participants');
-      }
-
+      const pUrl = `/api/participants?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}`;
+      
       const [pData, cData, uData, compData, resData, tData] = await Promise.all([
-        pRes.json(), cRes.json(), uRes.json(), compRes.json(), resRes.json(), tRes.json()
+        swrFetch<any[]>(pUrl, { headers: { 'Authorization': `Bearer ${token}` } }),
+        swrFetch<any[]>('/api/categories'),
+        swrFetch<any[]>('/api/units'),
+        swrFetch<any[]>('/api/competitions'),
+        swrFetch<any[]>('/api/results', { headers: { 'Authorization': `Bearer ${token}` } }),
+        swrFetch<any[]>('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       setParticipants(pData);
@@ -168,15 +160,11 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     setProfileLoading(true);
 
     try {
-      const [sbRes, resRes, teamsRes, regRes] = await Promise.all([
-        fetch(`/api/scoreboard?categoryId=${p.selectedCategoryId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/results', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/registrations', { headers: { 'Authorization': `Bearer ${token}` } })
-      ]);
-
       const [sbData, resultsData, teamsData, regsData] = await Promise.all([
-        sbRes.json(), resRes.json(), teamsRes.json(), regRes.json()
+        swrFetch<any[]>(`/api/scoreboard?categoryId=${p.selectedCategoryId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        swrFetch<any[]>('/api/results', { headers: { 'Authorization': `Bearer ${token}` } }),
+        swrFetch<any[]>('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } }),
+        swrFetch<any[]>('/api/registrations', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       const profile = sbData.find((entry: any) => entry.participantId === p.id);
