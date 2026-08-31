@@ -39,9 +39,9 @@ async function _connectToMongo() {
     mongoClient = new MongoClient(mongoUri);
     await mongoClient.connect();
 
-    const dbName = mongoUri.includes('/')
-      ? (mongoUri.split('/').pop()?.split('?')[0] || 'sahityotsav')
-      : 'sahityotsav';
+    const mongoUriStr = mongoUri || '';
+    const dbPath = mongoUriStr.includes('/') ? mongoUriStr.split('/').pop()?.split('?')[0] : null;
+    const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
 
     const mongoDb = mongoClient.db(dbName);
     mongoCollection = mongoDb.collection('app_state');
@@ -337,9 +337,9 @@ setInterval(performHourlyBackup, 60 * 60 * 1000);
 async function _syncMongoNow() {
   if (isMongoConnected && mongoClient && !isMongoConnecting && db) {
     try {
-      const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/')
-        ? ((process.env.MONGO_URI || process.env.MONGODB_URI || '').split('/').pop()?.split('?')[0] || 'sahityotsav')
-        : 'sahityotsav';
+      const mongoUriStr = process.env.MONGO_URI || process.env.MONGODB_URI || '';
+      const dbPath = mongoUriStr.includes('/') ? mongoUriStr.split('/').pop()?.split('?')[0] : null;
+      const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
       const mongoDb = mongoClient.db(dbName);
 
       // Dedicated per-collection updates to strictly prevent MongoDB 16MB document limit
@@ -457,8 +457,12 @@ export async function saveDb() {
     console.error("Failed to serialize database", e);
   }
 
-  // Schedule a debounced MongoDB sync (non-blocking)
-  _scheduleMongSync();
+  // Sync to MongoDB Atlas immediately on Vercel or when running serverless
+  if (process.env.VERCEL) {
+    await _syncMongoNow();
+  } else {
+    _scheduleMongSync();
+  }
 }
 
 // Initialize on import
@@ -469,17 +473,17 @@ connectToMongo();
 
 export function getCollection(name: string): Collection<any> | null {
   if (!mongoClient || !isMongoConnected) return null;
-  const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/')
-    ? ((process.env.MONGO_URI || process.env.MONGODB_URI || '').split('/').pop()?.split('?')[0] || 'sahityotsav')
-    : 'sahityotsav';
+  const mongoUriStr = process.env.MONGO_URI || process.env.MONGODB_URI || '';
+  const dbPath = mongoUriStr.includes('/') ? mongoUriStr.split('/').pop()?.split('?')[0] : null;
+  const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
   return mongoClient.db(dbName).collection(name);
 }
 
 export function getDb() {
   if (!mongoClient || !isMongoConnected) return null;
-  const dbName = (process.env.MONGO_URI || process.env.MONGODB_URI || '').includes('/')
-    ? ((process.env.MONGO_URI || process.env.MONGODB_URI || '').split('/').pop()?.split('?')[0] || 'sahityotsav')
-    : 'sahityotsav';
+  const mongoUriStr = process.env.MONGO_URI || process.env.MONGODB_URI || '';
+  const dbPath = mongoUriStr.includes('/') ? mongoUriStr.split('/').pop()?.split('?')[0] : null;
+  const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
   return mongoClient.db(dbName);
 }
 
