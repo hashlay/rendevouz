@@ -470,9 +470,8 @@ export async function saveDb() {
     console.error("Failed to serialize database", e);
   }
 
-  // Sync to MongoDB Atlas synchronously for Vercel serverless environments
-  // If we don't await this, Vercel freezes the function before the data saves!
-  await _syncMongoNow().catch(err => console.error("MongoDB Sync Error:", err));
+  // Sync to MongoDB Atlas in the background for 100% instant persistence without blocking the UI
+  _syncMongoNow().catch(err => console.error("Background Mongo Sync Error:", err));
 }
 
 // Initialize on import
