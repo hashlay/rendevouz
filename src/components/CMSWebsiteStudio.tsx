@@ -540,7 +540,18 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
 
               {/* Hero */}
               <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Hero Section</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Hero Section</h4>
+                  <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200 hover:bg-slate-100 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.heroHideLogo || false} 
+                      onChange={(e) => setSettings({...settings, heroHideLogo: e.target.checked})}
+                      className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                    />
+                    <span className="text-xs font-medium text-slate-700">Hide Hero Logo</span>
+                  </label>
+                </div>
                 
                 {/* Hero Logo Upload */}
                 <div>
