@@ -13,10 +13,7 @@ export async function swrFetch<T>(
   options?: RequestInit,
   onUpdate?: (data: T) => void
 ): Promise<T> {
-  // Only cache GET requests
   const isCacheable = !options?.method || options.method === 'GET';
-  
-  // Clean URL to use as cache key (remove timestamp query params used for cache busting)
   const cacheKey = `swr_cache_${url.split('?')[0]}`;
 
   if (!isCacheable) {
@@ -25,40 +22,51 @@ export async function swrFetch<T>(
     return res.json();
   }
 
-  // Network-First Strategy with Timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000); // 4-second timeout for "too slow" network
+  const cachedStr = localStorage.getItem(cacheKey);
 
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(timeoutId);
-    
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+  return new Promise((resolve, reject) => {
+    let networkFinished = false;
+    let cacheReturned = false;
+
+    // 1. Start Network Request
+    fetch(url, options)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
+      .then((freshData: T) => {
+        networkFinished = true;
+        localStorage.setItem(cacheKey, JSON.stringify(freshData));
+        
+        if (!cacheReturned) {
+          // Network won the race! Return fresh data directly (no flicker)
+          resolve(freshData);
+        } else {
+          // Cache was already returned. Update UI silently in background
+          if (onUpdate) onUpdate(freshData);
+        }
+      })
+      .catch(err => {
+        networkFinished = true;
+        if (!cacheReturned) {
+          if (cachedStr) {
+            console.log(`[SWR] Network failed, using offline fallback for ${url}`);
+            resolve(JSON.parse(cachedStr) as T);
+          } else {
+            reject(err);
+          }
+        }
+      });
+
+    // 2. Start Cache Threshold Timer (300ms)
+    if (cachedStr) {
+      setTimeout(() => {
+        if (!networkFinished) {
+          // Network is taking too long. Showcase the cache immediately.
+          cacheReturned = true;
+          resolve(JSON.parse(cachedStr) as T);
+        }
+      }, 300);
     }
-    
-    const freshData = await res.json() as T;
-    
-    // Save to cache for next time
-    localStorage.setItem(cacheKey, JSON.stringify(freshData));
-    
-    // Trigger onUpdate if provided
-    if (onUpdate) onUpdate(freshData);
-    
-    return freshData;
-  } catch (err) {
-    clearTimeout(timeoutId);
-    
-    // If network fails or times out, fallback to cache
-    const fallbackCache = localStorage.getItem(cacheKey);
-    if (fallbackCache) {
-      console.log(`[SWR] Network failed or slow, using offline fallback for ${url}`);
-      const cachedData = JSON.parse(fallbackCache) as T;
-      
-      if (onUpdate) onUpdate(cachedData);
-      return cachedData;
-    }
-    
-    throw err;
-  }
+  });
 }
