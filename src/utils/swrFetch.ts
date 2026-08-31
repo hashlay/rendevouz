@@ -19,57 +19,46 @@ export async function swrFetch<T>(
   // Clean URL to use as cache key (remove timestamp query params used for cache busting)
   const cacheKey = `swr_cache_${url.split('?')[0]}`;
 
-  if (isCacheable) {
-    const cachedStr = localStorage.getItem(cacheKey);
-    if (cachedStr) {
-      try {
-        const cachedData = JSON.parse(cachedStr) as T;
-        
-        // Background fetch to revalidate
-        fetch(url, options)
-          .then(res => {
-            if (res.ok) return res.json();
-            throw new Error('Network response was not ok');
-          })
-          .then((freshData: T) => {
-            localStorage.setItem(cacheKey, JSON.stringify(freshData));
-            if (onUpdate) onUpdate(freshData);
-          })
-          .catch(err => {
-            console.warn(`[SWR] Background revalidate failed for ${url}:`, err);
-          });
-        
-        // Return cached data immediately
-        return cachedData;
-      } catch (e) {
-        console.warn(`[SWR] Failed to parse cache for ${url}`);
-      }
-    }
+  if (!isCacheable) {
+    const res = await fetch(url, options);
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    return res.json();
   }
 
-  // Normal fetch if no cache or not cacheable
+  // Network-First Strategy with Timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000); // 4-second timeout for "too slow" network
+
   try {
-    const res = await fetch(url, options);
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }
+    
     const freshData = await res.json() as T;
     
     // Save to cache for next time
-    if (isCacheable) {
-      localStorage.setItem(cacheKey, JSON.stringify(freshData));
-    }
+    localStorage.setItem(cacheKey, JSON.stringify(freshData));
+    
+    // Trigger onUpdate if provided
+    if (onUpdate) onUpdate(freshData);
     
     return freshData;
   } catch (err) {
-    // If network fails completely and we have a cache, return the cache as a fallback
-    if (isCacheable) {
-      const fallbackCache = localStorage.getItem(cacheKey);
-      if (fallbackCache) {
-        console.log(`[SWR] Network failed, using offline fallback for ${url}`);
-        return JSON.parse(fallbackCache) as T;
-      }
+    clearTimeout(timeoutId);
+    
+    // If network fails or times out, fallback to cache
+    const fallbackCache = localStorage.getItem(cacheKey);
+    if (fallbackCache) {
+      console.log(`[SWR] Network failed or slow, using offline fallback for ${url}`);
+      const cachedData = JSON.parse(fallbackCache) as T;
+      
+      if (onUpdate) onUpdate(cachedData);
+      return cachedData;
     }
+    
     throw err;
   }
 }
