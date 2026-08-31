@@ -57,6 +57,37 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
   const [colorTheme, setColorTheme] = useState<Record<string, string>>(DEFAULT_COLOR_THEME);
   const [colorSaveSuccess, setColorSaveSuccess] = useState(false);
 
+  const uploadImageFileWithFallback = async (file: File, endpoint: string, onSuccess: (url: string) => void) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const token = localStorage.getItem('token');
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          onSuccess(data.url);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn(`Server upload to ${endpoint} failed, converting locally:`, err);
+    }
+
+    // Instant client-side Base64 fallback if server returns 403, 500, or network error
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        onSuccess(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   useEffect(() => {
     fetchCMSData();
     // Also fetch event settings for livestream/drive urls
@@ -486,25 +517,9 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                     <label className="shrink-0 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-md text-sm font-medium text-slate-700 cursor-pointer transition-colors inline-flex items-center gap-2">
                       <ImageIcon className="w-4 h-4" />
                       <span>{settings.headerLogo ? 'Change Header Logo' : 'Upload Header Logo'}</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                         if (e.target.files?.[0]) {
-                          const formData = new FormData();
-                          formData.append('image', e.target.files[0]);
-                          try {
-                            const res = await fetch('/api/hero/upload', {
-                              method: 'POST',
-                              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                              body: formData
-                            });
-                            if (res.ok) {
-                              const { url } = await res.json();
-                              setSettings({...settings, headerLogo: url});
-                            } else {
-                              alert('Upload failed');
-                            }
-                          } catch (err) {
-                            alert('Network error');
-                          }
+                          uploadImageFileWithFallback(e.target.files[0], '/api/hero/upload', (url) => setSettings(prev => ({ ...prev, headerLogo: url })));
                         }
                       }} />
                     </label>
@@ -546,25 +561,9 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                     <label className="shrink-0 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-md text-sm font-medium text-slate-700 cursor-pointer transition-colors inline-flex items-center gap-2">
                       <ImageIcon className="w-4 h-4" />
                       <span>{settings.heroLogo ? 'Change Logo' : 'Upload Custom Logo'}</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                         if (e.target.files?.[0]) {
-                          const formData = new FormData();
-                          formData.append('image', e.target.files[0]);
-                          try {
-                            const res = await fetch('/api/hero/upload', {
-                              method: 'POST',
-                              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                              body: formData
-                            });
-                            if (res.ok) {
-                              const { url } = await res.json();
-                              setSettings({...settings, heroLogo: url});
-                            } else {
-                              alert('Upload failed');
-                            }
-                          } catch (err) {
-                            alert('Network error');
-                          }
+                          uploadImageFileWithFallback(e.target.files[0], '/api/hero/upload', (url) => setSettings(prev => ({ ...prev, heroLogo: url })));
                         }
                       }} />
                     </label>
@@ -653,28 +652,9 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                     <label className="shrink-0 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-md text-sm font-medium text-slate-700 cursor-pointer transition-colors inline-flex items-center gap-2">
                       <ImageIcon className="w-4 h-4" />
                       <span>{settings.aboutImage ? 'Change Image' : 'Upload Image'}</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                         if (e.target.files?.[0]) {
-                          const formData = new FormData();
-                          formData.append('image', e.target.files[0]);
-                          try {
-                            const res = await fetch('/api/about/upload', {
-                              method: 'POST',
-                              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                              body: formData
-                            });
-                            if (res.ok) {
-                              const data = await res.json();
-                              setSettings({...settings, aboutImage: data.url});
-                            } else { 
-                              try {
-                                const errData = await res.json();
-                                alert(`Upload failed: ${errData.details || errData.error || JSON.stringify(errData)}`);
-                              } catch(e) {
-                                alert(`Upload failed with status: ${res.status}`);
-                              }
-                            }
-                          } catch (err: any) { alert(`Network error: ${err.message}`); }
+                          uploadImageFileWithFallback(e.target.files[0], '/api/about/upload', (url) => setSettings(prev => ({ ...prev, aboutImage: url })));
                         }
                       }} />
                     </label>
@@ -777,28 +757,9 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                         type="file" 
                         accept="image/*" 
                         className="hidden" 
-                        onChange={async (e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            const file = e.target.files[0];
-                            const formData = new FormData();
-                            formData.append('image', file);
-                            try {
-                              const res = await fetch('/api/footer/upload', {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                                body: formData
-                              });
-                              if (res.ok) {
-                                const data = await res.json();
-                                setSettings({...settings, footerLogo: data.url});
-                                alert('Footer logo uploaded successfully!');
-                              } else {
-                                const errData = await res.json();
-                                alert(`Upload failed: ${errData.details || errData.error}`);
-                              }
-                            } catch (err) {
-                              alert('Error uploading image');
-                            }
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            uploadImageFileWithFallback(e.target.files[0], '/api/footer/upload', (url) => setSettings(prev => ({ ...prev, footerLogo: url })));
                           }
                         }}
                       />

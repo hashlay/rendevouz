@@ -44,6 +44,39 @@ const configureCloudinary = () => {
 };
 
 const uploadDir = os.tmpdir();
+
+async function processUploadFile(file: Express.Multer.File, folder: string): Promise<string> {
+  if (!file) throw new Error('No image file uploaded');
+  
+  // Attempt Cloudinary upload if credentials exist
+  try {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    if (cloudName && apiKey) {
+      configureCloudinary();
+      const uploadResult = await cloudinary.uploader.upload(file.path, {
+        resource_type: 'image',
+        folder
+      });
+      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+      return uploadResult.secure_url;
+    }
+  } catch (cErr: any) {
+    console.warn(`Cloudinary upload failed for ${folder}, falling back to Base64:`, cErr?.message || cErr);
+  }
+
+  // Fail-safe Base64 Data URL fallback
+  try {
+    const buffer = fs.readFileSync(file.path);
+    const mimeType = file.mimetype || 'image/png';
+    const base64Url = `data:${mimeType};base64,${buffer.toString('base64')}`;
+    if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+    return base64Url;
+  } catch (err: any) {
+    if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+    throw err;
+  }
+}
 const upload = multer({ 
   dest: uploadDir,
   limits: { fileSize: 1024 * 1024 * 1024 } // 1GB limit for videos
@@ -4614,24 +4647,11 @@ apiRouter.post('/hero/upload', authenticate, upload.single('image'), async (req,
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ error: 'No image file' });
-
-    configureCloudinary();
-    const uploadResult = await cloudinary.uploader.upload(file.path, {
-      resource_type: 'image',
-      folder: 'sahityotsav_hero'
-    });
-
-    if (fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
-    }
-
-    res.status(201).json({ url: uploadResult.secure_url });
+    const url = await processUploadFile(file, 'sahityotsav_hero');
+    res.status(201).json({ url });
   } catch (error: any) {
-    console.error(error);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-    res.status(500).json({ error: 'Failed', details: error.message || String(error) });
+    console.error('Hero upload error:', error);
+    res.status(500).json({ error: 'Failed to upload image', details: error.message || String(error) });
   }
 });
 
@@ -4640,32 +4660,17 @@ apiRouter.post('/about/upload', authenticate, upload.single('image'), async (req
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ error: 'No image file' });
-
-    configureCloudinary();
-    const uploadResult = await cloudinary.uploader.upload(file.path, {
-      resource_type: 'image',
-      folder: 'sahityotsav_about'
-    });
-
-    const db = dbClient.get();
-    if (!db.cmsSettings) db.cmsSettings = {
-      aboutTitle: '', aboutSubtitle: '', aboutDescription: '', aboutBadge: '', aboutMainHeading: '',
-      aboutImage: '', aboutImageBadge: '', aboutImageTitle: '', aboutImageSubtitle: '', aboutImageLocation: '', aboutImageFooter: '',
-      footerText: '', themeTitle: '', themeDescription: '', themeButtonText: '',
-      conceptModalBadge: '', conceptModalTitle: '', conceptModalSubtitle: '', conceptModalDescription: '', conceptModalFooter: '',
-      heroTitle: '', heroSubtitle: '', heroDate: '', heroLocation: ''
-    };
-    db.cmsSettings.aboutImage = uploadResult.secure_url;
+    const url = await processUploadFile(file, 'sahityotsav_about');
     
-    if (fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
-    }
-    dbClient.save();
+    const db = dbClient.get();
+    if (!db.cmsSettings) db.cmsSettings = {} as any;
+    db.cmsSettings.aboutImage = url;
+    await dbClient.save();
 
-    res.status(201).json({ url: uploadResult.secure_url });
+    res.status(201).json({ url });
   } catch (error: any) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed', details: error.message || String(error) });
+    console.error('About upload error:', error);
+    res.status(500).json({ error: 'Failed to upload image', details: error.message || String(error) });
   }
 });
 
@@ -4674,33 +4679,17 @@ apiRouter.post('/footer/upload', authenticate, upload.single('image'), async (re
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ error: 'No image file' });
-
-    configureCloudinary();
-    const uploadResult = await cloudinary.uploader.upload(file.path, {
-      resource_type: 'image',
-      folder: 'sahityotsav_footer'
-    });
+    const url = await processUploadFile(file, 'sahityotsav_footer');
 
     const db = dbClient.get();
-    if (!db.cmsSettings) db.cmsSettings = {
-      aboutTitle: '', aboutSubtitle: '', aboutDescription: '', aboutBadge: '', aboutMainHeading: '',
-      aboutImage: '', aboutImageBadge: '', aboutImageTitle: '', aboutImageSubtitle: '', aboutImageLocation: '', aboutImageFooter: '',
-      footerText: '', footerLogo: '', footerDescription: '', footerLocation: '', footerEmail: '', footerPhone: '', footerInstagram: '', footerYoutube: '', footerFacebook: '',
-      themeTitle: '', themeDescription: '', themeButtonText: '',
-      conceptModalBadge: '', conceptModalTitle: '', conceptModalSubtitle: '', conceptModalDescription: '', conceptModalFooter: '',
-      heroTitle: '', heroSubtitle: '', heroDate: '', heroLocation: ''
-    };
-    db.cmsSettings.footerLogo = uploadResult.secure_url;
-    
-    if (fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
-    }
-    dbClient.save();
+    if (!db.cmsSettings) db.cmsSettings = {} as any;
+    db.cmsSettings.footerLogo = url;
+    await dbClient.save();
 
-    res.status(201).json({ url: uploadResult.secure_url });
+    res.status(201).json({ url });
   } catch (error: any) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed', details: error.message || String(error) });
+    console.error('Footer upload error:', error);
+    res.status(500).json({ error: 'Failed to upload logo', details: error.message || String(error) });
   }
 });
 // CMS Routes
