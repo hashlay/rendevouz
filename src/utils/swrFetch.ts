@@ -25,26 +25,22 @@ export async function swrFetch<T>(
       try {
         const cachedData = JSON.parse(cachedStr) as T;
         
-        // Return cached data immediately, but still fetch in the background if onUpdate is provided
-        if (onUpdate) {
-          // Background fetch to revalidate
-          fetch(url, options)
-            .then(res => {
-              if (res.ok) return res.json();
-              throw new Error('Network response was not ok');
-            })
-            .then((freshData: T) => {
-              // Update cache
-              localStorage.setItem(cacheKey, JSON.stringify(freshData));
-              // Update UI with fresh data
-              onUpdate(freshData);
-            })
-            .catch(err => {
-              console.warn(`[SWR] Background revalidate failed for ${url}:`, err);
-            });
-          
-          return cachedData;
-        }
+        // Background fetch to revalidate
+        fetch(url, options)
+          .then(res => {
+            if (res.ok) return res.json();
+            throw new Error('Network response was not ok');
+          })
+          .then((freshData: T) => {
+            localStorage.setItem(cacheKey, JSON.stringify(freshData));
+            if (onUpdate) onUpdate(freshData);
+          })
+          .catch(err => {
+            console.warn(`[SWR] Background revalidate failed for ${url}:`, err);
+          });
+        
+        // Return cached data immediately
+        return cachedData;
       } catch (e) {
         console.warn(`[SWR] Failed to parse cache for ${url}`);
       }

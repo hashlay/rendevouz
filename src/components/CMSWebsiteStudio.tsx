@@ -120,6 +120,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           heroLogoTitle: 'RENDEZVOUS',
           heroLogoSubtitle: 'Silver Edition',
           heroLogoBadge: 'KULLIYATHU IMAM RABBANI',
+          heroHideLogo: false,
           heroTitle: 'RENDEZVOUS <span class="text-[#FF2B2B]">SILVER EDITION</span>',
           heroSubtitle: 'Imam Rabbani LIFE Festival',
           heroInstitutionLeft: 'Kulliyathu Imam Rabbani',
