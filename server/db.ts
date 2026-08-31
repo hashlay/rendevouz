@@ -470,8 +470,8 @@ export async function saveDb() {
     console.error("Failed to serialize database", e);
   }
 
-  // Sync to MongoDB Atlas immediately for 100% instant persistence across all environments
-  await _syncMongoNow();
+  // Sync to MongoDB Atlas in the background for 100% instant persistence without blocking the UI
+  _syncMongoNow().catch(err => console.error("Background Mongo Sync Error:", err));
 }
 
 // Initialize on import
