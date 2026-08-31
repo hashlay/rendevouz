@@ -127,6 +127,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           heroInstitutionRight: 'Off-Campus of Markaz Garden, Poonoor',
           heroDate: 'September 23 – 24, 2025',
           heroLocation: 'Main Campus Grounds, Poonoor, Kozhikode',
+          heroDesktopLoopEnabled: true,
           aboutBadge: 'Festival Vision',
           aboutMainHeading: 'ABOUT THE <span class="text-[#FF2B2B]">FESTIVAL</span>',
           aboutTitle: 'Kulliyathu Imam Rabbani',
@@ -551,6 +552,15 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                       className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
                     />
                     <span className="text-xs font-medium text-slate-700">Hide Hero Logo</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200 hover:bg-slate-100 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.heroDesktopLoopEnabled !== false} 
+                      onChange={(e) => setSettings({...settings, heroDesktopLoopEnabled: e.target.checked})}
+                      className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                    />
+                    <span className="text-xs font-medium text-slate-700">Enable Media Loop</span>
                   </label>
                 </div>
                 
