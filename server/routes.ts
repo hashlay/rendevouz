@@ -5099,3 +5099,15 @@ apiRouter.get('/public/standings', async (req, res) => {
   res.json(standings);
 });
 
+// Public Gallery
+apiRouter.get('/public/gallery', async (req, res) => {
+  const db = dbClient.get();
+  res.json(db.gallery || []);
+});
+
+// Public Highlights
+apiRouter.get('/public/highlights', async (req, res) => {
+  const db = dbClient.get();
+  res.json(db.videoHighlights || []);
+});
+
