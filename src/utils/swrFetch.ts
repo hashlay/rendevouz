@@ -8,6 +8,19 @@
  * for the user and full offline resilience.
  */
 
+export function invalidateSwrCache(urlPrefix?: string) {
+  try {
+    const keys = Object.keys(localStorage);
+    keys.forEach(k => {
+      if (k.startsWith('swr_cache_')) {
+        if (!urlPrefix || k.includes(urlPrefix)) {
+          localStorage.removeItem(k);
+        }
+      }
+    });
+  } catch (_) {}
+}
+
 export async function swrFetch<T>(
   url: string,
   options?: RequestInit & { pollInterval?: number },
@@ -17,72 +30,49 @@ export async function swrFetch<T>(
   const cacheKey = `swr_cache_${url.split('?')[0]}`;
 
   if (!isCacheable) {
+    invalidateSwrCache();
     const res = await fetch(url, options);
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     return res.json();
   }
 
-  const cachedStr = localStorage.getItem(cacheKey);
+  // Network-First Strategy: Always fetch 100% fresh live data from server when online
+  try {
+    const res = await fetch(url, options);
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    const freshData: T = await res.json();
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(freshData));
+    } catch (_) {}
 
-  return new Promise((resolve, reject) => {
-    let networkFinished = false;
-    let cacheReturned = false;
+    if (onUpdate) onUpdate(freshData);
 
-    // 1. Start Network Request
-    fetch(url, options)
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
-      .then((freshData: T) => {
-        networkFinished = true;
-        localStorage.setItem(cacheKey, JSON.stringify(freshData));
-        
-        if (!cacheReturned) {
-          // Network won the race! Return fresh data directly (no flicker)
-          resolve(freshData);
-        } else {
-          // Cache was already returned. Update UI silently in background
-          if (onUpdate) onUpdate(freshData);
-        }
-      })
-      .catch(err => {
-        networkFinished = true;
-        if (!cacheReturned) {
-          if (cachedStr) {
-            console.log(`[SWR] Network failed, using offline fallback for ${url}`);
-            resolve(JSON.parse(cachedStr) as T);
-          } else {
-            reject(err);
-          }
-        }
-      });
-
-    // 2. Start Cache Threshold Timer (300ms)
-    if (cachedStr) {
-      setTimeout(() => {
-        if (!networkFinished) {
-          // Network is taking too long. Showcase the cache immediately.
-          cacheReturned = true;
-          resolve(JSON.parse(cachedStr) as T);
-        }
-      }, 300);
-    }
-
-    // 3. Setup background polling if requested
+    // Setup background polling if requested
     if (options?.pollInterval && onUpdate) {
       setInterval(() => {
         fetch(url, options)
-          .then(res => res.ok ? res.json() : Promise.reject(res))
-          .then(freshData => {
-            const freshStr = JSON.stringify(freshData);
+          .then(r => r.ok ? r.json() : Promise.reject(r))
+          .then(data => {
+            const freshStr = JSON.stringify(data);
             if (localStorage.getItem(cacheKey) !== freshStr) {
-              localStorage.setItem(cacheKey, freshStr);
-              onUpdate(freshData);
+              try { localStorage.setItem(cacheKey, freshStr); } catch (_) {}
+              onUpdate(data);
             }
           })
-          .catch(() => {}); // Silently ignore polling errors
+          .catch(() => {});
       }, options.pollInterval);
     }
-  });
+
+    return freshData;
+  } catch (netErr) {
+    // Offline Fallback: Only use cached localStorage data if network is completely unavailable
+    const cachedStr = localStorage.getItem(cacheKey);
+    if (cachedStr) {
+      console.log(`[SWR] Network offline fallback active for ${url}`);
+      const cachedData = JSON.parse(cachedStr) as T;
+      if (onUpdate) onUpdate(cachedData);
+      return cachedData;
+    }
+    throw netErr;
+  }
 }

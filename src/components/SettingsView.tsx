@@ -507,9 +507,32 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save category');
 
+      const savedCategory = data.category || {
+        id: editingCatId || `cat_${Date.now()}`,
+        name: catName.trim(),
+        startingChestNumber: Number(catStartChestNo) || 1001,
+        criteriaType: catCriteria,
+        dobStart: catDobStart || undefined,
+        dobEnd: catDobEnd || undefined,
+        classStart: catClassStart || undefined,
+        classEnd: catClassEnd || undefined,
+        active: true
+      };
+
+      setCategories(prev => {
+        const existingIdx = prev.findIndex(c => c.id === savedCategory.id);
+        if (existingIdx >= 0) {
+          const updated = [...prev];
+          updated[existingIdx] = savedCategory;
+          return updated;
+        } else {
+          return [...prev, savedCategory];
+        }
+      });
+
       setEditingCatId(null);
       setCatName('');
-      fetchSettingsAndUnits();
+      await fetchSettingsAndUnits();
       alert(editingCatId ? 'Category updated successfully!' : 'Category created successfully!');
     } catch (err: any) {
       alert(err.message);

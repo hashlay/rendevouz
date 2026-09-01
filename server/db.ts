@@ -69,37 +69,45 @@ async function _connectToMongo() {
     const existingState = await mongoCollection.findOne({ _id: 'global_state' as any });
     const hasMongoData = existingState && Array.isArray(existingState.participants) && existingState.participants.length > 0;
 
-    if (hasMongoData) {
+    // Only populate in-memory db if db is not already initialized from local disk or recent mutations
+    const isDbAlreadyLoaded = db && (
+      (Array.isArray(db.participants) && db.participants.length > 0) ||
+      (Array.isArray(db.competitions) && db.competitions.length > 0)
+    );
+
+    if (hasMongoData && !isDbAlreadyLoaded) {
       console.log(`Found existing database state in MongoDB. Synchronizing base cache...`);
       const { _id, ...restOfState } = existingState;
       db = restOfState as any;
     }
 
-    // Override settings from dedicated settings collection if present (prevents stale global_state revert)
-    if (mongoSettingsMap.eventSettings) db.eventSettings = { ...mongoSettingsMap.eventSettings };
-    if (mongoSettingsMap.cmsSettings) db.cmsSettings = { ...db.cmsSettings, ...mongoSettingsMap.cmsSettings };
-    if (mongoSettingsMap.posterTemplateConfig) db.posterTemplateConfig = { ...db.posterTemplateConfig, ...mongoSettingsMap.posterTemplateConfig };
-    if (mongoSettingsMap.certificateTemplateConfig) db.certificateTemplateConfig = { ...db.certificateTemplateConfig, ...mongoSettingsMap.certificateTemplateConfig };
+    if (!isDbAlreadyLoaded) {
+      // Override settings from dedicated settings collection if present
+      if (mongoSettingsMap.eventSettings) db.eventSettings = { ...mongoSettingsMap.eventSettings };
+      if (mongoSettingsMap.cmsSettings) db.cmsSettings = { ...db.cmsSettings, ...mongoSettingsMap.cmsSettings };
+      if (mongoSettingsMap.posterTemplateConfig) db.posterTemplateConfig = { ...db.posterTemplateConfig, ...mongoSettingsMap.posterTemplateConfig };
+      if (mongoSettingsMap.certificateTemplateConfig) db.certificateTemplateConfig = { ...db.certificateTemplateConfig, ...mongoSettingsMap.certificateTemplateConfig };
 
-    // Pull each dedicated collection from MongoDB to ensure 100% fresh data
-    const collectionKeys = [
-      'users', 'units', 'categories', 'competitions', 'participants', 'teams',
-      'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments',
-      'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
-    ];
+      // Pull each dedicated collection from MongoDB to ensure 100% fresh data
+      const collectionKeys = [
+        'users', 'units', 'categories', 'competitions', 'participants', 'teams',
+        'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments',
+        'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
+      ];
 
-    for (const colName of collectionKeys) {
-      try {
-        const docs = await mongoDb.collection(colName).find({}).toArray();
-        if (docs && docs.length > 0) {
-          const formatted = docs.map((d: any) => {
-            const docId = d.id || d._id;
-            const { _id, ...rest } = d;
-            return { id: docId, ...rest };
-          });
-          (db as any)[colName] = formatted;
-        }
-      } catch (_) { }
+      for (const colName of collectionKeys) {
+        try {
+          const docs = await mongoDb.collection(colName).find({}).toArray();
+          if (docs && docs.length > 0) {
+            const formatted = docs.map((d: any) => {
+              const docId = d.id || d._id;
+              const { _id, ...rest } = d;
+              return { id: docId, ...rest };
+            });
+            (db as any)[colName] = formatted;
+          }
+        } catch (_) { }
+      }
     }
 
     // Sanitize broken legacy local uploads from gallery & videoHighlights
@@ -366,8 +374,8 @@ async function _syncMongoNow() {
               const { _id, ...rest } = item;
               return {
                 updateOne: {
-                  filter: { _id: docId },
-                  update: { $set: { _id: docId, ...rest } },
+                  filter: { $or: [{ _id: docId }, { id: docId }] },
+                  update: { $set: { id: docId, ...rest } },
                   upsert: true
                 }
               };
@@ -376,7 +384,7 @@ async function _syncMongoNow() {
               if (err.code !== 11000) console.error(`Mongo sync error (${colName}):`, err.message);
             });
             const currentIds = items.map((item: any) => item.id || item._id);
-            await col.deleteMany({ _id: { $nin: currentIds } }).catch(() => { });
+            await col.deleteMany({ _id: { $nin: currentIds }, id: { $nin: currentIds } }).catch(() => { });
           } else {
             await col.deleteMany({}).catch(() => { });
           }
@@ -453,25 +461,16 @@ export async function saveDb() {
     db.loginAudits = db.loginAudits.slice(-500);
   }
 
-  // Write to local file (compact JSON, non-blocking)
+  // Write to local file synchronously so disk state is immediately persistent
   try {
-    const data = JSON.stringify(db);
-    const tempFile = DB_FILE + '.tmp';
-    fs.writeFile(tempFile, data, 'utf-8', (err) => {
-      if (err) {
-        console.error("Failed to write temp db file:", err);
-        return;
-      }
-      fs.rename(tempFile, DB_FILE, (renameErr) => {
-        if (renameErr) console.error("Failed to rename temp db file:", renameErr);
-      });
-    });
+    const data = JSON.stringify(db, null, 2);
+    fs.writeFileSync(DB_FILE, data, 'utf-8');
   } catch (e) {
     console.error("Failed to serialize database", e);
   }
 
-  // Sync to MongoDB Atlas in the background for 100% instant persistence without blocking the UI
-  _syncMongoNow().catch(err => console.error("Background Mongo Sync Error:", err));
+  // Sync to MongoDB Atlas immediately for 100% instant persistence
+  await _syncMongoNow().catch(err => console.error("Background Mongo Sync Error:", err));
 }
 
 // Initialize on import

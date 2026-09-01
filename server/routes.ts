@@ -1096,10 +1096,11 @@ apiRouter.get('/categories', async (req, res) => {
 
   // Map over categories to attach dynamic starting chest number and fallback criteriaType
   const enrichedCategories = db.categories.map(cat => {
+    const userDefinedStartNo = cat.startingChestNumber !== undefined && cat.startingChestNumber !== null ? Number(cat.startingChestNumber) : undefined;
     return {
       ...cat,
       criteriaType: cat.criteriaType || (cat.dobStart || cat.dobEnd ? 'dob' : (cat.classStart || cat.classEnd ? 'class' : undefined)),
-      startingChestNumber: minChestNumbers[cat.id] !== undefined ? minChestNumbers[cat.id] : (cat.startingChestNumber || 1001)
+      startingChestNumber: userDefinedStartNo !== undefined ? userDefinedStartNo : (minChestNumbers[cat.id] !== undefined ? minChestNumbers[cat.id] : 1001)
     };
   });
 

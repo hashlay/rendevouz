@@ -127,7 +127,6 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           heroInstitutionRight: 'Off-Campus of Markaz Garden, Poonoor',
           heroDate: 'September 23 – 24, 2025',
           heroLocation: 'Main Campus Grounds, Poonoor, Kozhikode',
-          heroDesktopLoopEnabled: true,
           aboutBadge: 'Festival Vision',
           aboutMainHeading: 'ABOUT THE <span class="text-[#FF2B2B]">FESTIVAL</span>',
           aboutTitle: 'Kulliyathu Imam Rabbani',

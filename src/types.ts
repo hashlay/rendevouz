@@ -268,12 +268,19 @@ export interface EventSettings {
   entityMode?: 'unit' | 'house' | 'team';
   entityLabel?: string;
   gradeSystemEnabled?: boolean;
+  fillLogo?: boolean;
+  autoRemoveLogoBg?: boolean;
   certTheme1Url?: string;
   certTheme2Url?: string;
   certTheme3Url?: string;
   primaryColor: string; // e.g. "emerald" or HEX
   accentColor: string; // e.g. "amber" or HEX
   headerBannerUrl?: string;
+  
+  // Overrides & configurations
+  chestNumberOverrides?: any;
+  posterOverrides?: any;
+  certificateOverrides?: any;
   
   // Result configuration
   numJudges: number; // default 2
@@ -447,7 +454,7 @@ export interface VideoHighlight {
 export interface DragBlock {
   id: string;
   title: string;
-  type: 'hero' | 'about' | 'announcements' | 'live_stages' | 'results' | 'sponsors' | 'schedule' | 'gallery' | 'photo_hub' | 'highlights' | 'custom';
+  type: 'hero' | 'about' | 'announcements' | 'live_stages' | 'results' | 'sponsors' | 'schedule' | 'gallery' | 'photo_hub' | 'smile' | 'highlights' | 'custom';
   enabled: boolean;
   order: number;
   contentSnippet?: string;

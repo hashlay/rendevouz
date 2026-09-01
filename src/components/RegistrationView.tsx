@@ -152,11 +152,19 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
 
   const handleFinalSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!fullName || !dob || !selectedUnitId || !selectedCategoryId || selectedComps.length === 0) {
-      alert('Please fill candidate name, valid date of birth (DD/MM/YYYY), select unit, category, and at least one competition.');
+
+    if (!fullName.trim()) {
+      setMessage({ type: 'error', text: 'Please enter Candidate Full Name' });
       return;
     }
-
+    if (!selectedUnitId) {
+      setMessage({ type: 'error', text: `Please select a ${entityLabel}` });
+      return;
+    }
+    if (!selectedCategoryId) {
+      setMessage({ type: 'error', text: 'Please select a Category' });
+      return;
+    }
     if (criteriaMode === 'dob' && !dob) {
       setMessage({ type: 'error', text: 'Please enter Date of Birth (DD / MM / YYYY)' });
       return;
@@ -226,6 +234,10 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
   }
 
   const filteredCompetitions = competitions.filter(c => c.categoryId === selectedCategoryId);
+
+  const isDobValid = criteriaMode !== 'dob' || Boolean(dob);
+  const isClassValid = criteriaMode !== 'class' || Boolean(candidateClass);
+  const isFormValid = Boolean(fullName.trim()) && Boolean(selectedUnitId) && Boolean(selectedCategoryId) && isDobValid && isClassValid;
 
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto font-sans space-y-6 min-w-0 w-full overflow-x-hidden">
@@ -527,12 +539,15 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
         {/* SUBMIT ACTION BUTTON */}
         <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
           <div className="text-[11px] text-slate-400 font-mono">
-            {selectedComps.length > 0 ? `Ready to register with ${selectedComps.length} program(s) selected.` : 'Fill candidate details, select category & programs to register.'}
+            {selectedComps.length > 0 
+              ? `Ready to register with ${selectedComps.length} program(s) selected.` 
+              : 'Ready to register candidate (competition programs can also be assigned later).'
+            }
           </div>
 
           <button
             type="submit"
-            disabled={submitting || !selectedCategoryId || selectedComps.length === 0 || !fullName || !dob || !selectedUnitId}
+            disabled={submitting || !isFormValid}
             className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-display font-extrabold text-sm shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
           >
             {submitting ? (
