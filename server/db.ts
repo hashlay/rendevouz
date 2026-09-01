@@ -410,10 +410,6 @@ async function _syncMongoNow() {
             await col.bulkWrite(ops, { ordered: false }).catch(err => {
               if (err.code !== 11000) console.error(`Mongo sync error (${colName}):`, err.message);
             });
-            const currentIds = items.map((item: any) => item.id || item._id);
-            await col.deleteMany({ _id: { $nin: currentIds }, id: { $nin: currentIds } }).catch(() => { });
-          } else {
-            await col.deleteMany({}).catch(() => { });
           }
         }
       }
