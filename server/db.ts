@@ -67,10 +67,18 @@ async function _connectToMongo() {
     });
 
     const existingState = await mongoCollection.findOne({ _id: 'global_state' as any });
-    // Always synchronize current cache from MongoDB dedicated collections & settings
+    // Synchronize current cache from MongoDB dedicated collections & settings safely
     if (existingState) {
       const { _id, ...restOfState } = existingState;
-      db = { ...db, ...restOfState };
+      for (const [key, val] of Object.entries(restOfState)) {
+        if (Array.isArray(val)) {
+          if (val.length > 0) {
+            (db as any)[key] = val;
+          }
+        } else if (val && typeof val === 'object') {
+          (db as any)[key] = { ...(db as any)[key], ...val };
+        }
+      }
     }
 
     // Override settings from dedicated settings collection if present
@@ -101,6 +109,22 @@ async function _connectToMongo() {
           (db as any)[colName] = Array.from(dedupeMap.values());
         }
       } catch (_) { }
+    }
+
+    // Explicit recovery check: if categories or units are empty, ensure default defaults exist
+    if (!db.categories || db.categories.length === 0) {
+      db.categories = [
+        { id: 'cat_kids', name: 'Kids', startingChestNumber: 101, dobStart: '2019-01-01', dobEnd: '2026-12-31', active: true },
+        { id: 'cat_sub_junior', name: 'Sub-Junior', startingChestNumber: 201, dobStart: '2016-01-01', dobEnd: '2018-12-31', active: true },
+        { id: 'cat_junior', name: 'Junior', startingChestNumber: 301, dobStart: '2014-01-01', dobEnd: '2015-12-31', active: true },
+        { id: 'cat_senior', name: 'Senior', startingChestNumber: 401, dobStart: '2010-01-01', dobEnd: '2013-12-31', active: true }
+      ];
+    }
+    if (!db.units || db.units.length === 0) {
+      db.units = [
+        { id: 'unit_ash_shukr', name: 'Ash-Shukr', code: 'SHK', active: true },
+        { id: 'unit_as_sabr', name: 'As-Sabr', code: 'SBR', active: true }
+      ];
     }
 
     // Sanitize broken legacy local uploads from gallery & videoHighlights
