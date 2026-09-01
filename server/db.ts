@@ -127,6 +127,16 @@ async function _connectToMongo() {
       ];
     }
 
+    // Normalize category starting chest numbers (convert legacy 1000/2000/3000/4000 to 101/201/301/401)
+    if (Array.isArray(db.categories)) {
+      db.categories.forEach((cat: any) => {
+        if (cat.id === 'cat_kids' && (!cat.startingChestNumber || cat.startingChestNumber === 1000)) cat.startingChestNumber = 101;
+        if (cat.id === 'cat_sub_junior' && (!cat.startingChestNumber || cat.startingChestNumber === 2000)) cat.startingChestNumber = 201;
+        if (cat.id === 'cat_junior' && (!cat.startingChestNumber || cat.startingChestNumber === 3000)) cat.startingChestNumber = 301;
+        if (cat.id === 'cat_senior' && (!cat.startingChestNumber || cat.startingChestNumber === 4000)) cat.startingChestNumber = 401;
+      });
+    }
+
     // Sanitize broken legacy local uploads from gallery & videoHighlights
     if (Array.isArray(db.gallery)) {
       db.gallery = db.gallery.filter((g: any) => g.imageUrl && !g.imageUrl.startsWith('/data/uploads/'));

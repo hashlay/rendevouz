@@ -3175,9 +3175,15 @@ function generateNextChestNumber(db: any, categoryId: string, userId: string, pa
 
   const category = (db.categories || []).find((c: Category) => c.id === categoryId);
   const catIndex = (db.categories || []).findIndex((c: Category) => c.id === categoryId);
-  const startNum = (category && category.startingChestNumber) 
+  let startNum = (category && category.startingChestNumber) 
     ? Number(category.startingChestNumber) 
     : (catIndex >= 0 ? (catIndex + 1) * 100 + 1 : 101);
+
+  // Safeguard against legacy 1000-based values
+  if (categoryId === 'cat_sub_junior' && startNum === 2000) startNum = 201;
+  if (categoryId === 'cat_kids' && startNum === 1000) startNum = 101;
+  if (categoryId === 'cat_junior' && startNum === 3000) startNum = 301;
+  if (categoryId === 'cat_senior' && startNum === 4000) startNum = 401;
 
   let counter = db.counters.find((c: Counter) => c.categoryId === categoryId);
   if (!counter) {
@@ -3360,7 +3366,11 @@ apiRouter.post('/chest-numbers/regenerate-all', authenticate, requireRole([UserR
 
   // Re-initialize counters per category from starting numbers
   (db.categories || []).forEach((cat: Category, index: number) => {
-    const startNum = cat.startingChestNumber ? Number(cat.startingChestNumber) : (index + 1) * 100 + 1;
+    let startNum = cat.startingChestNumber ? Number(cat.startingChestNumber) : (index + 1) * 100 + 1;
+    if (cat.id === 'cat_sub_junior' && startNum === 2000) startNum = 201;
+    if (cat.id === 'cat_kids' && startNum === 1000) startNum = 101;
+    if (cat.id === 'cat_junior' && startNum === 3000) startNum = 301;
+    if (cat.id === 'cat_senior' && startNum === 4000) startNum = 401;
     db.counters.push({
       id: `counter_${cat.id}`,
       categoryId: cat.id,
