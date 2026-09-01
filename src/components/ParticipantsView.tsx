@@ -52,10 +52,16 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const [editingPart, setEditingPart] = useState<Participant | null>(null);
   const [editName, setEditName] = useState('');
   const [editDob, setEditDob] = useState('');
+  const [editCandidateClass, setEditCandidateClass] = useState('');
   const [editCategoryId, setEditCategoryId] = useState('');
   const [editComps, setEditComps] = useState<string[]>([]);
   const [editGroupComps, setEditGroupComps] = useState<string[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  const criteriaMode = eventSettings?.participantLoginCriteria || 'dob';
+  const classRangeStart = Number(eventSettings?.classRangeStart) || 1;
+  const classRangeEnd = Number(eventSettings?.classRangeEnd) || 12;
+  const availableClasses = Array.from({ length: classRangeEnd - classRangeStart + 1 }, (_, i) => `Class ${classRangeStart + i}`);
 
   // Deletion confirm
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -223,6 +229,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     setEditingPart(p);
     setEditName(p.fullName);
     setEditDob(p.dob || '');
+    setEditCandidateClass(p.candidateClass || '');
     setEditCategoryId(p.selectedCategoryId || '');
 
     // Fetch registered individual & group competitions
@@ -307,6 +314,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         body: JSON.stringify({
           fullName: editName,
           dob: editDob,
+          candidateClass: editCandidateClass,
           selectedCategoryId: editCategoryId,
           selectedCompetitionIds: [...editComps, ...editGroupComps]
         })
@@ -941,10 +949,12 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Date of Birth (DOB)</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Date of Birth (DOB) {criteriaMode === 'dob' ? <span className="text-rose-500">*</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
+                  </label>
                   <input
                     type="date"
-                    required
+                    required={criteriaMode === 'dob'}
                     value={editDob}
                     onChange={(e) => setEditDob(e.target.value)}
                     className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold"
@@ -952,17 +962,34 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Category</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Class / Grade {criteriaMode === 'class' ? <span className="text-rose-500">*</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
+                  </label>
                   <select
-                    value={editCategoryId}
-                    onChange={(e) => setEditCategoryId(e.target.value)}
+                    value={editCandidateClass}
+                    onChange={(e) => setEditCandidateClass(e.target.value)}
+                    required={criteriaMode === 'class'}
                     className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold bg-white cursor-pointer"
                   >
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                    <option value="">Select Class</option>
+                    {availableClasses.map((cls, idx) => (
+                      <option key={idx} value={cls}>{cls}</option>
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Category</label>
+                <select
+                  value={editCategoryId}
+                  onChange={(e) => setEditCategoryId(e.target.value)}
+                  className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold bg-white cursor-pointer"
+                >
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div>

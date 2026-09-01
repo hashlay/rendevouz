@@ -2001,7 +2001,8 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
 
   // Update fields
   if (fullName) existingPart.fullName = toTitleCase(fullName);
-  if (dob) existingPart.dob = dob;
+  if (dob !== undefined) existingPart.dob = dob;
+  if (req.body.candidateClass !== undefined) existingPart.candidateClass = req.body.candidateClass;
   if (educationStatus) existingPart.educationStatus = educationStatus;
   if (selectedCategoryId) existingPart.selectedCategoryId = selectedCategoryId;
   if (gender) existingPart.gender = gender;
