@@ -22,6 +22,16 @@ export const apiRouter = express.Router();
 apiRouter.use(express.json({ limit: '50mb' }));
 apiRouter.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Ensure MongoDB connection and 100% fresh state sync on every API request
+apiRouter.use(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await dbClient.waitForSync();
+  } catch (err) {
+    console.error('Mongo connection middleware error:', err);
+  }
+  next();
+});
+
 // Helper: Format string to Title Case (capitalizing first letter of every word)
 function toTitleCase(str: string): string {
   if (!str) return '';

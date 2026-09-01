@@ -67,47 +67,40 @@ async function _connectToMongo() {
     });
 
     const existingState = await mongoCollection.findOne({ _id: 'global_state' as any });
-    const hasMongoData = existingState && Array.isArray(existingState.participants) && existingState.participants.length > 0;
-
-    // Only populate in-memory db if db is not already initialized from local disk or recent mutations
-    const isDbAlreadyLoaded = db && (
-      (Array.isArray(db.participants) && db.participants.length > 0) ||
-      (Array.isArray(db.competitions) && db.competitions.length > 0)
-    );
-
-    if (hasMongoData && !isDbAlreadyLoaded) {
-      console.log(`Found existing database state in MongoDB. Synchronizing base cache...`);
+    // Always synchronize current cache from MongoDB dedicated collections & settings
+    if (existingState) {
       const { _id, ...restOfState } = existingState;
-      db = restOfState as any;
+      db = { ...db, ...restOfState };
     }
 
-    if (!isDbAlreadyLoaded) {
-      // Override settings from dedicated settings collection if present
-      if (mongoSettingsMap.eventSettings) db.eventSettings = { ...mongoSettingsMap.eventSettings };
-      if (mongoSettingsMap.cmsSettings) db.cmsSettings = { ...db.cmsSettings, ...mongoSettingsMap.cmsSettings };
-      if (mongoSettingsMap.posterTemplateConfig) db.posterTemplateConfig = { ...db.posterTemplateConfig, ...mongoSettingsMap.posterTemplateConfig };
-      if (mongoSettingsMap.certificateTemplateConfig) db.certificateTemplateConfig = { ...db.certificateTemplateConfig, ...mongoSettingsMap.certificateTemplateConfig };
+    // Override settings from dedicated settings collection if present
+    if (mongoSettingsMap.eventSettings) db.eventSettings = { ...db.eventSettings, ...mongoSettingsMap.eventSettings };
+    if (mongoSettingsMap.cmsSettings) db.cmsSettings = { ...db.cmsSettings, ...mongoSettingsMap.cmsSettings };
+    if (mongoSettingsMap.posterTemplateConfig) db.posterTemplateConfig = { ...db.posterTemplateConfig, ...mongoSettingsMap.posterTemplateConfig };
+    if (mongoSettingsMap.certificateTemplateConfig) db.certificateTemplateConfig = { ...db.certificateTemplateConfig, ...mongoSettingsMap.certificateTemplateConfig };
 
-      // Pull each dedicated collection from MongoDB to ensure 100% fresh data
-      const collectionKeys = [
-        'users', 'units', 'categories', 'competitions', 'participants', 'teams',
-        'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments',
-        'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
-      ];
+    // Pull each dedicated collection from MongoDB to ensure 100% fresh real-time data
+    const collectionKeys = [
+      'users', 'units', 'categories', 'competitions', 'participants', 'teams',
+      'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments',
+      'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
+    ];
 
-      for (const colName of collectionKeys) {
-        try {
-          const docs = await mongoDb.collection(colName).find({}).toArray();
-          if (docs && docs.length > 0) {
-            const formatted = docs.map((d: any) => {
-              const docId = d.id || d._id;
+    for (const colName of collectionKeys) {
+      try {
+        const docs = await mongoDb.collection(colName).find({}).toArray();
+        if (docs && docs.length > 0) {
+          const dedupeMap = new Map();
+          docs.forEach((d: any) => {
+            const docId = d.id || d._id;
+            if (docId) {
               const { _id, ...rest } = d;
-              return { id: docId, ...rest };
-            });
-            (db as any)[colName] = formatted;
-          }
-        } catch (_) { }
-      }
+              dedupeMap.set(docId.toString(), { id: docId, ...rest });
+            }
+          });
+          (db as any)[colName] = Array.from(dedupeMap.values());
+        }
+      } catch (_) { }
     }
 
     // Sanitize broken legacy local uploads from gallery & videoHighlights
