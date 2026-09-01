@@ -251,10 +251,10 @@ function ensureDbExists() {
   ];
 
   const initialCategories: Category[] = [
-    { id: 'cat_kids', name: 'Kids', dobStart: '2019-01-01', dobEnd: '2026-12-31', active: true },
-    { id: 'cat_sub_junior', name: 'Sub-Junior', dobStart: '2016-01-01', dobEnd: '2018-12-31', active: true },
-    { id: 'cat_junior', name: 'Junior', dobStart: '2014-01-01', dobEnd: '2015-12-31', active: true },
-    { id: 'cat_senior', name: 'Senior', dobStart: '2010-01-01', dobEnd: '2013-12-31', active: true }
+    { id: 'cat_kids', name: 'Kids', startingChestNumber: 101, dobStart: '2019-01-01', dobEnd: '2026-12-31', active: true },
+    { id: 'cat_sub_junior', name: 'Sub-Junior', startingChestNumber: 201, dobStart: '2016-01-01', dobEnd: '2018-12-31', active: true },
+    { id: 'cat_junior', name: 'Junior', startingChestNumber: 301, dobStart: '2014-01-01', dobEnd: '2015-12-31', active: true },
+    { id: 'cat_senior', name: 'Senior', startingChestNumber: 401, dobStart: '2010-01-01', dobEnd: '2013-12-31', active: true }
   ];
 
   // Default initial competitions array starts empty (0 programs) for new databases
@@ -288,10 +288,10 @@ function ensureDbExists() {
 
   // Chest number counters - one per category, starting at the specified base values
   const initialCounters: Counter[] = [
-    { id: 'counter_kids', categoryId: 'cat_kids', currentValue: 999 },
-    { id: 'counter_sub_junior', categoryId: 'cat_sub_junior', currentValue: 1999 },
-    { id: 'counter_junior', categoryId: 'cat_junior', currentValue: 2999 },
-    { id: 'counter_senior', categoryId: 'cat_senior', currentValue: 3999 }
+    { id: 'counter_kids', categoryId: 'cat_kids', currentValue: 100 },
+    { id: 'counter_sub_junior', categoryId: 'cat_sub_junior', currentValue: 200 },
+    { id: 'counter_junior', categoryId: 'cat_junior', currentValue: 300 },
+    { id: 'counter_senior', categoryId: 'cat_senior', currentValue: 400 }
   ];
 
   db = {

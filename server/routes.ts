@@ -1218,7 +1218,21 @@ apiRouter.put('/categories/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
   if (pointsRank1 !== undefined) db.categories[catIndex].pointsRank1 = Number(pointsRank1);
   if (pointsRank2 !== undefined) db.categories[catIndex].pointsRank2 = Number(pointsRank2);
   if (pointsRank3 !== undefined) db.categories[catIndex].pointsRank3 = Number(pointsRank3);
-  if (startingChestNumber !== undefined) db.categories[catIndex].startingChestNumber = Number(startingChestNumber);
+  if (startingChestNumber !== undefined) {
+    const newStart = Number(startingChestNumber);
+    db.categories[catIndex].startingChestNumber = newStart;
+    if (!db.counters) db.counters = [];
+    let counter = db.counters.find((c: Counter) => c.categoryId === req.params.id);
+    if (counter) {
+      counter.currentValue = newStart - 1;
+    } else {
+      db.counters.push({
+        id: `counter_${req.params.id}`,
+        categoryId: req.params.id,
+        currentValue: newStart - 1
+      });
+    }
+  }
   if (active !== undefined) db.categories[catIndex].active = active;
 
   await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Update Category', 'Category', req.params.id, undefined, oldCat, db.categories[catIndex]);
@@ -3149,27 +3163,27 @@ apiRouter.get('/dashboard-stats/pending-competitions', authenticate, async (req,
 function generateNextChestNumber(db: any, categoryId: string, userId: string, participantId: string, unitId: string): ChestNumber | null {
   if (!db.counters) db.counters = [];
 
+  const category = (db.categories || []).find((c: Category) => c.id === categoryId);
+  const catIndex = (db.categories || []).findIndex((c: Category) => c.id === categoryId);
+  const startNum = (category && category.startingChestNumber) 
+    ? Number(category.startingChestNumber) 
+    : (catIndex >= 0 ? (catIndex + 1) * 100 + 1 : 101);
+
   let counter = db.counters.find((c: Counter) => c.categoryId === categoryId);
   if (!counter) {
-    const category = (db.categories || []).find((c: Category) => c.id === categoryId);
-    const catIndex = (db.categories || []).findIndex((c: Category) => c.id === categoryId);
-    const startNum = (category && category.startingChestNumber) 
-      ? category.startingChestNumber 
-      : (catIndex >= 0 ? (catIndex + 1) * 1000 + 1 : 1001);
-
     counter = { id: `counter_${categoryId}`, categoryId, currentValue: startNum - 1 };
     db.counters.push(counter);
+  } else if (counter.currentValue < startNum - 1) {
+    counter.currentValue = startNum - 1;
   }
 
   // Atomic increment
   counter.currentValue += 1;
   const chestNum = counter.currentValue;
 
-  // Verify no duplicate
-  const existing = db.chestNumbers.find((cn: ChestNumber) => cn.chestNumber === chestNum);
+  // Verify no duplicate among active non-deleted chest numbers
+  const existing = (db.chestNumbers || []).find((cn: ChestNumber) => !cn.deletedAt && cn.chestNumber === chestNum);
   if (existing) {
-    // Skip to next safe number (should never happen with atomic counters)
-    counter.currentValue += 1;
     return generateNextChestNumber(db, categoryId, userId, participantId, unitId);
   }
 
@@ -3334,7 +3348,27 @@ apiRouter.post('/chest-numbers/regenerate-all', authenticate, requireRole([UserR
   db.chestNumbers = [];
   db.counters = [];
 
+  // Re-initialize counters per category from starting numbers
+  (db.categories || []).forEach((cat: Category, index: number) => {
+    const startNum = cat.startingChestNumber ? Number(cat.startingChestNumber) : (index + 1) * 100 + 1;
+    db.counters.push({
+      id: `counter_${cat.id}`,
+      categoryId: cat.id,
+      currentValue: startNum - 1
+    });
+  });
+
   const activeParticipants = db.participants.filter(p => !p.deletedAt);
+
+  // Sort participants by Category order, then Full Name
+  const categoryOrderMap = new Map((db.categories || []).map((cat: any, idx: number) => [cat.id, idx]));
+  activeParticipants.sort((a, b) => {
+    const catIdxA = categoryOrderMap.get(a.selectedCategoryId) ?? 999;
+    const catIdxB = categoryOrderMap.get(b.selectedCategoryId) ?? 999;
+    if (catIdxA !== catIdxB) return catIdxA - catIdxB;
+    return a.fullName.localeCompare(b.fullName);
+  });
+
   const generated: ChestNumber[] = [];
 
   for (const participant of activeParticipants) {
