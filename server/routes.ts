@@ -4917,7 +4917,12 @@ apiRouter.post('/results/:id/publish-certificate', authenticate, requireRole([Us
 
 // Public Event Settings
 apiRouter.get('/public/settings', async (req, res) => {
-  res.json(dbClient.get().eventSettings || {});
+  const db = dbClient.get();
+  res.json({
+    ...(db.eventSettings || {}),
+    ...(db.cmsSettings || {}),
+    dragBlocks: db.dragBlocks || db.eventSettings?.dragBlocks || []
+  });
 });
 
 // Public Units
@@ -5529,7 +5534,11 @@ apiRouter.post('/backup/reset', authenticate, requireRole([UserRole.SUPER_ADMIN]
 // Public Event Settings
 apiRouter.get('/public/settings', async (req, res) => {
   const db = dbClient.get();
-  res.json(db.eventSettings || {});
+  res.json({
+    ...(db.eventSettings || {}),
+    ...(db.cmsSettings || {}),
+    dragBlocks: db.dragBlocks || db.eventSettings?.dragBlocks || []
+  });
 });
 
 // Public Units
