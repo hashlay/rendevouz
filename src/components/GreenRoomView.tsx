@@ -78,12 +78,15 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ competitionId: compId })
       });
+      const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: 'Codes generated successfully!' });
-        fetchData();
+        if (selectedCompetitionId === compId && Array.isArray(data.assignments)) {
+          setCompetitionAssignments(data.assignments);
+        }
+        await fetchData();
       } else {
-        const err = await res.json();
-        setMessage({ type: 'error', text: err.error || 'Failed to generate codes' });
+        setMessage({ type: 'error', text: data.error || 'Failed to generate codes' });
       }
     } catch (e) {
       setMessage({ type: 'error', text: 'Failed to generate codes' });
@@ -100,12 +103,15 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ competitionId: compId })
       });
+      const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: 'Codes regenerated successfully!' });
-        fetchData();
+        if (selectedCompetitionId === compId && Array.isArray(data.assignments)) {
+          setCompetitionAssignments(data.assignments);
+        }
+        await fetchData();
       } else {
-        const err = await res.json();
-        setMessage({ type: 'error', text: err.error || 'Failed to regenerate codes' });
+        setMessage({ type: 'error', text: data.error || 'Failed to regenerate codes' });
       }
     } catch (e) {
       setMessage({ type: 'error', text: 'Failed to regenerate codes' });
@@ -127,8 +133,12 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
       const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: data.message });
-        loadCompetitionAssignments(selectedCompetitionId);
-        fetchData();
+        if (Array.isArray(data.assignments) && data.assignments.length > 0) {
+          setCompetitionAssignments(data.assignments);
+        } else {
+          await loadCompetitionAssignments(selectedCompetitionId);
+        }
+        await fetchData();
       } else {
         setMessage({ type: 'error', text: data.error });
       }
@@ -153,8 +163,12 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
       const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: data.message });
-        loadCompetitionAssignments(selectedCompetitionId);
-        fetchData();
+        if (Array.isArray(data.assignments) && data.assignments.length > 0) {
+          setCompetitionAssignments(data.assignments);
+        } else {
+          await loadCompetitionAssignments(selectedCompetitionId);
+        }
+        await fetchData();
       } else {
         setMessage({ type: 'error', text: data.error });
       }

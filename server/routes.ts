@@ -3873,8 +3873,9 @@ apiRouter.get('/green-room', authenticate, async (req, res) => {
       unitName = db.units.find(u => u.id === p?.unitId)?.name || 'Unknown';
     } else if (a.teamId) {
       const t = db.teams.find(team => team.id === a.teamId);
-      participantName = t?.teamNumber || 'Unknown Team';
-      unitName = db.units.find(u => u.id === t?.unitId)?.name || 'Unknown';
+      const firstMember = (t?.memberIds || []).map(mid => db.participants.find(part => part.id === mid && !part.deletedAt)).find(Boolean);
+      participantName = t?.teamName || (firstMember ? `${firstMember.fullName} & Team` : (t?.teamNumber ? `Team ${t.teamNumber}` : 'Group Team'));
+      unitName = (db.units.find(u => u.id === t?.unitId || u.name === t?.unitId)?.name) || (firstMember ? db.units.find(u => u.id === firstMember.unitId)?.name : '') || 'Unknown';
     }
     return {
       ...a,
@@ -3926,8 +3927,9 @@ apiRouter.get('/green-room/competition/:competitionId', authenticate, async (req
       unitName = db.units.find(u => u.id === p?.unitId)?.name || 'Unknown';
     } else if (a.teamId) {
       const t = db.teams.find(team => team.id === a.teamId);
-      participantName = t?.teamNumber || 'Unknown Team';
-      unitName = db.units.find(u => u.id === t?.unitId)?.name || 'Unknown';
+      const firstMember = (t?.memberIds || []).map(mid => db.participants.find(part => part.id === mid && !part.deletedAt)).find(Boolean);
+      participantName = t?.teamName || (firstMember ? `${firstMember.fullName} & Team` : (t?.teamNumber ? `Team ${t.teamNumber}` : 'Group Team'));
+      unitName = (db.units.find(u => u.id === t?.unitId || u.name === t?.unitId)?.name) || (firstMember ? db.units.find(u => u.id === firstMember.unitId)?.name : '') || 'Unknown';
 
       if (t && t.memberIds && t.memberIds.length > 0) {
         const memberChestNumbers = t.memberIds.map(mid => {
@@ -4036,11 +4038,29 @@ apiRouter.post('/green-room/generate', authenticate, requireRole([UserRole.SUPER
       unitName = unitMap.get(p?.unitId || '')?.name || 'Unknown';
     } else if (a.teamId) {
       const t = teamMap.get(a.teamId);
-      participantName = t?.teamNumber || 'Unknown Team';
-      unitName = unitMap.get(t?.unitId || '')?.name || 'Unknown';
+      const firstMember = (t?.memberIds || []).map(mid => participantMap.get(mid)).find(p => p && !p.deletedAt);
+      participantName = t?.teamName || (firstMember ? `${firstMember.fullName} & Team` : (t?.teamNumber ? `Team ${t.teamNumber}` : 'Group Team'));
+      unitName = (unitMap.get(t?.unitId || '')?.name) || (firstMember ? unitMap.get(firstMember.unitId)?.name : '') || 'Unknown';
     }
+
+    let chestNumber: any = a.chestNumber;
+    if (a.teamId) {
+      const t = teamMap.get(a.teamId);
+      if (t && t.memberIds && t.memberIds.length > 0) {
+        const memberChestNumbers = t.memberIds.map(mid => {
+          const cn = chestNumberMap.get(mid);
+          const p = participantMap.get(mid);
+          return cn ? cn.chestNumber : p?.profilePhoto;
+        }).filter(Boolean);
+        if (memberChestNumbers.length > 0) {
+          chestNumber = memberChestNumbers.join(', ');
+        }
+      }
+    }
+
     return {
       ...a,
+      chestNumber,
       competitionName: competition?.name || 'Unknown',
       categoryName,
       participantName,
@@ -4049,16 +4069,9 @@ apiRouter.post('/green-room/generate', authenticate, requireRole([UserRole.SUPER
   });
 
   await dbClient.logAudit(user.id, user.username, user.role, `Generate Green Room Codes for ${competition.name}`, 'GreenRoom', competitionId);
+  await dbClient.save();
 
   res.json({ message: `Generated ${assignments.length} code assignments`, assignments: enrichedAssignments });
-
-  setImmediate(async () => {
-    try {
-      await dbClient.save();
-    } catch (e) {
-      console.error('Background Green Room Mongo Save Error:', e);
-    }
-  });
 });
 
 // Regenerate codes (Admin only, with confirmation)
@@ -4148,11 +4161,29 @@ apiRouter.post('/green-room/regenerate', authenticate, requireRole([UserRole.SUP
       unitName = unitMap.get(p?.unitId || '')?.name || 'Unknown';
     } else if (a.teamId) {
       const t = teamMap.get(a.teamId);
-      participantName = t?.teamNumber || 'Unknown Team';
-      unitName = unitMap.get(t?.unitId || '')?.name || 'Unknown';
+      const firstMember = (t?.memberIds || []).map(mid => participantMap.get(mid)).find(p => p && !p.deletedAt);
+      participantName = t?.teamName || (firstMember ? `${firstMember.fullName} & Team` : (t?.teamNumber ? `Team ${t.teamNumber}` : 'Group Team'));
+      unitName = (unitMap.get(t?.unitId || '')?.name) || (firstMember ? unitMap.get(firstMember.unitId)?.name : '') || 'Unknown';
     }
+
+    let chestNumber: any = a.chestNumber;
+    if (a.teamId) {
+      const t = teamMap.get(a.teamId);
+      if (t && t.memberIds && t.memberIds.length > 0) {
+        const memberChestNumbers = t.memberIds.map(mid => {
+          const cn = chestNumberMap.get(mid);
+          const p = participantMap.get(mid);
+          return cn ? cn.chestNumber : p?.profilePhoto;
+        }).filter(Boolean);
+        if (memberChestNumbers.length > 0) {
+          chestNumber = memberChestNumbers.join(', ');
+        }
+      }
+    }
+
     return {
       ...a,
+      chestNumber,
       competitionName: competition?.name || 'Unknown',
       categoryName,
       participantName,
