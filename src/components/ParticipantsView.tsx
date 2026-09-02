@@ -232,7 +232,10 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     setEditingPart(p);
     setEditName(p.fullName);
     setEditDob(p.dob || '');
-    setEditCandidateClass(p.candidateClass || '');
+    const initialClass = p.candidateClass
+      ? (p.candidateClass.startsWith('Class ') ? p.candidateClass : (availableClasses.find(c => c === `Class ${p.candidateClass}`) || p.candidateClass))
+      : '';
+    setEditCandidateClass(initialClass);
     setEditCategoryId(p.selectedCategoryId || '');
 
     // Fetch registered individual & group competitions
@@ -356,7 +359,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       setDeletingId(null);
       setDeletionReason('');
       fetchLists();
-      alert('Participant record soft-deleted successfully');
+      alert('Participant record deleted permanently');
     } catch (err: any) {
       alert(err.message);
     }
@@ -966,7 +969,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
-                    Class / Grade {criteriaMode === 'class' ? <span className="text-rose-500">*</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
+                    Class / Grade {criteriaMode === 'class' ? <span className="text-emerald-600 font-bold">(Auto-Selected)</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
                   </label>
                   <select
                     value={editCandidateClass}
@@ -975,6 +978,9 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                     className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold bg-white cursor-pointer"
                   >
                     <option value="">Select Class</option>
+                    {editCandidateClass && !availableClasses.includes(editCandidateClass) && (
+                      <option value={editCandidateClass}>{editCandidateClass}</option>
+                    )}
                     {availableClasses.map((cls, idx) => (
                       <option key={idx} value={cls}>{cls}</option>
                     ))}

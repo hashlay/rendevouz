@@ -1945,14 +1945,28 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
 
 
 
-    // Update Registration record
-    const reg = (db as any).registrations?.find((r: any) => r.participantId === partId);
-    if (reg) {
-      reg.categoryId = finalCat;
-      reg.selectedIndividualCompetitionIds = individualCompetitions.map(c => c.id);
-      reg.selectedGroupCompetitionIds = groupCompetitions.map(c => c.id);
-      reg.updatedAt = new Date().toISOString();
+    // Update or create Registration record
+    if (!db.hasOwnProperty('registrations')) {
+      (db as any).registrations = [];
     }
+    let reg = (db as any).registrations.find((r: any) => r.participantId === partId);
+    if (!reg) {
+      reg = {
+        id: `reg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        participantId: partId,
+        categoryId: finalCat,
+        selectedIndividualCompetitionIds: [],
+        selectedGroupCompetitionIds: [],
+        registrationStatus: 'confirmed',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      (db as any).registrations.push(reg);
+    }
+    reg.categoryId = finalCat;
+    reg.selectedIndividualCompetitionIds = individualCompetitions.map(c => c.id);
+    reg.selectedGroupCompetitionIds = groupCompetitions.map(c => c.id);
+    reg.updatedAt = new Date().toISOString();
 
     // Sync group team memberships in db.teams
     const groupCompIds = groupCompetitions.map(c => c.id);
@@ -2026,7 +2040,7 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
   res.json({ message: 'Participant updated successfully', participant: existingPart });
 });
 
-// Soft Delete Participant (With Automatic Cascading Cleanup of Results, Teams, and Chest Numbers)
+// Permanent Delete Participant (With Complete Cascading Cleanup Across Database)
 apiRouter.post('/participants/:id/delete', authenticate, async (req, res) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
@@ -2039,7 +2053,7 @@ apiRouter.post('/participants/:id/delete', authenticate, async (req, res) => {
   const partId = req.params.id;
   const { reason } = req.body;
 
-  const partIndex = db.participants.findIndex(p => p.id === partId && !p.deletedAt);
+  const partIndex = db.participants.findIndex(p => p.id === partId);
   if (partIndex === -1) {
     return res.status(404).json({ error: 'Participant not found.' });
   }
@@ -2051,48 +2065,33 @@ apiRouter.post('/participants/:id/delete', authenticate, async (req, res) => {
     return res.status(403).json({ error: 'Access denied. You can only delete participants from your own unit.' });
   }
 
-  const now = new Date().toISOString();
+  // 1. Permanent purge from db.participants
+  db.participants.splice(partIndex, 1);
 
-  // Cascade soft delete associated results
-  (db.results || []).forEach(r => {
-    if (r.participantId === partId) {
-      r.deletedAt = now;
-    }
-  });
+  // 2. Permanent purge associated results
+  db.results = (db.results || []).filter(r => r.participantId !== partId);
 
-  // Cascade cleanup from group teams
+  // 3. Permanent cleanup from group teams
   (db.teams || []).forEach(t => {
     if (Array.isArray(t.memberIds) && t.memberIds.includes(partId)) {
       t.memberIds = t.memberIds.filter((mId: string) => mId !== partId);
-      if (t.memberIds.length === 0) {
-        t.deletedAt = now;
-      }
     }
   });
+  db.teams = (db.teams || []).filter(t => !t.memberIds || t.memberIds.length > 0);
 
-  // Cascade soft delete chest numbers
-  (db.chestNumbers || []).forEach(cn => {
-    if (cn.participantId === partId || cn.entityId === partId) {
-      (cn as any).deletedAt = now;
-    }
-  });
+  // 4. Permanent purge chest numbers
+  db.chestNumbers = (db.chestNumbers || []).filter(cn => cn.participantId !== partId && cn.entityId !== partId);
 
-  // Cascade soft delete registrations
-  (db.registrations || []).forEach(reg => {
-    if (reg.participantId === partId) {
-      (reg as any).deletedAt = now;
-    }
-  });
+  // 5. Permanent purge registrations
+  db.registrations = ((db as any).registrations || []).filter((reg: any) => reg.participantId !== partId);
 
-  // Soft delete participant
-  part.deletedAt = now;
-  part.deletedBy = user.username;
-  part.deletionReason = reason || 'Not specified';
+  // 6. Permanent purge green room assignments
+  db.greenRoomAssignments = (db.greenRoomAssignments || []).filter(gr => (gr as any).participantId !== partId);
 
-  await dbClient.logAudit(user.id, user.username, user.role, 'Soft Delete Participant', 'Participant', partId, part.unitId, undefined, { deletionReason: part.deletionReason });
+  await dbClient.logAudit(user.id, user.username, user.role, 'Delete Participant', 'Participant', partId, part.unitId, undefined, { deletionReason: reason || 'Permanent deletion' });
   await dbClient.save();
 
-  res.json({ message: 'Participant and associated results & team memberships cleared successfully' });
+  res.json({ message: 'Participant and all associated records permanently deleted successfully' });
 });
 
 
