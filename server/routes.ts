@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { dbClient, getCollection } from './db.js';
+import { dbClient, getCollection, getDb } from './db.js';
 import { CalculationService } from './calculations.js';
 import {
   UserRole, User, Session, LoginAudit, AuditLog,
@@ -2099,6 +2099,23 @@ const hardDeleteParticipant = async (req: Request, res: Response) => {
 
   // 6. Permanent purge green room assignments
   db.greenRoomAssignments = (db.greenRoomAssignments || []).filter(gr => (gr as any).participantId !== partId);
+
+  // 7. Direct MongoDB Atlas permanent deletion of participant & all related documents
+  const mongoDb = getDb();
+  if (mongoDb) {
+    try {
+      await Promise.all([
+        mongoDb.collection('participants').deleteMany({ $or: [{ id: partId }, { _id: partId as any }] }),
+        mongoDb.collection('results').deleteMany({ participantId: partId }),
+        mongoDb.collection('registrations').deleteMany({ participantId: partId }),
+        mongoDb.collection('chestNumbers').deleteMany({ $or: [{ participantId: partId }, { entityId: partId }] }),
+        mongoDb.collection('greenRoomAssignments').deleteMany({ participantId: partId }),
+        mongoDb.collection('app_state').updateOne({ _id: 'global_state' as any }, { $pull: { participants: { id: partId } } } as any)
+      ]);
+    } catch (mongoErr) {
+      console.error('Direct MongoDB permanent delete error:', mongoErr);
+    }
+  }
 
   await dbClient.logAudit(user.id, user.username, user.role, 'Delete Participant', 'Participant', partId, part.unitId, undefined, { deletionReason: reason || 'Permanent deletion' });
   await dbClient.save();

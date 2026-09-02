@@ -407,6 +407,18 @@ async function _syncMongoNow() {
         const items = (db as any)[colName];
         if (Array.isArray(items)) {
           const col = mongoDb.collection(colName);
+          const activeIds = items.map((i: any) => i.id || i._id).filter(Boolean);
+          
+          // Delete any document from MongoDB Atlas that was removed from memory
+          if (activeIds.length > 0) {
+            await col.deleteMany({
+              $and: [
+                { id: { $nin: activeIds } },
+                { _id: { $nin: activeIds } }
+              ]
+            }).catch(() => {});
+          }
+
           if (items.length > 0) {
             const ops = items.map((item: any) => {
               const docId = item.id || item._id;
