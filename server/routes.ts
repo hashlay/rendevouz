@@ -2800,26 +2800,7 @@ apiRouter.post('/results/announce', authenticate, requireRole([UserRole.SUPER_AD
 });
 
 // Update Participant Chest Number (Sector Team & Super Admin only)
-apiRouter.put('/participants/:id/chest', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
-  const db = dbClient.get();
-  const user = (req as any).user as User;
-  const partId = req.params.id;
-  const { chestNumber } = req.body;
-
-  const part = db.participants.find(p => p.id === partId && !p.deletedAt);
-  if (!part) {
-    return res.status(404).json({ error: 'Participant not found.' });
-  }
-
-  const oldChest = part.profilePhoto;
-  part.profilePhoto = chestNumber || part.profilePhoto;
-  part.updatedAt = new Date().toISOString();
-
-  await dbClient.logAudit(user.id, user.username, user.role, 'Update Chest Number', 'Participant', partId, part.unitId, { chestNumber: oldChest }, { chestNumber: part.profilePhoto });
-  await dbClient.save();
-
-  res.json({ message: 'Chest number updated successfully', participant: part });
-});
+apiRouter.put('/participants/:id/chest', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), (req, res) => handleChestNumberUpdate(req, res));
 
 
 // 11. PUBLIC STANDINGS & INDIVIDUAL SCOREBOARDS (ACCESSIBLE TO ALL LOGGED IN USERS)
@@ -3496,43 +3477,152 @@ apiRouter.post('/chest-numbers/regenerate-all', authenticate, requireRole([UserR
   res.json({ message: `Successfully regenerated ${generated.length} chest numbers according to CMS Category starting settings.`, count: generated.length, chestNumbers: generated });
 });
 
-// Edit chest number (Admin only)
-apiRouter.put('/chest-numbers/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+// Shared helper for Updating/Swapping Chest Numbers
+const handleChestNumberUpdate = async (req: Request, res: Response) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
-  const chestId = req.params.id;
+  const targetId = req.params.id;
+  const newChestNum = Number(req.body.chestNumber);
 
-  const cn = (db.chestNumbers || []).find((c: ChestNumber) => c.id === chestId && !c.deletedAt);
-  if (!cn) {
-    return res.status(404).json({ error: 'Chest number not found.' });
+  if (!newChestNum || Number.isNaN(newChestNum) || newChestNum <= 0) {
+    return res.status(400).json({ error: 'Valid positive numeric chest number is required.' });
   }
 
-  const { chestNumber: newNumber } = req.body;
-  if (!newNumber || typeof newNumber !== 'number') {
-    return res.status(400).json({ error: 'Valid chest number is required.' });
+  // Find target chest record & participant
+  const targetChest = (db.chestNumbers || []).find((cn: ChestNumber) =>
+    !cn.deletedAt && (cn.id === targetId || cn.participantId === targetId || cn.entityId === targetId)
+  );
+
+  const partId = targetChest ? (targetChest.participantId || targetChest.entityId) : targetId;
+  const partA = db.participants.find(p => (p.id === partId || p.profilePhoto === targetId || p.profilePhoto === String(targetId)) && !p.deletedAt);
+
+  if (!partA) {
+    return res.status(404).json({ error: 'Participant not found.' });
   }
 
-  // Check duplicate
-  const duplicate = (db.chestNumbers || []).find((c: ChestNumber) => c.chestNumber === newNumber && c.id !== chestId && !c.deletedAt);
-  if (duplicate) {
-    return res.status(400).json({ error: `Chest number ${newNumber} is already assigned.` });
+  const oldChestNumA = targetChest ? targetChest.chestNumber : (Number(partA.profilePhoto) || 0);
+
+  if (oldChestNumA === newChestNum) {
+    return res.json({ message: 'Chest number unchanged.', participant: partA });
   }
 
-  const oldCn = { ...cn };
-  cn.chestNumber = newNumber;
+  // Check if newChestNum is already assigned to another active participant (Participant B)
+  const otherChest = (db.chestNumbers || []).find((cn: ChestNumber) =>
+    !cn.deletedAt &&
+    cn.chestNumber === newChestNum &&
+    cn.participantId !== partA.id &&
+    cn.entityId !== partA.id
+  );
 
-  // Sync to participant profilePhoto
-  const participant = db.participants.find(p => p.id === cn.participantId);
-  if (participant) {
-    participant.profilePhoto = newNumber.toString();
-    participant.updatedAt = new Date().toISOString();
+  const partB = otherChest
+    ? db.participants.find(p => p.id === (otherChest.participantId || otherChest.entityId) && !p.deletedAt)
+    : db.participants.find(p => p.id !== partA.id && !p.deletedAt && (p.profilePhoto === String(newChestNum) || (p.profilePhoto as any) === newChestNum));
+
+  let isSwapped = false;
+
+  // Swapping logic if Participant B exists
+  if (partB && oldChestNumA > 0) {
+    isSwapped = true;
+    partB.profilePhoto = String(oldChestNumA);
+    partB.updatedAt = new Date().toISOString();
+
+    if (otherChest) {
+      otherChest.chestNumber = oldChestNumA;
+      (otherChest as any).updatedAt = new Date().toISOString();
+    }
   }
 
-  await dbClient.logAudit(user.id, user.username, user.role, 'Edit Chest Number', 'ChestNumber', chestId, undefined, oldCn, cn);
+  // Update Participant A
+  partA.profilePhoto = String(newChestNum);
+  partA.updatedAt = new Date().toISOString();
+
+  if (targetChest) {
+    targetChest.chestNumber = newChestNum;
+    (targetChest as any).updatedAt = new Date().toISOString();
+  } else {
+    const newCn: ChestNumber = {
+      id: `chest_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      chestNumber: newChestNum,
+      categoryId: partA.selectedCategoryId,
+      unitId: partA.unitId,
+      participantId: partA.id,
+      entityId: partA.id,
+      generatedBy: user.id,
+      generatedAt: new Date().toISOString()
+    };
+    if (!db.chestNumbers) db.chestNumbers = [];
+    db.chestNumbers.push(newCn);
+  }
+
+  // Direct instant write-through to MongoDB Atlas for 100% permanent persistence
+  const mongoDb = getDb();
+  if (mongoDb) {
+    try {
+      const updates: Promise<any>[] = [
+        mongoDb.collection('participants').replaceOne(
+          { $or: [{ id: partA.id }, { _id: partA.id as any }] },
+          { id: partA.id, ...partA },
+          { upsert: true }
+        ),
+        targetChest ? mongoDb.collection('chestNumbers').replaceOne(
+          { $or: [{ id: targetChest.id }, { _id: targetChest.id as any }] },
+          { id: targetChest.id, ...targetChest },
+          { upsert: true }
+        ) : Promise.resolve(),
+        mongoDb.collection('app_state').replaceOne(
+          { _id: 'global_state' as any },
+          { ...db },
+          { upsert: true }
+        )
+      ];
+
+      if (partB) {
+        updates.push(
+          mongoDb.collection('participants').replaceOne(
+            { $or: [{ id: partB.id }, { _id: partB.id as any }] },
+            { id: partB.id, ...partB },
+            { upsert: true }
+          )
+        );
+      }
+
+      if (otherChest) {
+        updates.push(
+          mongoDb.collection('chestNumbers').replaceOne(
+            { $or: [{ id: otherChest.id }, { _id: otherChest.id as any }] },
+            { id: otherChest.id, ...otherChest },
+            { upsert: true }
+          )
+        );
+      }
+
+      await Promise.all(updates);
+    } catch (mongoErr) {
+      console.error('Direct MongoDB chest swap update error:', mongoErr);
+    }
+  }
+
+  await dbClient.logAudit(
+    user.id, user.username, user.role,
+    isSwapped ? `Swap Chest Number ${oldChestNumA} <-> ${newChestNum}` : `Update Chest Number to ${newChestNum}`,
+    'ChestNumber', partA.id, partA.unitId,
+    { oldChest: oldChestNumA },
+    { newChest: newChestNum, swappedParticipant: partB?.fullName }
+  );
+
   await dbClient.save();
 
-  res.json({ message: 'Chest number updated successfully', chestNumber: cn });
-});
+  res.json({
+    message: isSwapped
+      ? `Chest numbers swapped! ${partA.fullName} is now #${newChestNum}, and ${partB?.fullName} is now #${oldChestNumA}.`
+      : `Chest number updated to #${newChestNum} for ${partA.fullName}.`,
+    participant: partA,
+    swappedParticipant: partB
+  });
+};
+
+// Edit chest number (Admin / Sector Team)
+apiRouter.put('/chest-numbers/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), (req, res) => handleChestNumberUpdate(req, res));
 
 // Export chest numbers as CSV
 apiRouter.get('/chest-numbers/export', authenticate, async (req, res) => {
