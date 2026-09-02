@@ -435,7 +435,6 @@ function _scheduleMongSync() {
 
 export async function saveDb() {
   if (!db) return;
-  bumpStateVersion();
   // Truncate logs in memory (fast, no I/O)
   if (db.auditLogs && db.auditLogs.length > 500) {
     db.auditLogs = db.auditLogs.slice(-500);
@@ -483,14 +482,17 @@ let lastVersionCheckTime = 0;
 
 export async function bumpStateVersion() {
   localStateVersion = Date.now();
-  const mongoDb = getDb();
-  if (mongoDb) {
-    mongoDb.collection('settings').replaceOne(
-      { _id: 'state_version' as any },
-      { _id: 'state_version', version: localStateVersion, updatedAt: new Date().toISOString() },
-      { upsert: true }
-    ).catch(() => {});
-  }
+  if (!mongoClient || !isMongoConnected) return;
+  try {
+    const mongoDb = getDb();
+    if (mongoDb) {
+      await mongoDb.collection('settings').updateOne(
+        { _id: 'state_version' as any },
+        { $set: { _id: 'state_version', version: localStateVersion } },
+        { upsert: true }
+      ).catch(() => {});
+    }
+  } catch (_) {}
 }
 
 async function syncStateFromMongo(force: boolean = false) {
@@ -500,19 +502,19 @@ async function syncStateFromMongo(force: boolean = false) {
   lastVersionCheckTime = now;
 
   try {
-    const mongoUriStr = process.env.MONGO_URI || process.env.MONGODB_URI || '';
-    const dbPath = mongoUriStr.includes('/') ? mongoUriStr.split('/').pop()?.split('?')[0] : null;
-    const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
-    const mongoDb = mongoClient.db(dbName);
+    const mongoDb = getDb();
+    if (!mongoDb) return;
 
-    // Only skip fetching if db has already been loaded with data
-    const isDbLoaded = db && Array.isArray(db.users) && db.users.length > 0;
-    if (!force && localStateVersion > 0 && isDbLoaded) {
-      const versionDoc = await mongoDb.collection('settings').findOne({ _id: 'state_version' as any }).catch(() => null);
-      if (versionDoc && versionDoc.version && versionDoc.version === localStateVersion) {
-        return;
-      }
+    // Check remote state_version first (1 micro-query, ~1ms!)
+    const versionDoc = await mongoDb.collection('settings').findOne({ _id: 'state_version' as any }).catch(() => null);
+    const remoteVersion = versionDoc ? (versionDoc.version || 0) : 0;
+
+    // If local instance is already up to date with MongoDB Atlas, skip fetching all 17 collections!
+    if (!force && localStateVersion > 0 && remoteVersion <= localStateVersion) {
+      return;
     }
+
+    localStateVersion = remoteVersion || Date.now();
 
     const collectionKeys = [
       'users', 'units', 'categories', 'competitions', 'participants', 'teams',
@@ -545,7 +547,6 @@ async function syncStateFromMongo(force: boolean = false) {
         if (doc._id === 'cmsSettings') db.cmsSettings = { ...rest };
         if (doc._id === 'posterTemplateConfig') db.posterTemplateConfig = { ...rest };
         if (doc._id === 'certificateTemplateConfig') db.certificateTemplateConfig = { ...rest };
-        if (doc._id === 'state_version' && doc.version) localStateVersion = doc.version;
       }
     });
 
@@ -569,17 +570,13 @@ async function syncStateFromMongo(force: boolean = false) {
 
 export const dbClient = {
   waitForSync: async () => {
-    ensureDbExists();
-    try {
-      await connectToMongo();
-      await syncStateFromMongo(false);
-    } catch (e) {
-      console.error("waitForSync error:", e);
-    }
+    await connectToMongo();
+    await syncStateFromMongo(false);
   },
 
   forceSync: async () => {
     await _syncMongoNow();
+    await bumpStateVersion();
   },
 
   get: () => {
@@ -589,6 +586,7 @@ export const dbClient = {
 
   save: async () => {
     await saveDb();
+    await bumpStateVersion();
   },
 
   // Audit helper — appends log to memory only (caller must call save() after)
