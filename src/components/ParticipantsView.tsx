@@ -4,7 +4,6 @@ import {
   RefreshCw, CheckCircle, Award, Compass, Sparkles, X, ChevronRight, ListCollapse, Hash, Printer 
 } from 'lucide-react';
 import { User, UserRole, Category, Unit, Participant, Competition, EducationStatus } from '../types';
-import { swrFetch } from '../utils/swrFetch';
 
 interface ParticipantsViewProps {
   user: User;
@@ -133,13 +132,15 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     try {
       const pUrl = `/api/participants?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}`;
       
+      const safeFetch = (url: string, headers?: any) => fetch(url, { headers }).then(r => r.ok ? r.json() : []).catch(() => []);
+
       const [pData, cData, uData, compData, resData, tData] = await Promise.all([
-        swrFetch<any[]>(pUrl, { headers: { 'Authorization': `Bearer ${token}` } }),
-        swrFetch<any[]>('/api/categories'),
-        swrFetch<any[]>('/api/units'),
-        swrFetch<any[]>('/api/competitions'),
-        swrFetch<any[]>('/api/results', { headers: { 'Authorization': `Bearer ${token}` } }),
-        swrFetch<any[]>('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } })
+        safeFetch(pUrl, { 'Authorization': `Bearer ${token}` }),
+        safeFetch('/api/categories'),
+        safeFetch('/api/units'),
+        safeFetch('/api/competitions'),
+        safeFetch('/api/results', { 'Authorization': `Bearer ${token}` }),
+        safeFetch('/api/teams', { 'Authorization': `Bearer ${token}` })
       ]);
 
       setParticipants(pData);
@@ -166,11 +167,13 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     setProfileLoading(true);
 
     try {
+      const safeFetch = (url: string, headers?: any) => fetch(url, { headers }).then(r => r.ok ? r.json() : []).catch(() => []);
+
       const [sbData, resultsData, teamsData, regsData] = await Promise.all([
-        swrFetch<any[]>(`/api/scoreboard?categoryId=${p.selectedCategoryId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        swrFetch<any[]>('/api/results', { headers: { 'Authorization': `Bearer ${token}` } }),
-        swrFetch<any[]>('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } }),
-        swrFetch<any[]>('/api/registrations', { headers: { 'Authorization': `Bearer ${token}` } })
+        safeFetch(`/api/scoreboard?categoryId=${p.selectedCategoryId}`, { 'Authorization': `Bearer ${token}` }),
+        safeFetch('/api/results', { 'Authorization': `Bearer ${token}` }),
+        safeFetch('/api/teams', { 'Authorization': `Bearer ${token}` }),
+        safeFetch('/api/registrations', { 'Authorization': `Bearer ${token}` })
       ]);
 
       const profile = sbData.find((entry: any) => entry.participantId === p.id);
