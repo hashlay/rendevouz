@@ -2756,14 +2756,18 @@ apiRouter.post('/results/:id/delete', authenticate, requireRole([UserRole.SUPER_
 
 // Read Results for specific competition
 apiRouter.get('/results', authenticate, async (req, res) => {
+  await dbClient.waitForSync();
   const db = dbClient.get();
-  let results = db.results.filter(r => !r.deletedAt);
+  let results = (db.results || []).filter(r => !r.deletedAt);
 
-  if (req.query.competitionId) {
-    results = results.filter(r => r.competitionId === req.query.competitionId);
+  const compId = req.query.competitionId ? String(req.query.competitionId) : undefined;
+  const catId = req.query.categoryId ? String(req.query.categoryId) : undefined;
+
+  if (compId) {
+    results = results.filter(r => r.competitionId === compId);
   }
-  if (req.query.categoryId) {
-    results = results.filter(r => r.categoryId === req.query.categoryId);
+  if (catId) {
+    results = results.filter(r => r.categoryId === catId);
   }
   if (req.query.stageType) {
     const stageType = String(req.query.stageType);
@@ -2771,6 +2775,65 @@ apiRouter.get('/results', authenticate, async (req, res) => {
       const comp = db.competitions.find(c => c.id === r.competitionId);
       return comp?.stageType === stageType;
     });
+  }
+
+  // Two-way sync: If querying for a specific competition, also check Judgment Sheet scores to bridge any unpopulated results
+  if (compId) {
+    const sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === compId && !s.deletedAt);
+    if (sheet) {
+      const sheetScores = (db.judgeScores || []).filter((s: JudgeScore) => s.judgmentSheetId === sheet.id);
+      for (const score of sheetScores) {
+        const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) => a.id === score.greenRoomAssignmentId);
+        if (!gr) continue;
+
+        const pId = gr.participantId;
+        const tId = gr.teamId;
+        if (!pId && !tId) continue;
+
+        const existingRes = results.find(r => (pId && r.participantId === pId) || (tId && r.teamId === tId));
+
+        const j1 = score.judgeScores?.find(j => j.judgeNumber === 1);
+        const j2 = score.judgeScores?.find(j => j.judgeNumber === 2);
+        const j1Mark = j1?.mark || 0;
+        const j2Mark = j2?.mark || 0;
+        const activeCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
+        const calculatedAvg = score.averageMark !== undefined ? score.averageMark : Math.round(((j1Mark + j2Mark) / activeCount) * 100) / 100;
+
+        let resStatus: ResultStatus = ResultStatus.PARTICIPATED;
+        if (score.status === JudgeScoreStatus.ABSENT || score.status === 'absent') resStatus = ResultStatus.ABSENT;
+        if (score.status === JudgeScoreStatus.DISQUALIFIED || score.status === 'disqualified') resStatus = ResultStatus.DISQUALIFIED;
+
+        if (existingRes) {
+          // Overlay missing or outdated evaluation fields from Judgment Sheet
+          if (existingRes.judge1Mark === undefined || (j1Mark > 0 && existingRes.judge1Mark === 0)) existingRes.judge1Mark = j1Mark;
+          if (existingRes.judge2Mark === undefined || (j2Mark > 0 && existingRes.judge2Mark === 0)) existingRes.judge2Mark = j2Mark;
+          if (existingRes.totalMark === undefined || (score.totalMark > 0 && existingRes.totalMark === 0)) existingRes.totalMark = score.totalMark || (j1Mark + j2Mark);
+          if (existingRes.averageMark === undefined || (calculatedAvg > 0 && existingRes.averageMark === 0)) existingRes.averageMark = calculatedAvg;
+          if (!existingRes.manualRankOverride && score.rank) existingRes.rank = score.rank;
+          if (score.status) existingRes.status = resStatus;
+        } else if (score.judgeScores && (score.judgeScores.length > 0 || score.status !== JudgeScoreStatus.PARTICIPATED)) {
+          // Synthesize result record from Judgment Sheet score if not explicitly in db.results array yet
+          const virtualRes: any = {
+            id: `v_res_${score.id}`,
+            categoryId: sheet.categoryId,
+            competitionId: compId,
+            participantId: pId,
+            teamId: tId,
+            judge1Mark: j1Mark,
+            judge2Mark: j2Mark,
+            totalMark: score.totalMark || (j1Mark + j2Mark),
+            averageMark: calculatedAvg,
+            rank: score.rank,
+            status: resStatus,
+            remarks: score.remarks,
+            publishedStatus: sheet.publishedToResults || false,
+            createdAt: score.enteredAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          results.push(virtualRes);
+        }
+      }
+    }
   }
 
   const enrichedResults = results.map(r => {
@@ -4574,6 +4637,60 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
   // Clear ranks for non-participated
   allScores.filter(s => s.status !== JudgeScoreStatus.PARTICIPATED).forEach(s => { s.rank = undefined; });
 
+  // Two-way sync: Auto-sync Judgment Sheet marks directly into db.results entries
+  for (const score of allScores) {
+    const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) => a.id === score.greenRoomAssignmentId);
+    if (!gr) continue;
+
+    const j1 = score.judgeScores.find(j => j.judgeNumber === 1);
+    const j2 = score.judgeScores.find(j => j.judgeNumber === 2);
+    const j1Mark = j1?.mark || 0;
+    const j2Mark = j2?.mark || 0;
+
+    let resultStatus: ResultStatus = ResultStatus.PARTICIPATED;
+    if (score.status === JudgeScoreStatus.ABSENT || score.status === 'absent') resultStatus = ResultStatus.ABSENT;
+    if (score.status === JudgeScoreStatus.DISQUALIFIED || score.status === 'disqualified') resultStatus = ResultStatus.DISQUALIFIED;
+
+    const existingResult = (db.results || []).find(r =>
+      r.competitionId === sheet.competitionId &&
+      !r.deletedAt &&
+      ((gr.participantId && r.participantId === gr.participantId) || (gr.teamId && r.teamId === gr.teamId))
+    );
+
+    if (existingResult) {
+      existingResult.judge1Mark = j1Mark;
+      existingResult.judge2Mark = j2Mark;
+      existingResult.totalMark = score.totalMark;
+      existingResult.averageMark = score.averageMark;
+      if (!existingResult.manualRankOverride) {
+        existingResult.rank = score.rank;
+      }
+      existingResult.status = resultStatus;
+      existingResult.remarks = score.remarks;
+      existingResult.updatedAt = new Date().toISOString();
+    } else if (score.judgeScores.length > 0 || score.status !== JudgeScoreStatus.PARTICIPATED) {
+      if (!db.results) db.results = [];
+      db.results.push({
+        id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        categoryId: sheet.categoryId,
+        competitionId: sheet.competitionId,
+        participantId: gr.participantId,
+        teamId: gr.teamId,
+        judge1Mark: j1Mark,
+        judge2Mark: j2Mark,
+        totalMark: score.totalMark,
+        averageMark: score.averageMark,
+        rank: score.rank,
+        status: resultStatus,
+        remarks: score.remarks,
+        publishedStatus: sheet.publishedToResults || false,
+        createdBy: user.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+  }
+
   await dbClient.logAudit(user.id, user.username, user.role, 'Update Judgment Scores', 'JudgmentSheet', sheetId);
 
   res.json({ message: 'Scores updated successfully' });
@@ -4593,6 +4710,19 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
         if (ops.length > 0) {
           await mongoDb.collection('judgeScores').bulkWrite(ops, { ordered: false }).catch(() => {});
         }
+
+        const compResults = (db.results || []).filter((r: Result) => r.competitionId === sheet.competitionId);
+        const resOps = compResults.map((r: Result) => ({
+          updateOne: {
+            filter: { $or: [{ id: r.id }, { _id: r.id as any }] },
+            update: { $set: { id: r.id, ...r } },
+            upsert: true
+          }
+        }));
+        if (resOps.length > 0) {
+          await mongoDb.collection('results').bulkWrite(resOps, { ordered: false }).catch(() => {});
+        }
+
         await mongoDb.collection('judgmentSheets').replaceOne(
           { $or: [{ id: sheet.id }, { _id: sheet.id as any }] },
           { id: sheet.id, ...sheet },
