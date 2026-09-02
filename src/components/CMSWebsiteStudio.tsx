@@ -109,9 +109,14 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           { id: '5', title: 'Photo Hub (Drive & QR)', type: 'smile', enabled: true, order: 5 },
           { id: '6', title: 'Media Gallery (Photo Uploads)', type: 'gallery', enabled: true, order: 6 },
           { id: '7', title: 'Live Broadcast Streams', type: 'live_stages', enabled: true, order: 7 },
-          { id: '8', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: true, order: 8 }
+          { id: '8', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: true, order: 8 },
+          { id: '9', title: 'Winner Posters Page', type: 'posters', enabled: true, order: 9 }
         ];
-        setDragBlocks(data.dragBlocks && data.dragBlocks.length > 0 ? data.dragBlocks : defaultBlocks);
+        let fetchedBlocks = data.dragBlocks && data.dragBlocks.length > 0 ? data.dragBlocks : defaultBlocks;
+        if (!fetchedBlocks.some((b: any) => b.type === 'posters')) {
+          fetchedBlocks = [...fetchedBlocks, { id: 'posters_block', title: 'Winner Posters Page', type: 'posters', enabled: true, order: fetchedBlocks.length + 1 }];
+        }
+        setDragBlocks(fetchedBlocks);
         setHeroMedia(data.heroMedia || []);
         const mergedSettings = data.cmsSettings || {};
         const DEFAULT_CMS_SETTINGS: any = {

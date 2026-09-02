@@ -893,7 +893,8 @@ const DEFAULT_DRAG_BLOCKS = [
   { id: '5', title: 'Photo Hub (Drive & QR)', type: 'smile', enabled: true, order: 5 },
   { id: '6', title: 'Media Gallery (Photo Uploads)', type: 'gallery', enabled: true, order: 6 },
   { id: '7', title: 'Live Broadcast Streams', type: 'live_stages', enabled: true, order: 7 },
-  { id: '8', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: true, order: 8 }
+  { id: '8', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: true, order: 8 },
+  { id: '9', title: 'Winner Posters Page', type: 'posters', enabled: true, order: 9 }
 ];
 
 apiRouter.get('/public/cms', async (req, res) => {
@@ -910,6 +911,10 @@ apiRouter.get('/public/cms', async (req, res) => {
         { id: 'gallery_block', title: 'Media Gallery (Photo Uploads)', type: 'gallery', enabled: oldBlock.enabled, order: oldBlock.order + 1 }
       );
       db.dragBlocks.forEach((b: any, idx: number) => { b.order = idx + 1; });
+      dbClient.save();
+    }
+    if (!db.dragBlocks.some((b: any) => b.type === 'posters')) {
+      db.dragBlocks.push({ id: 'posters_block', title: 'Winner Posters Page', type: 'posters', enabled: true, order: db.dragBlocks.length + 1 });
       dbClient.save();
     }
   }
