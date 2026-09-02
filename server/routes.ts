@@ -3859,6 +3859,9 @@ function indexToCodeLetter(index: number): string {
 
 // Get all green room assignments
 apiRouter.get('/green-room', authenticate, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   const db = dbClient.get();
   const assignments = (db.greenRoomAssignments || []).filter((a: GreenRoomAssignment) => !a.deletedAt);
 
@@ -3912,6 +3915,9 @@ apiRouter.get('/green-room/stats', authenticate, async (req, res) => {
 
 // Get assignments for a specific competition
 apiRouter.get('/green-room/competition/:competitionId', authenticate, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   const db = dbClient.get();
   const competitionId = req.params.competitionId;
   const assignments = (db.greenRoomAssignments || []).filter((a: GreenRoomAssignment) => a.competitionId === competitionId && !a.deletedAt);

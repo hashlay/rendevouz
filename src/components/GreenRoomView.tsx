@@ -181,7 +181,8 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
 
   const loadCompetitionAssignments = async (compId: string) => {
     try {
-      const res = await fetch(`/api/green-room/competition/${compId}`, { credentials: 'include' });
+      const ts = Date.now();
+      const res = await fetch(`/api/green-room/competition/${compId}?t=${ts}`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setCompetitionAssignments(data);
