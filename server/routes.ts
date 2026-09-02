@@ -2333,7 +2333,8 @@ apiRouter.post('/teams', authenticate, async (req, res) => {
       return res.status(400).json({ error: `Member ${p.fullName} belongs to a different unit.` });
     }
     // Category match
-    if (p.selectedCategoryId !== categoryId) {
+    const pCatId = p.selectedCategoryId || (p as any).categoryId;
+    if (pCatId !== categoryId) {
       return res.status(400).json({ error: `Member ${p.fullName} belongs to a different category.` });
     }
 
@@ -2428,7 +2429,8 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
       if (p.unitId !== team.unitId) {
         return res.status(400).json({ error: `Member ${p.fullName} belongs to a different unit.` });
       }
-      if (p.selectedCategoryId !== team.categoryId) {
+      const pCatId = p.selectedCategoryId || (p as any).categoryId;
+      if (pCatId !== team.categoryId) {
         return res.status(400).json({ error: `Member ${p.fullName} belongs to a different category.` });
       }
 

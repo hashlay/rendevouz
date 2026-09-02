@@ -221,12 +221,15 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
   const wizardGroupComps = groupComps.filter(c => c.categoryId === wizardCategoryId);
   const selectedWizardComp = competitions.find(c => c.id === wizardCompId);
 
-  // Eligible members: same unit, same category, not already in a team for this same competition, under the group event limits
-  const eligibleMembers = participants.filter(p => 
-    p.unitId === wizardUnitId && 
-    p.selectedCategoryId === wizardCategoryId &&
-    !p.deletedAt
-  );
+  // Eligible members: same unit, same category, not already in a team for this same competition
+  const eligibleMembers = participants.filter(p => {
+    const isSameUnit = p.unitId === wizardUnitId || (p.unitId && wizardUnitId && String(p.unitId).trim() === String(wizardUnitId).trim());
+    const pCatId = p.selectedCategoryId || (p as any).categoryId;
+    const isSameCategory = pCatId === wizardCategoryId || (pCatId && wizardCategoryId && String(pCatId).trim() === String(wizardCategoryId).trim());
+    const notDeleted = !p.deletedAt;
+    const notInOtherTeam = !wizardCompId || !teams.some(t => t.competitionId === wizardCompId && t.memberIds.includes(p.id) && !t.deletedAt);
+    return isSameUnit && isSameCategory && notDeleted && notInOtherTeam;
+  });
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
@@ -494,13 +497,15 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
         const maxCapacity = comp?.teamSize || 2;
 
         // Eligible candidates from same unit and category, excluding current editing members & members in other teams for this comp
-        const eligibleCandidates = participants.filter(p => 
-          p.unitId === editingTeam.unitId &&
-          p.selectedCategoryId === editingTeam.categoryId &&
-          !p.deletedAt &&
-          !editingMemberIds.includes(p.id) &&
-          !teams.some(t => t.id !== editingTeam.id && t.competitionId === editingTeam.competitionId && t.memberIds.includes(p.id) && !t.deletedAt)
-        );
+        const eligibleCandidates = participants.filter(p => {
+          const isSameUnit = p.unitId === editingTeam.unitId || (p.unitId && editingTeam.unitId && String(p.unitId).trim() === String(editingTeam.unitId).trim());
+          const pCatId = p.selectedCategoryId || (p as any).categoryId;
+          const isSameCategory = pCatId === editingTeam.categoryId || (pCatId && editingTeam.categoryId && String(pCatId).trim() === String(editingTeam.categoryId).trim());
+          const notDeleted = !p.deletedAt;
+          const notCurrentMember = !editingMemberIds.includes(p.id);
+          const notInOtherTeam = !teams.some(t => t.id !== editingTeam.id && t.competitionId === editingTeam.competitionId && t.memberIds.includes(p.id) && !t.deletedAt);
+          return isSameUnit && isSameCategory && notDeleted && notCurrentMember && notInOtherTeam;
+        });
 
         // Filter eligible candidates by search query
         const filteredEligible = eligibleCandidates.filter(p => 
