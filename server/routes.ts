@@ -4126,6 +4126,7 @@ apiRouter.put('/green-room/competition/:competitionId/status', authenticate, req
 
 // Get all judgment sheets
 apiRouter.get('/judgment-sheets', authenticate, async (req, res) => {
+  await dbClient.waitForSync();
   const db = dbClient.get();
   const user = (req as any).user as User;
   let sheets = (db.judgmentSheets || []).filter((s: JudgmentSheet) => !s.deletedAt);
@@ -4171,6 +4172,7 @@ apiRouter.get('/judgment-sheets', authenticate, async (req, res) => {
 
 // Judgment sheet stats
 apiRouter.get('/judgment-sheets/stats', authenticate, async (req, res) => {
+  await dbClient.waitForSync();
   const db = dbClient.get();
   const sheets = (db.judgmentSheets || []).filter((s: JudgmentSheet) => !s.deletedAt);
 
@@ -4195,6 +4197,7 @@ apiRouter.get('/judgment-sheets/stats', authenticate, async (req, res) => {
 
 // Generate judgment sheet for a competition
 apiRouter.post('/judgment-sheets/generate', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.RESULT_MANAGER]), async (req, res) => {
+  await dbClient.waitForSync();
   const db = dbClient.get();
   const user = (req as any).user as User;
   const { competitionId, maxMarks } = req.body;
@@ -4265,6 +4268,7 @@ apiRouter.post('/judgment-sheets/generate', authenticate, requireRole([UserRole.
 
 // Get a judgment sheet (anonymous - no participant names)
 apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
+  await dbClient.waitForSync();
   const db = dbClient.get();
   const sheetId = req.params.id;
   const user = (req as any).user as User;
@@ -4439,6 +4443,7 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
 
 // Enter/update marks for a judgment sheet
 apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.JUDGE, UserRole.RESULT_MANAGER]), async (req, res) => {
+  await dbClient.waitForSync();
   const db = dbClient.get();
   const user = (req as any).user as User;
   const sheetId = req.params.id;
