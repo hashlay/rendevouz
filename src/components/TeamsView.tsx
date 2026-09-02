@@ -69,6 +69,9 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
       setUnits(uData);
       setCompetitions(compData);
       setParticipants(pData);
+      if (uData.length > 0 && user.role !== UserRole.UNIT_TEAM_LEADER) {
+        setWizardUnitId(prev => prev || uData[0].id);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -265,7 +268,7 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
 
         <button
           onClick={() => {
-            setWizardUnitId(user.role === UserRole.UNIT_TEAM_LEADER ? (user.assignedUnitId || '') : '');
+            setWizardUnitId(user.role === UserRole.UNIT_TEAM_LEADER ? (user.assignedUnitId || '') : (selectedUnitId || units[0]?.id || ''));
             setCreateOpen(true);
           }}
           className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-md shadow-emerald-600/10 gap-1.5"
@@ -493,14 +496,16 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
       {editOpen && editingTeam && (() => {
         const comp = competitions.find(c => c.id === editingTeam.competitionId);
         const unit = units.find(u => u.id === editingTeam.unitId);
-        const cat = categories.find(c => c.id === editingTeam.categoryId);
+        const targetCatId = editingTeam.categoryId || comp?.categoryId || '';
+        const targetUnitId = editingTeam.unitId || '';
+        const cat = categories.find(c => c.id === targetCatId);
         const maxCapacity = comp?.teamSize || 2;
 
         // Eligible candidates from same unit and category, excluding current editing members & members in other teams for this comp
         const eligibleCandidates = participants.filter(p => {
-          const isSameUnit = p.unitId === editingTeam.unitId || (p.unitId && editingTeam.unitId && String(p.unitId).trim() === String(editingTeam.unitId).trim());
+          const isSameUnit = p.unitId === targetUnitId || (p.unitId && targetUnitId && String(p.unitId).trim() === String(targetUnitId).trim()) || (unit && p.unitId === unit.name);
           const pCatId = p.selectedCategoryId || (p as any).categoryId;
-          const isSameCategory = pCatId === editingTeam.categoryId || (pCatId && editingTeam.categoryId && String(pCatId).trim() === String(editingTeam.categoryId).trim());
+          const isSameCategory = pCatId === targetCatId || (pCatId && targetCatId && String(pCatId).trim() === String(targetCatId).trim()) || (cat && pCatId === cat.name);
           const notDeleted = !p.deletedAt;
           const notCurrentMember = !editingMemberIds.includes(p.id);
           const notInOtherTeam = !teams.some(t => t.id !== editingTeam.id && t.competitionId === editingTeam.competitionId && t.memberIds.includes(p.id) && !t.deletedAt);
