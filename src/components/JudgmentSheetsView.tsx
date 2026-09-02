@@ -736,12 +736,12 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                 </>
               )}
 
-              {canGenerate && currentSheet.status === JudgmentSheetStatus.LOCKED && (
+              {canGenerate && (currentSheet.status === JudgmentSheetStatus.LOCKED || currentSheet.publishedToResults) && (
                 <>
-                  <button onClick={handleUnlockSheet} className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px] cursor-pointer">
+                  <button onClick={handleUnlockSheet} className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px] cursor-pointer shadow-sm">
                     <Lock className="h-4 w-4" /> Unlock Sheet
                   </button>
-                  <button onClick={handlePublishResults} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px] cursor-pointer">
+                  <button onClick={handlePublishResults} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px] cursor-pointer shadow-sm">
                     <CheckCircle className="h-4 w-4" /> Publish Result
                   </button>
                 </>
@@ -749,9 +749,20 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
             </div>
           </div>
 
-          {currentSheet.status === JudgmentSheetStatus.LOCKED && (
-            <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-lg text-sm flex items-center gap-2">
-              <Lock className="h-4 w-4" /> This sheet is locked. Scores can no longer be edited.
+          {(currentSheet.status === JudgmentSheetStatus.LOCKED || currentSheet.publishedToResults) && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-lg text-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-blue-600" />
+                <span>This sheet is locked/published. Scores can no longer be edited unless unlocked.</span>
+              </div>
+              {canGenerate && (
+                <button
+                  onClick={handleUnlockSheet}
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
+                >
+                  <Lock className="h-3.5 w-3.5" /> Unlock Sheet Now
+                </button>
+              )}
             </div>
           )}
 
