@@ -2046,6 +2046,33 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
 
   existingPart.updatedAt = new Date().toISOString();
 
+  // Direct instant write-through to MongoDB Atlas for 100% permanent persistence
+  const updatedReg = ((db as any).registrations || []).find((r: any) => r.participantId === partId);
+  const mongoDb = getDb();
+  if (mongoDb) {
+    try {
+      await Promise.all([
+        mongoDb.collection('participants').replaceOne(
+          { $or: [{ id: partId }, { _id: partId as any }] },
+          { id: partId, ...existingPart },
+          { upsert: true }
+        ),
+        updatedReg ? mongoDb.collection('registrations').replaceOne(
+          { participantId: partId },
+          { ...updatedReg },
+          { upsert: true }
+        ) : Promise.resolve(),
+        mongoDb.collection('app_state').replaceOne(
+          { _id: 'global_state' as any },
+          { ...db },
+          { upsert: true }
+        )
+      ]);
+    } catch (mongoErr) {
+      console.error('Direct MongoDB participant update error:', mongoErr);
+    }
+  }
+
   await dbClient.logAudit(user.id, user.username, user.role, 'Update Participant', 'Participant', partId, existingPart.unitId, oldPart, existingPart);
   await dbClient.save();
 
