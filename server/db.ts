@@ -435,6 +435,7 @@ function _scheduleMongSync() {
 
 export async function saveDb() {
   if (!db) return;
+  bumpStateVersion();
   // Truncate logs in memory (fast, no I/O)
   if (db.auditLogs && db.auditLogs.length > 500) {
     db.auditLogs = db.auditLogs.slice(-500);
@@ -477,19 +478,40 @@ export function getDb() {
   return mongoClient.db(dbName);
 }
 
-let lastMongoSyncTime = 0;
+let localStateVersion = 0;
+let lastVersionCheckTime = 0;
+
+export async function bumpStateVersion() {
+  localStateVersion = Date.now();
+  const mongoDb = getDb();
+  if (mongoDb) {
+    mongoDb.collection('settings').replaceOne(
+      { _id: 'state_version' as any },
+      { _id: 'state_version', version: localStateVersion, updatedAt: new Date().toISOString() },
+      { upsert: true }
+    ).catch(() => {});
+  }
+}
 
 async function syncStateFromMongo(force: boolean = false) {
   if (!mongoClient || !isMongoConnected) return;
   const now = Date.now();
-  if (!force && now - lastMongoSyncTime < 1000) return;
-  lastMongoSyncTime = now;
+  if (!force && now - lastVersionCheckTime < 1000) return;
+  lastVersionCheckTime = now;
 
   try {
     const mongoUriStr = process.env.MONGO_URI || process.env.MONGODB_URI || '';
     const dbPath = mongoUriStr.includes('/') ? mongoUriStr.split('/').pop()?.split('?')[0] : null;
     const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
     const mongoDb = mongoClient.db(dbName);
+
+    // 0.1ms Micro-Check: Skip 17 collection fetches if state_version has not changed!
+    if (!force && localStateVersion > 0) {
+      const versionDoc = await mongoDb.collection('settings').findOne({ _id: 'state_version' as any }).catch(() => null);
+      if (versionDoc && versionDoc.version && versionDoc.version === localStateVersion) {
+        return; // Return INSTANTLY in 0ms!
+      }
+    }
 
     const collectionKeys = [
       'users', 'units', 'categories', 'competitions', 'participants', 'teams',
@@ -522,6 +544,7 @@ async function syncStateFromMongo(force: boolean = false) {
         if (doc._id === 'cmsSettings') db.cmsSettings = { ...rest };
         if (doc._id === 'posterTemplateConfig') db.posterTemplateConfig = { ...rest };
         if (doc._id === 'certificateTemplateConfig') db.certificateTemplateConfig = { ...rest };
+        if (doc._id === 'state_version' && doc.version) localStateVersion = doc.version;
       }
     });
 

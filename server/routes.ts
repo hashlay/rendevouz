@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { dbClient, getCollection, getDb } from './db.js';
+import { dbClient, getCollection, getDb, bumpStateVersion } from './db.js';
 import { CalculationService } from './calculations.js';
 import {
   UserRole, User, Session, LoginAudit, AuditLog,
