@@ -17,8 +17,6 @@ interface PosterGeneratorViewProps {
   onSettingsUpdated?: () => void;
 }
 
-export default function PostersView({ user, token, eventSettings, onSettingsUpdated }: PosterGeneratorViewProps) {
-
 const FONT_OPTIONS = [
   { label: 'Inter (Clean Sans)', value: 'Inter, sans-serif' },
   { label: 'Montserrat (Modern Bold)', value: 'Montserrat, sans-serif' },
@@ -161,7 +159,7 @@ function migrateOldConfig(templateConfig: any, defaultThemes: string[]): any {
   return { customThemes, themeRules, themeConfigs };
 }
 
-function PosterGeneratorView({ user, token, eventSettings }: PosterGeneratorViewProps) {
+export default function PostersView({ user, token, eventSettings, onSettingsUpdated }: PosterGeneratorViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
   const festivalName = eventSettings?.festivalName || 'Sahityotsav';
   const campusName = eventSettings?.campusName || eventSettings?.sectorName || 'Campus';
@@ -576,8 +574,10 @@ function PosterGeneratorView({ user, token, eventSettings }: PosterGeneratorView
   const availableComps = competitions.filter(c => {
     return results.some(r => r.competitionId === c.id && r.rank);
   }).sort((a, b) => {
-    const latestResultA = Math.max(...results.filter(r => r.competitionId === a.id && r.rank).map(r => new Date(r.updatedAt).getTime()));
-    const latestResultB = Math.max(...results.filter(r => r.competitionId === b.id && r.rank).map(r => new Date(r.updatedAt).getTime()));
+    const datesA = results.filter(r => r.competitionId === a.id && r.rank).map(r => r.updatedAt ? new Date(r.updatedAt).getTime() : 0).filter(t => !isNaN(t) && t > 0);
+    const datesB = results.filter(r => r.competitionId === b.id && r.rank).map(r => r.updatedAt ? new Date(r.updatedAt).getTime() : 0).filter(t => !isNaN(t) && t > 0);
+    const latestResultA = datesA.length > 0 ? Math.max(...datesA) : 0;
+    const latestResultB = datesB.length > 0 ? Math.max(...datesB) : 0;
     return latestResultA - latestResultB; // Earlier announced first = Result #001
   });
 
@@ -1303,5 +1303,4 @@ function PosterGeneratorView({ user, token, eventSettings }: PosterGeneratorView
       )}
     </div>
   );
-}
 }
