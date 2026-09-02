@@ -159,20 +159,18 @@ function migrateOldConfig(templateConfig: any, defaultThemes: string[]): any {
   return { customThemes, themeRules, themeConfigs };
 }
 
-import { fetchWithCache, getCachedData } from '../utils/dataCache';
-
 export default function PostersView({ user, token, eventSettings, onSettingsUpdated }: PosterGeneratorViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
   const festivalName = eventSettings?.festivalName || 'Sahityotsav';
   const campusName = eventSettings?.campusName || eventSettings?.sectorName || 'Campus';
 
-  const [results, setResults] = useState<Result[]>(() => getCachedData('/api/results') || []);
-  const [categories, setCategories] = useState<Category[]>(() => getCachedData('/api/categories') || []);
-  const [units, setUnits] = useState<Unit[]>(() => getCachedData('/api/units') || []);
-  const [competitions, setCompetitions] = useState<Competition[]>(() => getCachedData('/api/competitions') || []);
-  const [participants, setParticipants] = useState<Participant[]>(() => getCachedData('/api/participants') || []);
-  const [teams, setTeams] = useState<Team[]>(() => getCachedData('/api/teams') || []);
-  const [loading, setLoading] = useState(() => !getCachedData('/api/results'));
+  const [loading, setLoading] = useState(true);
+  const [results, setResults] = useState<Result[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
 
   // Selection states
   const [selectedCompId, setSelectedCompId] = useState('');
@@ -538,17 +536,22 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     </div>
   );
 
-  const fetchData = async (forceFresh = false) => {
-    if (!getCachedData('/api/results')) setLoading(true);
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const authHeaders = { 'Authorization': `Bearer ${token}` };
+      const ts = Date.now();
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const [resRes, catRes, unitRes, compRes, partRes, teamRes] = await Promise.all([
+        fetch(`/api/results?t=${ts}`, { headers }),
+        fetch(`/api/categories?t=${ts}`),
+        fetch(`/api/units?t=${ts}`),
+        fetch(`/api/competitions?t=${ts}`),
+        fetch(`/api/participants?t=${ts}`, { headers }),
+        fetch(`/api/teams?t=${ts}`, { headers })
+      ]);
+
       const [resData, catData, unitData, compData, partData, teamData] = await Promise.all([
-        fetchWithCache('/api/results', authHeaders, forceFresh),
-        fetchWithCache('/api/categories', authHeaders, forceFresh),
-        fetchWithCache('/api/units', authHeaders, forceFresh),
-        fetchWithCache('/api/competitions', authHeaders, forceFresh),
-        fetchWithCache('/api/participants', authHeaders, forceFresh),
-        fetchWithCache('/api/teams', authHeaders, forceFresh)
+        resRes.json(), catRes.json(), unitRes.json(), compRes.json(), partRes.json(), teamRes.json()
       ]);
 
       setResults(resData);

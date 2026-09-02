@@ -8,17 +8,15 @@ interface RegisteredEventsViewProps {
   eventSettings?: any;
 }
 
-import { fetchWithCache, getCachedData } from '../utils/dataCache';
-
 export default function RegisteredEventsView({ user, token, eventSettings }: RegisteredEventsViewProps) {
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
-  const [participants, setParticipants] = useState<Participant[]>(() => (getCachedData('/api/participants') || []).filter((p: any) => !p.deletedAt));
-  const [categories, setCategories] = useState<Category[]>(() => getCachedData('/api/categories') || []);
-  const [units, setUnits] = useState<Unit[]>(() => getCachedData('/api/units') || []);
-  const [competitions, setCompetitions] = useState<Competition[]>(() => getCachedData('/api/competitions') || []);
-  const [registrations, setRegistrations] = useState<any[]>(() => getCachedData('/api/registrations') || []);
-  const [teams, setTeams] = useState<Team[]>(() => (getCachedData('/api/teams') || []).filter((t: any) => !t.deletedAt));
-  const [loading, setLoading] = useState(() => !getCachedData('/api/registrations'));
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [registrations, setRegistrations] = useState<any[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Filter state
   const [selectedUnitId, setSelectedUnitId] = useState<string>(
@@ -27,17 +25,31 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [selectedStageType, setSelectedStageType] = useState<string>('');
 
-  const fetchLists = async (forceFresh = false) => {
-    if (!getCachedData('/api/registrations')) setLoading(true);
+  const fetchLists = async () => {
+    setLoading(true);
     try {
-      const authHeaders = { 'Authorization': `Bearer ${token}` };
+      const ts = Date.now();
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const [pRes, cRes, uRes, compRes, regRes, teamsRes] = await Promise.all([
+        fetch(`/api/participants?t=${ts}`, { headers }),
+        fetch(`/api/categories?t=${ts}`),
+        fetch(`/api/units?t=${ts}`),
+        fetch(`/api/competitions?t=${ts}`),
+        fetch(`/api/registrations?t=${ts}`, { headers }),
+        fetch(`/api/teams?t=${ts}`, { headers })
+      ]);
+
+      if (!pRes.ok || !regRes.ok || !teamsRes.ok) {
+        throw new Error('Failed to fetch data');
+      }
+
       const [pData, cData, uData, compData, regData, teamsData] = await Promise.all([
-        fetchWithCache('/api/participants', authHeaders, forceFresh),
-        fetchWithCache('/api/categories', authHeaders, forceFresh),
-        fetchWithCache('/api/units', authHeaders, forceFresh),
-        fetchWithCache('/api/competitions', authHeaders, forceFresh),
-        fetchWithCache('/api/registrations', authHeaders, forceFresh),
-        fetchWithCache('/api/teams', authHeaders, forceFresh)
+        pRes.json(),
+        cRes.json(),
+        uRes.json(),
+        compRes.json(),
+        regRes.json(),
+        teamsRes.json()
       ]);
 
       setParticipants(pData.filter((p: any) => !p.deletedAt));
