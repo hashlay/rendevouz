@@ -56,56 +56,7 @@ async function _connectToMongo() {
     console.log(`🍃 Connected successfully to MongoDB: "${dbName}"`);
     console.log(`=============================================================`);
 
-    // 1. Pull each dedicated collection from MongoDB Atlas (SINGLE SOURCE OF TRUTH)
-    const collectionKeys = [
-      'users', 'units', 'categories', 'competitions', 'participants', 'teams',
-      'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments',
-      'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
-    ];
-
-    for (const colName of collectionKeys) {
-      try {
-        const docs = await mongoDb.collection(colName).find({}).toArray();
-        if (docs) {
-          const dedupeMap = new Map();
-          docs.forEach((d: any) => {
-            const docId = d.id || d._id;
-            if (docId) {
-              const { _id, ...rest } = d;
-              dedupeMap.set(docId.toString(), { id: docId, ...rest });
-            }
-          });
-          (db as any)[colName] = Array.from(dedupeMap.values());
-        }
-      } catch (_) { }
-    }
-
-    // 2. Synchronize current settings from dedicated settings collection
-    const mongoSettingsDocs = await mongoDb.collection('settings').find({}).toArray().catch(() => []);
-    mongoSettingsDocs.forEach((doc: any) => {
-      if (doc._id) {
-        const { _id, ...rest } = doc;
-        if (doc._id === 'eventSettings') db.eventSettings = { ...db.eventSettings, ...rest };
-        if (doc._id === 'cmsSettings') db.cmsSettings = { ...rest };
-        if (doc._id === 'posterTemplateConfig') db.posterTemplateConfig = { ...rest };
-        if (doc._id === 'certificateTemplateConfig') db.certificateTemplateConfig = { ...rest };
-      }
-    });
-
-    // 3. Fallback: load remaining global_state properties only if not present
-    const existingState = await mongoCollection.findOne({ _id: 'global_state' as any });
-    if (existingState) {
-      const { _id, ...restOfState } = existingState;
-      for (const [key, val] of Object.entries(restOfState)) {
-        if (!collectionKeys.includes(key) && key !== 'eventSettings' && key !== 'cmsSettings') {
-          if (Array.isArray(val)) {
-            (db as any)[key] = val;
-          } else if (val && typeof val === 'object') {
-            (db as any)[key] = { ...(db as any)[key], ...val };
-          }
-        }
-      }
-    }
+    await syncStateFromMongo(true);
 
     // Explicit recovery check: if categories or units are empty, ensure default defaults exist
     if (!db.categories || db.categories.length === 0) {
@@ -526,9 +477,76 @@ export function getDb() {
   return mongoClient.db(dbName);
 }
 
+let lastMongoSyncTime = 0;
+
+async function syncStateFromMongo(force: boolean = false) {
+  if (!mongoClient || !isMongoConnected) return;
+  const now = Date.now();
+  if (!force && now - lastMongoSyncTime < 1000) return;
+  lastMongoSyncTime = now;
+
+  try {
+    const mongoUriStr = process.env.MONGO_URI || process.env.MONGODB_URI || '';
+    const dbPath = mongoUriStr.includes('/') ? mongoUriStr.split('/').pop()?.split('?')[0] : null;
+    const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
+    const mongoDb = mongoClient.db(dbName);
+
+    const collectionKeys = [
+      'users', 'units', 'categories', 'competitions', 'participants', 'teams',
+      'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments',
+      'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
+    ];
+
+    for (const colName of collectionKeys) {
+      try {
+        const docs = await mongoDb.collection(colName).find({}).toArray();
+        if (docs) {
+          const dedupeMap = new Map();
+          docs.forEach((d: any) => {
+            const docId = d.id || d._id;
+            if (docId) {
+              const { _id, ...rest } = d;
+              dedupeMap.set(docId.toString(), { id: docId, ...rest });
+            }
+          });
+          (db as any)[colName] = Array.from(dedupeMap.values());
+        }
+      } catch (_) { }
+    }
+
+    const mongoSettingsDocs = await mongoDb.collection('settings').find({}).toArray().catch(() => []);
+    mongoSettingsDocs.forEach((doc: any) => {
+      if (doc._id) {
+        const { _id, ...rest } = doc;
+        if (doc._id === 'eventSettings') db.eventSettings = { ...db.eventSettings, ...rest };
+        if (doc._id === 'cmsSettings') db.cmsSettings = { ...rest };
+        if (doc._id === 'posterTemplateConfig') db.posterTemplateConfig = { ...rest };
+        if (doc._id === 'certificateTemplateConfig') db.certificateTemplateConfig = { ...rest };
+      }
+    });
+
+    const existingState = await mongoDb.collection('app_state').findOne({ _id: 'global_state' as any });
+    if (existingState) {
+      const { _id, ...restOfState } = existingState;
+      for (const [key, val] of Object.entries(restOfState)) {
+        if (!collectionKeys.includes(key) && key !== 'eventSettings' && key !== 'cmsSettings') {
+          if (Array.isArray(val)) {
+            (db as any)[key] = val;
+          } else if (val && typeof val === 'object') {
+            (db as any)[key] = { ...(db as any)[key], ...val };
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error in syncStateFromMongo:', err);
+  }
+}
+
 export const dbClient = {
-  waitForSync: () => {
-    return connectToMongo();
+  waitForSync: async () => {
+    await connectToMongo();
+    await syncStateFromMongo(false);
   },
 
   forceSync: async () => {
