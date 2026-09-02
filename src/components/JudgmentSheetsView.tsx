@@ -299,6 +299,28 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
     }
   };
 
+  const handleUnlockSheet = async () => {
+    if (!currentSheet) return;
+    if (!confirm('Unlock this judgment sheet so scores can be edited again?')) return;
+    try {
+      const res = await fetch(`/api/judgment-sheets/${currentSheet.id}/unlock`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ type: 'success', text: data.message });
+        loadSheet(currentSheet.id);
+        fetchData();
+      } else {
+        setMessage({ type: 'error', text: data.error });
+      }
+    } catch (e) {
+      setMessage({ type: 'error', text: 'Failed to unlock sheet' });
+    }
+  };
+
   const handleLockAndPublish = async () => {
     if (!currentSheet) return;
     if (!confirm('Are you sure you want to lock and publish these results immediately? Scores will no longer be editable and results will be visible.')) return;
@@ -715,9 +737,14 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
               )}
 
               {canGenerate && currentSheet.status === JudgmentSheetStatus.LOCKED && (
-                <button onClick={handlePublishResults} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px]">
-                  <CheckCircle className="h-4 w-4" /> Publish Result
-                </button>
+                <>
+                  <button onClick={handleUnlockSheet} className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px] cursor-pointer">
+                    <Lock className="h-4 w-4" /> Unlock Sheet
+                  </button>
+                  <button onClick={handlePublishResults} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px] cursor-pointer">
+                    <CheckCircle className="h-4 w-4" /> Publish Result
+                  </button>
+                </>
               )}
             </div>
           </div>

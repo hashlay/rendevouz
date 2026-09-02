@@ -4850,6 +4850,26 @@ apiRouter.post('/judgment-sheets/:id/lock', authenticate, requireRole([UserRole.
   res.json({ message: 'Judgment sheet locked successfully' });
 });
 
+// Unlock judgment sheet results (Admin only)
+apiRouter.post('/judgment-sheets/:id/unlock', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.RESULT_MANAGER]), async (req, res) => {
+  const db = dbClient.get();
+  const user = (req as any).user as User;
+  const sheetId = req.params.id;
+
+  const sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.id === sheetId && !s.deletedAt);
+  if (!sheet) {
+    return res.status(404).json({ error: 'Judgment sheet not found.' });
+  }
+
+  sheet.status = JudgmentSheetStatus.IN_PROGRESS;
+  sheet.publishedToResults = false;
+
+  await dbClient.logAudit(user.id, user.username, user.role, 'Unlock Judgment Sheet', 'JudgmentSheet', sheetId);
+  await dbClient.save();
+
+  res.json({ message: 'Judgment sheet unlocked successfully' });
+});
+
 // Calculate results and push to the existing Result module
 apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.RESULT_MANAGER]), async (req, res) => {
   const db = dbClient.get();
@@ -4867,7 +4887,7 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
     return res.status(404).json({ error: 'Competition not found.' });
   }
 
-  let resultsCreated = 0;
+  let resultsPublished = 0;
 
   for (const score of scores) {
     // Resolve the green room assignment to get participantId/teamId
@@ -4892,12 +4912,13 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
       default: resultStatus = ResultStatus.PARTICIPATED; break;
     }
 
+    const j1Mark = j1?.mark || 0;
+    const j2Mark = j2?.mark || 0;
+    const nonZeroCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
+    const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : Math.round((score.totalMark / nonZeroCount) * 100) / 100;
+
     if (existingResult) {
       // Update existing result
-      const j1Mark = j1?.mark || 0;
-      const j2Mark = j2?.mark || 0;
-      const nonZeroCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
-      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : Math.round((score.totalMark / nonZeroCount) * 100) / 100;
       existingResult.judge1Mark = j1Mark;
       existingResult.judge2Mark = j2Mark;
       existingResult.totalMark = score.totalMark;
@@ -4908,12 +4929,9 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
       existingResult.updatedBy = user.id;
       existingResult.updatedAt = new Date().toISOString();
       existingResult.publishedStatus = true;
+      resultsPublished++;
     } else {
       // Create new result
-      const j1Mark = j1?.mark || 0;
-      const j2Mark = j2?.mark || 0;
-      const nonZeroCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
-      const calculatedAvgMark = score.averageMark !== undefined ? score.averageMark : Math.round((score.totalMark / nonZeroCount) * 100) / 100;
       const result: Result = {
         id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         categoryId: sheet.categoryId,
@@ -4933,42 +4951,40 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
         updatedAt: new Date().toISOString()
       };
       db.results.push(result);
-      resultsCreated++;
+      resultsPublished++;
     }
   }
 
   sheet.publishedToResults = true;
 
-  await dbClient.logAudit(user.id, user.username, user.role, `Publish ${resultsCreated} Results from Judgment Sheet`, 'JudgmentSheet', sheetId);
+  await dbClient.logAudit(user.id, user.username, user.role, `Publish ${resultsPublished} Results from Judgment Sheet`, 'JudgmentSheet', sheetId);
+  await dbClient.save();
 
-  res.json({ message: `Published ${resultsCreated} results to the Result module` });
-
-  setImmediate(async () => {
-    try {
-      const mongoDb = getDb();
-      if (mongoDb) {
-        const compResults = (db.results || []).filter((r: Result) => r.competitionId === sheet.competitionId);
-        const ops = compResults.map((r: Result) => ({
-          updateOne: {
-            filter: { $or: [{ id: r.id }, { _id: r.id as any }] },
-            update: { $set: { id: r.id, ...r } },
-            upsert: true
-          }
-        }));
-        if (ops.length > 0) {
-          await mongoDb.collection('results').bulkWrite(ops, { ordered: false }).catch(() => {});
+  try {
+    const mongoDb = getDb();
+    if (mongoDb) {
+      const compResults = (db.results || []).filter((r: Result) => r.competitionId === sheet.competitionId);
+      const resOps = compResults.map((r: Result) => ({
+        updateOne: {
+          filter: { $or: [{ id: r.id }, { _id: r.id as any }] },
+          update: { $set: { id: r.id, ...r } },
+          upsert: true
         }
-        await mongoDb.collection('judgmentSheets').replaceOne(
-          { $or: [{ id: sheet.id }, { _id: sheet.id as any }] },
-          { id: sheet.id, ...sheet },
-          { upsert: true }
-        ).catch(() => {});
+      }));
+      if (resOps.length > 0) {
+        await mongoDb.collection('results').bulkWrite(resOps, { ordered: false }).catch(() => {});
       }
-      await dbClient.save();
-    } catch (err) {
-      console.error('Background Mongo result publish error:', err);
+      await mongoDb.collection('judgmentSheets').replaceOne(
+        { $or: [{ id: sheet.id }, { _id: sheet.id as any }] },
+        { id: sheet.id, ...sheet },
+        { upsert: true }
+      ).catch(() => {});
     }
-  });
+  } catch (err) {
+    console.error('Mongo calculate results save error:', err);
+  }
+
+  res.json({ message: `Successfully published ${resultsPublished} result(s) to the Result module` });
 });
 
 
