@@ -244,9 +244,10 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
     // Fetch registered individual & group competitions
     try {
+      const ts = Date.now();
       const [regRes, teamsRes] = await Promise.all([
-        fetch('/api/registrations', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`/api/registrations?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`/api/teams?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       const regs = await regRes.json();
@@ -267,16 +268,21 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
       // Group competitions from teams & registrations
       const userGroupCompIds: string[] = [];
+      if (userReg) {
+        const rawGroupIds = userReg.selectedGroupCompetitionIds || userReg.selectedGroupTeamIds || [];
+        if (Array.isArray(rawGroupIds)) {
+          rawGroupIds.forEach((gId: string) => {
+            if (!userGroupCompIds.includes(gId)) userGroupCompIds.push(gId);
+          });
+        }
+      }
       if (Array.isArray(teamsList)) {
         teamsList.forEach((t: any) => {
           if (!t.deletedAt && t.memberIds && t.memberIds.includes(p.id)) {
-            userGroupCompIds.push(t.competitionId);
+            if (!userGroupCompIds.includes(t.competitionId)) {
+              userGroupCompIds.push(t.competitionId);
+            }
           }
-        });
-      }
-      if (userReg && Array.isArray(userReg.selectedGroupCompetitionIds)) {
-        userReg.selectedGroupCompetitionIds.forEach((gId: string) => {
-          if (!userGroupCompIds.includes(gId)) userGroupCompIds.push(gId);
         });
       }
       setEditGroupComps(userGroupCompIds);

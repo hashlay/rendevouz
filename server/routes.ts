@@ -1978,6 +1978,7 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
     if (req.body.candidateClass !== undefined) reg.candidateClass = req.body.candidateClass;
     reg.selectedIndividualCompetitionIds = individualCompetitions.map(c => c.id);
     reg.selectedGroupCompetitionIds = groupCompetitions.map(c => c.id);
+    reg.selectedGroupTeamIds = groupCompetitions.map(c => c.id);
     reg.updatedAt = new Date().toISOString();
 
     // Sync group team memberships in db.teams
