@@ -130,9 +130,13 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const fetchLists = async () => {
     setLoading(true);
     try {
-      const pUrl = `/api/participants?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}`;
+      const ts = Date.now();
+      const pUrl = `/api/participants?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}&t=${ts}`;
       
-      const safeFetch = (url: string, headers?: any) => fetch(url, { headers }).then(r => r.ok ? r.json() : []).catch(() => []);
+      const safeFetch = (url: string, headers?: any) => {
+        const joiner = url.includes('?') ? '&' : '?';
+        return fetch(`${url}${joiner}t=${ts}`, { headers }).then(r => r.ok ? r.json() : []).catch(() => []);
+      };
 
       const [pData, cData, uData, compData, resData, tData] = await Promise.all([
         safeFetch(pUrl, { 'Authorization': `Bearer ${token}` }),
@@ -335,6 +339,9 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update participant');
 
+      if (data.participant) {
+        setParticipants(prev => prev.map(p => p.id === data.participant.id ? data.participant : p));
+      }
       setEditingPart(null);
       fetchLists();
       alert('Candidate records updated successfully!');
@@ -362,8 +369,10 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to delete participant');
 
+      const targetId = deletingId;
       setDeletingId(null);
       setDeletionReason('');
+      setParticipants(prev => prev.filter(p => p.id !== targetId));
       fetchLists();
       alert('Participant record deleted permanently');
     } catch (err: any) {

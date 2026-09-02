@@ -22,6 +22,15 @@ export const apiRouter = express.Router();
 apiRouter.use(express.json({ limit: '50mb' }));
 apiRouter.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Prevent 304 Not Modified caching on all API routes so browsers ALWAYS get 100% fresh data
+apiRouter.use((req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
+
 // Ensure MongoDB connection and 100% fresh state sync on every API request
 apiRouter.use(async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -2044,7 +2053,7 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
 });
 
 // Permanent Delete Participant (With Complete Cascading Cleanup Across Database)
-apiRouter.post('/participants/:id/delete', authenticate, async (req, res) => {
+const hardDeleteParticipant = async (req: Request, res: Response) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
 
@@ -2054,7 +2063,7 @@ apiRouter.post('/participants/:id/delete', authenticate, async (req, res) => {
   }
 
   const partId = req.params.id;
-  const { reason } = req.body;
+  const { reason } = req.body || {};
 
   const partIndex = db.participants.findIndex(p => p.id === partId);
   if (partIndex === -1) {
@@ -2095,7 +2104,10 @@ apiRouter.post('/participants/:id/delete', authenticate, async (req, res) => {
   await dbClient.save();
 
   res.json({ message: 'Participant and all associated records permanently deleted successfully' });
-});
+};
+
+apiRouter.post('/participants/:id/delete', authenticate, hardDeleteParticipant);
+apiRouter.delete('/participants/:id', authenticate, hardDeleteParticipant);
 
 
 let teamsHealed = false;
