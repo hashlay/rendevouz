@@ -7,10 +7,10 @@ import path from 'path';
 import fs from 'fs';
 import { dbClient, getCollection } from './db.js';
 import { CalculationService } from './calculations.js';
-import { 
-  UserRole, User, Session, LoginAudit, AuditLog, 
-  Unit, Category, Competition, Participant, Team, 
-  Registration, Result, EventSettings, EducationStatus, ParticipationType, 
+import {
+  UserRole, User, Session, LoginAudit, AuditLog,
+  Unit, Category, Competition, Participant, Team,
+  Registration, Result, EventSettings, EducationStatus, ParticipationType,
   StageType, Gender, ResultStatus,
   ChestNumber, Counter, GreenRoomAssignment, GreenRoomStatus,
   JudgmentSheet, JudgmentSheetStatus, JudgeScore, JudgeScoreEntry, JudgeScoreStatus, VideoHighlight
@@ -57,7 +57,7 @@ const uploadDir = os.tmpdir();
 
 async function processUploadFile(file: Express.Multer.File, folder: string): Promise<string> {
   if (!file) throw new Error('No image file uploaded');
-  
+
   // Attempt Cloudinary upload if credentials exist
   try {
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -87,12 +87,12 @@ async function processUploadFile(file: Express.Multer.File, folder: string): Pro
     throw err;
   }
 }
-const upload = multer({ 
+const upload = multer({
   dest: uploadDir,
   limits: { fileSize: 1024 * 1024 * 1024 } // 1GB limit for videos
 });
 
-const galleryUpload = multer({ 
+const galleryUpload = multer({
   dest: uploadDir,
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit for images
 });
@@ -109,7 +109,7 @@ let dbNormalized = false;
 apiRouter.use(async (req, res, next) => {
   try {
     await dbClient.waitForSync();
-    
+
     // Auto-normalize legacy totalMark values and title-case participant/competition names ONCE on load
     if (!dbNormalized) {
       const db = dbClient.get();
@@ -218,7 +218,7 @@ apiRouter.get('/public/gallery', async (req, res) => {
 // Authenticate session from HTTP-only cookie or custom Authorization header using JWT
 export async function authenticate(req: Request, res: Response, next: NextFunction) {
   const db = dbClient.get();
-  
+
   // Get token from cookie or authorization header
   const authHeader = req.headers.authorization;
   let token = '';
@@ -239,7 +239,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    
+
     // Find user
     const user = db.users.find(u => u.id === decoded.userId);
     if (!user || !user.active) {
@@ -248,7 +248,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
     // Attach user to request
     (req as any).user = user;
-    
+
     next();
   } catch (err: any) {
     if (err.name === 'TokenExpiredError') {
@@ -266,36 +266,36 @@ export function requireRole(roles: (UserRole | string)[]) {
       return res.status(403).json({ error: 'Access denied. You do not have permission for this resource.' });
     }
     const userRole = (user.role || '').toString().toLowerCase();
-    
+
     // DEMO VIEWER READ-ONLY SIMULATION BLOCK
     if (userRole === 'viewer' && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method.toUpperCase())) {
       // Allow preview/generate operations (e.g. certificates, posters, reports) to execute and render preview output
       const pathUrl = req.path.toLowerCase();
       const isGenerator = pathUrl.includes('/generate') || pathUrl.includes('/preview') || pathUrl.includes('/export') || pathUrl.includes('/print');
-      
+
       if (isGenerator) {
         return next();
       }
 
       // For standard data mutations (create/update/delete), simulate success cleanly without altering DB
-      return res.json({ 
-        success: true, 
+      return res.json({
+        success: true,
         message: 'Demo Mode (Viewer): Action simulated successfully! Changes are read-only and were not saved to database.',
-        demo: true 
+        demo: true
       });
     }
-    
+
     // Always allow management roles for CMS and media management
     const allowedManagement = ['developer', 'super_admin', 'superadmin', 'admin', 'committee', 'sector_team', 'media', 'staff', 'viewer'];
     if (allowedManagement.includes(userRole)) {
       return next();
     }
-    
+
     const roleStrings = roles.map(r => r.toString().toLowerCase());
     if (roleStrings.includes(userRole)) {
       return next();
     }
-    
+
     return res.status(403).json({ error: 'Access denied. You do not have permission for this resource.' });
   };
 }
@@ -305,7 +305,7 @@ export function calculateEligibleCategories(dobStr: string, educationStatus: str
   const db = dbClient.get();
   const hasDob = dobStr && dobStr.trim() !== '';
   const dob = hasDob ? new Date(dobStr) : new Date();
-  
+
   if (hasDob && isNaN(dob.getTime())) {
     return db.categories.map(c => ({ id: c.id, name: c.name, eligible: false, reason: 'Invalid date of birth' }));
   }
@@ -317,13 +317,13 @@ export function calculateEligibleCategories(dobStr: string, educationStatus: str
       const end = new Date(c.dobEnd);
       dobMatch = dob >= start && dob <= end;
     }
-    
+
     if (!dobMatch) {
-      return { 
-        id: c.id, 
-        name: c.name, 
-        eligible: false, 
-        reason: `DOB must be between ${c.dobStart} and ${c.dobEnd}` 
+      return {
+        id: c.id,
+        name: c.name,
+        eligible: false,
+        reason: `DOB must be between ${c.dobStart} and ${c.dobEnd}`
       };
     }
 
@@ -432,15 +432,15 @@ apiRouter.post('/auth/login', async (req, res) => {
 
   // Generate Session Token (JWT)
   const token = jwt.sign(
-    { 
-      userId: user.id, 
+    {
+      userId: user.id,
       username: user.username,
       role: user.role
     },
     JWT_SECRET,
     { expiresIn: '8h' }
   );
-  
+
   // Update last login timestamp
   user.lastLoginAt = new Date().toISOString();
   await dbClient.save();
@@ -532,14 +532,14 @@ apiRouter.post('/auth/change-password', authenticate, async (req, res) => {
   liveUser.passwordHash = bcrypt.hashSync(newPassword, salt);
   liveUser.mustChangePassword = false;
   liveUser.passwordChangedAt = new Date().toISOString();
-  
+
   await dbClient.logAudit(liveUser.id, liveUser.username, liveUser.role, 'Change Password', 'User', liveUser.id);
   await dbClient.save();
-  
+
   // Issue a fresh token after password change
   const token = jwt.sign(
-    { 
-      userId: liveUser.id, 
+    {
+      userId: liveUser.id,
       username: liveUser.username,
       role: liveUser.role
     },
@@ -611,7 +611,7 @@ apiRouter.post('/highlights/upload', authenticate, requireRole([UserRole.SUPER_A
 
     const collection = getCollection('videoHighlights');
     if (collection) {
-      await collection.insertOne({ ...highlight, _id: highlight.id }).catch(() => {});
+      await collection.insertOne({ ...highlight, _id: highlight.id }).catch(() => { });
     }
     const db = dbClient.get();
     if (!Array.isArray(db.videoHighlights)) db.videoHighlights = [];
@@ -645,7 +645,7 @@ apiRouter.delete('/highlights/:id', authenticate, requireRole([UserRole.SUPER_AD
   try {
     let highlight = null;
     const collection = getCollection('videoHighlights');
-    
+
     if (collection) {
       highlight = await collection.findOne({ _id: req.params.id });
       if (!highlight) {
@@ -655,7 +655,7 @@ apiRouter.delete('/highlights/:id', authenticate, requireRole([UserRole.SUPER_AD
     } else {
       const db = dbClient.get();
       const index = db.videoHighlights.findIndex((v: any) => v.id === req.params.id);
-      
+
       if (index === -1) {
         return res.status(404).json({ error: 'Video highlight not found' });
       }
@@ -663,7 +663,7 @@ apiRouter.delete('/highlights/:id', authenticate, requireRole([UserRole.SUPER_AD
       db.videoHighlights.splice(index, 1);
       await dbClient.save();
     }
-    
+
     // Optional: Delete physical file to save disk space
     if (highlight && highlight.videoUrl && highlight.videoUrl.startsWith('/data/uploads/videos/')) {
       const filename = highlight.videoUrl.split('/').pop();
@@ -742,7 +742,7 @@ apiRouter.post('/gallery/upload', authenticate, requireRole([UserRole.SUPER_ADMI
 
     const collection = getCollection('gallery');
     if (collection) {
-      await collection.insertOne({ ...item, _id: item.id }).catch(() => {});
+      await collection.insertOne({ ...item, _id: item.id }).catch(() => { });
     }
     const db = dbClient.get();
     if (!Array.isArray(db.gallery)) db.gallery = [];
@@ -755,10 +755,10 @@ apiRouter.post('/gallery/upload', authenticate, requireRole([UserRole.SUPER_ADMI
     );
 
     res.json({ success: true, item });
-    } catch (error: any) {
-      console.error('Upload error:', error);
-      res.status(500).json({ error: 'Failed to upload image: ' + (error.message || String(error)) });
-    }
+  } catch (error: any) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Failed to upload image: ' + (error.message || String(error)) });
+  }
 });
 
 apiRouter.get('/gallery', authenticate, async (req, res) => {
@@ -776,24 +776,24 @@ apiRouter.put('/gallery/:id/featured', authenticate, requireRole([UserRole.SUPER
     const { isFeatured } = req.body;
     let oldItem = null;
     let newItem = null;
-    
+
     const collection = getCollection('gallery');
     if (collection) {
       const item = await collection.findOne({ _id: req.params.id });
       if (!item) return res.status(404).json({ error: 'Gallery item not found' });
-      
+
       if (isFeatured) {
         const featuredCount = await collection.countDocuments({ isFeatured: true });
         if (featuredCount >= 8) return res.status(400).json({ error: 'Maximum 8 featured images allowed' });
       }
-      
+
       oldItem = { ...item };
       newItem = { ...item, isFeatured };
       await collection.updateOne({ _id: req.params.id }, { $set: { isFeatured } });
     } else {
       const db = dbClient.get();
       const index = db.gallery.findIndex((i: any) => i.id === req.params.id);
-      
+
       if (index === -1) {
         return res.status(404).json({ error: 'Gallery item not found' });
       }
@@ -828,7 +828,7 @@ apiRouter.delete('/gallery/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
   try {
     let item = null;
     const collection = getCollection('gallery');
-    
+
     if (collection) {
       item = await collection.findOne({ _id: req.params.id });
       if (!item) return res.status(404).json({ error: 'Gallery item not found' });
@@ -836,7 +836,7 @@ apiRouter.delete('/gallery/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
     } else {
       const db = dbClient.get();
       const index = db.gallery.findIndex((i: any) => i.id === req.params.id);
-      
+
       if (index === -1) {
         return res.status(404).json({ error: 'Gallery item not found' });
       }
@@ -845,7 +845,7 @@ apiRouter.delete('/gallery/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
       db.gallery.splice(index, 1);
       await dbClient.save();
     }
-    
+
     // Optional: Delete physical file to save disk space
     if (item && item.imageUrl && item.imageUrl.startsWith('/data/uploads/gallery/')) {
       const filename = item.imageUrl.split('/').pop();
@@ -896,7 +896,7 @@ apiRouter.get('/public/cms', async (req, res) => {
     const oldIndex = db.dragBlocks.findIndex((b: any) => b.title && b.title.includes('Photo Hub & Media Gallery'));
     if (oldIndex !== -1) {
       const oldBlock = db.dragBlocks[oldIndex];
-      db.dragBlocks.splice(oldIndex, 1, 
+      db.dragBlocks.splice(oldIndex, 1,
         { id: 'smile_block', title: 'Photo Hub (Drive & QR)', type: 'smile', enabled: oldBlock.enabled, order: oldBlock.order },
         { id: 'gallery_block', title: 'Media Gallery (Photo Uploads)', type: 'gallery', enabled: oldBlock.enabled, order: oldBlock.order + 1 }
       );
@@ -914,7 +914,7 @@ apiRouter.get('/public/cms', async (req, res) => {
 apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
   const prevSettings = { ...db.eventSettings };
-  
+
   if (req.body.posterTemplateConfig) {
     db.posterTemplateConfig = req.body.posterTemplateConfig;
   }
@@ -947,12 +947,12 @@ apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, User
   cleanOverrides(db.eventSettings.chestNumberOverrides);
   cleanOverrides(db.eventSettings.posterOverrides);
   cleanOverrides(db.eventSettings.certificateOverrides);
-  
+
   await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Update Event Settings', 'EventSettings', 'global', undefined, prevSettings, db.eventSettings);
   await dbClient.save();
-  
+
   // Do NOT return massive settings object back to the client!
-  res.json({ 
+  res.json({
     message: 'Settings updated successfully',
     success: true
   });
@@ -981,7 +981,7 @@ apiRouter.put('/cms', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.
   if (cmsSettings) db.cmsSettings = cmsSettings;
 
   await dbClient.save();
-  
+
   await dbClient.logAudit(
     (req as any).user.id, (req as any).user.username, (req as any).user.role,
     'UPDATE_CMS', 'System', 'cms_settings'
@@ -1043,7 +1043,7 @@ apiRouter.put('/units/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), a
   }
 
   const oldUnit = { ...db.units[unitIndex] };
-  
+
   if (code) {
     const normalizedCode = code.trim().toUpperCase();
     if (db.units.some(u => u.code === normalizedCode && u.id !== req.params.id)) {
@@ -1064,14 +1064,14 @@ apiRouter.put('/units/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), a
 apiRouter.delete('/units/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
   const db = dbClient.get();
   const unitId = req.params.id;
-  
+
   // Delete only if no related registrations or results
   const hasRegistrations = db.participants.some(p => p.unitId === unitId && !p.deletedAt);
   const hasTeams = db.teams.some(t => t.unitId === unitId && !t.deletedAt);
 
   if (hasRegistrations || hasTeams) {
-    return res.status(400).json({ 
-      error: 'Cannot delete unit. It has active participants or group teams registered. Deactivate the unit instead.' 
+    return res.status(400).json({
+      error: 'Cannot delete unit. It has active participants or group teams registered. Deactivate the unit instead.'
     });
   }
 
@@ -1093,7 +1093,7 @@ apiRouter.delete('/units/:id', authenticate, requireRole([UserRole.SUPER_ADMIN])
 
 apiRouter.get('/categories', async (req, res) => {
   const db = dbClient.get();
-  
+
   // Calculate minimum generated chest number per category
   const minChestNumbers: Record<string, number> = {};
   if (db.chestNumbers && Array.isArray(db.chestNumbers)) {
@@ -1285,24 +1285,24 @@ function generateCompCode(db: any, categoryId: string, name: string, requestedCo
   const category = (db.categories || []).find((c: any) => c.id === categoryId);
   const catLower = (category?.name || '').toLowerCase();
   let prefix = 'CMP';
-    if (catLower.includes('campus')) {
-      if (catLower.includes('junior')) prefix = 'CJ';
-      else if (catLower.includes('senior')) prefix = 'CS';
-      else if (catLower.includes('general')) prefix = 'CG';
-      else prefix = 'CP';
-    } else {
-      if (catLower.includes('sub') || catLower.includes('sj')) prefix = 'SJ';
-      else if (catLower.includes('junior') || catLower.includes('jr')) prefix = 'JR';
-      else if (catLower.includes('senior') || catLower.includes('sr')) prefix = 'SR';
-      else if (catLower.includes('general') || catLower.includes('gen')) prefix = 'GR';
-      else if (catLower.includes('primary') || catLower.includes('pr')) prefix = 'PR';
-      else if (catLower.includes('sec') || catLower.includes('high')) prefix = 'SEC';
-      else prefix = category.name.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'CMP';
-    }
+  if (catLower.includes('campus')) {
+    if (catLower.includes('junior')) prefix = 'CJ';
+    else if (catLower.includes('senior')) prefix = 'CS';
+    else if (catLower.includes('general')) prefix = 'CG';
+    else prefix = 'CP';
+  } else {
+    if (catLower.includes('sub') || catLower.includes('sj')) prefix = 'SJ';
+    else if (catLower.includes('junior') || catLower.includes('jr')) prefix = 'JR';
+    else if (catLower.includes('senior') || catLower.includes('sr')) prefix = 'SR';
+    else if (catLower.includes('general') || catLower.includes('gen')) prefix = 'GR';
+    else if (catLower.includes('primary') || catLower.includes('pr')) prefix = 'PR';
+    else if (catLower.includes('sec') || catLower.includes('high')) prefix = 'SEC';
+    else prefix = category.name.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'CMP';
+  }
 
   // Find all existing competitions matching category or prefix to find max numeric index
-  const compsInCat = (db.competitions || []).filter((c: any) => 
-    c.categoryId === categoryId || 
+  const compsInCat = (db.competitions || []).filter((c: any) =>
+    c.categoryId === categoryId ||
     (c.code && typeof c.code === 'string' && c.code.toUpperCase().startsWith(prefix))
   );
 
@@ -1454,8 +1454,8 @@ apiRouter.post('/competitions/bulk', authenticate, requireRole([UserRole.SUPER_A
     const name = (item.name || '').toString().trim();
     if (!name) continue;
 
-    let cat = db.categories.find(c => 
-      c.id === item.categoryId || 
+    let cat = db.categories.find(c =>
+      c.id === item.categoryId ||
       c.name.toLowerCase() === (item.category || item.categoryName || '').toString().trim().toLowerCase()
     );
     if (!cat && db.categories.length > 0) cat = db.categories[0];
@@ -1500,7 +1500,7 @@ apiRouter.post('/participants/check-eligibility', async (req, res) => {
 apiRouter.get('/participants', authenticate, async (req, res) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
-  
+
   let participants = db.participants.filter(p => !p.deletedAt);
 
   // Unit Team Leader Isolation: Can only see their unit's participants
@@ -1552,8 +1552,8 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
       const fullName = (item.fullName || item.name || '').toString().trim();
       if (!fullName) continue;
 
-      let unit = db.units.find(u => 
-        u.id === item.unitId || 
+      let unit = db.units.find(u =>
+        u.id === item.unitId ||
         u.name.toLowerCase() === (item.unitName || item.unit || item.house || '').toString().trim().toLowerCase() ||
         u.code.toLowerCase() === (item.unitCode || '').toString().trim().toLowerCase()
       );
@@ -1714,12 +1714,12 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
 
   // Check registration lock for Unit Leaders
   if (!db.eventSettings.registrationOpen && user.role === UserRole.UNIT_TEAM_LEADER) {
-    return res.status(400).json({ error: 'Registration process is currently closed/disabled by the sector team.' });
+    return res.status(400).json({ error: 'Registration process is currently closed/disabled by the festival team.' });
   }
 
-  const { 
-    fullName, dob, unitId, gender, educationStatus, 
-    selectedCategoryId, institution, course, yearSemester, 
+  const {
+    fullName, dob, candidateClass, unitId, gender, educationStatus,
+    selectedCategoryId, institution, course, yearSemester,
     phone, guardianPhone, address, notes, selectedCompetitionIds
   } = req.body;
 
@@ -1737,10 +1737,10 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
   // Split selected competition IDs into Individual and Group to verify limits:
   // Maximum 3 individual events, 2 group events per participant!
   const competitionIds: string[] = selectedCompetitionIds || [];
-  const individualCompetitions = db.competitions.filter(c => 
+  const individualCompetitions = db.competitions.filter(c =>
     competitionIds.includes(c.id) && c.participationType === ParticipationType.INDIVIDUAL
   );
-  const groupCompetitions = db.competitions.filter(c => 
+  const groupCompetitions = db.competitions.filter(c =>
     competitionIds.includes(c.id) && c.participationType === ParticipationType.GROUP
   );
 
@@ -1782,6 +1782,7 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
     id: participantId,
     fullName: toTitleCase(fullName),
     dob,
+    candidateClass: candidateClass || req.body.candidateClass || undefined,
     unitId: finalUnitId,
     gender: gender || Gender.MALE,
     educationStatus,
@@ -1804,10 +1805,10 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
   // Auto-create or link Group Teams when candidate registers for group competitions
   for (const groupComp of groupCompetitions) {
     // Find an existing team for this unit & group competition that HAS SPACE (memberIds.length < groupComp.teamSize)
-    let availableTeam = db.teams.find(t => 
-      t.unitId === finalUnitId && 
-      t.competitionId === groupComp.id && 
-      !t.deletedAt && 
+    let availableTeam = db.teams.find(t =>
+      t.unitId === finalUnitId &&
+      t.competitionId === groupComp.id &&
+      !t.deletedAt &&
       t.memberIds.length < groupComp.teamSize
     );
 
@@ -1837,19 +1838,20 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
       db.teams.push(autoTeam);
     }
   }
-  
+
   // Store selected competitions in a new Registration record
-  const registration: Registration = {
+  const registration: any = {
     id: `reg_${Date.now()}`,
     participantId: newParticipant.id,
     categoryId: selectedCategoryId,
+    candidateClass: candidateClass || req.body.candidateClass || undefined,
     selectedIndividualCompetitionIds: individualCompetitions.map(c => c.id),
     selectedGroupTeamIds: groupCompetitions.map(c => c.id),
     registrationStatus: 'confirmed',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
-  
+
   if (!db.hasOwnProperty('registrations')) {
     (db as any).registrations = [];
   }
@@ -1859,10 +1861,10 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
 
   await dbClient.save();
 
-  res.json({ 
-    message: 'Participant registered successfully', 
+  res.json({
+    message: 'Participant registered successfully',
     participant: newParticipant,
-    chestNumber: generatedChest?.chestNumber 
+    chestNumber: generatedChest?.chestNumber
   });
 });
 
@@ -1877,7 +1879,7 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
   }
 
   const partId = req.params.id;
-  
+
   const partIndex = db.participants.findIndex(p => p.id === partId && !p.deletedAt);
   if (partIndex === -1) {
     return res.status(404).json({ error: 'Participant not found.' });
@@ -1890,7 +1892,7 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
     return res.status(403).json({ error: 'Access denied. You can only manage participants from your own unit.' });
   }
 
-  const { 
+  const {
     fullName, dob, educationStatus, selectedCategoryId, gender,
     institution, course, yearSemester, phone, guardianPhone, address, notes,
     selectedCompetitionIds
@@ -1910,10 +1912,10 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
   // Update competition limits
   if (selectedCompetitionIds) {
     const competitionIds: string[] = selectedCompetitionIds;
-    const individualCompetitions = db.competitions.filter(c => 
+    const individualCompetitions = db.competitions.filter(c =>
       competitionIds.includes(c.id) && c.participationType === ParticipationType.INDIVIDUAL
     );
-    const groupCompetitions = db.competitions.filter(c => 
+    const groupCompetitions = db.competitions.filter(c =>
       competitionIds.includes(c.id) && c.participationType === ParticipationType.GROUP
     );
 
@@ -1964,6 +1966,7 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
       (db as any).registrations.push(reg);
     }
     reg.categoryId = finalCat;
+    if (req.body.candidateClass !== undefined) reg.candidateClass = req.body.candidateClass;
     reg.selectedIndividualCompetitionIds = individualCompetitions.map(c => c.id);
     reg.selectedGroupCompetitionIds = groupCompetitions.map(c => c.id);
     reg.updatedAt = new Date().toISOString();
@@ -1983,10 +1986,10 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
       for (const groupComp of groupCompetitions) {
         const alreadyInTeam = db.teams.some(t => !t.deletedAt && t.competitionId === groupComp.id && t.memberIds && t.memberIds.includes(partId));
         if (!alreadyInTeam) {
-          const availableTeam = db.teams.find(t => 
-            t.unitId === existingPart.unitId && 
-            t.competitionId === groupComp.id && 
-            !t.deletedAt && 
+          const availableTeam = db.teams.find(t =>
+            t.unitId === existingPart.unitId &&
+            t.competitionId === groupComp.id &&
+            !t.deletedAt &&
             t.memberIds &&
             t.memberIds.length < groupComp.teamSize
           );
@@ -2027,7 +2030,7 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
   if (guardianPhone !== undefined) existingPart.guardianPhone = guardianPhone;
   if (address !== undefined) existingPart.address = address;
   if (notes !== undefined) existingPart.notes = notes;
-  
+
   if (req.body.unitId && user.role === UserRole.SUPER_ADMIN) {
     existingPart.unitId = req.body.unitId;
   }
@@ -2100,7 +2103,7 @@ let teamsHealed = false;
 apiRouter.get('/teams', authenticate, async (req, res) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
-  
+
   // Auto-heal team names & team capacity limits for existing database records (run once on load)
   if (!teamsHealed) {
     let modifiedDB = false;
@@ -2217,17 +2220,17 @@ apiRouter.post('/teams', authenticate, async (req, res) => {
 
     // Limit checks: Make sure this participant has not exceeded 2 group events
     // Let's count current group teams where this participant is a member
-    const currentMemberTeams = db.teams.filter(t => 
+    const currentMemberTeams = db.teams.filter(t =>
       t.memberIds.includes(p.id) && !t.deletedAt && t.competitionId !== competitionId
     );
     if (currentMemberTeams.length >= db.eventSettings.maxGroupEvents) {
-      return res.status(400).json({ 
-        error: `Member ${p.fullName} has already reached the limit of ${db.eventSettings.maxGroupEvents} group competitions.` 
+      return res.status(400).json({
+        error: `Member ${p.fullName} has already reached the limit of ${db.eventSettings.maxGroupEvents} group competitions.`
       });
     }
 
     // Prevent duplicate team membership for same competition
-    const isAlreadyInSameComp = db.teams.some(t => 
+    const isAlreadyInSameComp = db.teams.some(t =>
       t.competitionId === competitionId && t.memberIds.includes(p.id) && !t.deletedAt
     );
     if (isAlreadyInSameComp) {
@@ -2252,7 +2255,7 @@ apiRouter.post('/teams', authenticate, async (req, res) => {
   };
 
   db.teams.push(newTeam);
-  
+
   // Log Audit
   await dbClient.logAudit(user.id, user.username, user.role, 'Create Group Team', 'Team', newTeam.id, finalUnitId, undefined, newTeam);
   await dbClient.save();
@@ -2311,7 +2314,7 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
       }
 
       // Max group event counts
-      const currentMemberTeams = db.teams.filter(t => 
+      const currentMemberTeams = db.teams.filter(t =>
         t.memberIds.includes(p.id) && !t.deletedAt && t.id !== teamId
       );
       if (currentMemberTeams.length >= db.eventSettings.maxGroupEvents) {
@@ -2321,7 +2324,7 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
 
     team.memberIds = memberIds;
   }
-  
+
   // Always enforce team name to be based on the first member
   const firstMember = db.participants.find(p => p.id === team.memberIds[0]);
   if (firstMember) {
@@ -2403,8 +2406,8 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
   }
 
   // Check duplicates
-  const existingResult = db.results.find(r => 
-    r.competitionId === competitionId && 
+  const existingResult = db.results.find(r =>
+    r.competitionId === competitionId &&
     ((participantId && r.participantId === participantId) || (teamId && r.teamId === teamId)) &&
     !r.deletedAt
   );
@@ -2448,8 +2451,8 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     sheet.updatedAt = new Date().toISOString();
 
     // Find the green room assignment for this participant/team
-    const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) => 
-      a.competitionId === competitionId && 
+    const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) =>
+      a.competitionId === competitionId &&
       !a.deletedAt &&
       ((participantId && a.participantId === participantId) || (teamId && a.teamId === teamId))
     );
@@ -2457,7 +2460,7 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     if (gr) {
       // Find or create JudgeScore
       let score = (db.judgeScores || []).find((s: JudgeScore) => s.judgmentSheetId === sheet?.id && s.greenRoomAssignmentId === gr.id);
-      
+
       let judgeScoreStatus = JudgeScoreStatus.PARTICIPATED;
       if (newResult.status === ResultStatus.ABSENT) judgeScoreStatus = JudgeScoreStatus.ABSENT;
       if (newResult.status === ResultStatus.DISQUALIFIED) judgeScoreStatus = JudgeScoreStatus.DISQUALIFIED;
@@ -2569,17 +2572,17 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
     if (resultObj.publishedStatus !== undefined) {
       sheet.publishedToResults = resultObj.publishedStatus;
     }
-    
+
     // Find green room assignment
-    const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) => 
-      a.competitionId === resultObj.competitionId && 
+    const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) =>
+      a.competitionId === resultObj.competitionId &&
       !a.deletedAt &&
       ((resultObj.participantId && a.participantId === resultObj.participantId) || (resultObj.teamId && a.teamId === resultObj.teamId))
     );
 
     if (gr) {
       let score = (db.judgeScores || []).find((s: JudgeScore) => s.judgmentSheetId === sheet?.id && s.greenRoomAssignmentId === gr.id);
-      
+
       let judgeScoreStatus = JudgeScoreStatus.PARTICIPATED;
       if (resultObj.status === ResultStatus.ABSENT) judgeScoreStatus = JudgeScoreStatus.ABSENT;
       if (resultObj.status === ResultStatus.DISQUALIFIED) judgeScoreStatus = JudgeScoreStatus.DISQUALIFIED;
@@ -2933,10 +2936,10 @@ apiRouter.post('/users/:id/force-reset-password', authenticate, requireRole([Use
 apiRouter.post('/users/:id/logout', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
   const userId = req.params.id;
-  
+
   // Note: With stateless JWTs, forceful logout requires a token blacklist or updating a sessionVersion on the user object.
   // For now, we just log the action.
-  
+
   await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Force Logout Sessions', 'User', userId);
   await dbClient.save();
 
@@ -2979,12 +2982,12 @@ apiRouter.delete('/users/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, 
 apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
-  
+
   // Scoped filters
   let participants = db.participants.filter(p => !p.deletedAt);
   let teams = db.teams.filter(t => !t.deletedAt);
   let results = db.results.filter(r => !r.deletedAt);
-  
+
   // Global stats are now shown to all users, including unit team leaders, 
   // so they can see complete announced results and standings.
   // Registrations counts
@@ -3006,7 +3009,7 @@ apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
   // Find all active competitions that have at least 1 valid registration (individual or team)
   const activeCompetitions = db.competitions.filter(comp => {
     if (!comp.active) return false;
-    
+
     if (comp.participationType === ParticipationType.INDIVIDUAL) {
       // Check if any individual is registered for this competition
       const regsInComp = (db as any).registrations?.filter((r: any) => r.selectedIndividualCompetitionIds.includes(comp.id)) || [];
@@ -3119,10 +3122,10 @@ apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
 
 apiRouter.get('/dashboard-stats/pending-competitions', authenticate, async (req, res) => {
   const db = dbClient.get();
-  
+
   const activeCompetitions = db.competitions.filter(comp => {
     if (!comp.active) return false;
-    
+
     if (comp.participationType === ParticipationType.INDIVIDUAL) {
       const regsInComp = (db as any).registrations?.filter((r: any) => r.selectedIndividualCompetitionIds.includes(comp.id)) || [];
       const hasActiveReg = regsInComp.some((r: any) => {
@@ -3175,8 +3178,8 @@ function generateNextChestNumber(db: any, categoryId: string, userId: string, pa
 
   const category = (db.categories || []).find((c: Category) => c.id === categoryId);
   const catIndex = (db.categories || []).findIndex((c: Category) => c.id === categoryId);
-  let startNum = (category && category.startingChestNumber) 
-    ? Number(category.startingChestNumber) 
+  let startNum = (category && category.startingChestNumber)
+    ? Number(category.startingChestNumber)
     : (catIndex >= 0 ? (catIndex + 1) * 100 + 1 : 101);
 
   // Safeguard against legacy 1000-based values
@@ -3223,7 +3226,7 @@ apiRouter.get('/chest-numbers', authenticate, async (req, res) => {
   const activeParticipants = db.participants.filter(p => !p.deletedAt);
   const activeParticipantIds = new Set(activeParticipants.map(p => p.id));
 
-  const chestNumbers = (db.chestNumbers || []).filter((cn: ChestNumber) => 
+  const chestNumbers = (db.chestNumbers || []).filter((cn: ChestNumber) =>
     !cn.deletedAt && activeParticipantIds.has(cn.participantId)
   );
 
@@ -3254,7 +3257,7 @@ apiRouter.get('/chest-numbers/stats', authenticate, async (req, res) => {
   const activeParticipants = db.participants.filter(p => !p.deletedAt);
   const activeParticipantIds = new Set(activeParticipants.map(p => p.id));
 
-  const activeChests = (db.chestNumbers || []).filter((cn: ChestNumber) => 
+  const activeChests = (db.chestNumbers || []).filter((cn: ChestNumber) =>
     !cn.deletedAt && activeParticipantIds.has(cn.participantId)
   );
 
@@ -3336,7 +3339,7 @@ apiRouter.post('/chest-numbers/generate-bulk', authenticate, requireRole([UserRo
 
   const activeParticipants = db.participants.filter(p => !p.deletedAt);
   const existingParticipantIds = new Set(db.chestNumbers.filter((cn: ChestNumber) => !cn.deletedAt).map((cn: ChestNumber) => cn.participantId));
-  
+
   const missing = activeParticipants.filter(p => !existingParticipantIds.has(p.id));
 
   const generated: ChestNumber[] = [];
@@ -3545,14 +3548,14 @@ apiRouter.get('/green-room', authenticate, async (req, res) => {
 apiRouter.get('/green-room/stats', authenticate, async (req, res) => {
   const db = dbClient.get();
   const assignments = (db.greenRoomAssignments || []).filter((a: GreenRoomAssignment) => !a.deletedAt);
-  
+
   // Total competitions that have registrations
   const allComps = db.competitions.filter(c => c.active);
   const assignedCompIds = new Set(assignments.map((a: GreenRoomAssignment) => a.competitionId));
-  
+
   const printedAssignments = assignments.filter((a: GreenRoomAssignment) => a.status === GreenRoomStatus.PRINTED || a.status === GreenRoomStatus.CHECKED_IN || a.status === GreenRoomStatus.STAGE_READY);
   const printedCompIds = new Set(printedAssignments.map((a: GreenRoomAssignment) => a.competitionId));
-  
+
   res.json({
     totalCompetitions: allComps.length,
     assigned: assignedCompIds.size,
@@ -3581,7 +3584,7 @@ apiRouter.get('/green-room/competition/:competitionId', authenticate, async (req
       const t = db.teams.find(team => team.id === a.teamId);
       participantName = t?.teamNumber || 'Unknown Team';
       unitName = db.units.find(u => u.id === t?.unitId)?.name || 'Unknown';
-      
+
       if (t && t.memberIds && t.memberIds.length > 0) {
         const memberChestNumbers = t.memberIds.map(mid => {
           const cn = (db.chestNumbers || []).find(c => c.participantId === mid && !c.deletedAt);
@@ -3679,7 +3682,7 @@ apiRouter.post('/green-room/generate', authenticate, requireRole([UserRole.SUPER
   db.greenRoomAssignments.push(...assignments);
 
   const categoryName = categoryMap.get(competition.categoryId)?.name || 'Unknown';
-  
+
   const enrichedAssignments = assignments.map(a => {
     let participantName = '';
     let unitName = '';
@@ -3784,7 +3787,7 @@ apiRouter.post('/green-room/regenerate', authenticate, requireRole([UserRole.SUP
   db.greenRoomAssignments.push(...assignments);
 
   const categoryName = categoryMap.get(competition.categoryId)?.name || 'Unknown';
-  
+
   const enrichedAssignments = assignments.map(a => {
     let participantName = '';
     let unitName = '';
@@ -3887,7 +3890,7 @@ apiRouter.get('/judgment-sheets', authenticate, async (req, res) => {
 
     let currentStatus = s.status;
     const isPublished = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt && r.publishedStatus);
-    
+
     if (isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
       currentStatus = JudgmentSheetStatus.LOCKED;
     }
@@ -4024,7 +4027,7 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
 
   // For judges, NEVER show participant identity
   const isJudge = user.role === UserRole.JUDGE;
-  
+
   const enrichedScores = scores.map((s: JudgeScore) => {
     const nonZeroMarks = (s.judgeScores || []).filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
     const sumMarks = (s.judgeScores || []).reduce((sum: number, jm: any) => sum + (typeof jm.mark === 'number' && !Number.isNaN(jm.mark) ? jm.mark : 0), 0);
@@ -4046,11 +4049,11 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
     // Only non-judge users get to see the mapping (for result management)
     if (!isJudge) {
       const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) => a.id === s.greenRoomAssignmentId);
-      
+
       // If result is published, overlay the actual published marks onto this view
-      const publishedResult = db.results.find(r => 
-        r.competitionId === sheet.competitionId && 
-        !r.deletedAt && 
+      const publishedResult = db.results.find(r =>
+        r.competitionId === sheet.competitionId &&
+        !r.deletedAt &&
         r.publishedStatus &&
         ((gr?.participantId && r.participantId === gr.participantId) || (gr?.teamId && r.teamId === gr.teamId))
       );
@@ -4062,11 +4065,11 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
         const activeCount = (j1Val > 0 ? 1 : 0) + (j2Val > 0 ? 1 : 0) || 1;
         base.averageMark = s.averageMark !== undefined ? s.averageMark : (publishedResult.averageMark !== undefined ? publishedResult.averageMark : Math.round(((j1Val + j2Val) / activeCount) * 100) / 100);
         base.rank = publishedResult.rank;
-        
+
         // Reconstruct judge scores for display if missing or overwrite with published
         let j1 = base.judgeScores.find((j: any) => j.judgeNumber === 1);
         let j2 = base.judgeScores.find((j: any) => j.judgeNumber === 2);
-        
+
         if (!j1) { j1 = { judgeNumber: 1, mark: publishedResult.judge1Mark }; base.judgeScores.push(j1); } else { j1.mark = publishedResult.judge1Mark || j1.mark; }
         if (!j2) { j2 = { judgeNumber: 2, mark: publishedResult.judge2Mark }; base.judgeScores.push(j2); } else { j2.mark = publishedResult.judge2Mark || j2.mark; }
       }
@@ -4081,7 +4084,7 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
           const t = db.teams.find(team => team.id === gr.teamId);
           base.participantName = t?.teamName || t?.teamNumber;
           base.unitName = db.units.find(u => u.id === t?.unitId)?.name;
-          
+
           if (t && t.memberIds && t.memberIds.length > 0) {
             const memberChestNumbers = t.memberIds.map(mid => {
               const cn = (db.chestNumbers || []).find(c => c.participantId === mid && !c.deletedAt);
@@ -4242,7 +4245,7 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
   const allScores = (db.judgeScores || []).filter((s: JudgeScore) => s.judgmentSheetId === sheetId);
   const hasAnyScores = allScores.some(s => s.judgeScores.length > 0 || s.status !== JudgeScoreStatus.PARTICIPATED);
   const allComplete = allScores.every(s => s.judgeScores.length >= sheet.numJudges || s.status !== JudgeScoreStatus.PARTICIPATED);
-  
+
   if (allComplete && allScores.length > 0) {
     sheet.status = JudgmentSheetStatus.COMPLETED;
   } else if (hasAnyScores) {
@@ -4403,14 +4406,14 @@ apiRouter.post('/results/:id/publish-certificate', authenticate, requireRole([Us
   const { published } = req.body;
   const result = db.results.find(r => r.id === req.params.id && !r.deletedAt);
   if (!result) return res.status(404).json({ error: 'Result not found' });
-  
+
   result.certificatePublished = published !== undefined ? published : true;
   result.updatedAt = new Date().toISOString();
   result.updatedBy = user.id;
-  
+
   await dbClient.logAudit(user.id, user.username, user.role, `${published ? 'Publish' : 'Unpublish'} Certificate for ${result.id}`, 'Certificate', result.id);
   await dbClient.save();
-  
+
   res.json({ success: true, certificatePublished: result.certificatePublished });
 });
 
@@ -4452,18 +4455,18 @@ apiRouter.get('/public/standings', async (req, res) => {
 // Public Published Results
 apiRouter.get('/public/results', async (req, res) => {
   const db = dbClient.get();
-  
+
   const enrichedResults = db.results
     .filter(r => !r.deletedAt && r.publishedStatus)
     .map(r => {
       const comp = db.competitions.find(c => c.id === r.competitionId);
       const cat = db.categories.find(c => c.id === r.categoryId);
-      
+
       let participantName = '';
       let codeNumber = '';
       let department = '';
       let participationType = comp?.participationType === 'group' ? 'Group' : 'Individual';
-      
+
       let teamMemberIds: string[] = [];
       if (r.participantId) {
         const p = db.participants.find(p => p.id === r.participantId);
@@ -4484,7 +4487,7 @@ apiRouter.get('/public/results', async (req, res) => {
           teamMemberIds = t.memberIds || [];
         }
       }
-      
+
       // Calculate points dynamically based on rank, category points, and eventSettings
       let points = 0;
       if (r.rank && r.rank <= 10) {
@@ -4508,7 +4511,7 @@ apiRouter.get('/public/results', async (req, res) => {
           points = defaultMap[r.rank] || 0;
         }
       }
-      
+
       let grade = 'D';
       const m = r.totalMark || 0;
       if (m >= 90) grade = 'A+';
@@ -4519,7 +4522,7 @@ apiRouter.get('/public/results', async (req, res) => {
       else if (m >= 40) grade = 'C';
       else if (m >= 30) grade = 'D+';
       else grade = 'D';
-      
+
       return {
         id: r.id,
         competitionId: r.competitionId,
@@ -4546,16 +4549,16 @@ apiRouter.get('/public/results', async (req, res) => {
         }
       };
     });
-    
+
   res.json(enrichedResults);
 });
 
 function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string) {
   const cNum = (db.chestNumbers || []).find((c: any) => c.participantId === participant.id);
   const unit = (db.units || []).find((u: any) => u.id === participant.unitId || (cNum && u.id === cNum.unitId));
-  const category = (db.categories || []).find((c: any) => 
-    c.id === participant.categoryId || 
-    c.id === participant.selectedCategoryId || 
+  const category = (db.categories || []).find((c: any) =>
+    c.id === participant.categoryId ||
+    c.id === participant.selectedCategoryId ||
     (cNum && c.id === cNum.categoryId)
   );
 
@@ -4579,12 +4582,12 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
       if (res.competitionId !== compId) return false;
       const rPartId = res.participantId || res.raw?.participantId;
       const rCode = (res.codeNumber || res.chestNumber || res.raw?.codeNumber || res.raw?.chestNumber || '').toString();
-      
-      return (rPartId && rPartId === participant.id) || 
-             (rCode && chestNumStr && rCode === chestNumStr) ||
-             (!rPartId && !rCode && res.participantName === participant.fullName);
+
+      return (rPartId && rPartId === participant.id) ||
+        (rCode && chestNumStr && rCode === chestNumStr) ||
+        (!rPartId && !rCode && res.participantName === participant.fullName);
     });
-    
+
     return {
       id: compId,
       competitionId: compId,
@@ -4602,10 +4605,10 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
     const cat = (db.categories || []).find((c: any) => c.id === (comp?.categoryId || participant.selectedCategoryId || participant.categoryId));
     const hasResult = (db.results || []).some((res: any) => {
       if (res.competitionId !== t.competitionId) return false;
-      return (res.teamId === t.id) || 
-             (res.raw && Array.isArray(res.raw.teamMemberIds) && res.raw.teamMemberIds.includes(participant.id));
+      return (res.teamId === t.id) ||
+        (res.raw && Array.isArray(res.raw.teamMemberIds) && res.raw.teamMemberIds.includes(participant.id));
     });
-    
+
     return {
       id: t.id,
       competitionId: t.competitionId,
@@ -4630,13 +4633,13 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
 apiRouter.post('/public/auth/participant-login', async (req, res) => {
   const { chestNumber, dob, candidateClass, classVal } = req.body;
   const db = dbClient.get();
-  
+
   const cNum = db.chestNumbers.find(c => c.chestNumber.toString() === chestNumber);
   if (!cNum) return res.status(401).json({ error: 'Invalid Chest Number' });
-  
+
   const participant = db.participants.find(p => p.id === cNum.participantId && !p.deletedAt);
   if (!participant) return res.status(401).json({ error: 'Participant not found' });
-  
+
   const criteriaMode = db.eventSettings?.participantLoginCriteria || 'dob';
   if (criteriaMode === 'class') {
     const val = (candidateClass || classVal || dob || '').toString().trim().toLowerCase();
@@ -4649,7 +4652,7 @@ apiRouter.post('/public/auth/participant-login', async (req, res) => {
       return res.status(401).json({ error: 'Incorrect Date of Birth' });
     }
   }
-  
+
   const enriched = getEnrichedParticipant(participant, db, cNum.chestNumber.toString());
   const token = jwt.sign({ participantId: participant.id, role: 'participant' }, JWT_SECRET || 'fallback', { expiresIn: '8h' });
   res.json({ token, participant: enriched });
@@ -4658,21 +4661,21 @@ apiRouter.post('/public/auth/participant-login', async (req, res) => {
 apiRouter.get('/public/participant/by-chest/:chestNo', async (req, res) => {
   const { chestNo } = req.params;
   const db = dbClient.get();
-  
+
   const cNum = (db.chestNumbers || []).find((c: any) => c.chestNumber.toString().toLowerCase() === chestNo.trim().toLowerCase());
   let participant = cNum ? (db.participants || []).find((p: any) => p.id === cNum.participantId && !p.deletedAt) : null;
-  
+
   if (!participant) {
-    participant = (db.participants || []).find((p: any) => 
+    participant = (db.participants || []).find((p: any) =>
       !p.deletedAt && (
         (p.chestNumber && p.chestNumber.toString().toLowerCase() === chestNo.trim().toLowerCase()) ||
         (p.codeNumber && p.codeNumber.toString().toLowerCase() === chestNo.trim().toLowerCase())
       )
     );
   }
-  
+
   if (!participant) return res.status(404).json({ error: 'Participant not found' });
-  
+
   const enriched = getEnrichedParticipant(participant, db, chestNo.trim());
   res.json({ participant: enriched });
 });
@@ -4680,16 +4683,16 @@ apiRouter.get('/public/participant/by-chest/:chestNo', async (req, res) => {
 apiRouter.get('/public/participant/me', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
-  
+
   try {
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, JWT_SECRET || 'fallback') as any;
     if (decoded.role !== 'participant') return res.status(403).json({ error: 'Forbidden' });
-    
+
     const db = dbClient.get();
     const participant = db.participants.find(p => p.id === decoded.participantId && !p.deletedAt);
     if (!participant) return res.status(404).json({ error: 'Participant not found' });
-    
+
     const enriched = getEnrichedParticipant(participant, db);
     res.json({ participant: enriched });
   } catch (err) {
@@ -4716,7 +4719,7 @@ apiRouter.post('/about/upload', authenticate, upload.single('image'), async (req
     const file = req.file;
     if (!file) return res.status(400).json({ error: 'No image file' });
     const url = await processUploadFile(file, 'sahityotsav_about');
-    
+
     const db = dbClient.get();
     if (!db.cmsSettings) db.cmsSettings = {} as any;
     db.cmsSettings.aboutImage = url;
@@ -4788,21 +4791,21 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
   try {
     const { participants } = req.body;
     if (!Array.isArray(participants)) return res.status(400).json({ error: 'Invalid payload' });
-    
+
     const db = dbClient.get();
     let imported = 0;
-    
+
     for (const p of participants) {
       if (!p.fullName) continue;
-      
+
       const catNameStr = p.categoryName ? p.categoryName.toLowerCase() : '';
       let cat = db.categories.find(c => c.name.toLowerCase() === catNameStr);
       if (!cat && db.categories.length > 0) cat = db.categories[0];
-      
+
       const unitNameStr = p.unitName ? p.unitName.toLowerCase() : '';
       let unit = db.units.find(u => u.name.toLowerCase() === unitNameStr);
       if (!unit && db.units.length > 0) unit = db.units[0];
-      
+
       if (!cat || !unit) continue;
 
       const prefix = cat.name.substring(0, 3).toUpperCase();
@@ -4815,7 +4818,7 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
         if (nums.length > 0) highestCode = Math.max(...nums);
       }
       const newCodeFormatted = `${prefix}${highestCode + 1}`;
-      
+
       const newId = crypto.randomUUID();
       const now = new Date().toISOString();
       db.participants.push({
@@ -4834,7 +4837,7 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
         createdAt: now,
         updatedAt: now
       });
-      
+
       db.chestNumbers.push({
         id: crypto.randomUUID(),
         entityId: newId,
@@ -4844,7 +4847,7 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
       });
       imported++;
     }
-    
+
     dbClient.save();
     res.json({ success: true, imported, message: `Successfully imported ${imported} participants` });
   } catch (err: any) {
@@ -4857,13 +4860,13 @@ apiRouter.post('/competitions/bulk', authenticate, requireRole([UserRole.SUPER_A
   try {
     const { competitions } = req.body;
     if (!Array.isArray(competitions)) return res.status(400).json({ error: 'Invalid payload' });
-    
+
     const db = dbClient.get();
     let imported = 0;
-    
+
     for (const c of competitions) {
       if (!c.name) continue;
-      
+
       const catNameStr = c.categoryName ? c.categoryName.toLowerCase() : '';
       let cat = db.categories.find(cat => cat.name.toLowerCase() === catNameStr);
       if (!cat && db.categories.length > 0) cat = db.categories[0];
@@ -4892,7 +4895,7 @@ apiRouter.post('/competitions/bulk', authenticate, requireRole([UserRole.SUPER_A
       });
       imported++;
     }
-    
+
     dbClient.save();
     res.json({ success: true, imported, message: `Successfully imported ${imported} competitions` });
   } catch (err: any) {
@@ -4905,40 +4908,40 @@ apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN,
   try {
     const { results } = req.body;
     if (!Array.isArray(results)) return res.status(400).json({ error: 'Invalid payload' });
-    
+
     const db = dbClient.get();
     let imported = 0;
-    
+
     for (const r of results) {
       if (!r.competitionName || !r.chestNumber) continue;
-      
+
       const comp = db.competitions.find(c => c.name.toLowerCase() === r.competitionName.toLowerCase());
       if (!comp) continue;
-      
+
       const chestRecord = db.chestNumbers.find(cn => cn.codeNumber && cn.codeNumber.toUpperCase() === r.chestNumber.toUpperCase() && cn.categoryId === comp.categoryId);
       if (!chestRecord) continue;
-      
+
       let participantId: string | undefined;
       let teamId: string | undefined;
-      
+
       if (chestRecord.participationType === 'individual' || (chestRecord.participationType as any) === 'individual') {
         participantId = chestRecord.entityId;
       } else {
         teamId = chestRecord.entityId;
       }
-      
-      const existing = db.results.find(res => res.competitionId === comp.id && 
+
+      const existing = db.results.find(res => res.competitionId === comp.id &&
         ((participantId && res.participantId === participantId) || (teamId && res.teamId === teamId)));
-        
+
       if (existing) continue;
-      
+
       const j1 = r.judge1Mark || 0;
       const j2 = r.judge2Mark || 0;
       const total = j1 + j2;
       const sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === comp.id && !s.deletedAt);
       const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
       const average = Math.round((total / activeCount) * 100) / 100;
-      
+
       db.results.push({
         id: crypto.randomUUID(),
         competitionId: comp.id,
@@ -4958,17 +4961,17 @@ apiRouter.post('/results/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN,
       });
       imported++;
     }
-    
+
     const affectedComps = new Set<string>();
     for (const r of results) {
       const comp = db.competitions.find(c => c.name.toLowerCase() === (r.competitionName || '').toLowerCase());
       if (comp) affectedComps.add(comp.id);
     }
-    
+
     for (const compId of Array.from(affectedComps)) {
       CalculationService.calculateCompetitionRanks(compId);
     }
-    
+
     dbClient.save();
     res.json({ success: true, imported, message: `Successfully imported ${imported} results` });
   } catch (err: any) {

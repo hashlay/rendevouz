@@ -251,6 +251,12 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       const userReg = Array.isArray(regs) ? regs.find((r: any) => r.participantId === p.id) : null;
       if (userReg) {
         setEditComps(userReg.selectedIndividualCompetitionIds || []);
+        if (!p.candidateClass && userReg.candidateClass) {
+          const regClass = userReg.candidateClass.startsWith('Class ')
+            ? userReg.candidateClass
+            : (availableClasses.find(c => c === `Class ${userReg.candidateClass}`) || userReg.candidateClass);
+          setEditCandidateClass(regClass);
+        }
       } else {
         setEditComps([]);
       }
@@ -968,13 +974,10 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
-                    Class / Grade {criteriaMode === 'class' ? <span className="text-emerald-600 font-bold">(Auto-Selected)</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
-                  </label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Class / Grade</label>
                   <select
                     value={editCandidateClass}
                     onChange={(e) => setEditCandidateClass(e.target.value)}
-                    required={criteriaMode === 'class'}
                     className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold bg-white cursor-pointer"
                   >
                     <option value="">Select Class</option>
