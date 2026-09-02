@@ -1866,8 +1866,38 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
   }
   (db as any).registrations.push(registration);
 
-  await dbClient.logAudit(user.id, user.username, user.role, 'Register Participant', 'Participant', newParticipant.id, finalUnitId, undefined, newParticipant);
+  // Direct instant write-through to MongoDB Atlas for 100% permanent persistence
+  const mongoDb = getDb();
+  if (mongoDb) {
+    try {
+      await Promise.all([
+        mongoDb.collection('participants').replaceOne(
+          { $or: [{ id: newParticipant.id }, { _id: newParticipant.id as any }] },
+          { id: newParticipant.id, ...newParticipant },
+          { upsert: true }
+        ),
+        mongoDb.collection('registrations').replaceOne(
+          { participantId: newParticipant.id },
+          { ...registration },
+          { upsert: true }
+        ),
+        generatedChest ? mongoDb.collection('chestNumbers').replaceOne(
+          { id: generatedChest.id },
+          { ...generatedChest },
+          { upsert: true }
+        ) : Promise.resolve(),
+        mongoDb.collection('app_state').replaceOne(
+          { _id: 'global_state' as any },
+          { ...db },
+          { upsert: true }
+        )
+      ]);
+    } catch (mongoErr) {
+      console.error('Direct MongoDB participant create error:', mongoErr);
+    }
+  }
 
+  await dbClient.logAudit(user.id, user.username, user.role, 'Register Participant', 'Participant', newParticipant.id, finalUnitId, undefined, newParticipant);
   await dbClient.save();
 
   res.json({
@@ -3933,9 +3963,9 @@ apiRouter.get('/judgment-sheets', authenticate, async (req, res) => {
   let sheets = (db.judgmentSheets || []).filter((s: JudgmentSheet) => !s.deletedAt);
 
   if (user.role === UserRole.JUDGE) {
-    if (user.assignedCompetitionIds && user.assignedCompetitionIds.length > 0) {
-      sheets = sheets.filter(s => user.assignedCompetitionIds?.includes(s.competitionId));
-    }
+    const liveUser = db.users.find((u: User) => u.id === user.id) || user;
+    const assignedIds = liveUser.assignedCompetitionIds || [];
+    sheets = sheets.filter(s => assignedIds.includes(s.competitionId));
   }
 
   const enriched = sheets.map((s: JudgmentSheet) => {
@@ -4074,6 +4104,14 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
   const sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.id === sheetId && !s.deletedAt);
   if (!sheet) {
     return res.status(404).json({ error: 'Judgment sheet not found.' });
+  }
+
+  if (user.role === UserRole.JUDGE) {
+    const liveUser = db.users.find((u: User) => u.id === user.id) || user;
+    const assignedIds = liveUser.assignedCompetitionIds || [];
+    if (!assignedIds.includes(sheet.competitionId)) {
+      return res.status(403).json({ error: 'You are not assigned to evaluate this competition.' });
+    }
   }
 
   const competition = db.competitions.find(c => c.id === sheet.competitionId);
@@ -4223,6 +4261,14 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
   const sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.id === sheetId && !s.deletedAt);
   if (!sheet) {
     return res.status(404).json({ error: 'Judgment sheet not found.' });
+  }
+
+  if (user.role === UserRole.JUDGE) {
+    const liveUser = db.users.find((u: User) => u.id === user.id) || user;
+    const assignedIds = liveUser.assignedCompetitionIds || [];
+    if (!assignedIds.includes(sheet.competitionId)) {
+      return res.status(403).json({ error: 'You are not assigned to evaluate this competition.' });
+    }
   }
 
   if (sheet.status === JudgmentSheetStatus.LOCKED) {
