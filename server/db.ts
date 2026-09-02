@@ -505,11 +505,12 @@ async function syncStateFromMongo(force: boolean = false) {
     const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
     const mongoDb = mongoClient.db(dbName);
 
-    // 0.1ms Micro-Check: Skip 17 collection fetches if state_version has not changed!
-    if (!force && localStateVersion > 0) {
+    // Only skip fetching if db has already been loaded with data
+    const isDbLoaded = db && Array.isArray(db.users) && db.users.length > 0;
+    if (!force && localStateVersion > 0 && isDbLoaded) {
       const versionDoc = await mongoDb.collection('settings').findOne({ _id: 'state_version' as any }).catch(() => null);
       if (versionDoc && versionDoc.version && versionDoc.version === localStateVersion) {
-        return; // Return INSTANTLY in 0ms!
+        return;
       }
     }
 
@@ -568,8 +569,13 @@ async function syncStateFromMongo(force: boolean = false) {
 
 export const dbClient = {
   waitForSync: async () => {
-    await connectToMongo();
-    await syncStateFromMongo(false);
+    ensureDbExists();
+    try {
+      await connectToMongo();
+      await syncStateFromMongo(false);
+    } catch (e) {
+      console.error("waitForSync error:", e);
+    }
   },
 
   forceSync: async () => {
