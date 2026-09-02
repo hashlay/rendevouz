@@ -24,9 +24,11 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
     heroLogoBadge: 'KULLIYATHU IMAM RABBANI',
   });
 
+  const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1cQNek6Q2EiThqdFrUDb1I8cfsmQneP1J';
+
   const [stage1LiveLink, setStage1LiveLink] = useState('');
   const [stage2LiveLink, setStage2LiveLink] = useState('');
-  const [photoHubDriveLink, setPhotoHubDriveLink] = useState('');
+  const [photoHubDriveLink, setPhotoHubDriveLink] = useState(DEFAULT_PHOTO_HUB_DRIVE_LINK);
 
   const DEFAULT_COLOR_THEME: Record<string, string> = {
     primaryAccent: '#FF2B2B',
@@ -196,7 +198,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         const data = await response.json();
         setStage1LiveLink(data.stage1LiveLink || '');
         setStage2LiveLink(data.stage2LiveLink || '');
-        setPhotoHubDriveLink(data.photoHubDriveLink || '');
+        setPhotoHubDriveLink(data.photoHubDriveLink || DEFAULT_PHOTO_HUB_DRIVE_LINK);
       }
     } catch (err) {
       console.error(err);

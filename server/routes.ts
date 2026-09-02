@@ -880,9 +880,15 @@ apiRouter.delete('/gallery/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
 
 // 2. SETTINGS & EVENT MANAGE
 
+const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1cQNek6Q2EiThqdFrUDb1I8cfsmQneP1J';
+
 apiRouter.get('/settings', async (req, res) => {
   const db = dbClient.get();
-  res.json(db.eventSettings);
+  const settings = db.eventSettings || {};
+  if (!settings.photoHubDriveLink) {
+    settings.photoHubDriveLink = DEFAULT_PHOTO_HUB_DRIVE_LINK;
+  }
+  res.json(settings);
 });
 
 const DEFAULT_DRAG_BLOCKS = [
