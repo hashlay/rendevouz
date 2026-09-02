@@ -563,7 +563,7 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                   <div className="space-y-2">
                     {editingMemberIds.map((mid) => {
                       const p = participants.find(part => part.id === mid);
-                      const canRemove = editingMemberIds.length > 2;
+                      const canRemove = editingMemberIds.length > 1;
                       return (
                         <div 
                           key={mid} 
@@ -584,10 +584,10 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                             disabled={!canRemove}
                             className={`p-1.5 rounded-xl border flex items-center gap-1 text-xs font-semibold transition-all ${
                               canRemove 
-                                ? 'text-rose-600 bg-rose-50 border-rose-200 hover:bg-rose-100 hover:border-rose-300' 
+                                ? 'text-rose-600 bg-rose-50 border-rose-200 hover:bg-rose-100 hover:border-rose-300 cursor-pointer' 
                                 : 'text-slate-300 border-slate-200 cursor-not-allowed bg-slate-100'
                             }`}
-                            title={canRemove ? "Remove member from team" : "Cannot remove: Minimum 2 members required"}
+                            title={canRemove ? "Remove member from team" : "Cannot remove: Minimum 1 member required while editing"}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                             <span className="text-[11px]">Remove</span>
@@ -596,9 +596,10 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                       );
                     })}
                   </div>
-                  {editingMemberIds.length <= 2 && (
+                  {editingMemberIds.length < 2 && (
                     <p className="text-[11px] text-amber-600 font-medium mt-1.5 flex items-center gap-1 font-mono">
-                      <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Minimum 2 members are required per group team. Add another member before removing one.
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      Minimum 2 members required per group team. Please add another member before saving.
                     </p>
                   )}
                 </div>
