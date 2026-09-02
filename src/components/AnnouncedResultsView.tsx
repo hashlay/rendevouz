@@ -40,13 +40,14 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
   const fetchLists = async () => {
     setLoading(true);
     try {
+      const ts = Date.now();
       const [resRes, catRes, unitRes, compRes, partRes, teamRes] = await Promise.all([
-        fetch('/api/results', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/categories'),
-        fetch('/api/units'),
-        fetch('/api/competitions'),
-        fetch('/api/participants', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`/api/results?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`/api/categories?t=${ts}`),
+        fetch(`/api/units?t=${ts}`),
+        fetch(`/api/competitions?t=${ts}`),
+        fetch(`/api/participants?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`/api/teams?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       if (!resRes.ok || !partRes.ok || !teamRes.ok) {

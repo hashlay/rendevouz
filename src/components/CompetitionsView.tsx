@@ -224,9 +224,10 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
   const fetchCompsAndCats = async () => {
     setLoading(true);
     try {
+      const ts = Date.now();
       const [compRes, cRes] = await Promise.all([
-        fetch('/api/competitions'),
-        fetch('/api/categories')
+        fetch(`/api/competitions?t=${ts}`),
+        fetch(`/api/categories?t=${ts}`)
       ]);
 
       const [compData, cData] = await Promise.all([compRes.json(), cRes.json()]);

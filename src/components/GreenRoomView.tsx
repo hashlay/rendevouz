@@ -45,11 +45,12 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
 
   const fetchData = async () => {
     try {
+      const ts = Date.now();
       const [assignRes, statsRes, catRes, compRes] = await Promise.all([
-        fetch('/api/green-room', { credentials: 'include' }),
-        fetch('/api/green-room/stats', { credentials: 'include' }),
-        fetch('/api/categories', { credentials: 'include' }),
-        fetch('/api/competitions', { credentials: 'include' })
+        fetch(`/api/green-room?t=${ts}`, { credentials: 'include' }),
+        fetch(`/api/green-room/stats?t=${ts}`, { credentials: 'include' }),
+        fetch(`/api/categories?t=${ts}`, { credentials: 'include' }),
+        fetch(`/api/competitions?t=${ts}`, { credentials: 'include' })
       ]);
       if (assignRes.ok) setAssignments(await assignRes.json());
       if (statsRes.ok) setStats(await statsRes.json());

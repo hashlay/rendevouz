@@ -96,7 +96,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
 
   const fetchCMSData = async () => {
     try {
-      const response = await fetch('/api/cms', {
+      const response = await fetch(`/api/cms?t=${Date.now()}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (response.ok) {

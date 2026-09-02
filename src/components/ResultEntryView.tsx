@@ -175,11 +175,12 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
 
   const fetchMasters = async () => {
     try {
+      const ts = Date.now();
       const [cRes, compRes, uRes, pRes] = await Promise.all([
-        fetch('/api/categories'),
-        fetch('/api/competitions'),
-        fetch('/api/units'),
-        fetch('/api/participants', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`/api/categories?t=${ts}`),
+        fetch(`/api/competitions?t=${ts}`),
+        fetch(`/api/units?t=${ts}`),
+        fetch(`/api/participants?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
       if (!pRes.ok) {
         throw new Error('Failed to fetch data');
@@ -216,8 +217,9 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
     const fetchEventData = async () => {
       setCandidatesLoading(true);
       try {
+        const ts = Date.now();
         // Fetch saved results for this competition
-        const resRes = await fetch(`/api/results?competitionId=${selectedCompId}`, {
+        const resRes = await fetch(`/api/results?competitionId=${selectedCompId}&t=${ts}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const resData = await resRes.json();
@@ -226,7 +228,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
 
         if (comp?.participationType === ParticipationType.INDIVIDUAL) {
           // Fetch participants registered in selected individual competition
-          const partRes = await fetch(`/api/participants?categoryId=${selectedCatId}`, {
+          const partRes = await fetch(`/api/participants?categoryId=${selectedCatId}&t=${ts}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const partData = await partRes.json();

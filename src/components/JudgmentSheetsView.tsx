@@ -50,11 +50,12 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
 
   const fetchData = async () => {
     try {
+      const ts = Date.now();
       const [sheetsRes, statsRes, catRes, compRes] = await Promise.all([
-        fetch('/api/judgment-sheets', { credentials: 'include' }),
-        fetch('/api/judgment-sheets/stats', { credentials: 'include' }),
-        fetch('/api/categories', { credentials: 'include' }),
-        fetch('/api/competitions', { credentials: 'include' })
+        fetch(`/api/judgment-sheets?t=${ts}`, { credentials: 'include' }),
+        fetch(`/api/judgment-sheets/stats?t=${ts}`, { credentials: 'include' }),
+        fetch(`/api/categories?t=${ts}`, { credentials: 'include' }),
+        fetch(`/api/competitions?t=${ts}`, { credentials: 'include' })
       ]);
       if (sheetsRes.ok) setSheets(await sheetsRes.json());
       if (statsRes.ok) setStats(await statsRes.json());

@@ -86,7 +86,7 @@ export default function App() {
         return;
       }
       try {
-        const res = await fetch('/api/auth/session', {
+        const res = await fetch(`/api/auth/session?t=${Date.now()}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -120,7 +120,7 @@ export default function App() {
   // Fetch brand configurations
   const fetchEventConfig = async () => {
     try {
-      const res = await fetch('/api/settings');
+      const res = await fetch(`/api/settings?t=${Date.now()}`);
       const data = await res.json();
 
       setEventSettings(data);
