@@ -8,16 +8,21 @@ interface AnnouncedResultsViewProps {
   eventSettings?: any;
 }
 
+import { fetchWithCache, getCachedData } from '../utils/dataCache';
+
 export default function AnnouncedResultsView({ user, token, eventSettings }: AnnouncedResultsViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
   const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
-  const [results, setResults] = useState<Result[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [results, setResults] = useState<Result[]>(() => {
+    const cached = getCachedData('/api/results');
+    return cached ? cached.filter((r: any) => r.publishedStatus && !r.deletedAt) : [];
+  });
+  const [categories, setCategories] = useState<Category[]>(() => (getCachedData('/api/categories') || []).filter((c: any) => c.active));
+  const [units, setUnits] = useState<Unit[]>(() => (getCachedData('/api/units') || []).filter((u: any) => u.active));
+  const [competitions, setCompetitions] = useState<Competition[]>(() => (getCachedData('/api/competitions') || []).filter((c: any) => c.active));
+  const [participants, setParticipants] = useState<Participant[]>(() => (getCachedData('/api/participants') || []).filter((p: any) => !p.deletedAt));
+  const [teams, setTeams] = useState<Team[]>(() => (getCachedData('/api/teams') || []).filter((t: any) => !t.deletedAt));
+  const [loading, setLoading] = useState(() => !getCachedData('/api/results'));
 
   // Filters
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
@@ -37,33 +42,19 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
     }, 100);
   };
 
-  const fetchLists = async () => {
-    setLoading(true);
+  const fetchLists = async (forceFresh = false) => {
+    if (!getCachedData('/api/results')) setLoading(true);
     try {
-      const ts = Date.now();
-      const [resRes, catRes, unitRes, compRes, partRes, teamRes] = await Promise.all([
-        fetch(`/api/results?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`/api/categories?t=${ts}`),
-        fetch(`/api/units?t=${ts}`),
-        fetch(`/api/competitions?t=${ts}`),
-        fetch(`/api/participants?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`/api/teams?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } })
-      ]);
-
-      if (!resRes.ok || !partRes.ok || !teamRes.ok) {
-        throw new Error('Failed to fetch data');
-      }
-
+      const authHeaders = { 'Authorization': `Bearer ${token}` };
       const [resData, catData, unitData, compData, partData, teamData] = await Promise.all([
-        resRes.json(),
-        catRes.json(),
-        unitRes.json(),
-        compRes.json(),
-        partRes.json(),
-        teamRes.json()
+        fetchWithCache('/api/results', authHeaders, forceFresh),
+        fetchWithCache('/api/categories', authHeaders, forceFresh),
+        fetchWithCache('/api/units', authHeaders, forceFresh),
+        fetchWithCache('/api/competitions', authHeaders, forceFresh),
+        fetchWithCache('/api/participants', authHeaders, forceFresh),
+        fetchWithCache('/api/teams', authHeaders, forceFresh)
       ]);
 
-      // Only show published results (i.e., publishedStatus === true)
       setResults(resData.filter((r: any) => r.publishedStatus && !r.deletedAt));
       setCategories(catData.filter((c: any) => c.active));
       setUnits(unitData.filter((u: any) => u.active));

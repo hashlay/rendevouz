@@ -10,44 +10,45 @@ interface CertificatesViewProps {
   onSettingsUpdated?: () => void;
 }
 
+import { fetchWithCache, getCachedData } from '../utils/dataCache';
+
 export default function CertificatesView({ user, token, eventSettings, onSettingsUpdated }: CertificatesViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
-  const [results, setResults] = useState<Result[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [results, setResults] = useState<Result[]>(() => {
+    const cached = getCachedData('/api/results');
+    return cached ? cached.filter((r: Result) => r.rank && r.rank <= 3) : [];
+  });
+  const [categories, setCategories] = useState<Category[]>(() => getCachedData('/api/categories') || []);
+  const [units, setUnits] = useState<Unit[]>(() => getCachedData('/api/units') || []);
+  const [competitions, setCompetitions] = useState<Competition[]>(() => getCachedData('/api/competitions') || []);
+  const [participants, setParticipants] = useState<Participant[]>(() => getCachedData('/api/participants') || []);
+  const [teams, setTeams] = useState<Team[]>(() => getCachedData('/api/teams') || []);
+  const [loading, setLoading] = useState(() => !getCachedData('/api/results'));
   const [selectedCertificate, setSelectedCertificate] = useState<{names: string[], comp: string, compId: string, rank: number} | null>(null);
 
   // Filters
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (forceFresh = false) => {
+    if (!getCachedData('/api/results')) setLoading(true);
     try {
-      const [resRes, catRes, compRes, partRes, teamRes, unitRes] = await Promise.all([
-        fetch('/api/results', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/categories', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/competitions', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/participants', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/teams', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/units', { headers: { 'Authorization': `Bearer ${token}` } })
+      const authHeaders = { 'Authorization': `Bearer ${token}` };
+      const [resData, catData, compData, partData, teamData, unitData] = await Promise.all([
+        fetchWithCache('/api/results', authHeaders, forceFresh),
+        fetchWithCache('/api/categories', authHeaders, forceFresh),
+        fetchWithCache('/api/competitions', authHeaders, forceFresh),
+        fetchWithCache('/api/participants', authHeaders, forceFresh),
+        fetchWithCache('/api/teams', authHeaders, forceFresh),
+        fetchWithCache('/api/units', authHeaders, forceFresh)
       ]);
 
-      if (resRes.ok) {
-        const data = await resRes.json();
-        // Only get results that have rank 1 or 2 (or 3 if we add it later)
-        setResults(data.filter((r: Result) => r.rank && r.rank <= 3));
-      }
-      if (catRes.ok) setCategories(await catRes.json());
-      if (compRes.ok) setCompetitions(await compRes.json());
-      if (partRes.ok) setParticipants(await partRes.json());
-      if (teamRes.ok) setTeams(await teamRes.json());
-      if (unitRes.ok) setUnits(await unitRes.json());
-      
+      setResults(resData.filter((r: Result) => r.rank && r.rank <= 3));
+      setCategories(catData);
+      setCompetitions(compData);
+      setParticipants(partData);
+      setTeams(teamData);
+      setUnits(unitData);
     } catch (error) {
       console.error('Error fetching data for certificates:', error);
     } finally {
