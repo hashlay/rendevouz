@@ -4253,6 +4253,9 @@ apiRouter.put('/green-room/competition/:competitionId/status', authenticate, req
 
 // Get all judgment sheets
 apiRouter.get('/judgment-sheets', authenticate, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   await dbClient.waitForSync();
   const db = dbClient.get();
   const user = (req as any).user as User;
@@ -4395,6 +4398,9 @@ apiRouter.post('/judgment-sheets/generate', authenticate, requireRole([UserRole.
 
 // Get a judgment sheet (anonymous - no participant names)
 apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   await dbClient.waitForSync();
   const db = dbClient.get();
   const sheetId = req.params.id;
@@ -4430,7 +4436,7 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
     const base: any = {
       id: s.id,
       codeLetter: s.codeLetter,
-      judgeScores: s.judgeScores,
+      judgeScores: s.judgeScores || [],
       totalMark: s.totalMark || sumMarks,
       averageMark: effectiveAvg,
       rank: isJudge ? undefined : s.rank,
@@ -4442,7 +4448,7 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
     if (!isJudge) {
       const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) => a.id === s.greenRoomAssignmentId);
 
-      // If result is published, overlay the actual published marks onto this view
+      // If result is published, overlay the actual published marks onto this view safely
       const publishedResult = db.results.find(r =>
         r.competitionId === sheet.competitionId &&
         !r.deletedAt &&
@@ -4451,19 +4457,34 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
       );
 
       if (publishedResult) {
-        base.totalMark = publishedResult.totalMark;
+        if (typeof publishedResult.totalMark === 'number' && publishedResult.totalMark > 0) {
+          base.totalMark = publishedResult.totalMark;
+        }
         const j1Val = Number(publishedResult.judge1Mark) || 0;
         const j2Val = Number(publishedResult.judge2Mark) || 0;
         const activeCount = (j1Val > 0 ? 1 : 0) + (j2Val > 0 ? 1 : 0) || 1;
-        base.averageMark = s.averageMark !== undefined ? s.averageMark : (publishedResult.averageMark !== undefined ? publishedResult.averageMark : Math.round(((j1Val + j2Val) / activeCount) * 100) / 100);
-        base.rank = publishedResult.rank;
+        if (publishedResult.averageMark !== undefined && publishedResult.averageMark > 0) {
+          base.averageMark = publishedResult.averageMark;
+        }
+        if (publishedResult.rank) {
+          base.rank = publishedResult.rank;
+        }
 
-        // Reconstruct judge scores for display if missing or overwrite with published
+        // Reconstruct judge scores for display if non-zero
         let j1 = base.judgeScores.find((j: any) => j.judgeNumber === 1);
         let j2 = base.judgeScores.find((j: any) => j.judgeNumber === 2);
 
-        if (!j1) { j1 = { judgeNumber: 1, mark: publishedResult.judge1Mark }; base.judgeScores.push(j1); } else { j1.mark = publishedResult.judge1Mark || j1.mark; }
-        if (!j2) { j2 = { judgeNumber: 2, mark: publishedResult.judge2Mark }; base.judgeScores.push(j2); } else { j2.mark = publishedResult.judge2Mark || j2.mark; }
+        if (!j1 && j1Val > 0) {
+          base.judgeScores.push({ judgeNumber: 1, mark: j1Val });
+        } else if (j1 && j1Val > 0) {
+          j1.mark = j1Val;
+        }
+
+        if (!j2 && j2Val > 0) {
+          base.judgeScores.push({ judgeNumber: 2, mark: j2Val });
+        } else if (j2 && j2Val > 0) {
+          j2.mark = j2Val;
+        }
       }
 
       if (gr) {
@@ -4756,48 +4777,46 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
   }
 
   await dbClient.logAudit(user.id, user.username, user.role, 'Update Judgment Scores', 'JudgmentSheet', sheetId);
+  await dbClient.save();
+
+  try {
+    const mongoDb = getDb();
+    if (mongoDb) {
+      const updatedScores = (db.judgeScores || []).filter((s: JudgeScore) => s.judgmentSheetId === sheetId);
+      const ops = updatedScores.map((s: JudgeScore) => ({
+        updateOne: {
+          filter: { $or: [{ id: s.id }, { _id: s.id as any }] },
+          update: { $set: { id: s.id, ...s } },
+          upsert: true
+        }
+      }));
+      if (ops.length > 0) {
+        await mongoDb.collection('judgeScores').bulkWrite(ops, { ordered: false }).catch(() => {});
+      }
+
+      const compResults = (db.results || []).filter((r: Result) => r.competitionId === sheet.competitionId);
+      const resOps = compResults.map((r: Result) => ({
+        updateOne: {
+          filter: { $or: [{ id: r.id }, { _id: r.id as any }] },
+          update: { $set: { id: r.id, ...r } },
+          upsert: true
+        }
+      }));
+      if (resOps.length > 0) {
+        await mongoDb.collection('results').bulkWrite(resOps, { ordered: false }).catch(() => {});
+      }
+
+      await mongoDb.collection('judgmentSheets').replaceOne(
+        { $or: [{ id: sheet.id }, { _id: sheet.id as any }] },
+        { id: sheet.id, ...sheet },
+        { upsert: true }
+      ).catch(() => {});
+    }
+  } catch (err) {
+    console.error('Mongo scores save error:', err);
+  }
 
   res.json({ message: 'Scores updated successfully' });
-
-  setImmediate(async () => {
-    try {
-      const mongoDb = getDb();
-      if (mongoDb) {
-        const updatedScores = (db.judgeScores || []).filter((s: JudgeScore) => s.judgmentSheetId === sheetId);
-        const ops = updatedScores.map((s: JudgeScore) => ({
-          updateOne: {
-            filter: { $or: [{ id: s.id }, { _id: s.id as any }] },
-            update: { $set: { id: s.id, ...s } },
-            upsert: true
-          }
-        }));
-        if (ops.length > 0) {
-          await mongoDb.collection('judgeScores').bulkWrite(ops, { ordered: false }).catch(() => {});
-        }
-
-        const compResults = (db.results || []).filter((r: Result) => r.competitionId === sheet.competitionId);
-        const resOps = compResults.map((r: Result) => ({
-          updateOne: {
-            filter: { $or: [{ id: r.id }, { _id: r.id as any }] },
-            update: { $set: { id: r.id, ...r } },
-            upsert: true
-          }
-        }));
-        if (resOps.length > 0) {
-          await mongoDb.collection('results').bulkWrite(resOps, { ordered: false }).catch(() => {});
-        }
-
-        await mongoDb.collection('judgmentSheets').replaceOne(
-          { $or: [{ id: sheet.id }, { _id: sheet.id as any }] },
-          { id: sheet.id, ...sheet },
-          { upsert: true }
-        ).catch(() => {});
-      }
-      await dbClient.save();
-    } catch (err) {
-      console.error('Background Mongo scores save error:', err);
-    }
-  });
 });
 
 // Lock judgment sheet results

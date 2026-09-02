@@ -98,7 +98,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
 
   const loadSheet = async (sheetId: string) => {
     try {
-      const res = await fetch(`/api/judgment-sheets/${sheetId}`, { credentials: 'include' });
+      const ts = Date.now();
+      const res = await fetch(`/api/judgment-sheets/${sheetId}?t=${ts}`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setCurrentSheet(data.sheet);
