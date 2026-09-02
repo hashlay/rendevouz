@@ -82,10 +82,22 @@ async function _connectToMongo() {
     }
 
     // Override settings from dedicated settings collection if present
-    if (mongoSettingsMap.eventSettings) db.eventSettings = { ...db.eventSettings, ...mongoSettingsMap.eventSettings };
-    if (mongoSettingsMap.cmsSettings) db.cmsSettings = { ...db.cmsSettings, ...mongoSettingsMap.cmsSettings };
-    if (mongoSettingsMap.posterTemplateConfig) db.posterTemplateConfig = { ...db.posterTemplateConfig, ...mongoSettingsMap.posterTemplateConfig };
-    if (mongoSettingsMap.certificateTemplateConfig) db.certificateTemplateConfig = { ...db.certificateTemplateConfig, ...mongoSettingsMap.certificateTemplateConfig };
+    if (mongoSettingsMap.eventSettings) {
+      const { _id, ...rest } = mongoSettingsMap.eventSettings;
+      db.eventSettings = { ...db.eventSettings, ...rest };
+    }
+    if (mongoSettingsMap.cmsSettings) {
+      const { _id, ...rest } = mongoSettingsMap.cmsSettings;
+      db.cmsSettings = { ...rest };
+    }
+    if (mongoSettingsMap.posterTemplateConfig) {
+      const { _id, ...rest } = mongoSettingsMap.posterTemplateConfig;
+      db.posterTemplateConfig = { ...rest };
+    }
+    if (mongoSettingsMap.certificateTemplateConfig) {
+      const { _id, ...rest } = mongoSettingsMap.certificateTemplateConfig;
+      db.certificateTemplateConfig = { ...rest };
+    }
 
     // Pull each dedicated collection from MongoDB to ensure 100% fresh real-time data
     const collectionKeys = [
@@ -416,33 +428,33 @@ async function _syncMongoNow() {
 
       // Sync all configuration & branding settings
       if (db.eventSettings) {
-        await mongoDb.collection('settings').updateOne(
+        await mongoDb.collection('settings').replaceOne(
           { _id: 'eventSettings' as any },
-          { $set: { _id: 'eventSettings', ...db.eventSettings } },
+          { _id: 'eventSettings', ...db.eventSettings },
           { upsert: true }
         ).catch(() => { });
       }
 
       if (db.cmsSettings) {
-        await mongoDb.collection('settings').updateOne(
+        await mongoDb.collection('settings').replaceOne(
           { _id: 'cmsSettings' as any },
-          { $set: { _id: 'cmsSettings', ...db.cmsSettings } },
+          { _id: 'cmsSettings', ...db.cmsSettings },
           { upsert: true }
         ).catch(() => { });
       }
 
       if (db.posterTemplateConfig) {
-        await mongoDb.collection('settings').updateOne(
+        await mongoDb.collection('settings').replaceOne(
           { _id: 'posterTemplateConfig' as any },
-          { $set: { _id: 'posterTemplateConfig', ...db.posterTemplateConfig } },
+          { _id: 'posterTemplateConfig', ...db.posterTemplateConfig },
           { upsert: true }
         ).catch(() => { });
       }
 
       if (db.certificateTemplateConfig) {
-        await mongoDb.collection('settings').updateOne(
+        await mongoDb.collection('settings').replaceOne(
           { _id: 'certificateTemplateConfig' as any },
-          { $set: { _id: 'certificateTemplateConfig', ...db.certificateTemplateConfig } },
+          { _id: 'certificateTemplateConfig', ...db.certificateTemplateConfig },
           { upsert: true }
         ).catch(() => { });
       }
