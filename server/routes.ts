@@ -2334,12 +2334,21 @@ apiRouter.post('/teams', authenticate, async (req, res) => {
       return res.status(400).json({ error: `Member participant ${mid} not found or is deleted.` });
     }
     // Unit match
-    if (p.unitId !== finalUnitId) {
+    const unitObj = (db.units || []).find((u: any) => u.id === finalUnitId || u.name === finalUnitId);
+    const isUnitMatch = p.unitId === finalUnitId || (unitObj && (p.unitId === unitObj.id || p.unitId === unitObj.name));
+    if (!isUnitMatch) {
       return res.status(400).json({ error: `Member ${p.fullName} belongs to a different unit.` });
     }
     // Category match
+    const targetCatId = categoryId || comp.categoryId;
+    const catObj = (db.categories || []).find((c: any) => c.id === targetCatId || c.name === targetCatId);
     const pCatId = p.selectedCategoryId || (p as any).categoryId;
-    if (pCatId !== categoryId) {
+    const isCategoryMatch = 
+      pCatId === targetCatId ||
+      (catObj && (pCatId === catObj.id || pCatId === catObj.name)) ||
+      (p.selectedCategoryId && (p.selectedCategoryId === comp.categoryId || p.selectedCategoryId === targetCatId)) ||
+      ((p as any).categoryId && ((p as any).categoryId === comp.categoryId || (p as any).categoryId === targetCatId));
+    if (!isCategoryMatch) {
       return res.status(400).json({ error: `Member ${p.fullName} belongs to a different category.` });
     }
 
@@ -2431,11 +2440,22 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
       if (!p) {
         return res.status(400).json({ error: `Member ${mid} not found.` });
       }
-      if (p.unitId !== team.unitId) {
+      // Unit match
+      const unitObj = (db.units || []).find((u: any) => u.id === team.unitId || u.name === team.unitId);
+      const isUnitMatch = p.unitId === team.unitId || (unitObj && (p.unitId === unitObj.id || p.unitId === unitObj.name));
+      if (!isUnitMatch) {
         return res.status(400).json({ error: `Member ${p.fullName} belongs to a different unit.` });
       }
+      // Category match
+      const targetCatId = team.categoryId || comp.categoryId;
+      const catObj = (db.categories || []).find((c: any) => c.id === targetCatId || c.name === targetCatId);
       const pCatId = p.selectedCategoryId || (p as any).categoryId;
-      if (pCatId !== team.categoryId) {
+      const isCategoryMatch = 
+        pCatId === targetCatId ||
+        (catObj && (pCatId === catObj.id || pCatId === catObj.name)) ||
+        (p.selectedCategoryId && (p.selectedCategoryId === comp.categoryId || p.selectedCategoryId === targetCatId)) ||
+        ((p as any).categoryId && ((p as any).categoryId === comp.categoryId || (p as any).categoryId === targetCatId));
+      if (!isCategoryMatch) {
         return res.status(400).json({ error: `Member ${p.fullName} belongs to a different category.` });
       }
 
