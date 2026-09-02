@@ -1898,12 +1898,44 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
   }
 
   await dbClient.logAudit(user.id, user.username, user.role, 'Register Participant', 'Participant', newParticipant.id, finalUnitId, undefined, newParticipant);
-  await dbClient.save();
 
   res.json({
     message: 'Participant registered successfully',
     participant: newParticipant,
     chestNumber: generatedChest?.chestNumber
+  });
+
+  setImmediate(async () => {
+    try {
+      const mongoDb = getDb();
+      if (mongoDb) {
+        await Promise.all([
+          mongoDb.collection('participants').replaceOne(
+            { $or: [{ id: newParticipant.id }, { _id: newParticipant.id as any }] },
+            { id: newParticipant.id, ...newParticipant },
+            { upsert: true }
+          ),
+          mongoDb.collection('registrations').replaceOne(
+            { participantId: newParticipant.id },
+            { ...registration },
+            { upsert: true }
+          ),
+          generatedChest ? mongoDb.collection('chestNumbers').replaceOne(
+            { id: generatedChest.id },
+            { ...generatedChest },
+            { upsert: true }
+          ) : Promise.resolve(),
+          mongoDb.collection('app_state').replaceOne(
+            { _id: 'global_state' as any },
+            { ...db },
+            { upsert: true }
+          )
+        ]);
+      }
+      await dbClient.save();
+    } catch (mongoErr) {
+      console.error('Background MongoDB participant create error:', mongoErr);
+    }
   });
 });
 
@@ -3894,9 +3926,16 @@ apiRouter.post('/green-room/generate', authenticate, requireRole([UserRole.SUPER
   });
 
   await dbClient.logAudit(user.id, user.username, user.role, `Generate Green Room Codes for ${competition.name}`, 'GreenRoom', competitionId);
-  await dbClient.save();
 
   res.json({ message: `Generated ${assignments.length} code assignments`, assignments: enrichedAssignments });
+
+  setImmediate(async () => {
+    try {
+      await dbClient.save();
+    } catch (e) {
+      console.error('Background Green Room Mongo Save Error:', e);
+    }
+  });
 });
 
 // Regenerate codes (Admin only, with confirmation)
@@ -4486,9 +4525,35 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
   allScores.filter(s => s.status !== JudgeScoreStatus.PARTICIPATED).forEach(s => { s.rank = undefined; });
 
   await dbClient.logAudit(user.id, user.username, user.role, 'Update Judgment Scores', 'JudgmentSheet', sheetId);
-  await dbClient.save();
 
   res.json({ message: 'Scores updated successfully' });
+
+  setImmediate(async () => {
+    try {
+      const mongoDb = getDb();
+      if (mongoDb) {
+        const updatedScores = (db.judgeScores || []).filter((s: JudgeScore) => s.judgmentSheetId === sheetId);
+        const ops = updatedScores.map((s: JudgeScore) => ({
+          updateOne: {
+            filter: { $or: [{ id: s.id }, { _id: s.id as any }] },
+            update: { $set: { id: s.id, ...s } },
+            upsert: true
+          }
+        }));
+        if (ops.length > 0) {
+          await mongoDb.collection('judgeScores').bulkWrite(ops, { ordered: false }).catch(() => {});
+        }
+        await mongoDb.collection('judgmentSheets').replaceOne(
+          { $or: [{ id: sheet.id }, { _id: sheet.id as any }] },
+          { id: sheet.id, ...sheet },
+          { upsert: true }
+        ).catch(() => {});
+      }
+      await dbClient.save();
+    } catch (err) {
+      console.error('Background Mongo scores save error:', err);
+    }
+  });
 });
 
 // Lock judgment sheet results
@@ -4606,9 +4671,35 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
   sheet.publishedToResults = true;
 
   await dbClient.logAudit(user.id, user.username, user.role, `Publish ${resultsCreated} Results from Judgment Sheet`, 'JudgmentSheet', sheetId);
-  await dbClient.save();
 
   res.json({ message: `Published ${resultsCreated} results to the Result module` });
+
+  setImmediate(async () => {
+    try {
+      const mongoDb = getDb();
+      if (mongoDb) {
+        const compResults = (db.results || []).filter((r: Result) => r.competitionId === sheet.competitionId);
+        const ops = compResults.map((r: Result) => ({
+          updateOne: {
+            filter: { $or: [{ id: r.id }, { _id: r.id as any }] },
+            update: { $set: { id: r.id, ...r } },
+            upsert: true
+          }
+        }));
+        if (ops.length > 0) {
+          await mongoDb.collection('results').bulkWrite(ops, { ordered: false }).catch(() => {});
+        }
+        await mongoDb.collection('judgmentSheets').replaceOne(
+          { $or: [{ id: sheet.id }, { _id: sheet.id as any }] },
+          { id: sheet.id, ...sheet },
+          { upsert: true }
+        ).catch(() => {});
+      }
+      await dbClient.save();
+    } catch (err) {
+      console.error('Background Mongo result publish error:', err);
+    }
+  });
 });
 
 
