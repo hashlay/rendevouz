@@ -2939,6 +2939,18 @@ apiRouter.put('/users/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, Use
 
   if (assignedCompetitionIds !== undefined && Array.isArray(assignedCompetitionIds)) {
     targetUser.assignedCompetitionIds = assignedCompetitionIds;
+    // Immediately purge targetUser from sheet.claimedJudges for any competitions they are no longer assigned to
+    if (db.judgmentSheets && Array.isArray(db.judgmentSheets)) {
+      for (const js of db.judgmentSheets) {
+        if ((js as any).claimedJudges) {
+          for (const [slotKey, claimObj] of Object.entries((js as any).claimedJudges as Record<string, any>)) {
+            if (claimObj?.userId === targetUser.id && !assignedCompetitionIds.includes(js.competitionId)) {
+              delete (js as any).claimedJudges[slotKey];
+            }
+          }
+        }
+      }
+    }
   }
 
   if (role) {
@@ -4290,6 +4302,23 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
 
   if (!(sheet as any).claimedJudges) {
     (sheet as any).claimedJudges = {};
+  }
+
+  // Dynamically sanitize claimedJudges: remove claims for judges who are no longer assigned to this competition
+  const currentClaimed = (sheet as any).claimedJudges as Record<string, any>;
+  let claimedChanged = false;
+  for (const [slotStr, claimObj] of Object.entries(currentClaimed)) {
+    if (claimObj && claimObj.userId) {
+      const u = db.users.find((userObj: User) => userObj.id === claimObj.userId);
+      const isAssigned = u && u.role === UserRole.JUDGE && u.assignedCompetitionIds && u.assignedCompetitionIds.includes(sheet.competitionId);
+      if (!isAssigned) {
+        delete currentClaimed[slotStr];
+        claimedChanged = true;
+      }
+    }
+  }
+  if (claimedChanged) {
+    await dbClient.save();
   }
 
   let assignedJudgeNumber: number | undefined = undefined;
