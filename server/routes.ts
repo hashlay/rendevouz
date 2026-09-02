@@ -2982,6 +2982,33 @@ apiRouter.put('/users/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, Use
           }
         }
       }
+
+      // Auto-claim available slots for targetUser for any assigned competitions where targetUser is not yet claimed
+      if (targetUser.role === UserRole.JUDGE) {
+        for (const compId of assignedCompetitionIds) {
+          const js = db.judgmentSheets.find((sheet: any) => sheet.competitionId === compId && !sheet.deletedAt);
+          if (js) {
+            if (!(js as any).claimedJudges) {
+              (js as any).claimedJudges = {};
+            }
+            const claimedObj = (js as any).claimedJudges as Record<string, any>;
+            const alreadyClaimed = Object.values(claimedObj).some((c: any) => c?.userId === targetUser.id);
+            if (!alreadyClaimed) {
+              const numJudges = js.numJudges || 2;
+              for (let i = 1; i <= numJudges; i++) {
+                if (!claimedObj[i]) {
+                  claimedObj[i] = {
+                    userId: targetUser.id,
+                    username: targetUser.username,
+                    claimedAt: new Date().toISOString()
+                  };
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 
@@ -4439,10 +4466,28 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
   }
 
   // Security enforcement: For judge users, strictly restrict marks to their claimed judge number
-  if (user.role === UserRole.JUDGE && (sheet as any).claimedJudges) {
-    const userClaimedSlotStr = Object.keys((sheet as any).claimedJudges).find(
+  if (user.role === UserRole.JUDGE) {
+    if (!(sheet as any).claimedJudges) {
+      (sheet as any).claimedJudges = {};
+    }
+    let userClaimedSlotStr = Object.keys((sheet as any).claimedJudges).find(
       k => (sheet as any).claimedJudges[k]?.userId === user.id
     );
+    // If not claimed yet (e.g. re-assigned), claim the first available slot automatically
+    if (!userClaimedSlotStr) {
+      const maxJudges = sheet.numJudges || 2;
+      for (let i = 1; i <= maxJudges; i++) {
+        if (!(sheet as any).claimedJudges[i]) {
+          (sheet as any).claimedJudges[i] = {
+            userId: user.id,
+            username: user.username,
+            claimedAt: new Date().toISOString()
+          };
+          userClaimedSlotStr = String(i);
+          break;
+        }
+      }
+    }
     if (userClaimedSlotStr) {
       const allowedSlot = Number(userClaimedSlotStr);
       for (const scoreUpdate of scores) {
