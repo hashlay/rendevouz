@@ -3907,8 +3907,6 @@ apiRouter.get('/judgment-sheets', authenticate, async (req, res) => {
   if (user.role === UserRole.JUDGE) {
     if (user.assignedCompetitionIds && user.assignedCompetitionIds.length > 0) {
       sheets = sheets.filter(s => user.assignedCompetitionIds?.includes(s.competitionId));
-    } else {
-      sheets = []; // No programs assigned for this judge
     }
   }
 

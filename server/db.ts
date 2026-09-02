@@ -56,50 +56,7 @@ async function _connectToMongo() {
     console.log(`🍃 Connected successfully to MongoDB: "${dbName}"`);
     console.log(`=============================================================`);
 
-    // Synchronize current cache from MongoDB dedicated collections & settings
-    const mongoSettingsDocs = await mongoDb.collection('settings').find({}).toArray().catch(() => []);
-    const mongoSettingsMap: Record<string, any> = {};
-    mongoSettingsDocs.forEach((doc: any) => {
-      if (doc._id) {
-        const { _id, ...rest } = doc;
-        mongoSettingsMap[doc._id] = rest;
-      }
-    });
-
-    const existingState = await mongoCollection.findOne({ _id: 'global_state' as any });
-    // Synchronize current cache from MongoDB dedicated collections & settings safely
-    if (existingState) {
-      const { _id, ...restOfState } = existingState;
-      for (const [key, val] of Object.entries(restOfState)) {
-        if (Array.isArray(val)) {
-          if (val.length > 0) {
-            (db as any)[key] = val;
-          }
-        } else if (val && typeof val === 'object') {
-          (db as any)[key] = { ...(db as any)[key], ...val };
-        }
-      }
-    }
-
-    // Override settings from dedicated settings collection if present
-    if (mongoSettingsMap.eventSettings) {
-      const { _id, ...rest } = mongoSettingsMap.eventSettings;
-      db.eventSettings = { ...db.eventSettings, ...rest };
-    }
-    if (mongoSettingsMap.cmsSettings) {
-      const { _id, ...rest } = mongoSettingsMap.cmsSettings;
-      db.cmsSettings = { ...rest };
-    }
-    if (mongoSettingsMap.posterTemplateConfig) {
-      const { _id, ...rest } = mongoSettingsMap.posterTemplateConfig;
-      db.posterTemplateConfig = { ...rest };
-    }
-    if (mongoSettingsMap.certificateTemplateConfig) {
-      const { _id, ...rest } = mongoSettingsMap.certificateTemplateConfig;
-      db.certificateTemplateConfig = { ...rest };
-    }
-
-    // Pull each dedicated collection from MongoDB to ensure 100% fresh real-time data
+    // 1. Pull each dedicated collection from MongoDB Atlas (SINGLE SOURCE OF TRUTH)
     const collectionKeys = [
       'users', 'units', 'categories', 'competitions', 'participants', 'teams',
       'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments',
@@ -109,7 +66,7 @@ async function _connectToMongo() {
     for (const colName of collectionKeys) {
       try {
         const docs = await mongoDb.collection(colName).find({}).toArray();
-        if (docs && docs.length > 0) {
+        if (docs) {
           const dedupeMap = new Map();
           docs.forEach((d: any) => {
             const docId = d.id || d._id;
@@ -121,6 +78,33 @@ async function _connectToMongo() {
           (db as any)[colName] = Array.from(dedupeMap.values());
         }
       } catch (_) { }
+    }
+
+    // 2. Synchronize current settings from dedicated settings collection
+    const mongoSettingsDocs = await mongoDb.collection('settings').find({}).toArray().catch(() => []);
+    mongoSettingsDocs.forEach((doc: any) => {
+      if (doc._id) {
+        const { _id, ...rest } = doc;
+        if (doc._id === 'eventSettings') db.eventSettings = { ...db.eventSettings, ...rest };
+        if (doc._id === 'cmsSettings') db.cmsSettings = { ...rest };
+        if (doc._id === 'posterTemplateConfig') db.posterTemplateConfig = { ...rest };
+        if (doc._id === 'certificateTemplateConfig') db.certificateTemplateConfig = { ...rest };
+      }
+    });
+
+    // 3. Fallback: load remaining global_state properties only if not present
+    const existingState = await mongoCollection.findOne({ _id: 'global_state' as any });
+    if (existingState) {
+      const { _id, ...restOfState } = existingState;
+      for (const [key, val] of Object.entries(restOfState)) {
+        if (!collectionKeys.includes(key) && key !== 'eventSettings' && key !== 'cmsSettings') {
+          if (Array.isArray(val)) {
+            (db as any)[key] = val;
+          } else if (val && typeof val === 'object') {
+            (db as any)[key] = { ...(db as any)[key], ...val };
+          }
+        }
+      }
     }
 
     // Explicit recovery check: if categories or units are empty, ensure default defaults exist
