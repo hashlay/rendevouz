@@ -175,7 +175,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
     let isEmpty = value.trim() === '';
     let numVal = parseFloat(value);
     if (!isEmpty && (isNaN(numVal) || numVal < 0)) numVal = 0;
-    if (numVal > 100) numVal = 100;
+    const maxMarksVal = currentSheet?.maxMarks || 100;
+    if (numVal > maxMarksVal) numVal = maxMarksVal;
 
     setCurrentScores(prev => prev.map(s => {
       if (s.id !== scoreId) return s;
@@ -867,6 +868,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                                 min="0"
                                 max="25"
                                 value={activeJudgeEntry?.c1 ?? ''}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleCriteriaChange(s.id, judgeSlotNum, 'c1', e.target.value)}
                                 disabled={isLocked || !canEditScores || !isParticipated}
                                 placeholder="0-25"
@@ -879,6 +881,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                                 min="0"
                                 max="25"
                                 value={activeJudgeEntry?.c2 ?? ''}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleCriteriaChange(s.id, judgeSlotNum, 'c2', e.target.value)}
                                 disabled={isLocked || !canEditScores || !isParticipated}
                                 placeholder="0-25"
@@ -891,6 +894,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                                 min="0"
                                 max="25"
                                 value={activeJudgeEntry?.c3 ?? ''}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleCriteriaChange(s.id, judgeSlotNum, 'c3', e.target.value)}
                                 disabled={isLocked || !canEditScores || !isParticipated}
                                 placeholder="0-25"
@@ -903,6 +907,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                                 min="0"
                                 max="25"
                                 value={activeJudgeEntry?.c4 ?? ''}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleCriteriaChange(s.id, judgeSlotNum, 'c4', e.target.value)}
                                 disabled={isLocked || !canEditScores || !isParticipated}
                                 placeholder="0-25"
@@ -915,7 +920,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                                 type="number"
                                 min="0"
                                 max={currentSheet.maxMarks}
-                                value={activeJudgeEntry?.mark ?? ''}
+                                value={activeJudgeEntry?.mark === 0 ? '' : (activeJudgeEntry?.mark ?? '')}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) => handleScoreChange(s.id, judgeSlotNum, e.target.value)}
                                 disabled={isLocked || !canEditScores || !isParticipated}
                                 placeholder="0-100"
@@ -934,7 +940,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                                     type="number"
                                     min="0"
                                     max={currentSheet.maxMarks}
-                                    value={jm?.mark ?? ''}
+                                    value={jm?.mark === 0 ? '' : (jm?.mark ?? '')}
+                                    onFocus={(e) => e.target.select()}
                                     onChange={(e) => handleScoreChange(s.id, i + 1, e.target.value)}
                                     disabled={isLocked || !canEditScores || !isParticipated}
                                     className="w-16 px-2 py-1.5 text-center border border-slate-300 rounded font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500 min-h-[44px]"
