@@ -4281,7 +4281,7 @@ apiRouter.get('/judgment-sheets', authenticate, async (req, res) => {
     let currentStatus = s.status;
     const isPublished = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt && r.publishedStatus);
 
-    if (isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
+    if (s.publishedToResults && isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
       currentStatus = JudgmentSheetStatus.LOCKED;
     }
 
@@ -4315,8 +4315,8 @@ apiRouter.get('/judgment-sheets/stats', authenticate, async (req, res) => {
   const statusCounts = { pending: 0, inProgress: 0, completed: 0, locked: 0 };
   for (const s of sheets) {
     let currentStatus = s.status;
-    const hasResult = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt);
-    if (hasResult && currentStatus !== JudgmentSheetStatus.LOCKED) {
+    const isPublished = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt && r.publishedStatus);
+    if (s.publishedToResults && isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
       currentStatus = JudgmentSheetStatus.LOCKED;
     }
     if (currentStatus === JudgmentSheetStatus.PENDING) statusCounts.pending++;
@@ -4575,8 +4575,8 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
   }
 
   let currentStatus = sheet.status;
-  const hasResult = (db.results || []).some(r => r.competitionId === sheet.competitionId && !r.deletedAt);
-  if (hasResult && currentStatus !== JudgmentSheetStatus.LOCKED) {
+  const isPublished = (db.results || []).some(r => r.competitionId === sheet.competitionId && !r.deletedAt && r.publishedStatus);
+  if (sheet.publishedToResults && isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
     currentStatus = JudgmentSheetStatus.LOCKED;
   }
 
@@ -4864,8 +4864,31 @@ apiRouter.post('/judgment-sheets/:id/unlock', authenticate, requireRole([UserRol
   sheet.status = JudgmentSheetStatus.IN_PROGRESS;
   sheet.publishedToResults = false;
 
+  // Unpublish associated results so they don't override sheet status
+  (db.results || []).forEach((r: Result) => {
+    if (r.competitionId === sheet.competitionId) {
+      r.publishedStatus = false;
+    }
+  });
+
   await dbClient.logAudit(user.id, user.username, user.role, 'Unlock Judgment Sheet', 'JudgmentSheet', sheetId);
   await dbClient.save();
+
+  try {
+    const mongoDb = getDb();
+    if (mongoDb) {
+      await mongoDb.collection('judgmentSheets').updateOne(
+        { $or: [{ id: sheetId }, { _id: sheetId as any }] },
+        { $set: { status: JudgmentSheetStatus.IN_PROGRESS, publishedToResults: false } }
+      ).catch(() => {});
+      await mongoDb.collection('results').updateMany(
+        { competitionId: sheet.competitionId },
+        { $set: { publishedStatus: false } }
+      ).catch(() => {});
+    }
+  } catch (err) {
+    console.error('Failed to sync unlock to Mongo:', err);
+  }
 
   res.json({ message: 'Judgment sheet unlocked successfully' });
 });
