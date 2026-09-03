@@ -249,6 +249,32 @@ function migrateOldConfig(templateConfig: any): any {
   return { customThemes, themeRules, themeConfigs };
 }
 
+interface RangeControlProps {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+}
+
+const RangeControl = React.memo(({ label, value, onChange, min, max, step = 1 }: RangeControlProps) => (
+  <div>
+    <label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">
+      <span>{label}</span> <span className="text-slate-600 font-mono font-bold">{value}</span>
+    </label>
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={e => onChange(Number(e.target.value))}
+      className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer"
+    />
+  </div>
+));
+
 export default function PosterSettingsView({ user, token, eventSettings, onSettingsUpdated }: PosterSettingsViewProps) {
   const festivalName = eventSettings?.festivalName || 'Sahityotsav';
   const campusName = eventSettings?.campusName || eventSettings?.sectorName || 'Campus';
@@ -760,15 +786,6 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       </span>
       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedSection === id ? 'rotate-180' : ''}`} />
     </button>
-  );
-
-  const RangeControl = ({ label, value, onChange, min, max }: { label: string, value: number, onChange: (v: number) => void, min: number, max: number }) => (
-    <div>
-      <label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">
-        {label} <span className="text-slate-600">{value}</span>
-      </label>
-      <input type="range" min={min} max={max} value={value} onChange={e => onChange(Number(e.target.value))} className="w-full accent-emerald-600" />
-    </div>
   );
 
   return (

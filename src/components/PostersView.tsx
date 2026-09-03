@@ -200,6 +200,51 @@ function migrateOldConfig(templateConfig: any, defaultThemes: string[]): any {
   return { customThemes, themeRules, themeConfigs };
 }
 
+interface RangeControlProps {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+}
+
+const RangeControl = React.memo(({ label, value, onChange, min, max, step = 1 }: RangeControlProps) => (
+  <div className="space-y-1">
+    <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
+      <span>{label}</span>
+      <div className="flex items-center gap-1 font-mono text-[10px] text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-2xs">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, value - 5))}
+          className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
+          title="Step left (-5)"
+        >
+          -
+        </button>
+        <span className="w-8 text-center font-bold">{value}</span>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(max, value + 5))}
+          className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
+          title="Step right (+5)"
+        >
+          +
+        </button>
+      </div>
+    </div>
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={e => onChange(Number(e.target.value))}
+      className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer"
+    />
+  </div>
+));
+
 export default function PostersView({ user, token, eventSettings, onSettingsUpdated }: PosterGeneratorViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
   const festivalName = eventSettings?.festivalName || 'Sahityotsav';
@@ -577,42 +622,6 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     }
     setHoveredElement(hovered);
   };
-
-  const RangeControl = ({ label, value, onChange, min, max }: { label: string, value: number, onChange: (v: number) => void, min: number, max: number }) => (
-    <div className="space-y-1">
-      <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
-        <span>{label}</span>
-        <div className="flex items-center gap-1 font-mono text-[10px] text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-2xs">
-          <button
-            type="button"
-            onClick={() => onChange(Math.max(min, value - 5))}
-            className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
-            title="Step left (-5)"
-          >
-            -
-          </button>
-          <span className="w-8 text-center font-bold">{value}</span>
-          <button
-            type="button"
-            onClick={() => onChange(Math.min(max, value + 5))}
-            className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
-            title="Step right (+5)"
-          >
-            +
-          </button>
-        </div>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onInput={e => onChange(Number((e.target as HTMLInputElement).value))}
-        onChange={e => onChange(Number(e.target.value))}
-        className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer"
-      />
-    </div>
-  );
 
   const fetchData = async () => {
     setLoading(true);
