@@ -31,6 +31,46 @@ const FONT_OPTIONS = [
   { label: 'Great Vibes (Script Signature)', value: 'Great Vibes, cursive' }
 ];
 
+/**
+ * Fixed team font colors for Posters Section:
+ * - Ash-shukr: Dark Blue (#2b2bc3)
+ * - As-sabr: Dark Green (#1b5e20)
+ * Applies across all themes by default.
+ */
+export const getPosterTeamColor = (unitOrTeamName?: string, defaultColor: string = '#34d399'): string => {
+  if (!unitOrTeamName) return defaultColor;
+  const str = unitOrTeamName.toString().trim().toLowerCase();
+  const normalized = str.replace(/[\s\-_]/g, '');
+
+  // Ash-shukr: Dark Blue #2b2bc3
+  if (
+    normalized.includes('shukr') ||
+    normalized.includes('shukur') ||
+    normalized.includes('shukoor') ||
+    normalized.includes('ശുക്') ||
+    normalized.includes('ശുക്കൂർ') ||
+    normalized === 'shk' ||
+    str === 'shk'
+  ) {
+    return '#2b2bc3';
+  }
+
+  // As-sabr: Dark Green #1b5e20
+  if (
+    normalized.includes('sabr') ||
+    normalized.includes('sabar') ||
+    normalized.includes('സ്വബ്') ||
+    normalized.includes('സബ്ർ') ||
+    normalized.includes('സ്വബർ') ||
+    normalized === 'sbr' ||
+    str === 'sbr'
+  ) {
+    return '#1b5e20';
+  }
+
+  return defaultColor;
+};
+
 // Default config for a single theme (must match PosterSettingsView)
 function getDefaultThemeConfig(): any {
   return {
@@ -295,6 +335,9 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     | 'rank1Badge' | 'rank1Name' | 'rank1Unit'
     | 'rank2Badge' | 'rank2Name' | 'rank2Unit'
     | 'rank3Badge' | 'rank3Name' | 'rank3Unit'
+    | 'rank1_2_Badge' | 'rank1_2_Name' | 'rank1_2_Unit'
+    | 'rank2_2_Badge' | 'rank2_2_Name' | 'rank2_2_Unit'
+    | 'rank3_2_Badge' | 'rank3_2_Name' | 'rank3_2_Unit'
     | 'campusName' | 'festName'
     | null;
   const [dragging, setDragging] = useState<DragTarget>(null);
@@ -318,6 +361,38 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     rank3Badge: { xKey: 'rank3BadgeX', yKey: 'rank3BadgeY' },
     rank3Name: { xKey: 'rank3NameX', yKey: 'rank3NameY' },
     rank3Unit: { xKey: 'rank3UnitX', yKey: 'rank3UnitY' },
+    // Second tied winner elements (Rank 1, 2, 3)
+    rank1_2_Badge: { xKey: 'rank1_2_BadgeX', yKey: 'rank1_2_BadgeY' },
+    rank1_2_Name: { xKey: 'rank1_2_NameX', yKey: 'rank1_2_NameY' },
+    rank1_2_Unit: { xKey: 'rank1_2_UnitX', yKey: 'rank1_2_UnitY' },
+    rank2_2_Badge: { xKey: 'rank2_2_BadgeX', yKey: 'rank2_2_BadgeY' },
+    rank2_2_Name: { xKey: 'rank2_2_NameX', yKey: 'rank2_2_NameY' },
+    rank2_2_Unit: { xKey: 'rank2_2_UnitX', yKey: 'rank2_2_UnitY' },
+    rank3_2_Badge: { xKey: 'rank3_2_BadgeX', yKey: 'rank3_2_BadgeY' },
+    rank3_2_Name: { xKey: 'rank3_2_NameX', yKey: 'rank3_2_NameY' },
+    rank3_2_Unit: { xKey: 'rank3_2_UnitX', yKey: 'rank3_2_UnitY' },
+  };
+
+  const getInitialPosValue = (key: string, c: any) => {
+    if (c[key] !== undefined) return c[key];
+    const match = key.match(/^rank([123])_2_(Badge|Name|Unit)([XY])$/);
+    if (match) {
+      const rank = Number(match[1]);
+      const elem = match[2];
+      const axis = match[3];
+      if (axis === 'X') {
+        const baseKey = `rank${rank}${elem}X`;
+        return c[baseKey] ?? (elem === 'Badge' ? 140 : 260);
+      } else {
+        const baseKey = `rank${rank}${elem}Y`;
+        const defaultBaseY = elem === 'Badge' ? (460 + (rank - 1) * 180) :
+                             elem === 'Name' ? (448 + (rank - 1) * 180) :
+                             (483 + (rank - 1) * 180);
+        const baseY = c[baseKey] ?? defaultBaseY;
+        return baseY + 80;
+      }
+    }
+    return 0;
   };
 
   const hitRegions = useRef<{ id: string, x: number, y: number, w: number, h: number }[]>([]);
@@ -453,8 +528,10 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
         const posMap = dragPosMap[dragging];
         if (posMap) {
-          updateLocalConf(posMap.xKey, Math.round((c[posMap.xKey] || 0) + dx));
-          updateLocalConf(posMap.yKey, Math.round((c[posMap.yKey] || 0) + dy));
+          const currentX = c[posMap.xKey] !== undefined ? c[posMap.xKey] : getInitialPosValue(posMap.xKey, c);
+          const currentY = c[posMap.yKey] !== undefined ? c[posMap.yKey] : getInitialPosValue(posMap.yKey, c);
+          updateLocalConf(posMap.xKey, Math.round(currentX + dx));
+          updateLocalConf(posMap.yKey, Math.round(currentY + dy));
         }
         lastMousePos.current = { x: clientX, y: clientY };
       }
@@ -590,6 +667,10 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
   // Determine which theme index to use for a given result number or category
   const getThemeIndexForResult = (resultNum: number, categoryName?: string, categoryId?: string): number => {
     const rule = themeRules.find((r: any) => {
+      if (r.type === 'singleResult' || r.type === 'single') {
+        const targetNum = Number(r.resultNumber ?? r.startResult);
+        return resultNum === targetNum;
+      }
       if (r.type === 'category' || r.categoryId || r.categoryName) {
         if (categoryId && r.categoryId && r.categoryId === categoryId) return true;
         if (categoryName && (r.categoryName || r.category)) {
@@ -757,109 +838,131 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     });
     addRegion('compName', compX - 10, compY - (c.compNameSize ?? 52) - 5, maxCompW + 20, (compLines.length * compLineGap) + 15);
 
-    // Draw each rank with per-rank positions
+    // Draw each rank with per-rank positions (supports multiple tied winners per rank)
     [1, 2, 3].forEach((rank) => {
-      const res = compResults.find(r => r.rank === rank);
-      const hasNameOverride = !!c[`rank${rank}NameOverride`];
-      const hasUnitOverride = !!c[`rank${rank}UnitOverride`];
+      const rankWinners = compResults.filter(r => r.rank === rank);
+      const hasRank1Override = !!(c[`rank${rank}NameOverride`] || c[`rank${rank}UnitOverride`]);
+      const hasRank2Override = !!(c[`rank${rank}_2_NameOverride`] || c[`rank${rank}_2_UnitOverride`]);
+      
+      const winnerCount = Math.max(rankWinners.length, hasRank2Override ? 2 : hasRank1Override ? 1 : 0);
+      if (winnerCount === 0) return;
 
-      // Skip drawing this rank if no database result and no manual text overrides exist
-      if (!res && !hasNameOverride && !hasUnitOverride) return;
+      for (let wIdx = 0; wIdx < Math.max(winnerCount, 1); wIdx++) {
+        const res = rankWinners[wIdx];
+        const isSecond = wIdx === 1;
+        const nameOverrideKey = isSecond ? `rank${rank}_2_NameOverride` : `rank${rank}NameOverride`;
+        const unitOverrideKey = isSecond ? `rank${rank}_2_UnitOverride` : `rank${rank}UnitOverride`;
 
-      let winnerName = 'Participant Name';
-      let winnerUnit = 'Unit Name';
+        const hasNameOverride = !!c[nameOverrideKey];
+        const hasUnitOverride = !!c[unitOverrideKey];
 
-      if (res) {
-        if (res.participantId) {
-          const p = participants.find(part => part.id === res.participantId);
-          if (p) {
-            const rawName = p.fullName;
-            winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawName.toUpperCase() : rawName;
-            const u = units.find(unit => unit.id === p.unitId);
-            winnerUnit = u ? u.name : '';
-          }
-        } else if (res.teamId) {
-          const t = teams.find(team => team.id === res.teamId);
-          if (t) {
-            const rawName = t.teamName || 'Group Team';
-            winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawName.toUpperCase() : rawName;
-            const u = units.find(unit => unit.id === t.unitId);
-            winnerUnit = u ? u.name : '';
+        if (!res && !hasNameOverride && !hasUnitOverride && wIdx > 0) continue;
+
+        let winnerName = 'Participant Name';
+        let winnerUnit = 'Unit Name';
+
+        if (res) {
+          if (res.participantId) {
+            const p = participants.find(part => part.id === res.participantId);
+            if (p) {
+              const rawName = p.fullName;
+              winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawName.toUpperCase() : rawName;
+              const u = units.find(unit => unit.id === p.unitId);
+              winnerUnit = u ? u.name : '';
+            }
+          } else if (res.teamId) {
+            const t = teams.find(team => team.id === res.teamId);
+            if (t) {
+              const rawName = t.teamName || 'Group Team';
+              winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawName.toUpperCase() : rawName;
+              const u = units.find(unit => unit.id === t.unitId);
+              winnerUnit = u ? u.name : '';
+            }
           }
         }
-      }
 
-      if (hasNameOverride) {
-        const rawOverride = c[`rank${rank}NameOverride`];
-        winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawOverride.toUpperCase() : rawOverride;
-      }
-
-      if (hasUnitOverride) {
-        winnerUnit = c[`rank${rank}UnitOverride`];
-      }
-
-      const bx = c[`rank${rank}BadgeX`] ?? 140;
-      const by = c[`rank${rank}BadgeY`] ?? (460 + (rank - 1) * 180);
-      const nx = c[`rank${rank}NameX`] ?? 260;
-      const ny = c[`rank${rank}NameY`] ?? (448 + (rank - 1) * 180);
-      const ux = c[`rank${rank}UnitX`] ?? 260;
-      const uy = c[`rank${rank}UnitY`] ?? (483 + (rank - 1) * 180);
-
-      const rColor = rank === 1 ? c.rank1Color : rank === 2 ? c.rank2Color : c.rank3Color;
-      const rankText = rank === 1 ? c.rank1Text : rank === 2 ? c.rank2Text : c.rank3Text;
-
-      // Rank badge
-      ctx.font = `900 ${c.rankSize}px ${c.rankFont || c.fontFamily || 'sans-serif'}`;
-      const textWidth = ctx.measureText(rankText).width;
-
-      if (c.rankBadgeShape !== 'none') {
-        ctx.fillStyle = rColor;
-        ctx.beginPath();
-        if (c.rankBadgeShape === 'pill') {
-          ctx.roundRect(bx - (textWidth / 2) - 20, by - 37, textWidth + 40, 50, 25);
-        } else if (c.rankBadgeShape === 'circle') {
-          ctx.arc(bx, by - 12, 40, 0, 2 * Math.PI);
-        } else {
-          ctx.rect(bx - (textWidth / 2) - 20, by - 37, textWidth + 40, 50);
+        if (hasNameOverride) {
+          const rawOverride = c[nameOverrideKey];
+          winnerName = (c.winnerUppercase || c.uppercaseNames) ? rawOverride.toUpperCase() : rawOverride;
         }
-        ctx.fill();
+
+        if (hasUnitOverride) {
+          winnerUnit = c[unitOverrideKey];
+        }
+
+        const defaultYOffset = isSecond ? 80 : 0;
+        const baseBadgeY = c[`rank${rank}BadgeY`] ?? (460 + (rank - 1) * 180);
+        const bx = isSecond ? (c[`rank${rank}_2_BadgeX`] ?? (c[`rank${rank}BadgeX`] ?? 140)) : (c[`rank${rank}BadgeX`] ?? 140);
+        const by = isSecond ? (c[`rank${rank}_2_BadgeY`] ?? (baseBadgeY + defaultYOffset)) : baseBadgeY;
+
+        const baseNameY = c[`rank${rank}NameY`] ?? (448 + (rank - 1) * 180);
+        const nx = isSecond ? (c[`rank${rank}_2_NameX`] ?? (c[`rank${rank}NameX`] ?? 260)) : (c[`rank${rank}NameX`] ?? 260);
+        const ny = isSecond ? (c[`rank${rank}_2_NameY`] ?? (baseNameY + defaultYOffset)) : baseNameY;
+
+        const baseUnitY = c[`rank${rank}UnitY`] ?? (483 + (rank - 1) * 180);
+        const ux = isSecond ? (c[`rank${rank}_2_UnitX`] ?? (c[`rank${rank}UnitX`] ?? 260)) : (c[`rank${rank}UnitX`] ?? 260);
+        const uy = isSecond ? (c[`rank${rank}_2_UnitY`] ?? (baseUnitY + defaultYOffset)) : baseUnitY;
+
+        const rColor = rank === 1 ? c.rank1Color : rank === 2 ? c.rank2Color : c.rank3Color;
+        const rankText = rank === 1 ? c.rank1Text : rank === 2 ? c.rank2Text : c.rank3Text;
+
+        const badgeRegionId = isSecond ? `rank${rank}_2_Badge` : `rank${rank}Badge`;
+        const nameRegionId = isSecond ? `rank${rank}_2_Name` : `rank${rank}Name`;
+        const unitRegionId = isSecond ? `rank${rank}_2_Unit` : `rank${rank}Unit`;
+
+        // Rank badge (drawn twice if tied, exactly like reference)
+        ctx.font = `900 ${c.rankSize}px ${c.rankFont || c.fontFamily || 'sans-serif'}`;
+        const textWidth = ctx.measureText(rankText).width;
+
+        if (c.rankBadgeShape !== 'none') {
+          ctx.fillStyle = rColor;
+          ctx.beginPath();
+          if (c.rankBadgeShape === 'pill') {
+            ctx.roundRect(bx - (textWidth / 2) - 20, by - 37, textWidth + 40, 50, 25);
+          } else if (c.rankBadgeShape === 'circle') {
+            ctx.arc(bx, by - 12, 40, 0, 2 * Math.PI);
+          } else {
+            ctx.rect(bx - (textWidth / 2) - 20, by - 37, textWidth + 40, 50);
+          }
+          ctx.fill();
+        }
+
+        ctx.fillStyle = c.rankTextColor || '#000000';
+        ctx.textAlign = 'center';
+        ctx.fillText(rankText, bx, by);
+        addRegion(badgeRegionId, bx - textWidth / 2 - 25, by - 42, textWidth + 50, 60);
+
+        // Winner name (Supports 2-line text with \n)
+        ctx.textAlign = 'left';
+        ctx.font = `800 ${c.winnerSize}px ${c.winnerFont || c.fontFamily || 'sans-serif'}`;
+        ctx.fillStyle = c.winnerColor;
+
+        const nameLines = winnerName.split('\n').filter(Boolean);
+        const nameGap = (c.winnerSize ?? 44) * 1.15;
+        let maxNameW = 0;
+        nameLines.forEach((line: string, i: number) => {
+          ctx.fillText(line, nx, ny + i * nameGap);
+          const w = ctx.measureText(line).width;
+          if (w > maxNameW) maxNameW = w;
+        });
+        addRegion(nameRegionId, nx - 5, ny - (c.winnerSize ?? 44) - 5, maxNameW + 10, (nameLines.length * nameGap) + 10);
+
+        // Unit name (Supports 2-line text with \n)
+        ctx.font = `700 ${c.unitSize}px ${c.unitFont || 'monospace'}`;
+        ctx.fillStyle = getPosterTeamColor(winnerUnit, c.unitColor);
+        const unitText = c.unitUppercase !== false ? winnerUnit.toUpperCase() : winnerUnit;
+        const unitLines = unitText.split('\n').filter(Boolean);
+        const unitGap = (c.unitSize ?? 30) * 1.15;
+        const calcUx = nx; 
+        const calcUy = ny + (nameLines.length * nameGap) + 5;
+        let maxUnitW = 0;
+        unitLines.forEach((line: string, i: number) => {
+          ctx.fillText(line, ux ?? calcUx, (uy ?? calcUy) + i * unitGap);
+          const w = ctx.measureText(line).width;
+          if (w > maxUnitW) maxUnitW = w;
+        });
+        addRegion(unitRegionId, (ux ?? calcUx) - 5, (uy ?? calcUy) - (c.unitSize ?? 30) - 5, maxUnitW + 10, (unitLines.length * unitGap) + 10);
       }
-
-      ctx.fillStyle = c.rankTextColor || '#000000';
-      ctx.textAlign = 'center';
-      ctx.fillText(rankText, bx, by);
-      addRegion(`rank${rank}Badge`, bx - textWidth / 2 - 25, by - 42, textWidth + 50, 60);
-
-      // Winner name (Supports 2-line text with \n)
-      ctx.textAlign = 'left';
-      ctx.font = `800 ${c.winnerSize}px ${c.winnerFont || c.fontFamily || 'sans-serif'}`;
-      ctx.fillStyle = c.winnerColor;
-
-      const nameLines = winnerName.split('\n').filter(Boolean);
-      const nameGap = (c.winnerSize ?? 44) * 1.15;
-      let maxNameW = 0;
-      nameLines.forEach((line, i) => {
-        ctx.fillText(line, nx, ny + i * nameGap);
-        const w = ctx.measureText(line).width;
-        if (w > maxNameW) maxNameW = w;
-      });
-      addRegion(`rank${rank}Name`, nx - 5, ny - (c.winnerSize ?? 44) - 5, maxNameW + 10, (nameLines.length * nameGap) + 10);
-
-      // Unit name (Supports 2-line text with \n)
-      ctx.font = `700 ${c.unitSize}px ${c.unitFont || 'monospace'}`;
-      ctx.fillStyle = c.unitColor;
-      const unitText = c.unitUppercase !== false ? winnerUnit.toUpperCase() : winnerUnit;
-      const unitLines = unitText.split('\n').filter(Boolean);
-      const unitGap = (c.unitSize ?? 30) * 1.15;
-      const calcUx = nx; 
-      const calcUy = ny + (nameLines.length * nameGap) + 5;
-      let maxUnitW = 0;
-      unitLines.forEach((line, i) => {
-        ctx.fillText(line, ux ?? calcUx, (uy ?? calcUy) + i * unitGap);
-        const w = ctx.measureText(line).width;
-        if (w > maxUnitW) maxUnitW = w;
-      });
-      addRegion(`rank${rank}Unit`, (ux ?? calcUx) - 5, (uy ?? calcUy) - (c.unitSize ?? 30) - 5, maxUnitW + 10, (unitLines.length * unitGap) + 10);
     });
 
     // Footer
@@ -1085,17 +1188,38 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
                           </div>
 
                           {[1, 2, 3].map(rank => {
-                            const rankRes = compResults.find(r => r.rank === rank);
-                            const defaultWinnerName = rankRes ? (rankRes.participantName || '') : '';
-                            const defaultUnitName = rankRes ? (rankRes.unitName || '') : '';
+                            const rankWinners = compResults.filter(r => r.rank === rank);
+                            const defaultWinnerName1 = rankWinners[0] ? (rankWinners[0].participantName || '') : '';
+                            const defaultUnitName1 = rankWinners[0] ? (rankWinners[0].unitName || '') : '';
+                            
+                            const defaultWinnerName2 = rankWinners[1] ? (rankWinners[1].participantName || '') : '';
+                            const defaultUnitName2 = rankWinners[1] ? (rankWinners[1].unitName || '') : '';
+                            
+                            const has2ndFromDB = rankWinners.length > 1;
+                            const has2ndOverride = c[`rank${rank}_2_NameOverride`] !== undefined || c[`rank${rank}_2_UnitOverride`] !== undefined;
+                            const showSecondWinner = has2ndFromDB || has2ndOverride;
+
                             return (
                               <div key={rank} className="pt-2 border-t border-emerald-200/50 space-y-2">
-                                <span className="text-[10px] font-extrabold text-emerald-900 block">Rank {rank} Winner Text</span>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-extrabold text-emerald-900 block">
+                                    Rank {rank} Winner Text {showSecondWinner ? '(Winner 1)' : ''}
+                                  </span>
+                                  {!showSecondWinner && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateLocalConf(`rank${rank}_2_NameOverride`, '')}
+                                      className="text-[9px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-1.5 py-0.5 rounded transition"
+                                    >
+                                      + 2nd Winner (Tie)
+                                    </button>
+                                  )}
+                                </div>
                                 <div>
                                   <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Winner Name (Enter key for 2 lines)</label>
                                   <textarea
                                     rows={2}
-                                    value={c[`rank${rank}NameOverride`] !== undefined ? c[`rank${rank}NameOverride`] : defaultWinnerName}
+                                    value={c[`rank${rank}NameOverride`] !== undefined ? c[`rank${rank}NameOverride`] : defaultWinnerName1}
                                     onChange={(e) => updateLocalConf(`rank${rank}NameOverride`, e.target.value)}
                                     className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
                                     placeholder={`Rank ${rank} winner name... Press Enter for 2 lines`}
@@ -1105,12 +1229,54 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
                                   <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Unit Name (Enter key for 2 lines)</label>
                                   <textarea
                                     rows={2}
-                                    value={c[`rank${rank}UnitOverride`] !== undefined ? c[`rank${rank}UnitOverride`] : defaultUnitName}
+                                    value={c[`rank${rank}UnitOverride`] !== undefined ? c[`rank${rank}UnitOverride`] : defaultUnitName1}
                                     onChange={(e) => updateLocalConf(`rank${rank}UnitOverride`, e.target.value)}
                                     className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
                                     placeholder={`Rank ${rank} unit name... Press Enter for 2 lines`}
                                   />
                                 </div>
+
+                                {showSecondWinner && (
+                                  <div className="mt-2 pt-2 border-t border-dashed border-emerald-300/80 space-y-2 bg-emerald-100/40 p-2 rounded-xl">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] font-extrabold text-emerald-800">
+                                        Rank {rank} Tied Winner (Winner 2)
+                                      </span>
+                                      {!has2ndFromDB && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            updateLocalConf(`rank${rank}_2_NameOverride`, undefined);
+                                            updateLocalConf(`rank${rank}_2_UnitOverride`, undefined);
+                                          }}
+                                          className="text-[9px] text-red-600 hover:text-red-800 font-bold"
+                                        >
+                                          Remove
+                                        </button>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Winner 2 Name</label>
+                                      <textarea
+                                        rows={2}
+                                        value={c[`rank${rank}_2_NameOverride`] !== undefined ? c[`rank${rank}_2_NameOverride`] : defaultWinnerName2}
+                                        onChange={(e) => updateLocalConf(`rank${rank}_2_NameOverride`, e.target.value)}
+                                        className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                                        placeholder={`Rank ${rank} 2nd winner name...`}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Winner 2 Unit Name</label>
+                                      <textarea
+                                        rows={2}
+                                        value={c[`rank${rank}_2_UnitOverride`] !== undefined ? c[`rank${rank}_2_UnitOverride`] : defaultUnitName2}
+                                        onChange={(e) => updateLocalConf(`rank${rank}_2_UnitOverride`, e.target.value)}
+                                        className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                                        placeholder={`Rank ${rank} 2nd unit name...`}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}

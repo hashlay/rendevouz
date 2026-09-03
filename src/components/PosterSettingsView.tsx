@@ -12,6 +12,46 @@ interface PosterSettingsViewProps {
   onSettingsUpdated?: () => void;
 }
 
+/**
+ * Fixed team font colors for Posters Section:
+ * - Ash-shukr: Dark Blue (#2b2bc3)
+ * - As-sabr: Dark Green (#1b5e20)
+ * Applies across all themes by default.
+ */
+export const getPosterTeamColor = (unitOrTeamName?: string, defaultColor: string = '#34d399'): string => {
+  if (!unitOrTeamName) return defaultColor;
+  const str = unitOrTeamName.toString().trim().toLowerCase();
+  const normalized = str.replace(/[\s\-_]/g, '');
+
+  // Ash-shukr: Dark Blue #2b2bc3
+  if (
+    normalized.includes('shukr') ||
+    normalized.includes('shukur') ||
+    normalized.includes('shukoor') ||
+    normalized.includes('ശുക്') ||
+    normalized.includes('ശുക്കൂർ') ||
+    normalized === 'shk' ||
+    str === 'shk'
+  ) {
+    return '#2b2bc3';
+  }
+
+  // As-sabr: Dark Green #1b5e20
+  if (
+    normalized.includes('sabr') ||
+    normalized.includes('sabar') ||
+    normalized.includes('സ്വബ്') ||
+    normalized.includes('സബ്ർ') ||
+    normalized.includes('സ്വബർ') ||
+    normalized === 'sbr' ||
+    str === 'sbr'
+  ) {
+    return '#1b5e20';
+  }
+
+  return defaultColor;
+};
+
 // Default config for a single theme
 function getDefaultThemeConfig(): any {
   return {
@@ -591,9 +631,9 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
     // Draw each rank separately
     const rankData = [
-      { rank: 1, badgeXKey: 'rank1BadgeX', badgeYKey: 'rank1BadgeY', nameXKey: 'rank1NameX', nameYKey: 'rank1NameY', unitXKey: 'rank1UnitX', unitYKey: 'rank1UnitY', color: c.rank1Color, text: c.rank1Text, badgeId: 'rank1Badge', nameId: 'rank1Name', unitId: 'rank1Unit' },
-      { rank: 2, badgeXKey: 'rank2BadgeX', badgeYKey: 'rank2BadgeY', nameXKey: 'rank2NameX', nameYKey: 'rank2NameY', unitXKey: 'rank2UnitX', unitYKey: 'rank2UnitY', color: c.rank2Color, text: c.rank2Text, badgeId: 'rank2Badge', nameId: 'rank2Name', unitId: 'rank2Unit' },
-      { rank: 3, badgeXKey: 'rank3BadgeX', badgeYKey: 'rank3BadgeY', nameXKey: 'rank3NameX', nameYKey: 'rank3NameY', unitXKey: 'rank3UnitX', unitYKey: 'rank3UnitY', color: c.rank3Color, text: c.rank3Text, badgeId: 'rank3Badge', nameId: 'rank3Name', unitId: 'rank3Unit' },
+      { rank: 1, badgeXKey: 'rank1BadgeX', badgeYKey: 'rank1BadgeY', nameXKey: 'rank1NameX', nameYKey: 'rank1NameY', unitXKey: 'rank1UnitX', unitYKey: 'rank1UnitY', color: c.rank1Color, text: c.rank1Text, badgeId: 'rank1Badge', nameId: 'rank1Name', unitId: 'rank1Unit', sampleUnit: 'Ash-Shukr' },
+      { rank: 2, badgeXKey: 'rank2BadgeX', badgeYKey: 'rank2BadgeY', nameXKey: 'rank2NameX', nameYKey: 'rank2NameY', unitXKey: 'rank2UnitX', unitYKey: 'rank2UnitY', color: c.rank2Color, text: c.rank2Text, badgeId: 'rank2Badge', nameId: 'rank2Name', unitId: 'rank2Unit', sampleUnit: 'As-Sabr' },
+      { rank: 3, badgeXKey: 'rank3BadgeX', badgeYKey: 'rank3BadgeY', nameXKey: 'rank3NameX', nameYKey: 'rank3NameY', unitXKey: 'rank3UnitX', unitYKey: 'rank3UnitY', color: c.rank3Color, text: c.rank3Text, badgeId: 'rank3Badge', nameId: 'rank3Name', unitId: 'rank3Unit', sampleUnit: 'Ash-Shukr' },
     ];
 
     rankData.forEach(rd => {
@@ -638,8 +678,8 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
       // Unit/Team name
       ctx.font = `700 ${c.unitSize}px ${c.unitFont || 'monospace'}`;
-      ctx.fillStyle = c.unitColor;
-      const unitText = 'UNIT NAME';
+      const unitText = rd.sampleUnit || 'Ash-Shukr';
+      ctx.fillStyle = getPosterTeamColor(unitText, c.unitColor);
       ctx.fillText(unitText, ux, uy);
       const unitMetrics = ctx.measureText(unitText);
       addRegion(rd.unitId, ux - 5, uy - c.unitSize - 5, unitMetrics.width + 10, c.unitSize + 15);
@@ -829,6 +869,12 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                 <p className="text-[10px] text-slate-500 mb-2">Map themes to result number ranges or competition categories.</p>
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <button
+                    onClick={() => setThemeRules([...themeRules, { id: Date.now(), type: 'singleResult', resultNumber: 1, themeIndex: 0 }])}
+                    className="flex items-center gap-1 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg border border-sky-200 transition-colors"
+                  >
+                    <Plus className="w-3 h-3" /> Add Single Result Rule
+                  </button>
+                  <button
                     onClick={() => setThemeRules([...themeRules, { id: Date.now(), type: 'resultRange', startResult: 1, endResult: 10, themeIndex: 0 }])}
                     className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition-colors"
                   >
@@ -847,6 +893,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                   </button>
                 </div>
                 {themeRules.map((rule, idx) => {
+                  const isSingleResult = rule.type === 'singleResult' || rule.type === 'single';
                   const isCategoryRule = rule.type === 'category' || (!rule.type && (rule.categoryId || rule.categoryName));
                   return (
                     <div key={rule.id || idx} className="p-3 border border-slate-200 rounded-xl bg-slate-50 relative flex flex-col gap-2.5">
@@ -861,11 +908,17 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                       <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                         <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Rule Type</span>
                         <select
-                          value={isCategoryRule ? 'category' : 'resultRange'}
+                          value={isSingleResult ? 'singleResult' : isCategoryRule ? 'category' : 'resultRange'}
                           onChange={e => {
                             const newType = e.target.value;
                             const newRules = [...themeRules];
-                            if (newType === 'category') {
+                            if (newType === 'singleResult') {
+                              newRules[idx] = {
+                                ...newRules[idx],
+                                type: 'singleResult',
+                                resultNumber: newRules[idx].resultNumber || newRules[idx].startResult || 1
+                              };
+                            } else if (newType === 'category') {
                               const firstCat = categories[0];
                               newRules[idx] = {
                                 ...newRules[idx],
@@ -885,13 +938,30 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                           }}
                           className="text-xs font-bold px-2 py-0.5 border rounded bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         >
+                          <option value="singleResult">Single Result (Only 1 Result)</option>
                           <option value="resultRange">Result Number Range</option>
                           <option value="category">Category Wise</option>
                         </select>
                       </div>
 
                       {/* Rule Inputs */}
-                      {isCategoryRule ? (
+                      {isSingleResult ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-600">Result Number:</span>
+                          <span className="text-xs text-slate-400 font-mono font-bold">#</span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={rule.resultNumber ?? rule.startResult ?? 1}
+                            onChange={e => {
+                              const newRules = [...themeRules];
+                              newRules[idx].resultNumber = Number(e.target.value);
+                              setThemeRules(newRules);
+                            }}
+                            className="w-20 px-2 py-1 text-xs border rounded bg-white text-slate-800 font-bold"
+                          />
+                        </div>
+                      ) : isCategoryRule ? (
                         <div className="flex flex-col gap-1">
                           <label className="text-[10px] font-bold text-slate-500 uppercase">Category</label>
                           <select
@@ -994,7 +1064,9 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                   <input type="color" value={conf.winnerColor} onChange={e => updateConf('winnerColor', e.target.value)} className="w-full h-8 rounded border" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1">Unit Name Color</label>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-1" title="Ash-Shukr is automatically #2b2bc3 (Dark Blue) and As-Sabr is #1b5e20 (Dark Green)">
+                    Unit Name Fallback Color
+                  </label>
                   <input type="color" value={conf.unitColor} onChange={e => updateConf('unitColor', e.target.value)} className="w-full h-8 rounded border" />
                 </div>
                 <div>

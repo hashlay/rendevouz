@@ -187,13 +187,20 @@ export default function UsersView({ user, token, eventSettings }: UsersViewProps
     }
   };
 
+  // Helper to count only active existing competitions currently assigned to a judge
+  const getLiveAssignedCount = (assignedIds?: string[]): number => {
+    if (!assignedIds || !Array.isArray(assignedIds) || assignedIds.length === 0) return 0;
+    return assignedIds.filter(id => competitions.some(c => c.id === id)).length;
+  };
+
   // Start Edit User
   const handleStartEdit = (targetUser: User) => {
     setEditingUser(targetUser);
     setEditFullName(targetUser.fullName);
     setEditRole(targetUser.role);
     setEditAssignedUnitId(targetUser.assignedUnitId || '');
-    setEditAssignedCompetitionIds(targetUser.assignedCompetitionIds || []);
+    const liveSelected = (targetUser.assignedCompetitionIds || []).filter(id => competitions.some(c => c.id === id));
+    setEditAssignedCompetitionIds(liveSelected);
     setEditActive(targetUser.active);
     setEditOpen(true);
   };
@@ -201,7 +208,8 @@ export default function UsersView({ user, token, eventSettings }: UsersViewProps
   // Open Program Assignment Modal for Judge
   const handleOpenAssignModal = (targetUser: User) => {
     setAssignTargetUser(targetUser);
-    setProgramSelection(targetUser.assignedCompetitionIds || []);
+    const liveSelected = (targetUser.assignedCompetitionIds || []).filter(id => competitions.some(c => c.id === id));
+    setProgramSelection(liveSelected);
     setAssignModalOpen(true);
   };
 
@@ -377,7 +385,9 @@ export default function UsersView({ user, token, eventSettings }: UsersViewProps
                     {op.role === UserRole.UNIT_TEAM_LEADER ? (
                       <>{entityLabel}: <strong className="text-slate-700">{assignedUnit ? assignedUnit.name : 'Unknown'}</strong></>
                     ) : op.role === UserRole.JUDGE ? (
-                      <strong className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-mono text-[10px]">{op.assignedCompetitionIds?.length || 0} Programs Assigned</strong>
+                      <strong className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-mono text-[10px]">
+                        {getLiveAssignedCount(op.assignedCompetitionIds)} {getLiveAssignedCount(op.assignedCompetitionIds) === 1 ? 'Program' : 'Programs'} Assigned
+                      </strong>
                     ) : (
                       'Global'
                     )}
@@ -487,7 +497,7 @@ export default function UsersView({ user, token, eventSettings }: UsersViewProps
                           assignedUnit ? assignedUnit.name : 'Unknown'
                         ) : op.role === UserRole.JUDGE ? (
                           <span className="inline-block text-[11px] font-bold font-mono text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-100">
-                            {op.assignedCompetitionIds?.length || 0} Programs Assigned
+                            {getLiveAssignedCount(op.assignedCompetitionIds)} {getLiveAssignedCount(op.assignedCompetitionIds) === 1 ? 'Program' : 'Programs'} Assigned
                           </span>
                         ) : (
                           'Global Campus access'
