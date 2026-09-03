@@ -47,6 +47,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
 
   // Marks entry state
   const [savingScores, setSavingScores] = useState(false);
+  const [actionLoading, setActionLoading] = useState<'saving' | 'locking' | 'unlocking' | 'publishing' | null>(null);
 
   const fetchData = async () => {
     try {
@@ -219,8 +220,9 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
   };
 
   const handleSaveScores = async () => {
-    if (!currentSheet) return;
+    if (!currentSheet || actionLoading) return;
     setSavingScores(true);
+    setActionLoading('saving');
     setMessage(null);
     try {
       const payload = currentScores.map(s => ({
@@ -239,8 +241,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
       const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: data.message });
-        loadSheet(currentSheet.id); // Reload to get server ranks
-        fetchData(); // Update dashboard status
+        await loadSheet(currentSheet.id);
+        await fetchData();
       } else {
         setMessage({ type: 'error', text: data.error });
       }
@@ -248,13 +250,15 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
       setMessage({ type: 'error', text: 'Failed to save scores' });
     } finally {
       setSavingScores(false);
+      setActionLoading(null);
     }
   };
 
   const handleLockResults = async () => {
-    if (!currentSheet) return;
+    if (!currentSheet || actionLoading) return;
     if (!confirm('Are you sure you want to lock these results? This action cannot be undone, and scores will no longer be editable.')) return;
 
+    setActionLoading('locking');
     try {
       const res = await fetch(`/api/judgment-sheets/${currentSheet.id}/lock`, {
         method: 'POST',
@@ -264,23 +268,26 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
       const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: data.message });
-        loadSheet(currentSheet.id);
-        fetchData();
+        await loadSheet(currentSheet.id);
+        await fetchData();
       } else {
         setMessage({ type: 'error', text: data.error });
       }
     } catch (e) {
       setMessage({ type: 'error', text: 'Failed to lock results' });
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handlePublishResults = async () => {
-    if (!currentSheet) return;
+    if (!currentSheet || actionLoading) return;
     if (currentSheet.status !== JudgmentSheetStatus.LOCKED) {
       alert('You must lock the sheet before publishing results.');
       return;
     }
 
+    setActionLoading('publishing');
     try {
       const res = await fetch(`/api/judgment-sheets/${currentSheet.id}/calculate`, {
         method: 'POST',
@@ -290,19 +297,22 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
       const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: data.message });
-        loadSheet(currentSheet.id);
-        fetchData();
+        await loadSheet(currentSheet.id);
+        await fetchData();
       } else {
         setMessage({ type: 'error', text: data.error });
       }
     } catch (e) {
       setMessage({ type: 'error', text: 'Failed to publish results' });
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleUnlockSheet = async () => {
-    if (!currentSheet) return;
+    if (!currentSheet || actionLoading) return;
     if (!confirm('Unlock this judgment sheet so scores can be edited again?')) return;
+    setActionLoading('unlocking');
     try {
       const res = await fetch(`/api/judgment-sheets/${currentSheet.id}/unlock`, {
         method: 'POST',
@@ -312,21 +322,24 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
       const data = await res.json();
       if (res.ok) {
         setMessage({ type: 'success', text: data.message });
-        loadSheet(currentSheet.id);
-        fetchData();
+        await loadSheet(currentSheet.id);
+        await fetchData();
       } else {
         setMessage({ type: 'error', text: data.error });
       }
     } catch (e) {
       setMessage({ type: 'error', text: 'Failed to unlock sheet' });
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleLockAndPublish = async () => {
-    if (!currentSheet) return;
+    if (!currentSheet || actionLoading) return;
     if (!confirm('Are you sure you want to lock and publish these results immediately? Scores will no longer be editable and results will be visible.')) return;
 
     setSavingScores(true);
+    setActionLoading('publishing');
     setMessage(null);
     try {
       // 1. Save scores
@@ -362,12 +375,13 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
 
       const data = await pubRes.json();
       setMessage({ type: 'success', text: data.message });
-      loadSheet(currentSheet.id);
-      fetchData();
+      await loadSheet(currentSheet.id);
+      await fetchData();
     } catch (e: any) {
       setMessage({ type: 'error', text: e.message || 'Failed to lock and publish' });
     } finally {
       setSavingScores(false);
+      setActionLoading(null);
     }
   };
 
@@ -720,32 +734,89 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
               )}
 
               {canEditScores && currentSheet.status !== JudgmentSheetStatus.LOCKED && (
-                <button onClick={handleSaveScores} disabled={savingScores} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px]">
-                  {savingScores ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save Draft
+                <button
+                  onClick={handleSaveScores}
+                  disabled={!!actionLoading}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px]"
+                >
+                  {actionLoading === 'saving' ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" /> Save Draft
+                    </>
+                  )}
                 </button>
               )}
 
               {canGenerate && currentSheet.status !== JudgmentSheetStatus.LOCKED && (
                 <>
-                  <button onClick={handleLockResults} disabled={savingScores} className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition shadow-sm min-h-[44px]">
-                    <Lock className="h-4 w-4" />
-                    Lock
+                  <button
+                    onClick={handleLockResults}
+                    disabled={!!actionLoading}
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium flex items-center gap-1 transition shadow-sm min-h-[44px]"
+                  >
+                    {actionLoading === 'locking' ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" /> Locking...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-4 w-4" /> Lock
+                      </>
+                    )}
                   </button>
-                  <button onClick={handlePublishResults} disabled={savingScores} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition shadow-sm min-h-[44px]">
-                    {savingScores ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                    Publish Result
+                  <button
+                    onClick={handlePublishResults}
+                    disabled={!!actionLoading}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium flex items-center gap-1 transition shadow-sm min-h-[44px]"
+                  >
+                    {actionLoading === 'publishing' ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" /> Publishing...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4" /> Publish Result
+                      </>
+                    )}
                   </button>
                 </>
               )}
 
               {canGenerate && (currentSheet.status === JudgmentSheetStatus.LOCKED || currentSheet.publishedToResults) && (
                 <>
-                  <button onClick={handleUnlockSheet} className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px] cursor-pointer shadow-sm">
-                    <Lock className="h-4 w-4" /> Unlock Sheet
+                  <button
+                    onClick={handleUnlockSheet}
+                    disabled={!!actionLoading}
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px] cursor-pointer shadow-sm"
+                  >
+                    {actionLoading === 'unlocking' ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" /> Unlocking...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-4 w-4" /> Unlock Sheet
+                      </>
+                    )}
                   </button>
-                  <button onClick={handlePublishResults} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px] cursor-pointer shadow-sm">
-                    <CheckCircle className="h-4 w-4" /> Publish Result
+                  <button
+                    onClick={handlePublishResults}
+                    disabled={!!actionLoading}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium flex items-center gap-1 transition min-h-[44px] cursor-pointer shadow-sm"
+                  >
+                    {actionLoading === 'publishing' ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" /> Publishing...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4" /> Publish Result
+                      </>
+                    )}
                   </button>
                 </>
               )}
@@ -761,9 +832,18 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
               {canGenerate && (
                 <button
                   onClick={handleUnlockSheet}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
+                  disabled={!!actionLoading}
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
                 >
-                  <Lock className="h-3.5 w-3.5" /> Unlock Sheet Now
+                  {actionLoading === 'unlocking' ? (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Unlocking...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-3.5 w-3.5" /> Unlock Sheet Now
+                    </>
+                  )}
                 </button>
               )}
             </div>
