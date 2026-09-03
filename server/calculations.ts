@@ -52,11 +52,11 @@ export const CalculationService = {
     // Sort rankable results: highest mark first
     rankableResults.sort((a, b) => (b.averageMark || 0) - (a.averageMark || 0));
     
-    // Assign automatic ranks
+    // Assign automatic ranks (Dense Ranking: 1, 1, 2, 2, 3, 3)
     let currentRank = 1;
     for (let i = 0; i < rankableResults.length; i++) {
       if (i > 0 && (rankableResults[i].averageMark || 0) < (rankableResults[i - 1].averageMark || 0)) {
-        currentRank = i + 1;
+        currentRank++;
       }
       
       // Only apply auto-rank if there's no manual override
@@ -201,11 +201,11 @@ export const CalculationService = {
       return a.name.localeCompare(b.name);
     });
     
-    // Assign ranks
+    // Assign ranks (Dense Ranking)
     let currentRank = 1;
     const finalScoreboard = scoreboardEntries.map((entry, index) => {
       if (index > 0 && scoreboardEntries[index].overallMarks < scoreboardEntries[index - 1].overallMarks) {
-        currentRank = index + 1;
+        currentRank++;
       }
       return {
         ...entry,
@@ -380,11 +380,12 @@ export const CalculationService = {
       return b.overallMarks - a.overallMarks;
     });
     
-    // Assign ranks
+    // Assign ranks (Dense Ranking)
     let currentRank = 1;
     const finalStandings = unitStandings.map((standing, index) => {
-      if (index > 0 && unitStandings[index].overallMarks < unitStandings[index - 1].overallMarks) {
-        currentRank = index + 1;
+      const prev = unitStandings[index - 1];
+      if (index > 0 && (standing.overallPoints < prev.overallPoints || (standing.overallPoints === prev.overallPoints && standing.overallMarks < prev.overallMarks))) {
+        currentRank++;
       }
       return {
         ...standing,

@@ -4521,6 +4521,29 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
     return base;
   });
 
+  // Dynamically ensure Dense Ranking for participated entries (1, 1, 2, 2, 3, 3)
+  if (!isJudge) {
+    const rankable = [...enrichedScores].filter((s: any) => s.status === JudgeScoreStatus.PARTICIPATED && (s.averageMark || 0) > 0);
+    rankable.sort((a: any, b: any) => (b.averageMark || 0) - (a.averageMark || 0));
+    let rRank = 1;
+    let ranksUpdated = false;
+    for (let i = 0; i < rankable.length; i++) {
+      if (i > 0 && (rankable[i].averageMark || 0) < (rankable[i - 1].averageMark || 0)) {
+        rRank++;
+      }
+      rankable[i].rank = rRank;
+      const underlying = scores.find((sc: any) => sc.id === rankable[i].id);
+      if (underlying && underlying.rank !== rRank) {
+        underlying.rank = rRank;
+        ranksUpdated = true;
+      }
+    }
+    if (ranksUpdated) {
+      CalculationService.calculateCompetitionRanks(sheet.competitionId);
+      await dbClient.save();
+    }
+  }
+
   // Sort by code letter
   enrichedScores.sort((a: any, b: any) => a.codeLetter.localeCompare(b.codeLetter));
 
@@ -4715,13 +4738,13 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
     sheet.status = JudgmentSheetStatus.IN_PROGRESS;
   }
 
-  // Calculate ranks for participated entries
+  // Calculate ranks for participated entries using Dense Ranking (1, 1, 2, 2, 3, 3)
   const participatedScores = allScores.filter(s => s.status === JudgeScoreStatus.PARTICIPATED && s.judgeScores.length > 0);
   participatedScores.sort((a, b) => (b.averageMark || 0) - (a.averageMark || 0));
   let currentRank = 1;
   for (let i = 0; i < participatedScores.length; i++) {
     if (i > 0 && (participatedScores[i].averageMark || 0) < (participatedScores[i - 1].averageMark || 0)) {
-      currentRank = i + 1;
+      currentRank++;
     }
     participatedScores[i].rank = currentRank;
   }
