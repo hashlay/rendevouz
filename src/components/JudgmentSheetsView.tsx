@@ -666,15 +666,17 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                 {currentSheet.publishedToResults ? 'Published' : STATUS_LABELS[currentSheet.status]}
               </span>
 
-              <div className="relative group inline-block">
-                <button className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium flex items-center gap-1 transition">
-                  <Printer className="h-4 w-4" /> Print Form <ChevronDown className="h-3 w-3" />
-                </button>
-                <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col overflow-hidden">
-                  <button onClick={() => { setPrintType('blank'); setViewMode('print'); }} className="px-4 py-2 text-left text-sm hover:bg-slate-50 transition">Print Blank Sheet</button>
-                  <button onClick={() => { setPrintType('filled'); setViewMode('print'); }} className="px-4 py-2 text-left text-sm hover:bg-slate-50 transition border-t border-slate-100">Print Filled Sheet</button>
+              {!isJudge && (
+                <div className="relative group inline-block">
+                  <button className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium flex items-center gap-1 transition">
+                    <Printer className="h-4 w-4" /> Print Form <ChevronDown className="h-3 w-3" />
+                  </button>
+                  <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col overflow-hidden">
+                    <button onClick={() => { setPrintType('blank'); setViewMode('print'); }} className="px-4 py-2 text-left text-sm hover:bg-slate-50 transition">Print Blank Sheet</button>
+                    <button onClick={() => { setPrintType('filled'); setViewMode('print'); }} className="px-4 py-2 text-left text-sm hover:bg-slate-50 transition border-t border-slate-100">Print Filled Sheet</button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {isJudge ? (
                 <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200 shadow-sm">
