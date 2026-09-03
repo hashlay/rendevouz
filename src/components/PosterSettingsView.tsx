@@ -136,6 +136,7 @@ function getDefaultThemeConfig(): any {
     fontFamily: 'sans-serif', // Legacy global font family fallback
     uppercaseNames: false,
     rankBadgeShape: 'pill' as 'pill' | 'circle' | 'rectangle' | 'none',
+    rankBadgeShapeSize: 40,
     rank1Color: '#fbbf24',
     rank2Color: '#e2e8f0',
     rank3Color: '#d97706',
@@ -646,18 +647,33 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
       // Rank badge
       const rankText = rd.text;
-      ctx.font = `900 ${c.rankSize}px ${c.rankFont || c.fontFamily || 'sans-serif'}`;
+      const rankFontSize = c.rankSize || 38;
+      ctx.font = `900 ${rankFontSize}px ${c.rankFont || c.fontFamily || 'sans-serif'}`;
       const rankTextWidth = ctx.measureText(rankText).width;
+      const badgeShapeSize = c.rankBadgeShapeSize ?? 40;
+      const badgeCenterY = by - (rankFontSize * 0.32);
+
+      let badgeW = rankTextWidth + 40;
+      let badgeH = 50;
 
       if (c.rankBadgeShape !== 'none') {
         ctx.fillStyle = rd.color;
         ctx.beginPath();
         if (c.rankBadgeShape === 'pill') {
-          ctx.roundRect(bx - (rankTextWidth / 2) - 20, by - 37, rankTextWidth + 40, 50, 25);
+          badgeH = Math.max(badgeShapeSize * 1.25, rankFontSize * 1.25);
+          const pillPadX = Math.max(badgeShapeSize * 0.5, 16);
+          badgeW = rankTextWidth + pillPadX * 2;
+          ctx.roundRect(bx - badgeW / 2, badgeCenterY - badgeH / 2, badgeW, badgeH, badgeH / 2);
         } else if (c.rankBadgeShape === 'circle') {
-          ctx.arc(bx, by - 12, 40, 0, 2 * Math.PI);
+          const radius = badgeShapeSize;
+          badgeW = radius * 2;
+          badgeH = radius * 2;
+          ctx.arc(bx, badgeCenterY, radius, 0, 2 * Math.PI);
         } else {
-          ctx.rect(bx - (rankTextWidth / 2) - 20, by - 37, rankTextWidth + 40, 50);
+          badgeH = Math.max(badgeShapeSize * 1.25, rankFontSize * 1.25);
+          const rectPadX = Math.max(badgeShapeSize * 0.5, 16);
+          badgeW = rankTextWidth + rectPadX * 2;
+          ctx.rect(bx - badgeW / 2, badgeCenterY - badgeH / 2, badgeW, badgeH);
         }
         ctx.fill();
       }
@@ -665,7 +681,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       ctx.fillStyle = c.rankTextColor || '#000000';
       ctx.textAlign = 'center';
       ctx.fillText(rankText, bx, by);
-      addRegion(rd.badgeId, bx - (rankTextWidth / 2) - 25, by - 42, rankTextWidth + 50, 60);
+      addRegion(rd.badgeId, bx - badgeW / 2 - 5, badgeCenterY - badgeH / 2 - 5, badgeW + 10, badgeH + 10);
 
       // Participant name
       ctx.textAlign = 'left';
@@ -1211,7 +1227,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                   <RangeControl label="Comp Name Size" value={conf.compNameSize} onChange={v => updateConf('compNameSize', v)} min={20} max={100} />
                   <RangeControl label="Winner Name Size" value={conf.winnerSize} onChange={v => updateConf('winnerSize', v)} min={20} max={80} />
                   <RangeControl label="Unit Name Size" value={conf.unitSize} onChange={v => updateConf('unitSize', v)} min={14} max={60} />
-                  <RangeControl label="Rank Badge Size" value={conf.rankSize} onChange={v => updateConf('rankSize', v)} min={16} max={80} />
+                  <RangeControl label="Rank Text Size" value={conf.rankSize} onChange={v => updateConf('rankSize', v)} min={14} max={80} />
                 </div>
               </div>
             )}
@@ -1230,6 +1246,22 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                     <option value="rectangle">Rectangle</option>
                     <option value="none">None (Hide Shape)</option>
                   </select>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                  <RangeControl 
+                    label="Badge Shape Size" 
+                    value={conf.rankBadgeShapeSize ?? 40} 
+                    onChange={v => updateConf('rankBadgeShapeSize', v)} 
+                    min={20} 
+                    max={120} 
+                  />
+                  <RangeControl 
+                    label="Rank Text Size" 
+                    value={conf.rankSize ?? 38} 
+                    onChange={v => updateConf('rankSize', v)} 
+                    min={14} 
+                    max={80} 
+                  />
                 </div>
                 <div className="space-y-3">
                   <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">

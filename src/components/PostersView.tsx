@@ -123,6 +123,7 @@ function getDefaultThemeConfig(): any {
     fontFamily: 'sans-serif',
     uppercaseNames: false,
     rankBadgeShape: 'pill',
+    rankBadgeShapeSize: 40,
     rank1Color: '#fbbf24',
     rank2Color: '#e2e8f0',
     rank3Color: '#d97706',
@@ -911,18 +912,33 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         const unitRegionId = isSecond ? `rank${rank}_2_Unit` : `rank${rank}Unit`;
 
         // Rank badge (drawn twice if tied, exactly like reference)
-        ctx.font = `900 ${c.rankSize}px ${c.rankFont || c.fontFamily || 'sans-serif'}`;
+        const rankFontSize = c.rankSize || 38;
+        ctx.font = `900 ${rankFontSize}px ${c.rankFont || c.fontFamily || 'sans-serif'}`;
         const textWidth = ctx.measureText(rankText).width;
+        const badgeShapeSize = c.rankBadgeShapeSize ?? 40;
+        const badgeCenterY = by - (rankFontSize * 0.32);
+
+        let badgeW = textWidth + 40;
+        let badgeH = 50;
 
         if (c.rankBadgeShape !== 'none') {
           ctx.fillStyle = rColor;
           ctx.beginPath();
           if (c.rankBadgeShape === 'pill') {
-            ctx.roundRect(bx - (textWidth / 2) - 20, by - 37, textWidth + 40, 50, 25);
+            badgeH = Math.max(badgeShapeSize * 1.25, rankFontSize * 1.25);
+            const pillPadX = Math.max(badgeShapeSize * 0.5, 16);
+            badgeW = textWidth + pillPadX * 2;
+            ctx.roundRect(bx - badgeW / 2, badgeCenterY - badgeH / 2, badgeW, badgeH, badgeH / 2);
           } else if (c.rankBadgeShape === 'circle') {
-            ctx.arc(bx, by - 12, 40, 0, 2 * Math.PI);
+            const radius = badgeShapeSize;
+            badgeW = radius * 2;
+            badgeH = radius * 2;
+            ctx.arc(bx, badgeCenterY, radius, 0, 2 * Math.PI);
           } else {
-            ctx.rect(bx - (textWidth / 2) - 20, by - 37, textWidth + 40, 50);
+            badgeH = Math.max(badgeShapeSize * 1.25, rankFontSize * 1.25);
+            const rectPadX = Math.max(badgeShapeSize * 0.5, 16);
+            badgeW = textWidth + rectPadX * 2;
+            ctx.rect(bx - badgeW / 2, badgeCenterY - badgeH / 2, badgeW, badgeH);
           }
           ctx.fill();
         }
@@ -930,7 +946,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         ctx.fillStyle = c.rankTextColor || '#000000';
         ctx.textAlign = 'center';
         ctx.fillText(rankText, bx, by);
-        addRegion(badgeRegionId, bx - textWidth / 2 - 25, by - 42, textWidth + 50, 60);
+        addRegion(badgeRegionId, bx - badgeW / 2 - 5, badgeCenterY - badgeH / 2 - 5, badgeW + 10, badgeH + 10);
 
         // Winner name (Supports 2-line text with \n)
         ctx.textAlign = 'left';
