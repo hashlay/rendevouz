@@ -128,8 +128,8 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           heroLogoSubtitle: 'Meelad Fest',
           heroLogoBadge: 'NOORUL ISLAM MADRASA',
           heroHideLogo: true,
-          heroTitle: 'TABASSUM <span class="text-[#C89A4B]">MEELAD FEST</span>',
-          heroSubtitle: 'Noorul Islam Madrasa, Jeppu',
+          heroTitle: 'TABASSUM<br /><span class="text-[#C89A4B]">MEELAD FEST</span>',
+          heroSubtitle: 'A smile that brings heart together',
           heroInstitutionLeft: 'Noorul Islam Madrasa',
           heroInstitutionRight: 'Jeppu, Mangalore',
           heroDate: 'September 05, 2026',
@@ -602,27 +602,27 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Title</label>
-                    <input type="text" value={settings.heroLogoTitle !== undefined ? settings.heroLogoTitle : 'RENDEZVOUS'} onChange={(e) => setSettings({...settings, heroLogoTitle: e.target.value})} placeholder="RENDEZVOUS" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoTitle !== undefined ? settings.heroLogoTitle : 'TABASSUM'} onChange={(e) => setSettings({...settings, heroLogoTitle: e.target.value})} placeholder="TABASSUM" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Subtitle</label>
-                    <input type="text" value={settings.heroLogoSubtitle !== undefined ? settings.heroLogoSubtitle : 'Silver Edition'} onChange={(e) => setSettings({...settings, heroLogoSubtitle: e.target.value})} placeholder="Silver Edition" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoSubtitle !== undefined ? settings.heroLogoSubtitle : 'Meelad Fest'} onChange={(e) => setSettings({...settings, heroLogoSubtitle: e.target.value})} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Badge</label>
-                    <input type="text" value={settings.heroLogoBadge !== undefined ? settings.heroLogoBadge : 'KULLIYATHU IMAM RABBANI'} onChange={(e) => setSettings({...settings, heroLogoBadge: e.target.value})} placeholder="KULLIYATHU IMAM RABBANI" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoBadge !== undefined ? settings.heroLogoBadge : 'NOORUL ISLAM MADRASA'} onChange={(e) => setSettings({...settings, heroLogoBadge: e.target.value})} placeholder="NOORUL ISLAM MADRASA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Main Title (HTML Allowed)</label>
-                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({...settings, heroTitle: e.target.value})} placeholder='RENDEZVOUS <span class="text-[#FF2B2B]">SILVER EDITION</span>' className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({...settings, heroTitle: e.target.value})} placeholder='TABASSUM<br /><span class="text-[#C89A4B]">MEELAD FEST</span>' className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Subtitle</label>
-                    <input type="text" value={settings.heroSubtitle} onChange={(e) => setSettings({...settings, heroSubtitle: e.target.value})} placeholder="Imam Rabbani LIFE Festival" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroSubtitle} onChange={(e) => setSettings({...settings, heroSubtitle: e.target.value})} placeholder="A smile that brings heart together" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Institution Text (Left)</label>
-                    <input type="text" value={settings.heroInstitutionLeft} onChange={(e) => setSettings({...settings, heroInstitutionLeft: e.target.value})} placeholder="Kulliyathu Imam Rabbani" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroInstitutionLeft} onChange={(e) => setSettings({...settings, heroInstitutionLeft: e.target.value})} placeholder="Noorul Islam Madrasa" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Institution Text (Right)</label>
