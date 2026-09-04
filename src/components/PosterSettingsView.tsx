@@ -30,6 +30,8 @@ export const getPosterTeamColor = (unitOrTeamName?: string, defaultColor: string
     normalized.includes('shukoor') ||
     normalized.includes('ശുക്') ||
     normalized.includes('ശുക്കൂർ') ||
+    normalized.includes('شكر') ||
+    normalized.includes('الشكر') ||
     normalized === 'shk' ||
     str === 'shk'
   ) {
@@ -43,6 +45,8 @@ export const getPosterTeamColor = (unitOrTeamName?: string, defaultColor: string
     normalized.includes('സ്വബ്') ||
     normalized.includes('സബ്ർ') ||
     normalized.includes('സ്വബർ') ||
+    normalized.includes('صبر') ||
+    normalized.includes('الصبر') ||
     normalized === 'sbr' ||
     str === 'sbr'
   ) {
@@ -50,6 +54,62 @@ export const getPosterTeamColor = (unitOrTeamName?: string, defaultColor: string
   }
 
   return defaultColor;
+};
+
+/**
+ * Returns the display name for a unit/team on posters.
+ * If unitLanguage is 'ar', maps English team name to Arabic using user-customized spellings.
+ */
+export const getPosterDisplayUnitName = (
+  unitOrTeamName?: string,
+  config?: any
+): string => {
+  if (!unitOrTeamName) return '';
+  const raw = unitOrTeamName.toString().trim();
+  if (config?.unitLanguage !== 'ar') {
+    return config?.unitUppercase !== false ? raw.toUpperCase() : raw;
+  }
+
+  const customMap = config?.unitArabicNames || {};
+  const normalized = raw.toLowerCase().replace(/[\s\-_]/g, '');
+
+  // Direct match in custom dictionary
+  if (customMap[raw]) return customMap[raw];
+
+  // Match Ash-Shukr variants
+  if (
+    normalized.includes('shukr') ||
+    normalized.includes('shukur') ||
+    normalized.includes('shukoor') ||
+    normalized.includes('ശുക്') ||
+    normalized.includes('ശുക്കൂർ') ||
+    normalized === 'shk' ||
+    raw === 'shk'
+  ) {
+    return customMap['Ash-Shukr'] || customMap['ash-shukr'] || 'الشكر';
+  }
+
+  // Match As-Sabr variants
+  if (
+    normalized.includes('sabr') ||
+    normalized.includes('sabar') ||
+    normalized.includes('സ്വബ്') ||
+    normalized.includes('സബ്ർ') ||
+    normalized.includes('സ്വബർ') ||
+    normalized === 'sbr' ||
+    raw === 'sbr'
+  ) {
+    return customMap['As-Sabr'] || customMap['as-sabr'] || 'الصبر';
+  }
+
+  // Fuzzy lookup in keys
+  for (const [k, v] of Object.entries(customMap)) {
+    if (k.toLowerCase().replace(/[\s\-_]/g, '') === normalized) {
+      return v as string;
+    }
+  }
+
+  return raw;
 };
 
 // Default config for a single theme
@@ -158,6 +218,13 @@ function getDefaultThemeConfig(): any {
     compNameUppercase: false,
     winnerUppercase: false,
     unitUppercase: true,
+
+    // Team / Unit Language & Custom Arabic Spellings (Poster Only)
+    unitLanguage: 'en', // 'en' | 'ar'
+    unitArabicNames: {
+      'Ash-Shukr': 'الشكر',
+      'As-Sabr': 'الصبر'
+    } as Record<string, string>,
   };
 }
 
@@ -719,9 +786,12 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       addRegion(rd.nameId, nx - 5, ny - c.winnerSize - 5, nameMetrics.width + 10, c.winnerSize + 15);
 
       // Unit/Team name
-      ctx.font = `700 ${c.unitSize}px ${c.unitFont || 'monospace'}`;
-      const unitText = rd.sampleUnit || 'Ash-Shukr';
-      ctx.fillStyle = getPosterTeamColor(unitText, c.unitColor);
+      const isArabic = c.unitLanguage === 'ar';
+      const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : 'sans-serif';
+      ctx.font = `700 ${c.unitSize}px ${isArabic ? arabicFont : (c.unitFont || 'monospace')}`;
+      const sampleUnitName = rd.sampleUnit || 'Ash-Shukr';
+      const unitText = getPosterDisplayUnitName(sampleUnitName, c);
+      ctx.fillStyle = getPosterTeamColor(sampleUnitName, c.unitColor);
       ctx.fillText(unitText, ux, uy);
       const unitMetrics = ctx.measureText(unitText);
       addRegion(rd.unitId, ux - 5, uy - c.unitSize - 5, unitMetrics.width + 10, c.unitSize + 15);
@@ -1215,7 +1285,13 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Unit Name Font</label>
                       <select value={conf.unitFont || 'monospace'} onChange={e => updateConf('unitFont', e.target.value)} className="w-full text-xs p-1.5 border rounded">
-                        <option value="sans-serif">Sans Serif</option><option value="serif">Serif</option><option value="monospace">Monospace</option><option value="'Inter', sans-serif">Inter</option><option value="'Roboto', sans-serif">Roboto</option>
+                        <option value="sans-serif">Sans Serif</option>
+                        <option value="serif">Serif</option>
+                        <option value="monospace">Monospace</option>
+                        <option value="'Inter', sans-serif">Inter</option>
+                        <option value="'Roboto', sans-serif">Roboto</option>
+                        <option value="'Cairo', sans-serif">Cairo (Arabic / Modern)</option>
+                        <option value="'Amiri', serif">Amiri (Arabic / Classic)</option>
                       </select>
                     </div>
                     <div>
@@ -1225,6 +1301,100 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                       </select>
                     </div>
                   </div>
+                </div>
+
+                {/* Team / Unit Name Display Language (Poster Only) */}
+                <div className="p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                        Team / Unit Name Language (Poster Only)
+                      </span>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        Display team names in English or Arabic on this poster theme. Everywhere else remains English.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => updateConf('unitLanguage', 'en')}
+                      className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-xs transition border cursor-pointer ${
+                        conf.unitLanguage !== 'ar'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      English (ASH-SHUKR / AS-SABR)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateConf('unitLanguage', 'ar');
+                        if (conf.unitFont === 'monospace') {
+                          updateConf('unitFont', 'sans-serif');
+                        }
+                      }}
+                      className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-xs transition border cursor-pointer ${
+                        conf.unitLanguage === 'ar'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Arabic (الشكر / الصبر)
+                    </button>
+                  </div>
+
+                  {conf.unitLanguage === 'ar' && (
+                    <div className="pt-2 border-t border-emerald-200/60 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-emerald-950 uppercase">
+                          Custom Arabic Spellings (Editable)
+                        </span>
+                        <span className="text-[9px] text-slate-500">Edit spelling directly to avoid mistakes</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
+                          <label className="block text-[11px] font-bold text-blue-800 mb-1 flex items-center justify-between">
+                            <span>Ash-Shukr (Blue #2b2bc3)</span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#2b2bc3]" />
+                          </label>
+                          <input
+                            type="text"
+                            dir="rtl"
+                            value={conf.unitArabicNames?.['Ash-Shukr'] ?? 'الشكر'}
+                            onChange={(e) => {
+                              const updated = { ...(conf.unitArabicNames || {}), 'Ash-Shukr': e.target.value };
+                              updateConf('unitArabicNames', updated);
+                            }}
+                            className="w-full px-2.5 py-1 text-sm font-bold border border-slate-200 rounded-lg text-right"
+                            placeholder="الشكر"
+                          />
+                        </div>
+
+                        <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
+                          <label className="block text-[11px] font-bold text-green-800 mb-1 flex items-center justify-between">
+                            <span>As-Sabr (Green #1b5e20)</span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#1b5e20]" />
+                          </label>
+                          <input
+                            type="text"
+                            dir="rtl"
+                            value={conf.unitArabicNames?.['As-Sabr'] ?? 'الصبر'}
+                            onChange={(e) => {
+                              const updated = { ...(conf.unitArabicNames || {}), 'As-Sabr': e.target.value };
+                              updateConf('unitArabicNames', updated);
+                            }}
+                            className="w-full px-2.5 py-1 text-sm font-bold border border-slate-200 rounded-lg text-right"
+                            placeholder="الصبر"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
