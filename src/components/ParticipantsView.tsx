@@ -83,19 +83,52 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         return trimmed;
       };
 
-      // Parse CSV lines: Name, Category, Unit/House, DOB, Class, Gender, Competitions (optional, separated by ; or commas)
+      // Parse CSV lines:
+      // Primary format: Chest Number, Full Name, Category, Unit/House, DOB, Class, Gender, Competitions (optional)
+      // Also supports legacy format if Chest Number is omitted: Full Name, Category, Unit/House, DOB, Class, Gender, Competitions...
       const lines = bulkText.trim().split('\n');
       const participantsToImport = lines.map(line => {
         const parts = line.split(',').map(s => s.trim());
-        const fullName = cleanVal(parts[0]);
-        const categoryName = cleanVal(parts[1]);
-        const unitName = cleanVal(parts[2]);
-        const dob = cleanVal(parts[3]) || '';
-        const candidateClass = cleanVal(parts[4]);
-        const gender = cleanVal(parts[5]) || cleanVal(parts[4]) || 'male';
+        if (parts.length < 2) return { fullName: '' };
 
-        // Any entries from index 6 onwards are treated as competitions (can also be semicolon-separated)
-        const compParts = parts.slice(6).map(cleanVal).filter(Boolean);
+        // Determine if parts[0] is a chest number
+        const firstVal = cleanVal(parts[0]);
+        const secondVal = cleanVal(parts[1]);
+        const firstIsChest = !isNaN(Number(firstVal)) || (firstVal.length <= 6 && /\d/.test(firstVal));
+
+        let chestNumber = '';
+        let fullName = '';
+        let categoryName = '';
+        let unitName = '';
+        let dob = '';
+        let candidateClass = '';
+        let gender = 'male';
+        let compParts: string[] = [];
+
+        if (firstIsChest || parts.length >= 7) {
+          // Format with Chest Number first:
+          // 0: Chest Number, 1: Full Name, 2: Category, 3: Unit, 4: DOB, 5: Class, 6: Gender, 7+: Competitions
+          chestNumber = firstVal;
+          fullName = secondVal;
+          categoryName = cleanVal(parts[2]);
+          unitName = cleanVal(parts[3]);
+          dob = cleanVal(parts[4]) || '';
+          candidateClass = cleanVal(parts[5]);
+          gender = cleanVal(parts[6]) || 'male';
+          compParts = parts.slice(7).map(cleanVal).filter(Boolean);
+        } else {
+          // Legacy format without Chest Number:
+          // 0: Full Name, 1: Category, 2: Unit, 3: DOB, 4: Class, 5: Gender, 6+: Competitions
+          chestNumber = '';
+          fullName = firstVal;
+          categoryName = secondVal;
+          unitName = cleanVal(parts[2]);
+          dob = cleanVal(parts[3]) || '';
+          candidateClass = cleanVal(parts[4]);
+          gender = cleanVal(parts[5]) || 'male';
+          compParts = parts.slice(6).map(cleanVal).filter(Boolean);
+        }
+
         const compNames: string[] = [];
         compParts.forEach(cp => {
           cp.split(/[;|]/).forEach(sub => {
@@ -107,6 +140,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         });
 
         return {
+          chestNumber,
           fullName,
           categoryName,
           unitName,
@@ -485,8 +519,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       return true;
     });
 
-    // Sort CATEGORY-WISE according to registered category order (not alphabetical!)
-    // Within the same category, strictly order by registration order (original array index)
+    // Sort CATEGORY-WISE according to registered category order (e.g. Kids -> Sub-Junior -> Junior -> Senior)
+    // Within the same category, strictly order numerically by chest number (101, 102... / 201, 202...)
     return filtered.sort((a, b) => {
       const catIdA = a.selectedCategoryId || a.categoryId || '';
       const catIdB = b.selectedCategoryId || b.categoryId || '';
@@ -496,6 +530,18 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       if (idxA !== idxB) {
         return idxA - idxB;
       }
+
+      // Numeric chest number sorting within category
+      const chestStrA = (a.chestNumber || a.profilePhoto || '').toString();
+      const chestStrB = (b.chestNumber || b.profilePhoto || '').toString();
+      const numA = parseInt(chestStrA.replace(/\D/g, ''), 10);
+      const numB = parseInt(chestStrB.replace(/\D/g, ''), 10);
+
+      if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+        return numA - numB;
+      }
+      if (!isNaN(numA) && isNaN(numB)) return -1;
+      if (isNaN(numA) && !isNaN(numB)) return 1;
 
       // Tie-breaker: Registration Order (Original Array Index)
       const origA = participants.indexOf(a);
@@ -606,13 +652,14 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                 <span>Format: One participant per line (CSV format):</span>
               </p>
               <p className="font-mono text-[11px] bg-white/90 p-2 rounded-xl border border-emerald-300 text-slate-800 break-all font-semibold">
-                Full Name, Category, Unit/House, Date of Birth (YYYY-MM-DD), Class, Gender, Competitions (Optional)
+                Chest Number, Full Name, Category, Unit/House, Date of Birth (YYYY-MM-DD), Class, Gender, Competitions (Optional)
               </p>
               <div className="text-[10px] text-emerald-800 space-y-1 pt-1 font-sans">
-                <p><strong>• Single Competition:</strong> <span className="font-mono">Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English</span></p>
-                <p><strong>• Multiple Competitions:</strong> <span className="font-mono">Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English; Qira'at Recitation</span> (use <code className="bg-emerald-100 px-1 rounded">;</code> to separate)</p>
+                <p><strong>• Single Competition:</strong> <span className="font-mono">301, Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English</span></p>
+                <p><strong>• Multiple Competitions:</strong> <span className="font-mono">302, Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English; Qira'at Recitation</span> (use <code className="bg-emerald-100 px-1 rounded">;</code> to separate)</p>
+                <p><strong>• Custom Chest Numbers:</strong> Provide custom chest numbers (e.g. <span className="font-mono">101</span> for Kids, <span className="font-mono">201</span> for Sub-Junior, <span className="font-mono">301</span> for Junior, <span className="font-mono">401</span> for Senior). If blank or <code className="bg-emerald-100 px-1 rounded">-</code>, next available number is auto-generated.</p>
                 <p><strong>• Whitespace Safe:</strong> Extra leading or trailing spaces are automatically trimmed and normalized.</p>
-                <p><strong>• Blank Fields:</strong> Use <code className="bg-emerald-100 px-1 rounded">-</code> for unknown fields (e.g. <span className="font-mono">Rayan, Junior, Zenith, -, Class 8, Male, Elocution English</span>)</p>
+                <p><strong>• Blank Fields:</strong> Use <code className="bg-emerald-100 px-1 rounded">-</code> for unknown fields (e.g. <span className="font-mono">303, Rayan, Junior, Zenith, -, Class 8, Male, Elocution English</span>)</p>
               </div>
             </div>
 

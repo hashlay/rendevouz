@@ -1545,6 +1545,21 @@ apiRouter.get('/participants', authenticate, async (req, res) => {
     fullName: toTitleCase(p.fullName)
   }));
 
+  // Sort participants category-wise and numerically by chest number (101, 102... 201, 202... 301...)
+  const catOrder = new Map<string, number>();
+  (db.categories || []).forEach((cat: Category, idx: number) => catOrder.set(cat.id, idx));
+
+  formattedParticipants.sort((a: any, b: any) => {
+    const orderA = catOrder.get(a.selectedCategoryId || a.categoryId) ?? 999;
+    const orderB = catOrder.get(b.selectedCategoryId || b.categoryId) ?? 999;
+    if (orderA !== orderB) return orderA - orderB;
+
+    const numA = parseInt((a.chestNumber || a.profilePhoto || '').replace(/\D/g, ''), 10);
+    const numB = parseInt((b.chestNumber || b.profilePhoto || '').replace(/\D/g, ''), 10);
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return 0;
+  });
+
   res.json(formattedParticipants);
 });
 
@@ -1590,12 +1605,53 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
       }
 
       const participantId = `part_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-      const generatedChest = unit && category ? generateNextChestNumber(db, category.id, user.id, participantId, unit.id) : null;
-      const chestNumberString = generatedChest ? generatedChest.chestNumber.toString() : 'PENDING';
+      const rawChestNumber = (item.chestNumber || item.chest || '').toString().trim();
+      let chestNumberString = '';
+
+      if (!db.chestNumbers) db.chestNumbers = [];
+
+      if (rawChestNumber && rawChestNumber !== '-' && rawChestNumber !== '—' && rawChestNumber !== 'N/A') {
+        const numVal = parseInt(rawChestNumber.replace(/\D/g, ''), 10);
+        const finalNum = !isNaN(numVal) ? numVal : rawChestNumber;
+        chestNumberString = rawChestNumber;
+
+        // Sync or register chestNumber record in db.chestNumbers
+        const existingCnIdx = db.chestNumbers.findIndex((cn: any) => !cn.deletedAt && cn.chestNumber.toString() === rawChestNumber);
+        if (existingCnIdx !== -1) {
+          db.chestNumbers[existingCnIdx].participantId = participantId;
+          db.chestNumbers[existingCnIdx].categoryId = category?.id || 'cat_junior';
+          db.chestNumbers[existingCnIdx].unitId = unit?.id || 'unit_default';
+        } else {
+          const cnRecord: ChestNumber = {
+            id: `chest_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            chestNumber: finalNum as any,
+            participantId,
+            categoryId: category?.id || 'cat_junior',
+            unitId: unit?.id || 'unit_default',
+            generatedBy: user.id,
+            generatedAt: new Date().toISOString()
+          };
+          db.chestNumbers.push(cnRecord);
+        }
+
+        // Keep counter updated so auto-generation doesn't conflict
+        if (!isNaN(numVal) && category) {
+          if (!db.counters) db.counters = [];
+          let counter = db.counters.find((c: Counter) => c.categoryId === category.id);
+          if (counter && counter.currentValue < numVal) {
+            counter.currentValue = numVal;
+          }
+        }
+      } else {
+        // Fallback: auto-generate next chest number if omitted
+        const generatedChest = unit && category ? generateNextChestNumber(db, category.id, user.id, participantId, unit.id) : null;
+        chestNumberString = generatedChest ? generatedChest.chestNumber.toString() : 'PENDING';
+      }
 
       const p: Participant = {
         id: participantId,
         fullName: toTitleCase(fullName),
+        chestNumber: chestNumberString,
         dob: item.dob || '',
         candidateClass: item.candidateClass || item.class || '',
         unitId: unit?.id || 'unit_default',
