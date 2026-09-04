@@ -276,7 +276,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       const data = await sRes.json();
       setSectorName(data.sectorName || '');
       setEventTitle(data.eventTitle || '');
-      setFestivalName(data.festivalName || 'tabassum');
+      setFestivalName(data.festivalName || 'At-Tabassum');
       setCampusName(data.campusName || data.sectorName || 'Noorul Islam Madrasa, Jeppu');
       setSsfLogoUrl(data.ssfLogoUrl || '');
       setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '');

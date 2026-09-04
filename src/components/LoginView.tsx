@@ -180,7 +180,7 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
               <div className="h-8 w-px bg-slate-300" />
               <div className="flex flex-col items-start text-left">
                 <span className="font-display font-bold text-emerald-900 text-base tracking-tight leading-none uppercase">
-                  {eventSettings?.festivalName || 'tabassum MEELAD FEST'}
+                  {eventSettings?.festivalName || 'At-Tabassum MEELAD FEST'}
                 </span>
                 <span className="text-amber-600 font-mono text-[10px] font-semibold tracking-widest mt-1 uppercase">
                   {eventSettings?.campusName || eventSettings?.sectorName || 'Noorul Islam Madrasa, Jeppu'}

@@ -121,7 +121,7 @@ export default function Sidebar({
               )}
               <div className="flex flex-col">
                 <span className="font-display font-extrabold text-amber-400 text-sm tracking-wide leading-none uppercase">
-                  {eventSettings?.festivalName || 'tabassum MEELAD FEST'}
+                  {eventSettings?.festivalName || 'At-Tabassum MEELAD FEST'}
                 </span>
                 <span className="text-emerald-300 text-[10px] font-mono tracking-widest uppercase mt-1">
                   {eventSettings?.campusName || eventSettings?.sectorName || 'Noorul Islam Madrasa, Jeppu'}
