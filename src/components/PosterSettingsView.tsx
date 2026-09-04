@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Award, Trophy, Image as ImageIcon, Download, Upload,
-  Sparkles, RefreshCw, Palette, Layers, CheckCircle2, ChevronDown, Save, X, Plus, Trash2, Move, GripVertical
+  Sparkles, RefreshCw, Palette, Layers, CheckCircle2, ChevronDown, Save, X, Plus, Trash2, Move, GripVertical, Copy
 } from 'lucide-react';
 import { User, Category, Unit, Participant, Competition, Result, Team, UserRole } from '../types';
 import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper';
@@ -404,6 +404,48 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
         [key]: value
       }
     }));
+  };
+
+  // Copy / Duplicate theme layout settings
+  const [sourceThemeToCopy, setSourceThemeToCopy] = useState<number>(0);
+
+  useEffect(() => {
+    if (sourceThemeToCopy === selectedThemeIndex) {
+      const otherIdx = customThemes.findIndex((_, i) => i !== selectedThemeIndex);
+      if (otherIdx !== -1) setSourceThemeToCopy(otherIdx);
+    }
+  }, [selectedThemeIndex, customThemes]);
+
+  const handleCopyThemeSettings = (sourceIdx: number, targetIdx: number) => {
+    if (sourceIdx === targetIdx) return;
+    const sourceConf = getThemeConfig(sourceIdx);
+    setThemeConfigs((prev: any) => ({
+      ...prev,
+      [targetIdx]: {
+        ...JSON.parse(JSON.stringify(sourceConf))
+      }
+    }));
+    alert(`✓ Successfully copied all layout positions, fonts & colors from Theme ${sourceIdx + 1} into Theme ${targetIdx + 1}!\nYou can now edit any specific colors or text.`);
+  };
+
+  const handleDuplicateTheme = (sourceIdx: number) => {
+    if (customThemes.length >= 10) {
+      alert('Maximum of 10 themes reached.');
+      return;
+    }
+    const sourceThemeImg = customThemes[sourceIdx];
+    const sourceConf = getThemeConfig(sourceIdx);
+    const newIdx = customThemes.length;
+
+    setCustomThemes(prev => [...prev, sourceThemeImg]);
+    setThemeConfigs((prev: any) => ({
+      ...prev,
+      [newIdx]: {
+        ...JSON.parse(JSON.stringify(sourceConf))
+      }
+    }));
+    setSelectedThemeIndex(newIdx);
+    alert(`✓ Duplicated Theme ${sourceIdx + 1} as Theme ${newIdx + 1} with all its layout settings!`);
   };
 
   const [savingTemplate, setSavingTemplate] = useState(false);
@@ -920,6 +962,16 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                         </div>
                       </button>
                       <button
+                        title={`Duplicate Theme ${idx + 1}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicateTheme(idx);
+                        }}
+                        className="absolute -top-2 right-6 bg-slate-700 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-slate-900 shadow-md cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         onClick={() => {
                           setCustomThemes(prev => prev.filter((_, i) => i !== idx));
                           setThemeConfigs((prev: any) => {
@@ -958,9 +1010,17 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                           const reader = new FileReader();
                           reader.onload = (ev) => {
                             const result = ev.target?.result as string;
+                            const previousConf = getThemeConfig(selectedThemeIndex);
                             setCustomThemes(prev => {
                               const newThemes = [...prev, result];
-                              setSelectedThemeIndex(newThemes.length - 1);
+                              const newIdx = newThemes.length - 1;
+                              setSelectedThemeIndex(newIdx);
+                              setThemeConfigs((configs: any) => ({
+                                ...configs,
+                                [newIdx]: {
+                                  ...JSON.parse(JSON.stringify(previousConf))
+                                }
+                              }));
                               return newThemes;
                             });
                           };
@@ -969,6 +1029,47 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                       }}
                     />
                   </label>
+                )}
+
+                {/* Copy Theme Settings Section */}
+                {customThemes.length > 1 && (
+                  <div className="bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 space-y-2 mt-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Copy className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Copy Layout & Settings</span>
+                      </span>
+                      <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-200">
+                        Editing Theme {selectedThemeIndex + 1}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Copy all element positions, font sizes, colors, and badge styles from another theme into <strong>Theme {selectedThemeIndex + 1}</strong>.
+                    </p>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                      <select
+                        value={sourceThemeToCopy}
+                        onChange={(e) => setSourceThemeToCopy(Number(e.target.value))}
+                        className="flex-1 bg-white border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 font-semibold outline-none focus:ring-1 focus:ring-emerald-500"
+                      >
+                        {customThemes.map((_, i) => (
+                          i !== selectedThemeIndex ? (
+                            <option key={i} value={i}>
+                              Copy from Theme {i + 1} {themeConfigs[i] ? '(Customized)' : '(Default)'}
+                            </option>
+                          ) : null
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyThemeSettings(sourceThemeToCopy, selectedThemeIndex)}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy to Theme {selectedThemeIndex + 1}</span>
+                      </button>
+                    </div>
+                  </div>
                 )}
               </>
             )}
