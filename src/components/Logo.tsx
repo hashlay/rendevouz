@@ -17,9 +17,9 @@ export const Logo: React.FC<LogoProps> = ({
   showSubBadge = true,
   size = 'md',
   variant = 'full',
-  title = 'Rendezvous',
-  subtitle = 'Silver Edition',
-  badge = 'KULLIYATHU IMAM RABBANI',
+  title = 'TABASSUM',
+  subtitle = 'Meelad Fest',
+  badge = 'NOORUL ISLAM MADRASA',
   showIcon = true,
   customIconUrl = '',
 }) => {
@@ -33,55 +33,23 @@ export const Logo: React.FC<LogoProps> = ({
 
   const { iconWidth, iconHeight, textSize, subTextSize } = scales[size];
 
-  // 17 vertical parallel wavy lines forming a solid rectangular block
-  const linesCount = 17;
-  const svgWidth = 120;
-  const svgHeight = 65;
-  const paddingX = 6;
-  const availableWidth = svgWidth - paddingX * 2;
-  const spacing = availableWidth / (linesCount - 1);
-
-  // Generate path d for vertical wave line
-  const generateWaveLine = (xIndex: number) => {
-    const x = paddingX + xIndex * spacing;
-    // Straight top section (barcode-like) then a slight wiggle at the bottom
-    return `M ${x} 3 L ${x} 40 C ${x + 3.5} 48, ${x - 3.5} 55, ${x} 62`;
-  };
-
   return (
     <div className={`flex items-center gap-3 select-none ${className}`}>
-      {/* Wave Icon */}
+      {/* Brand Icon */}
       {showIcon && (
-        <div className="relative group shrink-0">
-          {customIconUrl ? (
-            <img 
-              src={customIconUrl} 
-              alt="Logo Icon" 
-              className="object-contain" 
-              style={{ width: iconWidth, height: iconHeight }} 
-            />
-          ) : (
-            <svg
-              width={iconWidth}
-              height={iconHeight}
-              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="transition-transform duration-300 group-hover:scale-105"
-            >
-              {Array.from({ length: linesCount }).map((_, i) => (
-                <path
-                  key={i}
-                  d={generateWaveLine(i)}
-                  stroke="#FF2B2B"
-                  strokeWidth="3.2"
-                  strokeLinecap="round"
-                />
-              ))}
-            </svg>
-          )}
-          {/* Subtle crimson ambient glow */}
-          <div className="absolute inset-0 bg-[#FF2B2B]/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="relative group shrink-0 flex items-center justify-center">
+          <img 
+            src={customIconUrl || '/tabassum_logo.jpg'} 
+            alt="Logo Icon" 
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (target.src.includes('tabassum_logo.jpg')) {
+                target.src = '/tabassum_logo.png';
+              }
+            }}
+            className="object-contain rounded-full shadow-md transition-transform duration-300 group-hover:scale-105" 
+            style={{ width: iconWidth, height: iconHeight }} 
+          />
         </div>
       )}
 
@@ -98,8 +66,8 @@ export const Logo: React.FC<LogoProps> = ({
 
           {showSubBadge && (
             <div className="flex items-center justify-start gap-1.5 mt-1 w-full">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF2B2B] shrink-0 animate-pulse" />
-              <span className={`uppercase font-medium tracking-wider text-[#E60000] ${subTextSize} text-left`}>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#C89A4B] shrink-0 animate-pulse" />
+              <span className={`uppercase font-medium tracking-wider text-[#C89A4B] ${subTextSize} text-left`}>
                 {badge}
               </span>
             </div>

@@ -185,13 +185,13 @@ function ensureDbExists() {
       if (!db.gallery) db.gallery = [];
       if (!db.videoHighlights) db.videoHighlights = [];
       if (!db.eventSettings) db.eventSettings = {} as any;
-      if (!db.eventSettings.eventTitle) db.eventSettings.eventTitle = 'A SMILE THAT BRINGS HEART TOGETHER';
+      if (!db.eventSettings.eventTitle) db.eventSettings.eventTitle = 'A SMILE THAT BRINGS HEARTS TOGETHER';
       if (!db.eventSettings.festivalName) db.eventSettings.festivalName = 'Tabassum';
       if (!db.eventSettings.campusName) db.eventSettings.campusName = 'Noorul Islam Madrasa, Jeppu';
       if (!db.eventSettings.sectorName) db.eventSettings.sectorName = 'Noorul Islam Madrasa, Jeppu';
       if (!db.eventSettings.eventYear) db.eventSettings.eventYear = '2026';
       if (!db.eventSettings.venue) db.eventSettings.venue = 'Jeppu';
-      if (!db.eventSettings.contactInfo) db.eventSettings.contactInfo = 'tabassumfestival@gmail.com';
+      if (!db.eventSettings.contactInfo) db.eventSettings.contactInfo = 'zenith.theorganizer@gmail.com';
       if (!db.eventSettings.ssfLogoUrl || db.eventSettings.ssfLogoUrl.includes('base64') || db.eventSettings.ssfLogoUrl.includes('zenith')) db.eventSettings.ssfLogoUrl = '/tabassum_logo.jpg';
       if (!db.eventSettings.sahityotsavLogoUrl || db.eventSettings.sahityotsavLogoUrl.includes('base64') || db.eventSettings.sahityotsavLogoUrl.includes('zenith')) db.eventSettings.sahityotsavLogoUrl = '/tabassum_logo.jpg';
       return;
@@ -235,7 +235,7 @@ function ensureDbExists() {
   const initialCompetitions: Competition[] = [];
 
   const initialSettings: EventSettings = {
-    eventTitle: 'A SMILE THAT BRINGS HEART TOGETHER',
+    eventTitle: 'A SMILE THAT BRINGS HEARTS TOGETHER',
     festivalName: 'Tabassum',
     campusName: 'Noorul Islam Madrasa, Jeppu',
     sectorName: 'Noorul Islam Madrasa, Jeppu',
@@ -243,7 +243,7 @@ function ensureDbExists() {
     cutoffDate: '2026-05-01',
     eventDate: '2026-08-15',
     venue: 'Jeppu',
-    contactInfo: 'tabassumfestival@gmail.com',
+    contactInfo: 'zenith.theorganizer@gmail.com',
     maxIndividualEvents: 10,
     maxGroupEvents: 10,
     maxOnStageEvents: null,
@@ -343,7 +343,7 @@ async function _syncMongoNow() {
         if (Array.isArray(items)) {
           const col = mongoDb.collection(colName);
           const activeIds = items.map((i: any) => i.id || i._id).filter(Boolean);
-          
+
           // Delete any document from MongoDB Atlas that was removed from memory
           if (activeIds.length > 0) {
             await col.deleteMany({
@@ -351,7 +351,7 @@ async function _syncMongoNow() {
                 { id: { $nin: activeIds } },
                 { _id: { $nin: activeIds } }
               ]
-            }).catch(() => {});
+            }).catch(() => { });
           }
 
           if (items.length > 0) {
@@ -490,9 +490,9 @@ export async function bumpStateVersion() {
         { _id: 'state_version' as any },
         { $set: { _id: 'state_version', version: localStateVersion } },
         { upsert: true }
-      ).catch(() => {});
+      ).catch(() => { });
     }
-  } catch (_) {}
+  } catch (_) { }
 }
 
 async function syncStateFromMongo(force: boolean = false) {
