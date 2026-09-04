@@ -2590,78 +2590,242 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
   };
 
   db.results.push(newResult);
-  await dbClient.save();
+
+  // Auto-register participant in db.registrations if not already registered for this competition
+  if (participantId) {
+    if (!db.hasOwnProperty('registrations')) {
+      (db as any).registrations = [];
+    }
+    let reg = (db as any).registrations.find((r: any) => r.participantId === participantId && !r.deletedAt);
+    if (!reg) {
+      reg = {
+        id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        participantId,
+        categoryId,
+        selectedIndividualCompetitionIds: [competitionId],
+        selectedGroupCompetitionIds: [],
+        registrationStatus: 'confirmed',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      (db as any).registrations.push(reg);
+    } else {
+      if (!Array.isArray(reg.selectedIndividualCompetitionIds)) {
+        reg.selectedIndividualCompetitionIds = [];
+      }
+      if (!reg.selectedIndividualCompetitionIds.includes(competitionId)) {
+        reg.selectedIndividualCompetitionIds.push(competitionId);
+        reg.updatedAt = new Date().toISOString();
+      }
+    }
+  }
 
   // Trigger ranks and scores recalculations immediately!
   CalculationService.calculateCompetitionRanks(competitionId);
 
-  // Sync corresponding JudgmentSheet status to COMPLETED and update JudgeScore
-  let sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === competitionId && !s.deletedAt);
-  if (sheet) {
+  // Auto-create or sync corresponding Green Room Assignment
+  if (!db.greenRoomAssignments) db.greenRoomAssignments = [];
+  let gr = db.greenRoomAssignments.find((a: GreenRoomAssignment) =>
+    a.competitionId === competitionId &&
+    !a.deletedAt &&
+    ((participantId && a.participantId === participantId) || (teamId && a.teamId === teamId))
+  );
+
+  if (!gr) {
+    const compAssignments = db.greenRoomAssignments.filter((a: GreenRoomAssignment) => a.competitionId === competitionId && !a.deletedAt);
+    const nextIndex = compAssignments.length;
+    const cNum = (db.chestNumbers || []).find((c: any) => c.participantId === participantId)?.chestNumber;
+    const part = (db.participants || []).find((p: any) => p.id === participantId);
+    gr = {
+      id: `gr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      competitionId,
+      categoryId,
+      participantId: participantId || undefined,
+      teamId: teamId || undefined,
+      chestNumber: cNum || part?.profilePhoto || undefined,
+      codeLetter: indexToCodeLetter(nextIndex),
+      status: GreenRoomStatus.ASSIGNED,
+      generatedBy: user.id,
+      generatedAt: new Date().toISOString()
+    };
+    db.greenRoomAssignments.push(gr);
+  }
+
+  // Auto-create or sync corresponding JudgmentSheet status to COMPLETED
+  if (!db.judgmentSheets) db.judgmentSheets = [];
+  let sheet = db.judgmentSheets.find((s: JudgmentSheet) => s.competitionId === competitionId && !s.deletedAt);
+  const comp = (db.competitions || []).find((c: any) => c.id === competitionId);
+  const numJudges = comp?.numJudges || db.eventSettings?.numJudges || 2;
+  const finalMaxMarks = db.eventSettings?.maxMarksPerJudge || 100;
+
+  if (!sheet) {
+    sheet = {
+      id: `js_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      competitionId,
+      categoryId,
+      status: JudgmentSheetStatus.COMPLETED,
+      publishedToResults: newResult.publishedStatus,
+      maxMarks: finalMaxMarks,
+      numJudges,
+      createdBy: user.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.judgmentSheets.push(sheet);
+  } else {
     sheet.status = JudgmentSheetStatus.COMPLETED;
     sheet.publishedToResults = newResult.publishedStatus;
     sheet.updatedAt = new Date().toISOString();
+  }
 
-    // Find the green room assignment for this participant/team
-    const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) =>
-      a.competitionId === competitionId &&
-      !a.deletedAt &&
-      ((participantId && a.participantId === participantId) || (teamId && a.teamId === teamId))
-    );
+  // Auto-create or sync JudgeScore
+  if (!db.judgeScores) db.judgeScores = [];
+  let score = db.judgeScores.find((s: JudgeScore) => s.judgmentSheetId === sheet?.id && s.greenRoomAssignmentId === gr?.id);
 
-    if (gr) {
-      // Find or create JudgeScore
-      let score = (db.judgeScores || []).find((s: JudgeScore) => s.judgmentSheetId === sheet?.id && s.greenRoomAssignmentId === gr.id);
+  let judgeScoreStatus = JudgeScoreStatus.PARTICIPATED;
+  if (newResult.status === ResultStatus.ABSENT) judgeScoreStatus = JudgeScoreStatus.ABSENT;
+  if (newResult.status === ResultStatus.DISQUALIFIED) judgeScoreStatus = JudgeScoreStatus.DISQUALIFIED;
 
-      let judgeScoreStatus = JudgeScoreStatus.PARTICIPATED;
-      if (newResult.status === ResultStatus.ABSENT) judgeScoreStatus = JudgeScoreStatus.ABSENT;
-      if (newResult.status === ResultStatus.DISQUALIFIED) judgeScoreStatus = JudgeScoreStatus.DISQUALIFIED;
-
-      if (score) {
-        score.judgeScores = [
-          { judgeNumber: 1, mark: j1 },
-          { judgeNumber: 2, mark: j2 }
-        ];
-        score.totalMark = totalMark;
-        const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
-        score.averageMark = averageMark;
-        score.status = judgeScoreStatus;
-        score.remarks = remarks || '';
-        if (newResult.manualRankOverride && newResult.rank) {
-          score.rank = newResult.rank;
-        }
-      } else {
-        const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
-        const newScore: JudgeScore = {
-          id: `js_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-          judgmentSheetId: sheet.id,
-          competitionId: sheet.competitionId,
-          codeLetter: gr.codeLetter,
-          greenRoomAssignmentId: gr.id,
-          judgeScores: [
-            { judgeNumber: 1, mark: j1 },
-            { judgeNumber: 2, mark: j2 }
-          ],
-          totalMark: totalMark,
-          averageMark: averageMark,
-          status: judgeScoreStatus,
-          remarks: remarks || '',
-          enteredBy: user.id,
-          enteredAt: new Date().toISOString()
-        };
-        if (newResult.manualRankOverride && newResult.rank) {
-          newScore.rank = newResult.rank;
-        }
-        if (!db.judgeScores) db.judgeScores = [];
-        db.judgeScores.push(newScore);
-      }
+  if (score) {
+    score.judgeScores = [
+      { judgeNumber: 1, mark: j1 },
+      { judgeNumber: 2, mark: j2 }
+    ];
+    score.totalMark = totalMark;
+    score.averageMark = averageMark;
+    score.status = judgeScoreStatus;
+    score.remarks = remarks || '';
+    if (newResult.manualRankOverride && newResult.rank) {
+      score.rank = newResult.rank;
     }
+  } else if (gr && sheet) {
+    const newScore: JudgeScore = {
+      id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${gr.codeLetter}`,
+      judgmentSheetId: sheet.id,
+      competitionId: sheet.competitionId,
+      codeLetter: gr.codeLetter,
+      greenRoomAssignmentId: gr.id,
+      judgeScores: [
+        { judgeNumber: 1, mark: j1 },
+        { judgeNumber: 2, mark: j2 }
+      ],
+      totalMark: totalMark,
+      averageMark: averageMark,
+      status: judgeScoreStatus,
+      remarks: remarks || '',
+      enteredBy: user.id,
+      enteredAt: new Date().toISOString()
+    };
+    if (newResult.manualRankOverride && newResult.rank) {
+      newScore.rank = newResult.rank;
+    }
+    db.judgeScores.push(newScore);
   }
 
   await dbClient.logAudit(user.id, user.username, user.role, 'Enter Competition Result', 'Result', newResult.id, undefined, undefined, newResult);
   await dbClient.save();
 
   res.json({ message: 'Result entered successfully', result: newResult });
+});
+
+// Direct Register Candidate to Competition
+apiRouter.post('/competitions/:id/register-candidate', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const db = dbClient.get();
+  const compId = req.params.id;
+  const { participantId } = req.body;
+  const user = (req as any).user as User;
+
+  const comp = (db.competitions || []).find((c: any) => c.id === compId && !c.deletedAt);
+  if (!comp) return res.status(404).json({ error: 'Competition not found' });
+
+  if (!participantId) return res.status(400).json({ error: 'Participant ID is required' });
+
+  const part = (db.participants || []).find((p: any) => p.id === participantId && !p.deletedAt);
+  if (!part) return res.status(404).json({ error: 'Participant not found' });
+
+  if (!db.hasOwnProperty('registrations')) (db as any).registrations = [];
+  let reg = (db as any).registrations.find((r: any) => r.participantId === participantId && !r.deletedAt);
+  if (!reg) {
+    reg = {
+      id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      participantId,
+      categoryId: comp.categoryId || part.selectedCategoryId || part.categoryId,
+      selectedIndividualCompetitionIds: [compId],
+      selectedGroupCompetitionIds: [],
+      registrationStatus: 'confirmed',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    (db as any).registrations.push(reg);
+  } else {
+    if (!Array.isArray(reg.selectedIndividualCompetitionIds)) reg.selectedIndividualCompetitionIds = [];
+    if (!reg.selectedIndividualCompetitionIds.includes(compId)) {
+      reg.selectedIndividualCompetitionIds.push(compId);
+      reg.updatedAt = new Date().toISOString();
+    }
+  }
+
+  // Auto generate Green Room Assignment
+  if (!db.greenRoomAssignments) db.greenRoomAssignments = [];
+  let gr = db.greenRoomAssignments.find((a: any) => a.competitionId === compId && a.participantId === participantId && !a.deletedAt);
+  if (!gr) {
+    const compAssignments = db.greenRoomAssignments.filter((a: any) => a.competitionId === compId && !a.deletedAt);
+    const nextIndex = compAssignments.length;
+    const cNum = (db.chestNumbers || []).find((c: any) => c.participantId === participantId)?.chestNumber;
+    gr = {
+      id: `gr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      competitionId: compId,
+      categoryId: comp.categoryId,
+      participantId,
+      chestNumber: cNum || part.profilePhoto || undefined,
+      codeLetter: indexToCodeLetter(nextIndex),
+      status: GreenRoomStatus.ASSIGNED,
+      generatedBy: user.id,
+      generatedAt: new Date().toISOString()
+    };
+    db.greenRoomAssignments.push(gr);
+  }
+
+  // Auto generate Judgment Sheet if missing
+  if (!db.judgmentSheets) db.judgmentSheets = [];
+  let sheet = db.judgmentSheets.find((s: any) => s.competitionId === compId && !s.deletedAt);
+  if (!sheet) {
+    sheet = {
+      id: `js_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      competitionId: compId,
+      categoryId: comp.categoryId,
+      status: JudgmentSheetStatus.PENDING,
+      maxMarks: db.eventSettings?.maxMarksPerJudge || 100,
+      numJudges: comp.numJudges || db.eventSettings?.numJudges || 2,
+      createdBy: user.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.judgmentSheets.push(sheet);
+  }
+
+  // Auto create empty JudgeScore entry if missing
+  if (!db.judgeScores) db.judgeScores = [];
+  let score = db.judgeScores.find((s: any) => s.judgmentSheetId === sheet.id && s.greenRoomAssignmentId === gr.id);
+  if (!score) {
+    score = {
+      id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${gr.codeLetter}`,
+      judgmentSheetId: sheet.id,
+      competitionId: compId,
+      codeLetter: gr.codeLetter,
+      greenRoomAssignmentId: gr.id,
+      judgeScores: [],
+      totalMark: 0,
+      averageMark: 0,
+      status: JudgeScoreStatus.PARTICIPATED,
+      enteredBy: user.id,
+      enteredAt: new Date().toISOString()
+    };
+    db.judgeScores.push(score);
+  }
+
+  await dbClient.save();
+  return res.json({ success: true, message: 'Participant registered to competition successfully', participant: part });
 });
 
 // Update Result
@@ -2718,42 +2882,99 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
   // Recalculate competition ranks
   CalculationService.calculateCompetitionRanks(resultObj.competitionId);
 
-  // Sync corresponding JudgmentSheet and JudgeScore
-  let sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === resultObj.competitionId && !s.deletedAt);
-  if (sheet) {
+  // Sync corresponding Green Room Assignment, JudgmentSheet, and JudgeScore
+  if (!db.greenRoomAssignments) db.greenRoomAssignments = [];
+  let gr = db.greenRoomAssignments.find((a: GreenRoomAssignment) =>
+    a.competitionId === resultObj.competitionId &&
+    !a.deletedAt &&
+    ((resultObj.participantId && a.participantId === resultObj.participantId) || (resultObj.teamId && a.teamId === resultObj.teamId))
+  );
+  if (!gr) {
+    const compAssignments = db.greenRoomAssignments.filter((a: GreenRoomAssignment) => a.competitionId === resultObj.competitionId && !a.deletedAt);
+    const nextIndex = compAssignments.length;
+    const cNum = (db.chestNumbers || []).find((c: any) => c.participantId === resultObj.participantId)?.chestNumber;
+    const part = (db.participants || []).find((p: any) => p.id === resultObj.participantId);
+    gr = {
+      id: `gr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      competitionId: resultObj.competitionId,
+      categoryId: resultObj.categoryId,
+      participantId: resultObj.participantId,
+      teamId: resultObj.teamId,
+      chestNumber: cNum || part?.profilePhoto || undefined,
+      codeLetter: indexToCodeLetter(nextIndex),
+      status: GreenRoomStatus.ASSIGNED,
+      generatedBy: user.id,
+      generatedAt: new Date().toISOString()
+    };
+    db.greenRoomAssignments.push(gr);
+  }
+
+  if (!db.judgmentSheets) db.judgmentSheets = [];
+  let sheet = db.judgmentSheets.find((s: JudgmentSheet) => s.competitionId === resultObj.competitionId && !s.deletedAt);
+  if (!sheet) {
+    const comp = (db.competitions || []).find((c: any) => c.id === resultObj.competitionId);
+    sheet = {
+      id: `js_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      competitionId: resultObj.competitionId,
+      categoryId: resultObj.categoryId,
+      status: JudgmentSheetStatus.COMPLETED,
+      publishedToResults: resultObj.publishedStatus !== undefined ? resultObj.publishedStatus : true,
+      maxMarks: db.eventSettings?.maxMarksPerJudge || 100,
+      numJudges: comp?.numJudges || db.eventSettings?.numJudges || 2,
+      createdBy: user.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.judgmentSheets.push(sheet);
+  } else {
     if (resultObj.publishedStatus !== undefined) {
       sheet.publishedToResults = resultObj.publishedStatus;
     }
-
-    // Find green room assignment
-    const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) =>
-      a.competitionId === resultObj.competitionId &&
-      !a.deletedAt &&
-      ((resultObj.participantId && a.participantId === resultObj.participantId) || (resultObj.teamId && a.teamId === resultObj.teamId))
-    );
-
-    if (gr) {
-      let score = (db.judgeScores || []).find((s: JudgeScore) => s.judgmentSheetId === sheet?.id && s.greenRoomAssignmentId === gr.id);
-
-      let judgeScoreStatus = JudgeScoreStatus.PARTICIPATED;
-      if (resultObj.status === ResultStatus.ABSENT) judgeScoreStatus = JudgeScoreStatus.ABSENT;
-      if (resultObj.status === ResultStatus.DISQUALIFIED) judgeScoreStatus = JudgeScoreStatus.DISQUALIFIED;
-
-      if (score) {
-        score.judgeScores = [
-          { judgeNumber: 1, mark: resultObj.judge1Mark },
-          { judgeNumber: 2, mark: resultObj.judge2Mark }
-        ];
-        score.totalMark = resultObj.totalMark;
-        score.averageMark = resultObj.averageMark;
-        score.status = judgeScoreStatus;
-        score.remarks = resultObj.remarks || '';
-        if (resultObj.manualRankOverride && resultObj.rank) {
-          score.rank = resultObj.rank;
-        }
-      }
-    }
+    sheet.status = JudgmentSheetStatus.COMPLETED;
     sheet.updatedAt = new Date().toISOString();
+  }
+
+  if (!db.judgeScores) db.judgeScores = [];
+  let score = db.judgeScores.find((s: JudgeScore) => s.judgmentSheetId === sheet?.id && s.greenRoomAssignmentId === gr?.id);
+
+  let judgeScoreStatus = JudgeScoreStatus.PARTICIPATED;
+  if (resultObj.status === ResultStatus.ABSENT) judgeScoreStatus = JudgeScoreStatus.ABSENT;
+  if (resultObj.status === ResultStatus.DISQUALIFIED) judgeScoreStatus = JudgeScoreStatus.DISQUALIFIED;
+
+  if (score) {
+    score.judgeScores = [
+      { judgeNumber: 1, mark: resultObj.judge1Mark },
+      { judgeNumber: 2, mark: resultObj.judge2Mark }
+    ];
+    score.totalMark = resultObj.totalMark;
+    score.averageMark = resultObj.averageMark;
+    score.status = judgeScoreStatus;
+    score.remarks = resultObj.remarks || '';
+    if (resultObj.manualRankOverride && resultObj.rank) {
+      score.rank = resultObj.rank;
+    }
+  } else if (gr && sheet) {
+    const newScore: JudgeScore = {
+      id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${gr.codeLetter}`,
+      judgmentSheetId: sheet.id,
+      competitionId: sheet.competitionId,
+      codeLetter: gr.codeLetter,
+      greenRoomAssignmentId: gr.id,
+      judgeScores: [
+        { judgeNumber: 1, mark: resultObj.judge1Mark },
+        { judgeNumber: 2, mark: resultObj.judge2Mark }
+      ],
+      totalMark: resultObj.totalMark,
+      averageMark: resultObj.averageMark,
+      status: judgeScoreStatus,
+      remarks: resultObj.remarks || '',
+      enteredBy: user.id,
+      enteredAt: new Date().toISOString()
+    };
+    if (resultObj.manualRankOverride && resultObj.rank) {
+      newScore.rank = resultObj.rank;
+    }
+    db.judgeScores.push(newScore);
   }
 
   await dbClient.logAudit(user.id, user.username, user.role, 'Update Competition Result', 'Result', resId, undefined, oldRes, resultObj);
@@ -5218,6 +5439,15 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
       r.selectedIndividualCompetitionIds.forEach((id: string) => {
         if (!indCompIds.includes(id)) indCompIds.push(id);
       });
+    }
+  });
+
+  // Also include any competition where this participant has an active result
+  (db.results || []).forEach((res: any) => {
+    if (!res.deletedAt && res.participantId === participant.id && res.competitionId) {
+      if (!indCompIds.includes(res.competitionId)) {
+        indCompIds.push(res.competitionId);
+      }
     }
   });
 

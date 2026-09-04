@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Trophy, ClipboardCheck, Edit3, Trash2, CheckCircle2, 
-  RefreshCw, AlertTriangle, ChevronRight, BookOpen, ToggleLeft, CheckCircle, Settings, CheckSquare, ShieldAlert, X
+  RefreshCw, AlertTriangle, ChevronRight, BookOpen, ToggleLeft, CheckCircle, Settings, CheckSquare, ShieldAlert, X,
+  Plus, UserPlus, Search
 } from 'lucide-react';
 import { User, UserRole, Category, Competition, Unit, ResultStatus, ParticipationType, Result, Participant } from '../types';
 
@@ -29,6 +30,12 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
   // Registered candidates matching chosen event
   const [candidatesList, setCandidatesList] = useState<any[]>([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
+
+  // Direct candidate selection / on-the-fly registration state
+  const [showDirectPicker, setShowDirectPicker] = useState(false);
+  const [directSearch, setDirectSearch] = useState('');
+  const [directCategoryFilter, setDirectCategoryFilter] = useState<'current' | 'all'>('current');
+  const [quickRegisteringId, setQuickRegisteringId] = useState<string | null>(null);
 
   // Entered/Published results for selected event
   const [savedResults, setSavedResults] = useState<any[]>([]);
@@ -249,6 +256,11 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
           });
 
           setCandidatesList(filteredParticipants);
+          if (filteredParticipants.length === 0) {
+            setShowDirectPicker(true);
+          } else {
+            setShowDirectPicker(false);
+          }
         } else {
           // Fetch group teams registered in this competition
           const teamRes = await fetch(`/api/teams?competitionId=${selectedCompId}`, {
@@ -257,6 +269,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
           const teamData = await teamRes.json();
           if (!teamRes.ok) throw new Error('Failed to fetch teams');
           setCandidatesList(teamData);
+          setShowDirectPicker(false);
         }
       } catch (e) {
         console.error(e);
@@ -267,6 +280,55 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
 
     fetchEventData();
   }, [selectedCompId]);
+
+  // Memoized eligible participants for direct selection
+  const eligibleParticipants = useMemo(() => {
+    let list = participants.filter(p => !p.deletedAt);
+    if (directCategoryFilter === 'current' && selectedCatId) {
+      list = list.filter(p => (p.selectedCategoryId || (p as any).categoryId) === selectedCatId);
+    }
+    if (directSearch.trim()) {
+      const q = directSearch.trim().toLowerCase();
+      list = list.filter(p => {
+        const name = (p.fullName || '').toLowerCase();
+        const chest = (p.profilePhoto || p.chestNumber || '').toString().toLowerCase();
+        const cls = (p.candidateClass || '').toLowerCase();
+        const unit = (units.find(u => u.id === p.unitId)?.name || '').toLowerCase();
+        return name.includes(q) || chest.includes(q) || cls.includes(q) || unit.includes(q);
+      });
+    }
+    return list;
+  }, [participants, directCategoryFilter, selectedCatId, directSearch, units]);
+
+  // Quick Register without immediately entering marks
+  const handleQuickRegister = async (participant: Participant) => {
+    if (!selectedCompId) return;
+    setQuickRegisteringId(participant.id);
+    try {
+      const res = await fetch(`/api/competitions/${selectedCompId}/register-candidate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ participantId: participant.id })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to register participant');
+
+      setCandidatesList(prev => prev.some(c => c.id === participant.id) ? prev : [...prev, participant]);
+      setToast({ type: 'success', text: `✓ Registered ${participant.fullName} to ${selectedComp?.name}!` });
+    } catch (err: any) {
+      setToast({ type: 'error', text: err.message || 'Failed to register' });
+    } finally {
+      setQuickRegisteringId(null);
+    }
+  };
+
+  // Direct Enter Result (registers & opens mark entry drawer)
+  const handleDirectEnterResult = (participant: Participant) => {
+    handleOpenEntry(participant);
+  };
 
   // Open Marks entry card
   const handleOpenEntry = (candidate: any) => {
@@ -383,6 +445,9 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
       });
       const refreshData = await refreshRes.json();
       setSavedResults(refreshData);
+
+      // Ensure candidate is in candidatesList if they were entered via direct entry
+      setCandidatesList(prev => prev.some(c => c.id === activeCandidate.id) ? prev : [...prev, activeCandidate]);
 
       // Fast & Furious Auto-Advance to Next Candidate
       const currIndex = candidatesList.findIndex(c => c.id === activeCandidate.id);
@@ -603,7 +668,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
       {selectedCompId && (
         <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden no-print">
           
-          <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50/50">
             <div>
               <h4 className="font-display font-extrabold text-slate-800 text-base">{selectedComp?.name} Registry</h4>
               <p className="text-xs text-slate-400 mt-1 uppercase font-mono font-bold">
@@ -611,10 +676,170 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
               </p>
             </div>
             
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] px-3 py-1 rounded-xl font-mono font-semibold">
-              Candidates Registered: {candidatesList.length}
+            <div className="flex items-center gap-2">
+              {selectedComp?.participationType === ParticipationType.INDIVIDUAL && (
+                <button
+                  type="button"
+                  onClick={() => setShowDirectPicker(!showDirectPicker)}
+                  className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                    showDirectPicker 
+                      ? 'bg-slate-200 text-slate-800 hover:bg-slate-300' 
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  }`}
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  <span>{showDirectPicker ? 'Close Candidate Picker' : '+ Direct Register Candidate'}</span>
+                </button>
+              )}
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] px-3 py-1 rounded-xl font-mono font-semibold">
+                Candidates Registered: {candidatesList.length}
+              </div>
             </div>
           </div>
+
+          {/* Direct Candidate Selection Panel (Individual Events Only) */}
+          {selectedComp?.participationType === ParticipationType.INDIVIDUAL && (showDirectPicker || candidatesList.length === 0) && (
+            <div className="bg-emerald-50/40 border-b border-emerald-200/60 p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4 text-emerald-700" />
+                    <h5 className="font-bold text-slate-800 text-sm">Direct Candidate Entry & Registration</h5>
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded font-mono">
+                      Auto-Syncs Sheets & Portal
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {candidatesList.length === 0
+                      ? 'This event has no pre-registered candidates. Search and select any candidate below to directly register them and enter their marks (1st, 2nd, 3rd place). Green room sheet, judgment sheet, and student portal are automatically updated.'
+                      : 'Search and select any additional participant to directly register them and enter their marks.'}
+                  </p>
+                </div>
+
+                {candidatesList.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDirectPicker(false)}
+                    className="text-xs text-slate-500 hover:text-slate-800 font-semibold px-2.5 py-1 rounded-lg hover:bg-slate-200/60 transition-colors"
+                  >
+                    Hide Picker
+                  </button>
+                )}
+              </div>
+
+              {/* Search & Category Filter */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={directSearch}
+                    onChange={(e) => setDirectSearch(e.target.value)}
+                    placeholder="Search by participant name, chest number, class, or team..."
+                    className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                  {directSearch && (
+                    <button onClick={() => setDirectSearch('')} className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={directCategoryFilter}
+                    onChange={(e) => setDirectCategoryFilter(e.target.value as any)}
+                    className="bg-white border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 outline-none font-medium"
+                  >
+                    <option value="current">Current Category ({categories.find(c => c.id === selectedCatId)?.name || 'Event Category'})</option>
+                    <option value="all">All Categories ({participants.filter(p => !p.deletedAt).length} total)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Candidate Results Grid/List */}
+              <div className="max-h-80 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-100 bg-white rounded-2xl border border-slate-200 p-2.5 shadow-inner">
+                {eligibleParticipants.length > 0 ? (
+                  eligibleParticipants.map(part => {
+                    const isAlreadyInList = candidatesList.some(c => c.id === part.id);
+                    const hasSavedResult = savedResults.some(r => r.participantId === part.id);
+                    const partUnit = units.find(u => u.id === part.unitId);
+                    const partCat = categories.find(c => c.id === (part.selectedCategoryId || part.categoryId));
+                    const isRegistering = quickRegisteringId === part.id;
+
+                    return (
+                      <div key={part.id} className="pt-2 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 hover:bg-slate-50/80 rounded-xl transition-colors">
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 shrink-0">
+                            {part.profilePhoto || part.chestNumber || '—'}
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-800 text-xs">{part.fullName}</span>
+                              {part.candidateClass && (
+                                <span className="text-[10px] bg-blue-50 text-blue-700 font-mono font-bold px-1.5 py-0.5 rounded border border-blue-200">
+                                  Class: {part.candidateClass}
+                                </span>
+                              )}
+                              {isAlreadyInList && (
+                                <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded font-mono flex items-center gap-0.5">
+                                  <CheckCircle2 className="h-3 w-3" /> Registered
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono mt-0.5">
+                              <span>{entityLabel}: {partUnit?.name || 'Unknown'}</span>
+                              <span>•</span>
+                              <span>Category: {partCat?.name || 'General'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                          {isAlreadyInList ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEntry(part)}
+                              className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl transition-colors shadow-sm"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                              <span>{hasSavedResult ? 'Edit Score' : 'Enter Score'}</span>
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleQuickRegister(part)}
+                                disabled={isRegistering}
+                                className="flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-2.5 py-1.5 rounded-xl transition-colors"
+                                title="Add to candidate registry without entering marks yet"
+                              >
+                                {isRegistering ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                                <span>Quick Register</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDirectEnterResult(part)}
+                                className="flex items-center gap-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-xl shadow-sm transition-colors"
+                                title="Directly enter marks and register this candidate"
+                              >
+                                <Trophy className="h-3.5 w-3.5" />
+                                <span>Enter Result & Register</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-6 text-center text-xs text-slate-400 font-mono">
+                    No participants found matching "{directSearch}"
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {candidatesLoading ? (
             <div className="p-12 text-center text-xs font-mono text-slate-400 animate-pulse">Loading candidate registrations...</div>
@@ -636,7 +861,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
                       <div className="flex-1 overflow-hidden pr-4">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded border">
-                            {selectedComp?.participationType === ParticipationType.INDIVIDUAL ? candidate.profilePhoto : candidate.teamNumber}
+                            {selectedComp?.participationType === ParticipationType.INDIVIDUAL ? (candidate.profilePhoto || candidate.chestNumber) : candidate.teamNumber}
                           </span>
                           <h5 className="text-sm font-semibold text-slate-800">
                             {selectedComp?.participationType === ParticipationType.INDIVIDUAL ? (
@@ -700,7 +925,13 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
                   );
                 })
               ) : (
-                <div className="p-12 text-center text-slate-400 text-sm font-mono">No registered participants/teams found for this event</div>
+                <div className="p-8 text-center text-slate-400 text-xs font-mono bg-slate-50/50 rounded-2xl m-4 border border-dashed border-slate-200">
+                  <UserPlus className="h-6 w-6 text-slate-300 mx-auto mb-2" />
+                  <p className="font-semibold text-slate-600">No participants currently registered for this event.</p>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Use the Candidate Picker above to select participants and directly enter results (1st, 2nd, 3rd place).
+                  </p>
+                </div>
               )}
             </div>
           )}
