@@ -189,10 +189,43 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
         files.push(new File([blob], fileName, { type: 'image/jpeg' }));
       }
 
-      const rankEmojis: Record<number, string> = { 1: '🥇 1st Place', 2: '🥈 2nd Place', 3: '🥉 3rd Place' };
-      const winnersSummary = targets.map(t => `${rankEmojis[t.rank] || `Rank ${t.rank}`}: ${t.participantName}${t.unitName ? ` (${t.unitName})` : ''}`).join('\n');
-      const shareTitle = `${comp.name} - Award Certificates`;
-      const shareText = `🏆 *${eventSettings?.festivalName || 'Festival'} 2026*\n📌 *Competition:* ${comp.name}\n\n*Winners:*\n${winnersSummary}\n\nCongratulations to all winners! 🎉`;
+      const festivalTitle = (eventSettings?.festivalName || 'TABASSUM MEELAD FEST 2K26').toUpperCase();
+      const compIdx = competitions.findIndex(c => c.id === comp.id) + 1;
+      const formattedNum = compIdx > 0 ? String(compIdx).padStart(2, '0') : '01';
+      const slogan = eventSettings?.festivalTagline || eventSettings?.slogan || 'A Smile That Brings Hearts Together...';
+      const campus = eventSettings?.campusName || eventSettings?.sectorName || 'Noorul Islam Madrasa, Jeppu';
+      const hashtags = eventSettings?.shareHashtags || '#Tabassum2K26 #MeeladFest #Results #NoorulIslamMadrasa #Jeppu #Congratulations';
+
+      const catName = categories.find(c => c.id === comp.categoryId)?.name || '';
+
+      const rank1Targets = targets.filter(t => t.rank === 1);
+      const rank2Targets = targets.filter(t => t.rank === 2);
+      const rank3Targets = targets.filter(t => t.rank === 3);
+
+      const formatCertRankLine = (emoji: string, rankStr: string, list: typeof targets) => {
+        if (list.length === 0) return '';
+        return list.map(t => `${emoji} ${rankStr} — ${t.participantName}${t.unitName ? `    Team ${t.unitName}` : ''}`).join('\n');
+      };
+
+      const winnersSummary = [
+        formatCertRankLine('🥇', '1st', rank1Targets),
+        formatCertRankLine('🥈', '2nd', rank2Targets),
+        formatCertRankLine('🥉', '3rd', rank3Targets)
+      ].filter(Boolean).join('\n');
+
+      const shareTitle = `🏆 ${festivalTitle} — RESULT ${formattedNum}`;
+      const shareText = `🏆 ${festivalTitle} — RESULT ${formattedNum}
+✨ ${slogan}
+
+${comp.name}
+${catName}
+
+${winnersSummary}
+
+🌿 Congratulations to all the winners and participants!
+May your talents continue to shine. ✨
+${campus}
+${hashtags}`;
 
       if (navigator.canShare && navigator.canShare({ files })) {
         await navigator.share({
