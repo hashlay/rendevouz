@@ -35,6 +35,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
   const [showDirectPicker, setShowDirectPicker] = useState(false);
   const [directSearch, setDirectSearch] = useState('');
   const [directCategoryFilter, setDirectCategoryFilter] = useState<'current' | 'all'>('current');
+  const [directGenderFilter, setDirectGenderFilter] = useState<'all' | 'male' | 'female'>('all');
   const [quickRegisteringId, setQuickRegisteringId] = useState<string | null>(null);
 
   // Entered/Published results for selected event
@@ -287,6 +288,9 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
     if (directCategoryFilter === 'current' && selectedCatId) {
       list = list.filter(p => (p.selectedCategoryId || (p as any).categoryId) === selectedCatId);
     }
+    if (directGenderFilter !== 'all') {
+      list = list.filter(p => (p.gender || '').toLowerCase() === directGenderFilter);
+    }
     if (directSearch.trim()) {
       const q = directSearch.trim().toLowerCase();
       list = list.filter(p => {
@@ -298,7 +302,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
       });
     }
     return list;
-  }, [participants, directCategoryFilter, selectedCatId, directSearch, units]);
+  }, [participants, directCategoryFilter, selectedCatId, directGenderFilter, directSearch, units]);
 
   // Quick Register without immediately entering marks
   const handleQuickRegister = async (participant: Participant) => {
@@ -745,7 +749,44 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Gender Filter (All / Male / Female) */}
+                  <div className="inline-flex items-center bg-white border border-slate-200 p-0.5 rounded-xl text-xs font-semibold shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setDirectGenderFilter('all')}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                        directGenderFilter === 'all'
+                          ? 'bg-slate-800 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      All Genders
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDirectGenderFilter('male')}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
+                        directGenderFilter === 'male'
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-blue-700'
+                      }`}
+                    >
+                      <span>Male</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDirectGenderFilter('female')}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
+                        directGenderFilter === 'female'
+                          ? 'bg-rose-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-rose-700'
+                      }`}
+                    >
+                      <span>Female</span>
+                    </button>
+                  </div>
+
                   <select
                     value={directCategoryFilter}
                     onChange={(e) => setDirectCategoryFilter(e.target.value as any)}
@@ -774,10 +815,19 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
                             {part.profilePhoto || part.chestNumber || '—'}
                           </span>
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-slate-800 text-xs">{part.fullName}</span>
+                              {part.gender && (
+                                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border capitalize ${
+                                  part.gender.toLowerCase() === 'female'
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                                }`}>
+                                  {part.gender}
+                                </span>
+                              )}
                               {part.candidateClass && (
-                                <span className="text-[10px] bg-blue-50 text-blue-700 font-mono font-bold px-1.5 py-0.5 rounded border border-blue-200">
+                                <span className="text-[10px] bg-slate-100 text-slate-700 font-mono font-bold px-1.5 py-0.5 rounded border border-slate-200">
                                   Class: {part.candidateClass}
                                 </span>
                               )}
@@ -834,7 +884,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
                   })
                 ) : (
                   <div className="p-6 text-center text-xs text-slate-400 font-mono">
-                    No participants found matching "{directSearch}"
+                    No {directGenderFilter !== 'all' ? `${directGenderFilter} ` : ''}participants found {directSearch ? `matching "${directSearch}"` : 'in this category'}
                   </div>
                 )}
               </div>
