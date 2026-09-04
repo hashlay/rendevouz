@@ -1676,10 +1676,20 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
         rawCompNames.push(...item.competitions.split(/[;,|]/));
       }
 
-      const compIds: string[] = Array.isArray(item.selectedCompetitionIds) ? [...item.selectedCompetitionIds] : [];
+      const rawCompIds: string[] = Array.isArray(item.selectedCompetitionIds) ? [...item.selectedCompetitionIds] : [];
       const unmatchedCompetitions: string[] = [];
 
       const normalizeStr = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase();
+
+      const matchedComps: Competition[] = [];
+
+      // Add pre-selected competition IDs if passed
+      for (const cId of rawCompIds) {
+        const found = (db.competitions || []).find((c: Competition) => !c.deletedAt && c.id === cId);
+        if (found && !matchedComps.some(mc => mc.id === found.id)) {
+          matchedComps.push(found);
+        }
+      }
 
       for (const rawName of rawCompNames) {
         const cleanName = rawName.trim();
@@ -1703,8 +1713,8 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
         }
 
         if (matchedComp) {
-          if (!compIds.includes(matchedComp.id)) {
-            compIds.push(matchedComp.id);
+          if (!matchedComps.some(mc => mc.id === matchedComp!.id)) {
+            matchedComps.push(matchedComp);
           }
         } else {
           unmatchedCompetitions.push(cleanName);
@@ -1715,13 +1725,58 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
         errors.push(`Participant "${p.fullName}": Unmatched competition name(s) [${unmatchedCompetitions.join(', ')}]. Please check spelling.`);
       }
 
+      // Separate into individual vs group competitions
+      const individualCompIds: string[] = [];
+      const groupCompIds: string[] = [];
+
+      if (!db.teams) db.teams = [];
+
+      for (const comp of matchedComps) {
+        const isGroup = comp.participationType === ParticipationType.GROUP || (comp.participationType as any) === 'group';
+        if (isGroup) {
+          groupCompIds.push(comp.id);
+
+          // Auto-link or auto-create Group Team for this participant's unit!
+          const teamLimit = comp.teamSize || 10;
+          let availableTeam = db.teams.find((t: any) =>
+            t.unitId === p.unitId &&
+            t.competitionId === comp.id &&
+            !t.deletedAt &&
+            Array.isArray(t.memberIds) &&
+            t.memberIds.length < teamLimit
+          );
+
+          if (availableTeam) {
+            if (!availableTeam.memberIds.includes(p.id)) {
+              availableTeam.memberIds.push(p.id);
+              availableTeam.updatedAt = new Date().toISOString();
+            }
+          } else {
+            const autoTeam: Team = {
+              id: `team_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+              teamNumber: `T-${String(db.teams.length + 1).padStart(3, '0')}`,
+              teamName: `${p.fullName} & Team`,
+              unitId: p.unitId,
+              categoryId: p.selectedCategoryId,
+              competitionId: comp.id,
+              memberIds: [p.id],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+            db.teams.push(autoTeam);
+          }
+        } else {
+          individualCompIds.push(comp.id);
+        }
+      }
+
       if (!(db as any).registrations) (db as any).registrations = [];
       const registration: Registration = {
         id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         participantId: p.id,
         categoryId: p.selectedCategoryId,
-        selectedIndividualCompetitionIds: compIds,
-        selectedGroupTeamIds: [],
+        selectedIndividualCompetitionIds: individualCompIds,
+        selectedGroupTeamIds: groupCompIds,
         registrationStatus: 'confirmed',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
