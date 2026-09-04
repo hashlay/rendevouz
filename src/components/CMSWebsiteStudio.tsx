@@ -112,11 +112,13 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           { id: '6', title: 'Media Gallery (Photo Uploads)', type: 'gallery', enabled: true, order: 6 },
           { id: '7', title: 'Live Broadcast Streams', type: 'live_stages', enabled: true, order: 7 },
           { id: '8', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: true, order: 8 },
-          { id: '9', title: 'Winner Posters Page', type: 'posters', enabled: true, order: 9 }
+          { id: '9', title: 'Result Posters (Latest 8)', type: 'posters', enabled: true, order: 9 }
         ];
         let fetchedBlocks = data.dragBlocks && data.dragBlocks.length > 0 ? data.dragBlocks : defaultBlocks;
         if (!fetchedBlocks.some((b: any) => b.type === 'posters')) {
-          fetchedBlocks = [...fetchedBlocks, { id: 'posters_block', title: 'Winner Posters Page', type: 'posters', enabled: true, order: fetchedBlocks.length + 1 }];
+          fetchedBlocks = [...fetchedBlocks, { id: 'posters_block', title: 'Result Posters (Latest 8)', type: 'posters', enabled: true, order: fetchedBlocks.length + 1 }];
+        } else {
+          fetchedBlocks = fetchedBlocks.map((b: any) => b.type === 'posters' ? { ...b, title: 'Result Posters (Latest 8)' } : b);
         }
         setDragBlocks(fetchedBlocks);
         setHeroMedia(data.heroMedia || []);
@@ -249,10 +251,14 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
     }
   };
 
-  const moveBlock = (index: number, direction: 'up' | 'down') => {
-    if ((direction === 'up' && index === 0) || (direction === 'down' && index === dragBlocks.length - 1)) return;
+  const sortedDragBlocks = React.useMemo(() => {
+    return [...dragBlocks].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [dragBlocks]);
 
-    const newBlocks = [...dragBlocks];
+  const moveBlock = (index: number, direction: 'up' | 'down') => {
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === sortedDragBlocks.length - 1)) return;
+
+    const newBlocks = [...sortedDragBlocks];
     const swapIndex = direction === 'up' ? index - 1 : index + 1;
 
     const temp = newBlocks[index];
@@ -260,13 +266,16 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
     newBlocks[swapIndex] = temp;
 
     // Update order property
-    newBlocks.forEach((b, i) => b.order = i + 1);
+    newBlocks.forEach((b, i) => {
+      b.order = i + 1;
+    });
     setDragBlocks(newBlocks);
   };
 
   const toggleBlock = (index: number) => {
-    const newBlocks = [...dragBlocks];
-    newBlocks[index].enabled = !newBlocks[index].enabled;
+    const targetBlock = sortedDragBlocks[index];
+    if (!targetBlock) return;
+    const newBlocks = dragBlocks.map(b => b.id === targetBlock.id ? { ...b, enabled: !b.enabled } : b);
     setDragBlocks(newBlocks);
   };
 
@@ -961,7 +970,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
               <p className="text-xs text-slate-500 mt-1">Drag or use arrows to reorder sections on the homepage.</p>
             </div>
             <div className="p-3">
-              {dragBlocks.sort((a, b) => a.order - b.order).map((block, index) => (
+              {sortedDragBlocks.map((block, index) => (
                 <div key={block.id} className={`flex items-center justify-between p-3 mb-2 rounded-xl border ${block.enabled ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50 border-slate-100 opacity-60'} transition-all`}>
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col">
