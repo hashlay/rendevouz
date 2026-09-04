@@ -17,19 +17,9 @@ interface PosterGeneratorViewProps {
   onSettingsUpdated?: () => void;
 }
 
-const FONT_OPTIONS = [
-  { label: 'Inter (Clean Sans)', value: 'Inter, sans-serif' },
-  { label: 'Montserrat (Modern Bold)', value: 'Montserrat, sans-serif' },
-  { label: 'Outfit (Sleek Geometric)', value: 'Outfit, sans-serif' },
-  { label: 'Roboto (Standard)', value: 'Roboto, sans-serif' },
-  { label: 'Poppins (Friendly)', value: 'Poppins, sans-serif' },
-  { label: 'Playfair Display (Luxury Serif)', value: 'Playfair Display, serif' },
-  { label: 'Cinzel (Classical Elegant)', value: 'Cinzel, serif' },
-  { label: 'Oswald (Tall Block)', value: 'Oswald, sans-serif' },
-  { label: 'Courier New (Monospace)', value: 'Courier New, monospace' },
-  { label: 'Georgia (Editorial Serif)', value: 'Georgia, serif' },
-  { label: 'Great Vibes (Script Signature)', value: 'Great Vibes, cursive' }
-];
+import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper';
+
+const FONT_OPTIONS = UNIVERSAL_FONT_OPTIONS;
 
 /**
  * Fixed team font colors for Posters Section:
@@ -841,7 +831,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     // Campus Name
     if (c.showCampusName !== false) {
       ctx.textAlign = 'left';
-      ctx.font = `900 ${c.campusNameSize ?? 28}px ${c.campusNameFont || c.fontFamily || 'sans-serif'}`;
+      ctx.font = parseFontForCanvas(c.campusNameFont || c.fontFamily, c.campusNameSize ?? 28, '900');
       ctx.fillStyle = c.campusNameColor || c.titleColor || '#ffffff';
       const campusText = c.campusNameUppercase !== false ? campusName.toUpperCase() : campusName;
       const campusMetrics = ctx.measureText(campusText);
@@ -854,7 +844,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     // Fest Name
     if (c.showFestName !== false) {
       ctx.textAlign = 'left';
-      ctx.font = `900 ${c.festNameSize ?? 36}px ${c.festNameFont || c.fontFamily || 'sans-serif'}`;
+      ctx.font = parseFontForCanvas(c.festNameFont || c.fontFamily, c.festNameSize ?? 36, '900');
       ctx.fillStyle = c.festNameColor || c.titleColor || '#fbbf24';
       const festText = c.festNameUppercase !== false ? festivalName.toUpperCase() : festivalName;
       const festMetrics = ctx.measureText(festText);
@@ -869,7 +859,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
     // Result Label Word (e.g. "RESULT")
     ctx.textAlign = 'left';
-    ctx.font = `800 ${c.resultLabelSize || 28}px ${c.resultLabelFont || c.fontFamily || 'sans-serif'}`;
+    ctx.font = parseFontForCanvas(c.resultLabelFont || c.fontFamily, c.resultLabelSize || 28, '800');
     ctx.fillStyle = c.resultLabelColor || '#ffffff';
     const rawLbl = c.resultLabelText || 'RESULT';
     const rLblText = c.resultLabelUppercase !== false ? rawLbl.toUpperCase() : rawLbl;
@@ -881,7 +871,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
     // Result Number (e.g. "01", "10", "105")
     ctx.textAlign = 'left';
-    ctx.font = `800 ${c.resultNumSize || 28}px ${c.resultNumFont || c.fontFamily || 'sans-serif'}`;
+    ctx.font = parseFontForCanvas(c.resultNumFont || c.fontFamily, c.resultNumSize || 28, '800');
     ctx.fillStyle = c.resultNumColor || '#ffffff';
     const rNumX = c.resultNumX ?? 600;
     const rNumY = c.resultNumY ?? 180;
@@ -891,7 +881,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
     // Category
     ctx.textAlign = 'left';
-    ctx.font = `800 ${c.categorySize ?? 32}px ${c.categoryFont || c.fontFamily || 'sans-serif'}`;
+    ctx.font = parseFontForCanvas(c.categoryFont || c.fontFamily, c.categorySize ?? 32, '800');
     ctx.fillStyle = c.categoryColor || 'rgba(255, 255, 255, 0.7)';
     const rawCat = activeCategory?.name || 'GENERAL';
     const catText = c.categoryUppercase !== false ? rawCat.toUpperCase() : rawCat;
@@ -902,7 +892,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     addRegion('category', catX - 10, catY - (c.categorySize ?? 32) - 5, catMetrics.width + 20, (c.categorySize ?? 32) + 20);
 
     // Competition Name
-    const compFont = `900 ${c.compNameSize ?? 52}px ${c.compNameFont || c.fontFamily || 'sans-serif'}`;
+    const compFont = parseFontForCanvas(c.compNameFont || c.fontFamily, c.compNameSize ?? 52, '900');
     const rawComp = c.compNameOverride || activeComp.name;
     const compText = c.compNameUppercase ? rawComp.toUpperCase() : rawComp;
     const compX = c.compNameX ?? 540;
@@ -996,7 +986,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
         // Rank badge (drawn twice if tied, exactly like reference)
         const rankFontSize = c.rankSize || 38;
-        ctx.font = `900 ${rankFontSize}px ${c.rankFont || c.fontFamily || 'sans-serif'}`;
+        ctx.font = parseFontForCanvas(c.rankFont || c.fontFamily, rankFontSize, '900');
         const textWidth = ctx.measureText(rankText).width;
         const badgeShapeSize = c.rankBadgeShapeSize ?? 40;
         const badgeCenterY = by - (rankFontSize * 0.32);
@@ -1033,7 +1023,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
         // Winner name (Supports 2-line text with \n)
         ctx.textAlign = 'left';
-        ctx.font = `800 ${c.winnerSize}px ${c.winnerFont || c.fontFamily || 'sans-serif'}`;
+        ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, c.winnerSize, '800');
         ctx.fillStyle = c.winnerColor;
 
         const nameLines = winnerName.split('\n').filter(Boolean);
@@ -1049,7 +1039,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         // Unit name (Supports 2-line text with \n)
         const isArabic = c.unitLanguage === 'ar';
         const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : "'Cairo', 'Amiri', sans-serif";
-        ctx.font = `700 ${c.unitSize}px ${isArabic ? arabicFont : (c.unitFont || 'monospace')}`;
+        ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), c.unitSize, '700');
         ctx.fillStyle = getPosterTeamColor(winnerUnit, c.unitColor);
         const displayUnitName = getPosterDisplayUnitName(winnerUnit, c);
         const unitText = isArabic ? displayUnitName : (c.unitUppercase !== false ? displayUnitName.toUpperCase() : displayUnitName);

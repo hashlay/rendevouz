@@ -18,18 +18,9 @@ interface CertificateGeneratorProps {
   onSettingsUpdated?: () => void;
 }
 
-const FONT_OPTIONS = [
-  { label: 'Montserrat (Modern)', value: '"Montserrat", sans-serif' },
-  { label: 'Inter (Sans)', value: '"Inter", sans-serif' },
-  { label: 'Outfit (Sans)', value: '"Outfit", sans-serif' },
-  { label: 'Playfair Display (Serif)', value: '"Playfair Display", serif' },
-  { label: 'Cinzel (Decorative)', value: '"Cinzel", serif' },
-  { label: 'Great Vibes (Script)', value: '"Great Vibes", cursive' },
-  { label: 'Alex Brush (Script)', value: '"Alex Brush", cursive' },
-  { label: 'Pinyon Script (Classic Script)', value: '"Pinyon Script", cursive' },
-  { label: 'Roboto (Sans)', value: '"Roboto", sans-serif' },
-  { label: 'Poppins (Sans)', value: '"Poppins", sans-serif' }
-];
+import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper';
+
+const FONT_OPTIONS = UNIVERSAL_FONT_OPTIONS;
 
 export default function CertificateGenerator({
   participantNames,
@@ -176,7 +167,7 @@ export default function CertificateGenerator({
       centerX + nameX,
       nameY,
       nameSize,
-      `bold ${nameSize}px ${nameFont}`,
+      parseFontForCanvas(nameFont, nameSize, 'bold'),
       nameColor,
       true,
       'center'
@@ -190,7 +181,7 @@ export default function CertificateGenerator({
       centerX + compX,
       compY,
       compSize,
-      `bold ${compSize}px ${compFont}`,
+      parseFontForCanvas(compFont, compSize, 'bold'),
       compColor,
       true,
       'left'

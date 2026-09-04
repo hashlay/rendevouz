@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserRole } from '../types';
 import { Save } from 'lucide-react';
+import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper';
 
 const getBgHash = (bg: string) => { if (!bg || typeof bg !== 'string') return ''; return bg.length > 200 ? `hash_${bg.length}_${bg.slice(-30)}` : bg; };
 
@@ -63,6 +64,8 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
   const compSize = currentConf.compSize ?? 25;
   const nameColor = currentConf.nameColor ?? (selectedRank === 1 ? '#cc0000' : '#000000');
   const compColor = currentConf.compColor ?? (selectedRank === 1 ? '#cc0000' : '#000000');
+  const nameFont = currentConf.nameFont || '"Montserrat", sans-serif';
+  const compFont = currentConf.compFont || '"Montserrat", sans-serif';
 
   // Preview Logic
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -74,7 +77,7 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
     const img = new Image();
     const url = selectedRank === 1 
       ? certTheme1Url || '/certificate_1.jpg'
-      : selectedRank === 2
+      : selectedRank === 2 
         ? certTheme2Url || '/certificate_2.jpg'
         : certTheme3Url || '/certificate_2.jpg';
         
@@ -106,19 +109,19 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     ctx.fillStyle = nameColor;
-    ctx.font = `bold ${nameSize}px "Montserrat", "Inter", sans-serif`;
+    ctx.font = parseFontForCanvas(nameFont, nameSize, 'bold');
     ctx.fillText('PARTICIPANT NAME', centerX + nameX, nameY);
 
     // Competition
     ctx.textAlign = 'left';
     ctx.fillStyle = compColor;
-    ctx.font = `bold ${compSize}px "Montserrat", "Inter", sans-serif`;
+    ctx.font = parseFontForCanvas(compFont, compSize, 'bold');
     ctx.fillText('COMPETITION NAME', centerX + compX, compY);
   };
   
   useEffect(() => {
     renderPreview();
-  }, [nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, selectedRank]);
+  }, [nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, nameFont, compFont, selectedRank]);
 
   // Helper to extract canvas / image X, Y coordinates from Mouse, Touch, or Pointer event
   const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
@@ -331,9 +334,19 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
                    <input type="range" min="12" max="100" value={nameSize} onChange={e => handleUpdate(selectedRank, 'nameSize', Number(e.target.value))} className="w-full accent-emerald-500" />
                  </div>
                  <div>
-                   <label className="text-xs font-bold text-slate-500">Color</label>
-                   <input type="color" value={nameColor} onChange={e => handleUpdate(selectedRank, 'nameColor', e.target.value)} className="w-full h-8 rounded border" />
-                 </div>
+                    <label className="text-xs font-bold text-slate-500 mb-1 block">Font Family</label>
+                    <select
+                      value={nameFont}
+                      onChange={e => handleUpdate(selectedRank, 'nameFont', e.target.value)}
+                      className="w-full text-xs p-1.5 border rounded-lg bg-white font-semibold"
+                    >
+                      {UNIVERSAL_FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500">Color</label>
+                    <input type="color" value={nameColor} onChange={e => handleUpdate(selectedRank, 'nameColor', e.target.value)} className="w-full h-8 rounded border" />
+                  </div>
                </div>
              </div>
              
@@ -352,6 +365,16 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
                    <label className="text-xs font-bold text-slate-500 flex justify-between">Font Size <span>{compSize}</span></label>
                    <input type="range" min="12" max="100" value={compSize} onChange={e => handleUpdate(selectedRank, 'compSize', Number(e.target.value))} className="w-full accent-emerald-500" />
                  </div>
+                 <div>
+                    <label className="text-xs font-bold text-slate-500 mb-1 block">Font Family</label>
+                    <select
+                      value={compFont}
+                      onChange={e => handleUpdate(selectedRank, 'compFont', e.target.value)}
+                      className="w-full text-xs p-1.5 border rounded-lg bg-white font-semibold"
+                    >
+                      {UNIVERSAL_FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                    </select>
+                  </div>
                  <div>
                    <label className="text-xs font-bold text-slate-500">Color</label>
                    <input type="color" value={compColor} onChange={e => handleUpdate(selectedRank, 'compColor', e.target.value)} className="w-full h-8 rounded border" />

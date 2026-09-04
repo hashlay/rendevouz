@@ -4,6 +4,9 @@ import {
   Sparkles, RefreshCw, Palette, Layers, CheckCircle2, ChevronDown, Save, X, Plus, Trash2, Move, GripVertical
 } from 'lucide-react';
 import { User, Category, Unit, Participant, Competition, Result, Team, UserRole } from '../types';
+import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper';
+
+const FONT_OPTIONS = UNIVERSAL_FONT_OPTIONS;
 
 interface PosterSettingsViewProps {
   user: User;
@@ -668,7 +671,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     // Campus Name
     if (c.showCampusName !== false) {
       ctx.textAlign = 'left';
-      ctx.font = `900 ${c.campusNameSize ?? 28}px ${c.campusNameFont || c.fontFamily || 'sans-serif'}`;
+      ctx.font = parseFontForCanvas(c.campusNameFont || c.fontFamily, c.campusNameSize ?? 28, '900');
       ctx.fillStyle = c.campusNameColor || c.titleColor || '#ffffff';
       const campusText = c.campusNameUppercase !== false ? campusName.toUpperCase() : campusName;
       const campusMetrics = ctx.measureText(campusText);
@@ -681,7 +684,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     // Fest Name
     if (c.showFestName !== false) {
       ctx.textAlign = 'left';
-      ctx.font = `900 ${c.festNameSize ?? 36}px ${c.festNameFont || c.fontFamily || 'sans-serif'}`;
+      ctx.font = parseFontForCanvas(c.festNameFont || c.fontFamily, c.festNameSize ?? 36, '900');
       ctx.fillStyle = c.festNameColor || c.titleColor || '#fbbf24';
       const festText = c.festNameUppercase !== false ? festivalName.toUpperCase() : festivalName;
       const festMetrics = ctx.measureText(festText);
@@ -693,7 +696,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
     // Result Label (Word: e.g. "RESULT")
     ctx.textAlign = 'left';
-    ctx.font = `800 ${c.resultLabelSize || 28}px ${c.resultLabelFont || c.fontFamily || 'sans-serif'}`;
+    ctx.font = parseFontForCanvas(c.resultLabelFont || c.fontFamily, c.resultLabelSize || 28, '800');
     ctx.fillStyle = c.resultLabelColor || '#ffffff';
     const rawLbl = c.resultLabelText || 'RESULT';
     const rLblText = c.resultLabelUppercase !== false ? rawLbl.toUpperCase() : rawLbl;
@@ -703,7 +706,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
     // Result Number (Number: e.g. "00")
     ctx.textAlign = 'left';
-    ctx.font = `800 ${c.resultNumSize || 28}px ${c.resultNumFont || c.fontFamily || 'sans-serif'}`;
+    ctx.font = parseFontForCanvas(c.resultNumFont || c.fontFamily, c.resultNumSize || 28, '800');
     ctx.fillStyle = c.resultNumColor || '#ffffff';
     const rNumText = '00';
     const rNumMetrics = ctx.measureText(rNumText);
@@ -712,7 +715,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
     // Category
     ctx.textAlign = 'left';
-    ctx.font = `800 ${c.categorySize ?? 32}px ${c.categoryFont || c.fontFamily || 'sans-serif'}`;
+    ctx.font = parseFontForCanvas(c.categoryFont || c.fontFamily, c.categorySize ?? 32, '800');
     ctx.fillStyle = c.categoryColor || 'rgba(255, 255, 255, 0.7)';
     const rawCat = 'CATEGORY';
     const catText = c.categoryUppercase !== false ? rawCat.toUpperCase() : rawCat;
@@ -722,7 +725,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
     // Competition Name
     ctx.textAlign = 'left';
-    ctx.font = `900 ${c.compNameSize ?? 52}px ${c.compNameFont || c.fontFamily || 'sans-serif'}`;
+    ctx.font = parseFontForCanvas(c.compNameFont || c.fontFamily, c.compNameSize ?? 52, '900');
     ctx.fillStyle = c.compNameColor || '#ffffff';
     const rawComp = 'Competition Name';
     const compText = c.compNameUppercase ? rawComp.toUpperCase() : rawComp;
@@ -748,7 +751,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       // Rank badge
       const rankText = rd.text;
       const rankFontSize = c.rankSize || 38;
-      ctx.font = `900 ${rankFontSize}px ${c.rankFont || c.fontFamily || 'sans-serif'}`;
+      ctx.font = parseFontForCanvas(c.rankFont || c.fontFamily, rankFontSize, '900');
       const rankTextWidth = ctx.measureText(rankText).width;
       const badgeShapeSize = c.rankBadgeShapeSize ?? 40;
       const badgeCenterY = by - (rankFontSize * 0.32);
@@ -785,7 +788,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
       // Participant name
       ctx.textAlign = 'left';
-      ctx.font = `800 ${c.winnerSize}px ${c.winnerFont || c.fontFamily || 'sans-serif'}`;
+      ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, c.winnerSize, '800');
       ctx.fillStyle = c.winnerColor;
       const nameText = 'Participant Name';
       ctx.fillText(nameText, nx, ny);
@@ -795,7 +798,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       // Unit/Team name
       const isArabic = c.unitLanguage === 'ar';
       const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : "'Cairo', 'Amiri', sans-serif";
-      ctx.font = `700 ${c.unitSize}px ${isArabic ? arabicFont : (c.unitFont || 'monospace')}`;
+      ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), c.unitSize, '700');
       const sampleUnitName = rd.sampleUnit || 'Ash-Shukr';
       const unitText = getPosterDisplayUnitName(sampleUnitName, c);
       ctx.fillStyle = getPosterTeamColor(sampleUnitName, c.unitColor);
@@ -1249,62 +1252,56 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Campus Font</label>
-                      <select value={conf.campusNameFont || 'sans-serif'} onChange={e => updateConf('campusNameFont', e.target.value)} className="w-full text-xs p-1.5 border rounded">
-                        <option value="sans-serif">Sans Serif</option><option value="serif">Serif</option><option value="monospace">Monospace</option><option value="'Inter', sans-serif">Inter</option><option value="'Roboto', sans-serif">Roboto</option>
+                      <select value={conf.campusNameFont || 'sans-serif'} onChange={e => updateConf('campusNameFont', e.target.value)} className="w-full text-xs p-1.5 border rounded-lg bg-white">
+                        {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Fest Font</label>
-                      <select value={conf.festNameFont || 'sans-serif'} onChange={e => updateConf('festNameFont', e.target.value)} className="w-full text-xs p-1.5 border rounded">
-                        <option value="sans-serif">Sans Serif</option><option value="serif">Serif</option><option value="monospace">Monospace</option><option value="'Inter', sans-serif">Inter</option><option value="'Roboto', sans-serif">Roboto</option>
+                      <select value={conf.festNameFont || 'sans-serif'} onChange={e => updateConf('festNameFont', e.target.value)} className="w-full text-xs p-1.5 border rounded-lg bg-white">
+                        {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Category Font</label>
-                      <select value={conf.categoryFont || 'sans-serif'} onChange={e => updateConf('categoryFont', e.target.value)} className="w-full text-xs p-1.5 border rounded">
-                        <option value="sans-serif">Sans Serif</option><option value="serif">Serif</option><option value="monospace">Monospace</option><option value="'Inter', sans-serif">Inter</option><option value="'Roboto', sans-serif">Roboto</option>
+                      <select value={conf.categoryFont || 'sans-serif'} onChange={e => updateConf('categoryFont', e.target.value)} className="w-full text-xs p-1.5 border rounded-lg bg-white">
+                        {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Competition Font</label>
-                      <select value={conf.compNameFont || 'sans-serif'} onChange={e => updateConf('compNameFont', e.target.value)} className="w-full text-xs p-1.5 border rounded">
-                        <option value="sans-serif">Sans Serif</option><option value="serif">Serif</option><option value="monospace">Monospace</option><option value="'Inter', sans-serif">Inter</option><option value="'Roboto', sans-serif">Roboto</option>
+                      <select value={conf.compNameFont || 'sans-serif'} onChange={e => updateConf('compNameFont', e.target.value)} className="w-full text-xs p-1.5 border rounded-lg bg-white">
+                        {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Result Label Font</label>
-                      <select value={conf.resultLabelFont || 'sans-serif'} onChange={e => updateConf('resultLabelFont', e.target.value)} className="w-full text-xs p-1.5 border rounded">
-                        <option value="sans-serif">Sans Serif</option><option value="serif">Serif</option><option value="monospace">Monospace</option><option value="'Inter', sans-serif">Inter</option><option value="'Roboto', sans-serif">Roboto</option>
+                      <select value={conf.resultLabelFont || 'sans-serif'} onChange={e => updateConf('resultLabelFont', e.target.value)} className="w-full text-xs p-1.5 border rounded-lg bg-white">
+                        {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Result Num Font</label>
-                      <select value={conf.resultNumFont || 'sans-serif'} onChange={e => updateConf('resultNumFont', e.target.value)} className="w-full text-xs p-1.5 border rounded">
-                        <option value="sans-serif">Sans Serif</option><option value="serif">Serif</option><option value="monospace">Monospace</option><option value="'Inter', sans-serif">Inter</option><option value="'Roboto', sans-serif">Roboto</option>
+                      <select value={conf.resultNumFont || 'sans-serif'} onChange={e => updateConf('resultNumFont', e.target.value)} className="w-full text-xs p-1.5 border rounded-lg bg-white">
+                        {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Winner Name Font</label>
-                      <select value={conf.winnerFont || 'sans-serif'} onChange={e => updateConf('winnerFont', e.target.value)} className="w-full text-xs p-1.5 border rounded">
-                        <option value="sans-serif">Sans Serif</option><option value="serif">Serif</option><option value="monospace">Monospace</option><option value="'Inter', sans-serif">Inter</option><option value="'Roboto', sans-serif">Roboto</option>
+                      <select value={conf.winnerFont || 'sans-serif'} onChange={e => updateConf('winnerFont', e.target.value)} className="w-full text-xs p-1.5 border rounded-lg bg-white">
+                        {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Unit Name Font</label>
-                      <select value={conf.unitFont || 'monospace'} onChange={e => updateConf('unitFont', e.target.value)} className="w-full text-xs p-1.5 border rounded">
-                        <option value="sans-serif">Sans Serif</option>
-                        <option value="serif">Serif</option>
-                        <option value="monospace">Monospace</option>
-                        <option value="'Inter', sans-serif">Inter</option>
-                        <option value="'Roboto', sans-serif">Roboto</option>
-                        <option value="'Cairo', sans-serif">Cairo (Arabic / Modern)</option>
-                        <option value="'Amiri', serif">Amiri (Arabic / Classic)</option>
+                      <select value={conf.unitFont || 'monospace'} onChange={e => updateConf('unitFont', e.target.value)} className="w-full text-xs p-1.5 border rounded-lg bg-white">
+                        {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-[9px] font-bold text-slate-400 mb-0.5">Rank Font</label>
-                      <select value={conf.rankFont || 'sans-serif'} onChange={e => updateConf('rankFont', e.target.value)} className="w-full text-xs p-1.5 border rounded">
-                        <option value="sans-serif">Sans Serif</option><option value="serif">Serif</option><option value="monospace">Monospace</option><option value="'Inter', sans-serif">Inter</option><option value="'Roboto', sans-serif">Roboto</option>
+                      <select value={conf.rankFont || 'sans-serif'} onChange={e => updateConf('rankFont', e.target.value)} className="w-full text-xs p-1.5 border rounded-lg bg-white">
+                        {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                       </select>
                     </div>
                   </div>

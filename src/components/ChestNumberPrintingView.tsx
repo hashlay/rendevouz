@@ -14,18 +14,9 @@ interface ChestNumberPrintingViewProps {
   onSettingsUpdated?: () => void;
 }
 
-const FONT_OPTIONS = [
-  { label: 'Inter (Sans)', value: 'Inter, sans-serif' },
-  { label: 'Montserrat (Sans)', value: 'Montserrat, sans-serif' },
-  { label: 'Outfit (Sans)', value: 'Outfit, sans-serif' },
-  { label: 'Roboto (Sans)', value: 'Roboto, sans-serif' },
-  { label: 'Poppins (Sans)', value: 'Poppins, sans-serif' },
-  { label: 'Playfair Display (Serif)', value: '"Playfair Display", serif' },
-  { label: 'Cinzel (Serif)', value: 'Cinzel, serif' },
-  { label: 'Oswald (Display)', value: 'Oswald, sans-serif' },
-  { label: 'Courier New (Mono)', value: '"Courier New", monospace' },
-  { label: 'Georgia (Serif)', value: 'Georgia, serif' }
-];
+import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas, parseFontForSvg } from '../utils/fontHelper';
+
+const FONT_OPTIONS = UNIVERSAL_FONT_OPTIONS;
 
 // Unified Scalable Chest Card SVG Component (Preserves dynamic aspect ratio & 1:1 canvas coordinates)
 const ChestCardSvg: React.FC<{
@@ -68,11 +59,12 @@ const ChestCardSvg: React.FC<{
     y: number,
     fill: string,
     fontSize: number,
-    fontWeight: string,
-    fontFamily: string,
+    fallbackWeight: string,
+    fontVal: string,
     upper: boolean = true,
     anchor: 'start' | 'middle' = 'start'
   ) => {
+    const { fontStyle, fontWeight, fontFamily } = parseFontForSvg(fontVal, fallbackWeight);
     const textStr = upper ? (rawText || '').toUpperCase() : (rawText || '');
     const lines = textStr.split('\n').filter(Boolean);
     if (lines.length <= 1) {
@@ -85,6 +77,7 @@ const ChestCardSvg: React.FC<{
           fontSize={fontSize}
           fontWeight={fontWeight}
           fontFamily={fontFamily}
+          style={{ fontStyle: fontStyle as any }}
         >
           {lines[0] || ''}
         </text>
@@ -101,6 +94,7 @@ const ChestCardSvg: React.FC<{
         fontSize={fontSize}
         fontWeight={fontWeight}
         fontFamily={fontFamily}
+        style={{ fontStyle: fontStyle as any }}
       >
         {lines.map((line, i) => (
           <tspan key={i} x={x} dy={i === 0 ? 0 : lineGap}>
@@ -567,7 +561,7 @@ export default function ChestNumberPrintingView({
       }
 
       ctx.fillStyle = cardConf.catColor || '#ffffff';
-      ctx.font = `800 ${cardConf.catSize || 24}px ${cardConf.catFont || cardConf.fontFamily || 'sans-serif'}`;
+      ctx.font = parseFontForCanvas(cardConf.catFont || cardConf.fontFamily, cardConf.catSize || 24, '800');
       ctx.textAlign = 'left';
       const catText = (cnData.categoryName || 'SENIOR CATEGORY').toUpperCase();
       const catMetrics = ctx.measureText(catText);
@@ -579,7 +573,7 @@ export default function ChestNumberPrintingView({
 
     // Chest Number
     ctx.fillStyle = cardConf.chestColor || '#0f172a';
-    ctx.font = `${cardConf.chestWeight || '800'} ${cardConf.chestSize || 84}px ${cardConf.chestFont || cardConf.fontFamily || 'sans-serif'}`;
+    ctx.font = parseFontForCanvas(cardConf.chestFont || cardConf.fontFamily, cardConf.chestSize || 84, cardConf.chestWeight || '800');
     ctx.textAlign = 'left';
     const chestText = cardConf.chestNumberOverride || cnData.chestNumberOverride || cnData.chestNumber?.toString() || '1042';
     const chestMetrics = ctx.measureText(chestText);
@@ -591,7 +585,7 @@ export default function ChestNumberPrintingView({
     // Participant Name
     if (cardConf.showName !== false) {
       ctx.fillStyle = cardConf.nameColor || '#1e293b';
-      ctx.font = `${cardConf.nameWeight || '700'} ${cardConf.nameSize || 36}px ${cardConf.nameFont || cardConf.fontFamily || 'sans-serif'}`;
+      ctx.font = parseFontForCanvas(cardConf.nameFont || cardConf.fontFamily, cardConf.nameSize || 36, cardConf.nameWeight || '700');
       ctx.textAlign = 'left';
       const nameText = (cardConf.participantNameOverride || cnData.participantNameOverride || cnData.participantName || 'MUHAMMED RASHID AHMAD').toUpperCase();
       const nameLines = nameText.split('\n').filter(Boolean);
@@ -610,7 +604,7 @@ export default function ChestNumberPrintingView({
     // Unit Name
     if (cardConf.showUnit !== false) {
       ctx.fillStyle = cardConf.unitColor || '#64748b';
-      ctx.font = `700 ${cardConf.unitSize || 26}px ${cardConf.unitFont || cardConf.fontFamily || 'sans-serif'}`;
+      ctx.font = parseFontForCanvas(cardConf.unitFont || cardConf.fontFamily, cardConf.unitSize || 26, '700');
       ctx.textAlign = 'left';
       const unitText = (cardConf.unitNameOverride || cnData.unitNameOverride || cnData.unitName || 'NINTHIKAL UNIT').toUpperCase();
       const unitLines = unitText.split('\n').filter(Boolean);
