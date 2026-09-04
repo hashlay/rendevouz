@@ -368,7 +368,14 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
 
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  // Submit Result Entry with Fast Auto-Advance (No Blocking Alerts)
+  // Auto-dismiss toast notification after 4 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // Submit Result Entry
   const handleSubmitResult = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeCandidate) return;
@@ -451,25 +458,17 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
       setSavedResults(refreshData);
 
       // Ensure candidate is in candidatesList if they were entered via direct entry
+      const candidateName = activeCandidate.fullName || activeCandidate.teamName || 'Candidate';
       setCandidatesList(prev => prev.some(c => c.id === activeCandidate.id) ? prev : [...prev, activeCandidate]);
 
-      // Fast & Furious Auto-Advance to Next Candidate
-      const currIndex = candidatesList.findIndex(c => c.id === activeCandidate.id);
-      const nextCandidate = candidatesList[currIndex + 1];
+      // Always close modal immediately upon saving
+      setActiveCandidate(null);
 
-      if (nextCandidate) {
-        handleOpenEntry(nextCandidate);
-        setToast({
-          type: 'success',
-          text: `✓ Saved score for ${activeCandidate.fullName || activeCandidate.teamNumber || 'Candidate'}! Auto-advanced to next.`
-        });
-      } else {
-        setActiveCandidate(null);
-        setToast({
-          type: 'success',
-          text: '✓ All candidate scores entered & scoreboards recalculated!'
-        });
-      }
+      // Show prominent success notification
+      setToast({
+        type: 'success',
+        text: `✓ Saved marks and published result for ${candidateName}!`
+      });
     } catch (err: any) {
       setToast({ type: 'error', text: err.message || 'Failed to save result' });
     } finally {
@@ -554,13 +553,25 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
-      {/* Toast Notification Banner */}
+      {/* Floating Toast Notification Banner */}
       {toast && (
-        <div className={`p-4 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm transition-all  ${
-          toast.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
-        }`}>
-          <span>{toast.text}</span>
-          <button onClick={() => setToast(null)} className="ml-4 text-slate-400 hover:text-slate-600 font-extrabold cursor-pointer">✕</button>
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] max-w-lg w-[92%] sm:w-auto px-2 pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className={`px-5 py-3.5 rounded-2xl text-xs font-bold flex items-center justify-between gap-3 shadow-2xl border ${
+            toast.type === 'success'
+              ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-900/30'
+              : 'bg-rose-600 text-white border-rose-500 shadow-rose-900/30'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="h-5 w-5 text-white shrink-0" />
+              <span className="text-sm font-semibold">{toast.text}</span>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="p-1 rounded-lg text-white/80 hover:text-white font-black text-sm cursor-pointer ml-3"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
       
