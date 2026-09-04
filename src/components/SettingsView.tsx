@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Settings, Save, Database, Trash2, ShieldAlert, 
+import {
+  Settings, Save, Database, Trash2, ShieldAlert,
   RefreshCw, CheckCircle2, Download, Upload, AlertTriangle, Sparkles, UserCheck,
   GripVertical, ArrowUp, ArrowDown
 } from 'lucide-react';
@@ -158,7 +158,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   // Categories & Rank Points State
   const [categories, setCategories] = useState<any[]>([]);
   const [draggedCatId, setDraggedCatId] = useState<string | null>(null);
-  
+
   const [savingCatOrder, setSavingCatOrder] = useState(false);
   const [hasReorderedCats, setHasReorderedCats] = useState(false);
 
@@ -179,12 +179,12 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
     const newCats = [...categories];
     const draggedIdx = newCats.findIndex(c => c.id === draggedCatId);
     const targetIdx = newCats.findIndex(c => c.id === targetId);
-    
+
     if (draggedIdx === -1 || targetIdx === -1) return;
 
     const [draggedItem] = newCats.splice(draggedIdx, 1);
     newCats.splice(targetIdx, 0, draggedItem);
-    
+
     setCategories(newCats);
     setDraggedCatId(null);
     setHasReorderedCats(true);
@@ -201,7 +201,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
         body: JSON.stringify({ categoryIds })
       });
       setHasReorderedCats(false);
-    } catch(err) {
+    } catch (err) {
       console.error("Error auto-saving category order:", err);
     }
   };
@@ -238,7 +238,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
     newCats.splice(newIdx, 0, moved);
     setCategories(newCats);
     setHasReorderedCats(true);
-    
+
     // Auto-save category order
     const categoryIds = newCats.map(c => c.id);
     fetch('/api/categories/reorder', {
@@ -254,12 +254,12 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [catName, setCatName] = useState('');
   const [catStartChestNo, setCatStartChestNo] = useState(1001);
-  const [catCriteria, setCatCriteria] = useState<'dob'|'class'>('dob');
+  const [catCriteria, setCatCriteria] = useState<'dob' | 'class'>('dob');
   const [catDobStart, setCatDobStart] = useState('');
   const [catDobEnd, setCatDobEnd] = useState('');
   const [catClassStart, setCatClassStart] = useState('');
   const [catClassEnd, setCatClassEnd] = useState('');
-  
+
 
   // Backup file uploading state
   const [backupFile, setBackupFile] = useState<File | null>(null);
@@ -276,7 +276,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       const data = await sRes.json();
       setSectorName(data.sectorName || '');
       setEventTitle(data.eventTitle || '');
-      setFestivalName(data.festivalName || 'Tabassum');
+      setFestivalName(data.festivalName || 'At-Tabassum');
       setCampusName(data.campusName || data.sectorName || 'Noorul Islam Madrasa, Jeppu');
       setSsfLogoUrl(data.ssfLogoUrl || '');
       setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '');
@@ -327,16 +327,16 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
     try {
       const res = await fetch('/api/settings', {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          sectorName, 
-          eventTitle, 
+        body: JSON.stringify({
+          sectorName,
+          eventTitle,
           festivalName,
           campusName,
-          ssfLogoUrl, 
+          ssfLogoUrl,
           sahityotsavLogoUrl,
           certTheme1Url,
           certTheme2Url,
@@ -393,7 +393,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
     try {
       const res = await fetch('/api/units', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -588,7 +588,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
-      
+
       {/* 1. CMS Portal & Event Visual Branding */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
         <div className="border-b pb-4 flex items-center justify-between">
@@ -663,10 +663,10 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                 <label className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs cursor-pointer border border-emerald-200 transition-colors">
                   <Upload className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Upload Logo from Gallery</span>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -684,14 +684,14 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                         };
                         reader.readAsDataURL(file);
                       }
-                    }} 
+                    }}
                   />
                 </label>
 
                 <label className="flex items-center gap-2 px-3 py-1.5 cursor-pointer bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition-colors">
-                  <input 
-                    type="checkbox" 
-                    checked={autoRemoveLogoBg} 
+                  <input
+                    type="checkbox"
+                    checked={autoRemoveLogoBg}
                     onChange={async (e) => {
                       const checked = e.target.checked;
                       setAutoRemoveLogoBg(checked);
@@ -701,17 +701,17 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                         setSahityotsavLogoUrl(transparentPng);
                       }
                     }}
-                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" 
+                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                   />
                   <span className="text-xs font-bold text-slate-700">Auto Remove Background</span>
                 </label>
 
                 <label className="flex items-center gap-2 px-3 py-1.5 cursor-pointer bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition-colors">
-                  <input 
-                    type="checkbox" 
-                    checked={fillLogo} 
+                  <input
+                    type="checkbox"
+                    checked={fillLogo}
                     onChange={(e) => setFillLogo(e.target.checked)}
-                    className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500" 
+                    className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
                   />
                   <span className="text-xs font-bold text-slate-700">Fill Logo</span>
                 </label>
@@ -739,11 +739,10 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                   key={m.key}
                   type="button"
                   onClick={() => setEntityMode(m.key as any)}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                    entityMode === m.key
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${entityMode === m.key
                       ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                       : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-300'
-                  }`}
+                    }`}
                 >
                   <div className="font-extrabold text-xs">{m.label}</div>
                   <div className={`text-[10px] ${entityMode === m.key ? 'text-emerald-100' : 'text-slate-400'}`}>{m.desc}</div>
@@ -759,9 +758,9 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
               <p className="text-[11px] text-slate-400 mt-0.5">Toggle whether team leaders can register candidates, edit details, or manage group teams.</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer select-none">
-              <input 
-                type="checkbox" 
-                checked={registrationOpen} 
+              <input
+                type="checkbox"
+                checked={registrationOpen}
                 onChange={(e) => setRegistrationOpen(e.target.checked)}
                 className="sr-only peer"
               />
@@ -779,9 +778,9 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
               <p className="text-[11px] text-indigo-800 mt-0.5">Enable or disable automatic performance grade badges on result certificates and score sheets.</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer select-none">
-              <input 
-                type="checkbox" 
-                checked={gradeSystemEnabled} 
+              <input
+                type="checkbox"
+                checked={gradeSystemEnabled}
                 onChange={(e) => setGradeSystemEnabled(e.target.checked)}
                 className="sr-only peer"
               />
@@ -1007,11 +1006,10 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
             type="button"
             onClick={handleSaveCategoryOrder}
             disabled={savingCatOrder}
-            className={`px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer ${
-              hasReorderedCats 
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400 animate-pulse' 
+            className={`px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer ${hasReorderedCats
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400 animate-pulse'
                 : 'bg-purple-600 hover:bg-purple-700 text-white'
-            }`}
+              }`}
           >
             <Save className="w-4 h-4" />
             {savingCatOrder ? 'Saving Order...' : 'Save Category Order'}
@@ -1033,8 +1031,8 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
             </thead>
             <tbody className="divide-y divide-slate-100">
               {categories.map((cat, idx) => (
-                <tr 
-                  key={cat.id} 
+                <tr
+                  key={cat.id}
                   className={`hover:bg-slate-50/80 font-medium transition-colors ${draggedCatId === cat.id ? 'opacity-50 border-2 border-dashed border-emerald-400 bg-emerald-50' : ''}`}
                   draggable
                   onDragStart={(e) => handleDragStart(e, cat.id)}
@@ -1155,7 +1153,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                 <option value="class">Class/Grade</option>
               </select>
             </div>
-            
+
             {catCriteria === 'dob' ? (
               <div className="grid grid-cols-2 gap-4">
                 <div>

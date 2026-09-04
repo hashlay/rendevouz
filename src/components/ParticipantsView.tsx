@@ -57,7 +57,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const [editGroupComps, setEditGroupComps] = useState<string[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
 
-  const criteriaMode = eventSettings?.participantLoginCriteria || 'dob';
+  const criteriaMode = eventSettings?.participantLoginCriteria || 'class';
   const classRangeStart = Number(eventSettings?.classRangeStart) || 1;
   const classRangeEnd = Number(eventSettings?.classRangeEnd) || 12;
   const availableClasses = Array.from({ length: classRangeEnd - classRangeStart + 1 }, (_, i) => `Class ${classRangeStart + i}`);
@@ -90,7 +90,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         const fullName = cleanVal(parts[0]);
         const categoryName = cleanVal(parts[1]);
         const unitName = cleanVal(parts[2]);
-        const dob = cleanVal(parts[3]) || '2010-01-01';
+        const dob = cleanVal(parts[3]) || '';
         const candidateClass = cleanVal(parts[4]);
         const gender = cleanVal(parts[5]) || cleanVal(parts[4]) || 'male';
 
@@ -723,7 +723,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                   <th className="px-6 py-4 text-left">{entityLabel}</th>
                   <th className="px-6 py-4 text-left">Category</th>
                   <th className="px-6 py-4 text-left">Published Awards</th>
-                  <th className="px-6 py-4 text-left">DOB</th>
+                  <th className="px-6 py-4 text-left">{criteriaMode === 'class' ? 'Class' : 'DOB'}</th>
                   <th className="px-6 py-4 text-center print:hidden">Actions</th>
                 </tr>
               </thead>
@@ -748,7 +748,11 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                         <td className="px-6 py-4 whitespace-nowrap">
                           {renderPlacementBadges(p)}
                         </td>
-                        <td className="px-6 py-4 font-mono text-xs text-slate-500 whitespace-nowrap">{p.dob}</td>
+                        <td className="px-6 py-4 font-mono text-xs text-slate-500 whitespace-nowrap">
+                          {criteriaMode === 'class'
+                            ? (p.candidateClass ? (p.candidateClass.toLowerCase().startsWith('class') ? p.candidateClass : `Class ${p.candidateClass}`) : '—')
+                            : (p.dob || '—')}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center print:hidden">
                           <div className="flex items-center justify-center gap-1.5">
                             <button 
@@ -921,8 +925,12 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                   {/* Personal Metadata info */}
                   <div className="bg-slate-50/50 p-4 rounded-2xl border space-y-3 font-mono text-[11px] font-semibold text-slate-600">
                     <div className="flex justify-between">
-                      <span>DATE OF BIRTH:</span>
-                      <span className="text-slate-800 font-bold">{selectedPart.dob}</span>
+                      <span>{criteriaMode === 'class' ? 'CLASS:' : 'DATE OF BIRTH:'}</span>
+                      <span className="text-slate-800 font-bold">
+                        {criteriaMode === 'class'
+                          ? (selectedPart.candidateClass ? (selectedPart.candidateClass.toLowerCase().startsWith('class') ? selectedPart.candidateClass : `Class ${selectedPart.candidateClass}`) : '—')
+                          : (selectedPart.dob || '—')}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span>EDUCATION STATUS:</span>

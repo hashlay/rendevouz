@@ -122,13 +122,13 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         setHeroMedia(data.heroMedia || []);
         const mergedSettings = data.cmsSettings || {};
         const DEFAULT_CMS_SETTINGS: any = {
-          headerLogoTitle: 'TABASSUM',
+          headerLogoTitle: 'At-Tabassum',
           headerLogoSubtitle: 'Meelad Fest',
-          heroLogoTitle: 'TABASSUM',
+          heroLogoTitle: 'At-Tabassum',
           heroLogoSubtitle: 'Meelad Fest',
           heroLogoBadge: 'NOORUL ISLAM MADRASA',
           heroHideLogo: true,
-          heroTitle: 'TABASSUM<br /><span class="text-[#C89A4B]">MEELAD FEST</span>',
+          heroTitle: 'At-Tabassum<br /><span class="text-[#C89A4B]">MEELAD FEST</span>',
           heroSubtitle: 'A smile that brings heart together',
           heroInstitutionLeft: 'Noorul Islam Madrasa',
           heroInstitutionRight: 'Jeppu, Mangalore',
@@ -150,19 +150,19 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           conceptModalBadge: 'Theme Concept & Philosophy',
           conceptModalTitle: 'A SMILE THAT BRINGS HEART TOGETHER',
           conceptModalSubtitle: 'Noorul Islam Madrasa',
-          conceptModalFooter: 'Tabassum Meelad Fest',
-          conceptModalDescription: 'In a time when genuine connections are often lost amid the rush of everyday life, a simple smile carries the power to bring hearts closer.\n\nTabassum Meelad Fest 2026 celebrates the spirit of togetherness, compassion, creativity, and shared learning. It creates a vibrant space for young minds to discover their talents, strengthen friendships, embrace meaningful values, and grow through healthy competition.\n\nBeyond a celebration of talent, Tabassum is a reminder that kindness connects people, knowledge inspires growth, and a smile can bring hearts together.',
-          footerLogo: '/tabassum_logo.jpg',
-          footerLogoTitle: 'TABASSUM',
+          conceptModalFooter: 'At-Tabassum Meelad Fest',
+          conceptModalDescription: 'In a time when genuine connections are often lost amid the rush of everyday life, a simple smile carries the power to bring hearts closer.\n\nAt-Tabassum Meelad Fest 2026 celebrates the spirit of togetherness, compassion, creativity, and shared learning. It creates a vibrant space for young minds to discover their talents, strengthen friendships, embrace meaningful values, and grow through healthy competition.\n\nBeyond a celebration of talent, At-Tabassum is a reminder that kindness connects people, knowledge inspires growth, and a smile can bring hearts together.',
+          footerLogo: '/At-Tabassum_logo.jpg',
+          footerLogoTitle: 'At-Tabassum',
           footerLogoSubtitle: 'Meelad Fest',
           footerLogoBadge: 'NOORUL ISLAM MADRASA',
-          footerDescription: 'Tabassum Meelad Fest 2026 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Noorul Islam Madrasa, Jeppu, Mangalore, bringing students together through meaningful learning, healthy competition, and shared values.',
+          footerDescription: 'At-Tabassum Meelad Fest 2026 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Noorul Islam Madrasa, Jeppu, Mangalore, bringing students together through meaningful learning, healthy competition, and shared values.',
           footerLocation: 'MAS Garden, Jeppu',
           footerEmail: 'zenith.theorganizer@gmail.com',
           footerPhone: '+91 74831 38340',
           footerInstagram: 'https://instagram.com/zeni.th.in',
-          footerYoutube: 'tabassum.hashlay.in',
-          footerFacebook: 'tabassum.hashlay.in',
+          footerYoutube: 'At-Tabassum.hashlay.in',
+          footerFacebook: 'At-Tabassum.hashlay.in',
           footerText: '© 2026 Noorul Islam Madrasa Jeppu. All rights reserved. Developed by Zenith.',
           copyrightText: '© 2026 Noorul Islam Madrasa Jeppu. All rights reserved. Developed by Zenith.',
           heroDesktopImages: ['/hero1.jpg', '/hero2.jpg'],
@@ -223,7 +223,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         },
         body: JSON.stringify({ dragBlocks, heroMedia, cmsSettings: updatedSettings })
       });
-      
+
       // Also save event settings for live/drive url
       await fetch('/api/settings', {
         method: 'PUT',
@@ -251,14 +251,14 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
 
   const moveBlock = (index: number, direction: 'up' | 'down') => {
     if ((direction === 'up' && index === 0) || (direction === 'down' && index === dragBlocks.length - 1)) return;
-    
+
     const newBlocks = [...dragBlocks];
     const swapIndex = direction === 'up' ? index - 1 : index + 1;
-    
+
     const temp = newBlocks[index];
     newBlocks[index] = newBlocks[swapIndex];
     newBlocks[swapIndex] = temp;
-    
+
     // Update order property
     newBlocks.forEach((b, i) => b.order = i + 1);
     setDragBlocks(newBlocks);
@@ -270,7 +270,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
     setDragBlocks(newBlocks);
   };
 
-  if (loading) return <div className="p-6 text-slate-500 flex items-center gap-2"><Loader2 className="animate-spin"/> Loading CMS Data...</div>;
+  if (loading) return <div className="p-6 text-slate-500 flex items-center gap-2"><Loader2 className="animate-spin" /> Loading CMS Data...</div>;
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans pb-32 min-w-0 w-full overflow-x-hidden">
@@ -293,10 +293,10 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Left Column - Content Settings */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           {/* Media Links */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
@@ -304,41 +304,41 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
               <h3 className="font-bold text-slate-900">Media & Live Links</h3>
             </div>
             <div className="p-5 space-y-5">
-              
-              <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Stage 1 Live Stream YouTube URL</label>
-                    <div className="flex gap-3">
-                      <input
-                        type="url"
-                        value={stage1LiveLink}
-                        onChange={(e) => setStage1LiveLink(e.target.value)}
-                        placeholder="https://www.youtube.com/watch?v=..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                      />
-                      <div className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center whitespace-nowrap ${stage1LiveLink ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
-                        {stage1LiveLink ? 'ONLINE' : 'OFFLINE'}
-                      </div>
-                    </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Stage 2 Live Stream YouTube URL</label>
-                    <div className="flex gap-3">
-                      <input
-                        type="url"
-                        value={stage2LiveLink}
-                        onChange={(e) => setStage2LiveLink(e.target.value)}
-                        placeholder="https://www.youtube.com/watch?v=..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                      />
-                      <div className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center whitespace-nowrap ${stage2LiveLink ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
-                        {stage2LiveLink ? 'ONLINE' : 'OFFLINE'}
-                      </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Stage 1 Live Stream YouTube URL</label>
+                  <div className="flex gap-3">
+                    <input
+                      type="url"
+                      value={stage1LiveLink}
+                      onChange={(e) => setStage1LiveLink(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                    />
+                    <div className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center whitespace-nowrap ${stage1LiveLink ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+                      {stage1LiveLink ? 'ONLINE' : 'OFFLINE'}
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">If empty, the respective Live Stream section will show as offline.</p>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Stage 2 Live Stream YouTube URL</label>
+                  <div className="flex gap-3">
+                    <input
+                      type="url"
+                      value={stage2LiveLink}
+                      onChange={(e) => setStage2LiveLink(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                    />
+                    <div className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center whitespace-nowrap ${stage2LiveLink ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+                      {stage2LiveLink ? 'ONLINE' : 'OFFLINE'}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">If empty, the respective Live Stream section will show as offline.</p>
+              </div>
 
               <div className="pt-3 border-t border-slate-100">
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Photo Hub Drive Link</label>
@@ -379,31 +379,31 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   <h4 className="text-sm font-semibold text-slate-700">Desktop Screens (16:9)</h4>
                   <div className="flex items-center gap-4">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={settings.heroDesktopLoopEnabled !== false} onChange={(e) => setSettings({...settings, heroDesktopLoopEnabled: e.target.checked})} className="rounded text-emerald-500 focus:ring-emerald-500" />
+                      <input type="checkbox" checked={settings.heroDesktopLoopEnabled !== false} onChange={(e) => setSettings({ ...settings, heroDesktopLoopEnabled: e.target.checked })} className="rounded text-emerald-500 focus:ring-emerald-500" />
                       <span className="text-xs font-medium text-slate-600">Enable Looping</span>
                     </label>
                     <div className="flex items-center gap-2">
                       <label className="text-xs font-medium text-slate-600">Interval (sec):</label>
-                      <input type="number" min="1" max="20" value={settings.heroDesktopLoopInterval || 3} onChange={(e) => setSettings({...settings, heroDesktopLoopInterval: Number(e.target.value)})} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
+                      <input type="number" min="1" max="20" value={settings.heroDesktopLoopInterval || 3} onChange={(e) => setSettings({ ...settings, heroDesktopLoopInterval: Number(e.target.value) })} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
                     </div>
                   </div>
                 </div>
                 <p className="text-xs text-slate-500 mb-4">Upload up to 5 background images. If disabled or empty, a simple black background will be shown.</p>
-                
+
                 <div className="flex gap-4 overflow-x-auto pb-2">
                   {(settings.heroDesktopImages || []).map((url, idx) => (
                     <div key={idx} className="relative shrink-0 w-40 h-24 rounded-lg overflow-hidden border border-slate-200 group">
                       <img src={url} alt="Hero bg" className="w-full h-full object-cover" />
-                      <button 
+                      <button
                         type="button"
-                        onClick={() => setSettings({...settings, heroDesktopImages: settings.heroDesktopImages!.filter((_, i) => i !== idx)})}
+                        onClick={() => setSettings({ ...settings, heroDesktopImages: settings.heroDesktopImages!.filter((_, i) => i !== idx) })}
                         className="absolute top-1 right-1 bg-red-500 text-white rounded-md p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     </div>
                   ))}
-                  
+
                   {(settings.heroDesktopImages || []).length < 5 && (
                     <label className="shrink-0 w-40 h-24 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-emerald-500 hover:border-emerald-300 hover:bg-emerald-50 transition-colors cursor-pointer">
                       <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
@@ -418,7 +418,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                             });
                             if (res.ok) {
                               const { url } = await res.json();
-                              setSettings({...settings, heroDesktopImages: [...(settings.heroDesktopImages || []), url]});
+                              setSettings({ ...settings, heroDesktopImages: [...(settings.heroDesktopImages || []), url] });
                             } else {
                               alert('Upload failed');
                             }
@@ -440,31 +440,31 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   <h4 className="text-sm font-semibold text-slate-700">Mobile Screens (9:16)</h4>
                   <div className="flex items-center gap-4">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={settings.heroMobileLoopEnabled === true} onChange={(e) => setSettings({...settings, heroMobileLoopEnabled: e.target.checked})} className="rounded text-emerald-500 focus:ring-emerald-500" />
+                      <input type="checkbox" checked={settings.heroMobileLoopEnabled === true} onChange={(e) => setSettings({ ...settings, heroMobileLoopEnabled: e.target.checked })} className="rounded text-emerald-500 focus:ring-emerald-500" />
                       <span className="text-xs font-medium text-slate-600">Enable Looping</span>
                     </label>
                     <div className="flex items-center gap-2">
                       <label className="text-xs font-medium text-slate-600">Interval (sec):</label>
-                      <input type="number" min="1" max="20" value={settings.heroMobileLoopInterval || 3} onChange={(e) => setSettings({...settings, heroMobileLoopInterval: Number(e.target.value)})} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
+                      <input type="number" min="1" max="20" value={settings.heroMobileLoopInterval || 3} onChange={(e) => setSettings({ ...settings, heroMobileLoopInterval: Number(e.target.value) })} className="w-16 px-2 py-1 border border-slate-300 rounded text-xs" />
                     </div>
                   </div>
                 </div>
                 <p className="text-xs text-slate-500 mb-4">Upload up to 3 vertical background images for mobile. If disabled or empty, a simple black background will be shown.</p>
-                
+
                 <div className="flex gap-4 overflow-x-auto pb-2">
                   {(settings.heroMobileImages || []).map((url, idx) => (
                     <div key={idx} className="relative shrink-0 w-20 h-32 rounded-lg overflow-hidden border border-slate-200 group">
                       <img src={url} alt="Hero bg mobile" className="w-full h-full object-cover" />
-                      <button 
+                      <button
                         type="button"
-                        onClick={() => setSettings({...settings, heroMobileImages: settings.heroMobileImages!.filter((_, i) => i !== idx)})}
+                        onClick={() => setSettings({ ...settings, heroMobileImages: settings.heroMobileImages!.filter((_, i) => i !== idx) })}
                         className="absolute top-1 right-1 bg-red-500 text-white rounded-md p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     </div>
                   ))}
-                  
+
                   {(settings.heroMobileImages || []).length < 3 && (
                     <label className="shrink-0 w-20 h-32 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-emerald-500 hover:border-emerald-300 hover:bg-emerald-50 transition-colors cursor-pointer">
                       <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
@@ -479,7 +479,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                             });
                             if (res.ok) {
                               const { url } = await res.json();
-                              setSettings({...settings, heroMobileImages: [...(settings.heroMobileImages || []), url]});
+                              setSettings({ ...settings, heroMobileImages: [...(settings.heroMobileImages || []), url] });
                             } else {
                               alert('Upload failed');
                             }
@@ -503,24 +503,24 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
               <h3 className="font-bold text-slate-900">Text Content & Copy</h3>
             </div>
             <div className="p-5 space-y-6">
-              
+
               {/* Header / Navbar Branding */}
               <div className="space-y-4 pb-6 border-b border-slate-100">
                 <h4 className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Header / Navbar Branding</h4>
-                
+
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Header Custom Logo Icon (Optional)</label>
                   <div className="flex items-center gap-4">
                     <div className="w-20 h-20 bg-slate-50 rounded-md overflow-hidden border border-slate-200 relative group flex items-center justify-center p-2">
                       <div className="scale-75 origin-center text-white">
-                        <Logo 
-                          size="md" 
-                          variant="icon" 
+                        <Logo
+                          size="md"
+                          variant="icon"
                           customIconUrl={settings.headerLogo || settings.heroLogo}
                         />
                       </div>
                       {settings.headerLogo && (
-                        <button type="button" onClick={() => setSettings({...settings, headerLogo: ''})} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] font-bold z-20">REMOVE</button>
+                        <button type="button" onClick={() => setSettings({ ...settings, headerLogo: '' })} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] font-bold z-20">REMOVE</button>
                       )}
                     </div>
                     <label className="shrink-0 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-md text-sm font-medium text-slate-700 cursor-pointer transition-colors inline-flex items-center gap-2">
@@ -538,11 +538,11 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Header Logo Title</label>
-                    <input type="text" value={settings.headerLogoTitle !== undefined ? settings.headerLogoTitle : 'TABASSUM'} onChange={(e) => setSettings({...settings, headerLogoTitle: e.target.value})} placeholder="TABASSUM" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.headerLogoTitle !== undefined ? settings.headerLogoTitle : 'At-Tabassum'} onChange={(e) => setSettings({ ...settings, headerLogoTitle: e.target.value })} placeholder="At-Tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Header Logo Subtitle</label>
-                    <input type="text" value={settings.headerLogoSubtitle !== undefined ? settings.headerLogoSubtitle : 'Meelad Fest'} onChange={(e) => setSettings({...settings, headerLogoSubtitle: e.target.value})} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.headerLogoSubtitle !== undefined ? settings.headerLogoSubtitle : 'Meelad Fest'} onChange={(e) => setSettings({ ...settings, headerLogoSubtitle: e.target.value })} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                 </div>
               </div>
@@ -552,41 +552,41 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Hero Section</h4>
                   <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200 hover:bg-slate-100 transition-colors">
-                    <input 
-                      type="checkbox" 
-                      checked={settings.heroHideLogo || false} 
-                      onChange={(e) => setSettings({...settings, heroHideLogo: e.target.checked})}
+                    <input
+                      type="checkbox"
+                      checked={settings.heroHideLogo || false}
+                      onChange={(e) => setSettings({ ...settings, heroHideLogo: e.target.checked })}
                       className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
                     />
                     <span className="text-xs font-medium text-slate-700">Hide Hero Logo</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200 hover:bg-slate-100 transition-colors">
-                    <input 
-                      type="checkbox" 
-                      checked={settings.heroDesktopLoopEnabled !== false} 
-                      onChange={(e) => setSettings({...settings, heroDesktopLoopEnabled: e.target.checked})}
+                    <input
+                      type="checkbox"
+                      checked={settings.heroDesktopLoopEnabled !== false}
+                      onChange={(e) => setSettings({ ...settings, heroDesktopLoopEnabled: e.target.checked })}
                       className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
                     />
                     <span className="text-xs font-medium text-slate-700">Enable Media Loop</span>
                   </label>
                 </div>
-                
+
                 {/* Hero Logo Upload */}
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Hero Custom Logo (Optional)</label>
                   <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 bg-slate-50 rounded-md overflow-hidden border border-slate-200 relative group flex items-center justify-center p-2">
-                        <div className="scale-75 origin-center text-white">
-                          <Logo 
-                            size="md" 
-                            variant="icon" 
-                            customIconUrl={settings.heroLogo}
-                          />
-                        </div>
-                        {settings.heroLogo && (
-                          <button type="button" onClick={() => setSettings({...settings, heroLogo: ''})} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] font-bold z-20">REMOVE CUSTOM ICON</button>
-                        )}
+                    <div className="w-20 h-20 bg-slate-50 rounded-md overflow-hidden border border-slate-200 relative group flex items-center justify-center p-2">
+                      <div className="scale-75 origin-center text-white">
+                        <Logo
+                          size="md"
+                          variant="icon"
+                          customIconUrl={settings.heroLogo}
+                        />
                       </div>
+                      {settings.heroLogo && (
+                        <button type="button" onClick={() => setSettings({ ...settings, heroLogo: '' })} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] font-bold z-20">REMOVE CUSTOM ICON</button>
+                      )}
+                    </div>
                     <label className="shrink-0 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-md text-sm font-medium text-slate-700 cursor-pointer transition-colors inline-flex items-center gap-2">
                       <ImageIcon className="w-4 h-4" />
                       <span>{settings.heroLogo ? 'Change Logo' : 'Upload Custom Logo'}</span>
@@ -602,39 +602,39 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Title</label>
-                    <input type="text" value={settings.heroLogoTitle !== undefined ? settings.heroLogoTitle : 'TABASSUM'} onChange={(e) => setSettings({...settings, heroLogoTitle: e.target.value})} placeholder="TABASSUM" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoTitle !== undefined ? settings.heroLogoTitle : 'At-Tabassum'} onChange={(e) => setSettings({ ...settings, heroLogoTitle: e.target.value })} placeholder="At-Tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Subtitle</label>
-                    <input type="text" value={settings.heroLogoSubtitle !== undefined ? settings.heroLogoSubtitle : 'Meelad Fest'} onChange={(e) => setSettings({...settings, heroLogoSubtitle: e.target.value})} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoSubtitle !== undefined ? settings.heroLogoSubtitle : 'Meelad Fest'} onChange={(e) => setSettings({ ...settings, heroLogoSubtitle: e.target.value })} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Badge</label>
-                    <input type="text" value={settings.heroLogoBadge !== undefined ? settings.heroLogoBadge : 'NOORUL ISLAM MADRASA'} onChange={(e) => setSettings({...settings, heroLogoBadge: e.target.value})} placeholder="NOORUL ISLAM MADRASA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoBadge !== undefined ? settings.heroLogoBadge : 'NOORUL ISLAM MADRASA'} onChange={(e) => setSettings({ ...settings, heroLogoBadge: e.target.value })} placeholder="NOORUL ISLAM MADRASA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Main Title (HTML Allowed)</label>
-                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({...settings, heroTitle: e.target.value})} placeholder='TABASSUM<br /><span class="text-[#C89A4B]">MEELAD FEST</span>' className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} placeholder='At-Tabassum<br /><span class="text-[#C89A4B]">MEELAD FEST</span>' className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Subtitle</label>
-                    <input type="text" value={settings.heroSubtitle} onChange={(e) => setSettings({...settings, heroSubtitle: e.target.value})} placeholder="A smile that brings heart together" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroSubtitle} onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })} placeholder="A smile that brings heart together" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Institution Text (Left)</label>
-                    <input type="text" value={settings.heroInstitutionLeft} onChange={(e) => setSettings({...settings, heroInstitutionLeft: e.target.value})} placeholder="Noorul Islam Madrasa" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroInstitutionLeft} onChange={(e) => setSettings({ ...settings, heroInstitutionLeft: e.target.value })} placeholder="Noorul Islam Madrasa" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Institution Text (Right)</label>
-                    <input type="text" value={settings.heroInstitutionRight} onChange={(e) => setSettings({...settings, heroInstitutionRight: e.target.value})} placeholder="Off-Campus of Markaz Garden, Poonoor" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroInstitutionRight} onChange={(e) => setSettings({ ...settings, heroInstitutionRight: e.target.value })} placeholder="Off-Campus of Markaz Garden, Poonoor" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Date string</label>
-                    <input type="text" value={settings.heroDate} onChange={(e) => setSettings({...settings, heroDate: e.target.value})} placeholder="September 23 – 24, 2025" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroDate} onChange={(e) => setSettings({ ...settings, heroDate: e.target.value })} placeholder="September 23 – 24, 2025" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-600 mb-1">Location string</label>
-                    <input type="text" value={settings.heroLocation} onChange={(e) => setSettings({...settings, heroLocation: e.target.value})} placeholder="Main Campus Grounds, Poonoor, Kozhikode" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroLocation} onChange={(e) => setSettings({ ...settings, heroLocation: e.target.value })} placeholder="Main Campus Grounds, Poonoor, Kozhikode" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
               </div>
@@ -645,24 +645,24 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Badge Text</label>
-                    <input type="text" value={settings.aboutBadge} onChange={(e) => setSettings({...settings, aboutBadge: e.target.value})} placeholder="FESTIVAL VISION" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutBadge} onChange={(e) => setSettings({ ...settings, aboutBadge: e.target.value })} placeholder="FESTIVAL VISION" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Main Heading</label>
-                    <input type="text" value={settings.aboutMainHeading} onChange={(e) => setSettings({...settings, aboutMainHeading: e.target.value})} placeholder="ABOUT THE FESTIVAL" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutMainHeading} onChange={(e) => setSettings({ ...settings, aboutMainHeading: e.target.value })} placeholder="ABOUT THE FESTIVAL" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Title</label>
-                    <input type="text" value={settings.aboutTitle} onChange={(e) => setSettings({...settings, aboutTitle: e.target.value})} placeholder="Kulliyathu Imam Rabbani" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutTitle} onChange={(e) => setSettings({ ...settings, aboutTitle: e.target.value })} placeholder="Kulliyathu Imam Rabbani" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Subtitle</label>
-                    <input type="text" value={settings.aboutSubtitle} onChange={(e) => setSettings({...settings, aboutSubtitle: e.target.value})} placeholder="Off-Campus of Markaz Garden, Poonoor" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutSubtitle} onChange={(e) => setSettings({ ...settings, aboutSubtitle: e.target.value })} placeholder="Off-Campus of Markaz Garden, Poonoor" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Description</label>
-                  <textarea value={settings.aboutDescription} onChange={(e) => setSettings({...settings, aboutDescription: e.target.value})} placeholder="Kulliyathu Imam Rabbani stands as a premier center..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-24" />
+                  <textarea value={settings.aboutDescription} onChange={(e) => setSettings({ ...settings, aboutDescription: e.target.value })} placeholder="Kulliyathu Imam Rabbani stands as a premier center..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-24" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">About Image Background</label>
@@ -670,7 +670,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                     {settings.aboutImage ? (
                       <div className="w-32 h-20 rounded-md overflow-hidden border border-slate-200 relative group shrink-0">
                         <img src={settings.aboutImage} alt="About bg" className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => setSettings({...settings, aboutImage: ''})} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-xs font-bold">REMOVE</button>
+                        <button type="button" onClick={() => setSettings({ ...settings, aboutImage: '' })} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-xs font-bold">REMOVE</button>
                       </div>
                     ) : (
                       <div className="w-32 h-20 rounded-md overflow-hidden border border-slate-200 relative group shrink-0 bg-slate-100">
@@ -692,23 +692,23 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Badge</label>
-                    <input type="text" value={settings.aboutImageBadge} onChange={(e) => setSettings({...settings, aboutImageBadge: e.target.value})} placeholder="INAUGURATION SESSION" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutImageBadge} onChange={(e) => setSettings({ ...settings, aboutImageBadge: e.target.value })} placeholder="INAUGURATION SESSION" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Title</label>
-                    <input type="text" value={settings.aboutImageTitle} onChange={(e) => setSettings({...settings, aboutImageTitle: e.target.value})} placeholder="KULLIYATHU IMAM RABBANI" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutImageTitle} onChange={(e) => setSettings({ ...settings, aboutImageTitle: e.target.value })} placeholder="KULLIYATHU IMAM RABBANI" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Subtitle</label>
-                    <input type="text" value={settings.aboutImageSubtitle} onChange={(e) => setSettings({...settings, aboutImageSubtitle: e.target.value})} placeholder="Distinguished Scholars & Dignitaries at Grand Assembly" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutImageSubtitle} onChange={(e) => setSettings({ ...settings, aboutImageSubtitle: e.target.value })} placeholder="Distinguished Scholars & Dignitaries at Grand Assembly" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Location</label>
-                    <input type="text" value={settings.aboutImageLocation} onChange={(e) => setSettings({...settings, aboutImageLocation: e.target.value})} placeholder="Main Stage Auditorium • Markaz Garden Campus" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutImageLocation} onChange={(e) => setSettings({ ...settings, aboutImageLocation: e.target.value })} placeholder="Main Stage Auditorium • Markaz Garden Campus" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Footer</label>
-                    <input type="text" value={settings.aboutImageFooter} onChange={(e) => setSettings({...settings, aboutImageFooter: e.target.value})} placeholder="Markaz Garden Off-Campus" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutImageFooter} onChange={(e) => setSettings({ ...settings, aboutImageFooter: e.target.value })} placeholder="Markaz Garden Off-Campus" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
               </div>
@@ -719,16 +719,16 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Theme Title</label>
-                    <input type="text" value={settings.themeTitle} onChange={(e) => setSettings({...settings, themeTitle: e.target.value})} placeholder="Transcending the Illusions" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.themeTitle} onChange={(e) => setSettings({ ...settings, themeTitle: e.target.value })} placeholder="Transcending the Illusions" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Button Text</label>
-                    <input type="text" value={settings.themeButtonText} onChange={(e) => setSettings({...settings, themeButtonText: e.target.value})} placeholder="READ PHILOSOPHICAL CONCEPT" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.themeButtonText} onChange={(e) => setSettings({ ...settings, themeButtonText: e.target.value })} placeholder="READ PHILOSOPHICAL CONCEPT" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Theme Quote</label>
-                  <textarea value={settings.themeDescription} onChange={(e) => setSettings({...settings, themeDescription: e.target.value})} placeholder="Education is not merely..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-20" />
+                  <textarea value={settings.themeDescription} onChange={(e) => setSettings({ ...settings, themeDescription: e.target.value })} placeholder="Education is not merely..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-20" />
                 </div>
               </div>
 
@@ -738,54 +738,54 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Badge</label>
-                    <input type="text" value={settings.conceptModalBadge} onChange={(e) => setSettings({...settings, conceptModalBadge: e.target.value})} placeholder="Theme Concept & Philosophy" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalBadge} onChange={(e) => setSettings({ ...settings, conceptModalBadge: e.target.value })} placeholder="Theme Concept & Philosophy" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Footer</label>
-                    <input type="text" value={settings.conceptModalFooter} onChange={(e) => setSettings({...settings, conceptModalFooter: e.target.value})} placeholder="Tabassum Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalFooter} onChange={(e) => setSettings({ ...settings, conceptModalFooter: e.target.value })} placeholder="At-Tabassum Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Title</label>
-                    <input type="text" value={settings.conceptModalTitle} onChange={(e) => setSettings({...settings, conceptModalTitle: e.target.value})} placeholder="A SMILE THAT BRINGS HEART TOGETHER" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalTitle} onChange={(e) => setSettings({ ...settings, conceptModalTitle: e.target.value })} placeholder="A SMILE THAT BRINGS HEART TOGETHER" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Subtitle</label>
-                    <input type="text" value={settings.conceptModalSubtitle} onChange={(e) => setSettings({...settings, conceptModalSubtitle: e.target.value})} placeholder="Noorul Islam Madrasa" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalSubtitle} onChange={(e) => setSettings({ ...settings, conceptModalSubtitle: e.target.value })} placeholder="Noorul Islam Madrasa" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Modal Description (Paragraphs)</label>
                   <p className="text-[10px] text-slate-400 mb-1">Separate paragraphs with a blank line.</p>
-                  <textarea value={settings.conceptModalDescription} onChange={(e) => setSettings({...settings, conceptModalDescription: e.target.value})} placeholder="In a time when genuine connections are often lost amid the rush of everyday life..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-32" />
+                  <textarea value={settings.conceptModalDescription} onChange={(e) => setSettings({ ...settings, conceptModalDescription: e.target.value })} placeholder="In a time when genuine connections are often lost amid the rush of everyday life..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-32" />
                 </div>
               </div>
 
               {/* Footer Section */}
               <div className="space-y-4 pt-4 border-t border-slate-100">
                 <h4 className="text-sm font-semibold text-emerald-600 uppercase tracking-wider">Footer Section</h4>
-                
+
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Footer Logo</label>
                   <div className="flex items-center gap-4">
                     <div className="w-20 h-20 bg-slate-50 rounded-md overflow-hidden border border-slate-200 relative group flex items-center justify-center p-2">
-                        <div className="scale-75 origin-center text-white">
-                          <Logo 
-                            size="md" 
-                            variant="icon" 
-                            customIconUrl={settings.footerLogo}
-                          />
-                        </div>
-                        {settings.footerLogo && (
-                          <button type="button" onClick={() => setSettings({...settings, footerLogo: ''})} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] font-bold z-20">REMOVE CUSTOM ICON</button>
-                        )}
+                      <div className="scale-75 origin-center text-white">
+                        <Logo
+                          size="md"
+                          variant="icon"
+                          customIconUrl={settings.footerLogo}
+                        />
+                      </div>
+                      {settings.footerLogo && (
+                        <button type="button" onClick={() => setSettings({ ...settings, footerLogo: '' })} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-[10px] font-bold z-20">REMOVE CUSTOM ICON</button>
+                      )}
                     </div>
                     <label className="cursor-pointer border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 rounded-lg px-4 py-3 text-sm font-medium text-slate-600 transition-colors flex items-center gap-2">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                       {settings.footerLogo ? 'Change Logo' : 'Upload Logo'}
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
                         onChange={(e) => {
                           if (e.target.files?.[0]) {
                             uploadImageFileWithFallback(e.target.files[0], '/api/footer/upload', (url) => setSettings(prev => ({ ...prev, footerLogo: url })));
@@ -799,53 +799,53 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Title</label>
-                    <input type="text" value={settings.footerLogoTitle} onChange={(e) => setSettings({...settings, footerLogoTitle: e.target.value})} placeholder="TABASSUM" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLogoTitle} onChange={(e) => setSettings({ ...settings, footerLogoTitle: e.target.value })} placeholder="At-Tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Subtitle</label>
-                    <input type="text" value={settings.footerLogoSubtitle} onChange={(e) => setSettings({...settings, footerLogoSubtitle: e.target.value})} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLogoSubtitle} onChange={(e) => setSettings({ ...settings, footerLogoSubtitle: e.target.value })} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Badge</label>
-                    <input type="text" value={settings.footerLogoBadge} onChange={(e) => setSettings({...settings, footerLogoBadge: e.target.value})} placeholder="NOORUL ISLAM MADRASA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLogoBadge} onChange={(e) => setSettings({ ...settings, footerLogoBadge: e.target.value })} placeholder="NOORUL ISLAM MADRASA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Footer Description</label>
-                  <textarea rows={3} value={settings.footerDescription} onChange={(e) => setSettings({...settings, footerDescription: e.target.value})} placeholder="Tabassum Meelad Fest 2026 is a vibrant celebration of talent, creativity, knowledge, and togetherness..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                  <textarea rows={3} value={settings.footerDescription} onChange={(e) => setSettings({ ...settings, footerDescription: e.target.value })} placeholder="At-Tabassum Meelad Fest 2026 is a vibrant celebration of talent, creativity, knowledge, and togetherness..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Location</label>
-                    <input type="text" value={settings.footerLocation} onChange={(e) => setSettings({...settings, footerLocation: e.target.value})} placeholder="MAS Garden, Jeppu" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLocation} onChange={(e) => setSettings({ ...settings, footerLocation: e.target.value })} placeholder="MAS Garden, Jeppu" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
-                    <input type="email" value={settings.footerEmail} onChange={(e) => setSettings({...settings, footerEmail: e.target.value})} placeholder="zenith.theorganizer@gmail.com" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="email" value={settings.footerEmail} onChange={(e) => setSettings({ ...settings, footerEmail: e.target.value })} placeholder="zenith.theorganizer@gmail.com" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Phone</label>
-                    <input type="text" value={settings.footerPhone} onChange={(e) => setSettings({...settings, footerPhone: e.target.value})} placeholder="+91 74831 38340" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerPhone} onChange={(e) => setSettings({ ...settings, footerPhone: e.target.value })} placeholder="+91 74831 38340" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Instagram Link</label>
-                    <input type="url" value={settings.footerInstagram} onChange={(e) => setSettings({...settings, footerInstagram: e.target.value})} placeholder="https://instagram.com/zeni.th.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="url" value={settings.footerInstagram} onChange={(e) => setSettings({ ...settings, footerInstagram: e.target.value })} placeholder="https://instagram.com/zeni.th.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">YouTube Link</label>
-                    <input type="url" value={settings.footerYoutube} onChange={(e) => setSettings({...settings, footerYoutube: e.target.value})} placeholder="tabassum.hashlay.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="url" value={settings.footerYoutube} onChange={(e) => setSettings({ ...settings, footerYoutube: e.target.value })} placeholder="At-Tabassum.hashlay.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Facebook Link</label>
-                    <input type="url" value={settings.footerFacebook} onChange={(e) => setSettings({...settings, footerFacebook: e.target.value})} placeholder="tabassum.hashlay.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="url" value={settings.footerFacebook} onChange={(e) => setSettings({ ...settings, footerFacebook: e.target.value })} placeholder="At-Tabassum.hashlay.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Copyright Text</label>
-                  <input type="text" value={settings.footerText} onChange={(e) => setSettings({...settings, footerText: e.target.value})} placeholder="© 2026 Noorul Islam Madrasa Jeppu. All rights reserved. Developed by Zenith." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                  <input type="text" value={settings.footerText} onChange={(e) => setSettings({ ...settings, footerText: e.target.value })} placeholder="© 2026 Noorul Islam Madrasa Jeppu. All rights reserved. Developed by Zenith." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                 </div>
               </div>
 
@@ -881,23 +881,23 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                         <span className="text-xs font-bold text-slate-800 block">{item.label}</span>
                         <span className="text-[11px] text-slate-500">{item.desc}</span>
                       </div>
-                      <div 
-                        className="w-7 h-7 rounded-lg border border-slate-300 shadow-inner shrink-0" 
-                        style={{ backgroundColor: colorTheme[item.key] || item.default }} 
+                      <div
+                        className="w-7 h-7 rounded-lg border border-slate-300 shadow-inner shrink-0"
+                        style={{ backgroundColor: colorTheme[item.key] || item.default }}
                       />
                     </div>
                     <div className="flex items-center gap-2 pt-1">
-                      <input 
-                        type="color" 
-                        value={colorTheme[item.key] || item.default} 
+                      <input
+                        type="color"
+                        value={colorTheme[item.key] || item.default}
                         onChange={(e) => setColorTheme({ ...colorTheme, [item.key]: e.target.value })}
-                        className="w-9 h-8 rounded cursor-pointer border border-slate-300 bg-white p-0.5" 
+                        className="w-9 h-8 rounded cursor-pointer border border-slate-300 bg-white p-0.5"
                       />
-                      <input 
-                        type="text" 
-                        value={colorTheme[item.key] || item.default} 
+                      <input
+                        type="text"
+                        value={colorTheme[item.key] || item.default}
                         onChange={(e) => setColorTheme({ ...colorTheme, [item.key]: e.target.value })}
-                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:ring-1 focus:ring-indigo-500 outline-none uppercase" 
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:ring-1 focus:ring-indigo-500 outline-none uppercase"
                       />
                     </div>
                   </div>
