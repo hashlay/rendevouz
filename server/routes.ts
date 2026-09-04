@@ -5734,9 +5734,10 @@ apiRouter.get('/public/results', async (req, res) => {
 
       let points = r.points || 0;
       if (!points) {
-        if (r.rank === 1) points = db.eventSettings?.globalPointsRank1 || 20;
-        else if (r.rank === 2) points = db.eventSettings?.globalPointsRank2 || 15;
-        else if (r.rank === 3) points = db.eventSettings?.globalPointsRank3 || 10;
+        if (r.rank === 1) points = db.eventSettings?.globalPointsRank1 ?? 20;
+        else if (r.rank === 2) points = db.eventSettings?.globalPointsRank2 ?? 14;
+        else if (r.rank === 3) points = db.eventSettings?.globalPointsRank3 ?? 7;
+        else if (r.rank && r.rank >= 4 && r.rank <= 10) points = (db.eventSettings as any)?.[`globalPointsRank${r.rank}`] ?? 0;
       }
 
       let grade = r.grade || 'A';

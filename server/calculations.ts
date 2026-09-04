@@ -326,7 +326,7 @@ export const CalculationService = {
           if (!isNaN(val)) return val;
         }
         
-        const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1, 9: 1, 10: 1 };
+        const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
         return defaultMap[r.rank] || 0;
       };
 

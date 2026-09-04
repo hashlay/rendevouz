@@ -236,7 +236,7 @@ function ensureDbExists() {
 
   const initialSettings: EventSettings = {
     eventTitle: 'A SMILE THAT BRINGS HEARTS TOGETHER',
-    festivalName: 'tabassum',
+    festivalName: 'At-Tabassum',
     campusName: 'Noorul Islam Madrasa, Jeppu',
     sectorName: 'Noorul Islam Madrasa, Jeppu',
     eventYear: '2026',
@@ -251,13 +251,26 @@ function ensureDbExists() {
     registrationOpen: true,
     fillLogo: true,
     autoRemoveLogoBg: false,
-    ssfLogoUrl: '/tabassum_logo.jpg',
-    sahityotsavLogoUrl: '/tabassum_logo.jpg',
+    ssfLogoUrl: '/tabassum_logo.png',
+    sahityotsavLogoUrl: '/tabassum_logo.png',
     primaryColor: 'emerald',
     accentColor: 'amber',
     numJudges: 2,
     markDecimalPrecision: 2,
-    autoRankingEnabled: true
+    autoRankingEnabled: true,
+    entityMode: 'team',
+    gradeSystemEnabled: false,
+    participantLoginCriteria: 'class',
+    globalPointsRank1: 20,
+    globalPointsRank2: 14,
+    globalPointsRank3: 7,
+    globalPointsRank4: 0,
+    globalPointsRank5: 0,
+    globalPointsRank6: 0,
+    globalPointsRank7: 0,
+    globalPointsRank8: 0,
+    globalPointsRank9: 0,
+    globalPointsRank10: 0
   };
 
   // Chest number counters - one per category, starting at the specified base values
