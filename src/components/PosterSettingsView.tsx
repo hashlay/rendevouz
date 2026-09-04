@@ -21,7 +21,9 @@ interface PosterSettingsViewProps {
 export const getPosterTeamColor = (unitOrTeamName?: string, defaultColor: string = '#34d399'): string => {
   if (!unitOrTeamName) return defaultColor;
   const str = unitOrTeamName.toString().trim().toLowerCase();
-  const normalized = str.replace(/[\s\-_]/g, '');
+  // Strip Arabic diacritics / tashkeel (\u064B-\u065F\u0670) and alif wasla (\u0671) so matching is 100% reliable
+  const cleanStr = str.replace(/[\u064B-\u065F\u0670\u0671]/g, '').replace(/ٱ/g, 'ا');
+  const normalized = cleanStr.replace(/[\s\-_]/g, '');
 
   // Ash-shukr: Dark Blue #2b2bc3
   if (
@@ -71,10 +73,12 @@ export const getPosterDisplayUnitName = (
   }
 
   const customMap = config?.unitArabicNames || {};
-  const normalized = raw.toLowerCase().replace(/[\s\-_]/g, '');
+  const cleanRaw = raw.replace(/[\u064B-\u065F\u0670\u0671]/g, '').replace(/ٱ/g, 'ا');
+  const normalized = cleanRaw.toLowerCase().replace(/[\s\-_]/g, '');
 
   // Direct match in custom dictionary
   if (customMap[raw]) return customMap[raw];
+  if (customMap[cleanRaw]) return customMap[cleanRaw];
 
   // Match Ash-Shukr variants
   if (
@@ -83,10 +87,11 @@ export const getPosterDisplayUnitName = (
     normalized.includes('shukoor') ||
     normalized.includes('ശുക്') ||
     normalized.includes('ശുക്കൂർ') ||
+    normalized.includes('شكر') ||
     normalized === 'shk' ||
     raw === 'shk'
   ) {
-    return customMap['Ash-Shukr'] || customMap['ash-shukr'] || 'الشكر';
+    return customMap['Ash-Shukr'] || customMap['ash-shukr'] || 'ٱلشُّكْر';
   }
 
   // Match As-Sabr variants
@@ -96,15 +101,17 @@ export const getPosterDisplayUnitName = (
     normalized.includes('സ്വബ്') ||
     normalized.includes('സബ്ർ') ||
     normalized.includes('സ്വബർ') ||
+    normalized.includes('صبر') ||
     normalized === 'sbr' ||
     raw === 'sbr'
   ) {
-    return customMap['As-Sabr'] || customMap['as-sabr'] || 'الصبر';
+    return customMap['As-Sabr'] || customMap['as-sabr'] || 'ٱلصَّبْر';
   }
 
   // Fuzzy lookup in keys
   for (const [k, v] of Object.entries(customMap)) {
-    if (k.toLowerCase().replace(/[\s\-_]/g, '') === normalized) {
+    const kClean = k.replace(/[\u064B-\u065F\u0670\u0671]/g, '').replace(/ٱ/g, 'ا');
+    if (kClean.toLowerCase().replace(/[\s\-_]/g, '') === normalized) {
       return v as string;
     }
   }
@@ -222,8 +229,8 @@ function getDefaultThemeConfig(): any {
     // Team / Unit Language & Custom Arabic Spellings (Poster Only)
     unitLanguage: 'en', // 'en' | 'ar'
     unitArabicNames: {
-      'Ash-Shukr': 'الشكر',
-      'As-Sabr': 'الصبر'
+      'Ash-Shukr': 'ٱلشُّكْر',
+      'As-Sabr': 'ٱلصَّبْر'
     } as Record<string, string>,
   };
 }
@@ -787,7 +794,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
       // Unit/Team name
       const isArabic = c.unitLanguage === 'ar';
-      const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : 'sans-serif';
+      const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : "'Cairo', 'Amiri', sans-serif";
       ctx.font = `700 ${c.unitSize}px ${isArabic ? arabicFont : (c.unitFont || 'monospace')}`;
       const sampleUnitName = rd.sampleUnit || 'Ash-Shukr';
       const unitText = getPosterDisplayUnitName(sampleUnitName, c);
@@ -1333,8 +1340,8 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                       type="button"
                       onClick={() => {
                         updateConf('unitLanguage', 'ar');
-                        if (conf.unitFont === 'monospace') {
-                          updateConf('unitFont', 'sans-serif');
+                        if (!conf.unitFont || conf.unitFont === 'monospace') {
+                          updateConf('unitFont', "'Cairo', sans-serif");
                         }
                       }}
                       className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-xs transition border cursor-pointer ${
@@ -1343,7 +1350,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                       }`}
                     >
-                      Arabic (الشكر / الصبر)
+                      Arabic (ٱلشُّكْر / ٱلصَّبْر)
                     </button>
                   </div>
 
@@ -1365,13 +1372,13 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                           <input
                             type="text"
                             dir="rtl"
-                            value={conf.unitArabicNames?.['Ash-Shukr'] ?? 'الشكر'}
+                            value={conf.unitArabicNames?.['Ash-Shukr'] ?? 'ٱلشُّكْر'}
                             onChange={(e) => {
                               const updated = { ...(conf.unitArabicNames || {}), 'Ash-Shukr': e.target.value };
                               updateConf('unitArabicNames', updated);
                             }}
                             className="w-full px-2.5 py-1 text-sm font-bold border border-slate-200 rounded-lg text-right"
-                            placeholder="الشكر"
+                            placeholder="ٱلشُّكْر"
                           />
                         </div>
 
@@ -1383,13 +1390,13 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                           <input
                             type="text"
                             dir="rtl"
-                            value={conf.unitArabicNames?.['As-Sabr'] ?? 'الصبر'}
+                            value={conf.unitArabicNames?.['As-Sabr'] ?? 'ٱلصَّبْر'}
                             onChange={(e) => {
                               const updated = { ...(conf.unitArabicNames || {}), 'As-Sabr': e.target.value };
                               updateConf('unitArabicNames', updated);
                             }}
                             className="w-full px-2.5 py-1 text-sm font-bold border border-slate-200 rounded-lg text-right"
-                            placeholder="الصبر"
+                            placeholder="ٱلصَّبْر"
                           />
                         </div>
                       </div>

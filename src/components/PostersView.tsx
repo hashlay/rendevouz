@@ -40,7 +40,9 @@ const FONT_OPTIONS = [
 export const getPosterTeamColor = (unitOrTeamName?: string, defaultColor: string = '#34d399'): string => {
   if (!unitOrTeamName) return defaultColor;
   const str = unitOrTeamName.toString().trim().toLowerCase();
-  const normalized = str.replace(/[\s\-_]/g, '');
+  // Strip Arabic diacritics / tashkeel (\u064B-\u065F\u0670) and alif wasla (\u0671) so matching is 100% reliable
+  const cleanStr = str.replace(/[\u064B-\u065F\u0670\u0671]/g, '').replace(/ٱ/g, 'ا');
+  const normalized = cleanStr.replace(/[\s\-_]/g, '');
 
   // Ash-shukr: Dark Blue #2b2bc3
   if (
@@ -90,10 +92,12 @@ export const getPosterDisplayUnitName = (
   }
 
   const customMap = config?.unitArabicNames || {};
-  const normalized = raw.toLowerCase().replace(/[\s\-_]/g, '');
+  const cleanRaw = raw.replace(/[\u064B-\u065F\u0670\u0671]/g, '').replace(/ٱ/g, 'ا');
+  const normalized = cleanRaw.toLowerCase().replace(/[\s\-_]/g, '');
 
   // Direct match in custom dictionary
   if (customMap[raw]) return customMap[raw];
+  if (customMap[cleanRaw]) return customMap[cleanRaw];
 
   // Match Ash-Shukr variants
   if (
@@ -102,10 +106,11 @@ export const getPosterDisplayUnitName = (
     normalized.includes('shukoor') ||
     normalized.includes('ശുക്') ||
     normalized.includes('ശുക്കൂർ') ||
+    normalized.includes('شكر') ||
     normalized === 'shk' ||
     raw === 'shk'
   ) {
-    return customMap['Ash-Shukr'] || customMap['ash-shukr'] || 'الشكر';
+    return customMap['Ash-Shukr'] || customMap['ash-shukr'] || 'ٱلشُّكْر';
   }
 
   // Match As-Sabr variants
@@ -115,15 +120,17 @@ export const getPosterDisplayUnitName = (
     normalized.includes('സ്വബ്') ||
     normalized.includes('സബ്ർ') ||
     normalized.includes('സ്വബർ') ||
+    normalized.includes('صبر') ||
     normalized === 'sbr' ||
     raw === 'sbr'
   ) {
-    return customMap['As-Sabr'] || customMap['as-sabr'] || 'الصبر';
+    return customMap['As-Sabr'] || customMap['as-sabr'] || 'ٱلصَّبْر';
   }
 
   // Fuzzy lookup in keys
   for (const [k, v] of Object.entries(customMap)) {
-    if (k.toLowerCase().replace(/[\s\-_]/g, '') === normalized) {
+    const kClean = k.replace(/[\u064B-\u065F\u0670\u0671]/g, '').replace(/ٱ/g, 'ا');
+    if (kClean.toLowerCase().replace(/[\s\-_]/g, '') === normalized) {
       return v as string;
     }
   }
@@ -209,8 +216,8 @@ function getDefaultThemeConfig(): any {
     // Team / Unit Language & Custom Arabic Spellings (Poster Only)
     unitLanguage: 'en', // 'en' | 'ar'
     unitArabicNames: {
-      'Ash-Shukr': 'الشكر',
-      'As-Sabr': 'الصبر'
+      'Ash-Shukr': 'ٱلشُّكْر',
+      'As-Sabr': 'ٱلصَّبْر'
     } as Record<string, string>,
   };
 }
@@ -1041,7 +1048,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
         // Unit name (Supports 2-line text with \n)
         const isArabic = c.unitLanguage === 'ar';
-        const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : 'sans-serif';
+        const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : "'Cairo', 'Amiri', sans-serif";
         ctx.font = `700 ${c.unitSize}px ${isArabic ? arabicFont : (c.unitFont || 'monospace')}`;
         ctx.fillStyle = getPosterTeamColor(winnerUnit, c.unitColor);
         const displayUnitName = getPosterDisplayUnitName(winnerUnit, c);
