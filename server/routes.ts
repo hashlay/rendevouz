@@ -1610,7 +1610,55 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
 
       db.participants.push(p);
 
-      const compIds: string[] = Array.isArray(item.selectedCompetitionIds) ? item.selectedCompetitionIds : [];
+      // Match competitions by exact full name (normalizing whitespace: trimming and collapsing multiple spaces)
+      const rawCompNames: string[] = [];
+      if (Array.isArray(item.competitionNames)) {
+        rawCompNames.push(...item.competitionNames);
+      } else if (typeof item.competitionNames === 'string' && item.competitionNames.trim()) {
+        rawCompNames.push(...item.competitionNames.split(/[;,|]/));
+      } else if (typeof item.competitions === 'string' && item.competitions.trim()) {
+        rawCompNames.push(...item.competitions.split(/[;,|]/));
+      }
+
+      const compIds: string[] = Array.isArray(item.selectedCompetitionIds) ? [...item.selectedCompetitionIds] : [];
+      const unmatchedCompetitions: string[] = [];
+
+      const normalizeStr = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase();
+
+      for (const rawName of rawCompNames) {
+        const cleanName = rawName.trim();
+        if (!cleanName || cleanName === '-' || cleanName === '—' || cleanName === 'N/A') continue;
+
+        const normalizedTarget = normalizeStr(cleanName);
+
+        // 1. Try matching within participant's category first
+        let matchedComp = (db.competitions || []).find((c: Competition) =>
+          !c.deletedAt &&
+          c.categoryId === p.selectedCategoryId &&
+          normalizeStr(c.name) === normalizedTarget
+        );
+
+        // 2. If not found in category, check across all competitions
+        if (!matchedComp) {
+          matchedComp = (db.competitions || []).find((c: Competition) =>
+            !c.deletedAt &&
+            normalizeStr(c.name) === normalizedTarget
+          );
+        }
+
+        if (matchedComp) {
+          if (!compIds.includes(matchedComp.id)) {
+            compIds.push(matchedComp.id);
+          }
+        } else {
+          unmatchedCompetitions.push(cleanName);
+        }
+      }
+
+      if (unmatchedCompetitions.length > 0) {
+        errors.push(`Participant "${p.fullName}": Unmatched competition name(s) [${unmatchedCompetitions.join(', ')}]. Please check spelling.`);
+      }
+
       if (!(db as any).registrations) (db as any).registrations = [];
       const registration: Registration = {
         id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
@@ -5663,74 +5711,6 @@ apiRouter.put('/cms', authenticate, (req, res) => {
 
 
 
-// Bulk Participants
-apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), (req, res) => {
-  try {
-    const { participants } = req.body;
-    if (!Array.isArray(participants)) return res.status(400).json({ error: 'Invalid payload' });
-
-    const db = dbClient.get();
-    let imported = 0;
-
-    for (const p of participants) {
-      if (!p.fullName) continue;
-
-      const catNameStr = p.categoryName ? p.categoryName.toLowerCase() : '';
-      let cat = db.categories.find(c => c.name.toLowerCase() === catNameStr);
-      if (!cat && db.categories.length > 0) cat = db.categories[0];
-
-      const unitNameStr = p.unitName ? p.unitName.toLowerCase() : '';
-      let unit = db.units.find(u => u.name.toLowerCase() === unitNameStr);
-      if (!unit && db.units.length > 0) unit = db.units[0];
-
-      if (!cat || !unit) continue;
-
-      const prefix = cat.name.substring(0, 3).toUpperCase();
-      let highestCode = 100;
-      const sameCategoryCodeNumbers = db.chestNumbers.filter(cn => cn.categoryId === cat!.id && cn.participationType === 'individual');
-      if (sameCategoryCodeNumbers.length > 0) {
-        const nums = sameCategoryCodeNumbers
-          .map(cn => parseInt(cn.codeNumber.replace(/\D/g, ''), 10))
-          .filter(n => !isNaN(n));
-        if (nums.length > 0) highestCode = Math.max(...nums);
-      }
-      const newCodeFormatted = `${prefix}${highestCode + 1}`;
-
-      const newId = crypto.randomUUID();
-      const now = new Date().toISOString();
-      db.participants.push({
-        id: newId,
-        fullName: p.fullName,
-        selectedCategoryId: cat.id,
-        categoryId: cat.id,
-        unitId: unit.id,
-        chestNumber: newCodeFormatted,
-        dob: p.dob || '',
-        candidateClass: p.candidateClass || p.class || '',
-        gender: p.gender || 'male',
-        active: true,
-        registrationStatus: 'approved',
-        registeredAt: now,
-        createdAt: now,
-        updatedAt: now
-      });
-
-      db.chestNumbers.push({
-        id: crypto.randomUUID(),
-        entityId: newId,
-        categoryId: cat.id,
-        participationType: 'individual',
-        codeNumber: newCodeFormatted
-      });
-      imported++;
-    }
-
-    dbClient.save();
-    res.json({ success: true, imported, message: `Successfully imported ${imported} participants` });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // Bulk Competitions
 apiRouter.post('/competitions/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), (req, res) => {

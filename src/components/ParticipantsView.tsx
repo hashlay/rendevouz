@@ -83,7 +83,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         return trimmed;
       };
 
-      // Parse CSV lines: Name, Category, Unit/House, DOB, Class, Gender
+      // Parse CSV lines: Name, Category, Unit/House, DOB, Class, Gender, Competitions (optional, separated by ; or commas)
       const lines = bulkText.trim().split('\n');
       const participantsToImport = lines.map(line => {
         const parts = line.split(',').map(s => s.trim());
@@ -94,13 +94,26 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         const candidateClass = cleanVal(parts[4]);
         const gender = cleanVal(parts[5]) || cleanVal(parts[4]) || 'male';
 
+        // Any entries from index 6 onwards are treated as competitions (can also be semicolon-separated)
+        const compParts = parts.slice(6).map(cleanVal).filter(Boolean);
+        const compNames: string[] = [];
+        compParts.forEach(cp => {
+          cp.split(/[;|]/).forEach(sub => {
+            const trimmed = sub.trim();
+            if (trimmed && trimmed !== '-' && trimmed !== '—' && trimmed !== 'N/A') {
+              compNames.push(trimmed);
+            }
+          });
+        });
+
         return {
           fullName,
           categoryName,
           unitName,
           dob,
           candidateClass,
-          gender
+          gender,
+          competitionNames: compNames
         };
       }).filter(p => p.fullName.length > 0);
 
@@ -116,7 +129,15 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Bulk import failed');
 
-      alert(data.message || `Successfully imported ${data.imported} participants!`);
+      let alertMsg = data.message || `Successfully imported ${data.imported} participants!`;
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        alertMsg += '\n\n⚠️ Competition Matching Notes:\n' + data.errors.slice(0, 8).join('\n');
+        if (data.errors.length > 8) {
+          alertMsg += `\n...and ${data.errors.length - 8} more.`;
+        }
+      }
+
+      alert(alertMsg);
       setShowBulkModal(false);
       setBulkText('');
       fetchLists();
@@ -580,10 +601,19 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
               </button>
             </div>
 
-            <div className="p-3 bg-emerald-50 text-emerald-800 rounded-2xl text-xs space-y-1 border border-emerald-200">
-              <p className="font-bold">Format: One participant per line (CSV format):</p>
-              <p className="font-mono text-[11px]">Full Name, Category, Unit/House, Date of Birth (YYYY-MM-DD), Class, Gender (Male/Female)</p>
-              <p className="text-[10px] text-emerald-700 mt-1">Example: Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male (Use - for blank fields: Rayan, Junior, Zenith, -, Class 8, Male)</p>
+            <div className="p-3.5 bg-emerald-50 text-emerald-900 rounded-2xl text-xs space-y-1.5 border border-emerald-200">
+              <p className="font-bold flex items-center gap-1.5">
+                <span>Format: One participant per line (CSV format):</span>
+              </p>
+              <p className="font-mono text-[11px] bg-white/90 p-2 rounded-xl border border-emerald-300 text-slate-800 break-all font-semibold">
+                Full Name, Category, Unit/House, Date of Birth (YYYY-MM-DD), Class, Gender, Competitions (Optional)
+              </p>
+              <div className="text-[10px] text-emerald-800 space-y-1 pt-1 font-sans">
+                <p><strong>• Single Competition:</strong> <span className="font-mono">Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English</span></p>
+                <p><strong>• Multiple Competitions:</strong> <span className="font-mono">Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English; Qira'at Recitation</span> (use <code className="bg-emerald-100 px-1 rounded">;</code> to separate)</p>
+                <p><strong>• Whitespace Safe:</strong> Extra leading or trailing spaces are automatically trimmed and normalized.</p>
+                <p><strong>• Blank Fields:</strong> Use <code className="bg-emerald-100 px-1 rounded">-</code> for unknown fields (e.g. <span className="font-mono">Rayan, Junior, Zenith, -, Class 8, Male, Elocution English</span>)</p>
+              </div>
             </div>
 
             <textarea
