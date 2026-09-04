@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FileBadge, Search, Filter, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { FileBadge, Search, Filter, RefreshCw, Eye, EyeOff, Download, Share2, Trophy, Check, Loader2 } from 'lucide-react';
 import { UserRole, Category, Unit, Participant, Competition, Result, Team } from '../types';
 import CertificateGenerator from './CertificateGenerator';
+import { renderCertificateToBlob } from '../utils/certificateRenderer';
 
 interface CertificatesViewProps {
   user: any;
@@ -24,6 +25,11 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
   // Filters
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Bulk action states
+  const [downloadingCompId, setDownloadingCompId] = useState<string | null>(null);
+  const [sharingCompId, setSharingCompId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -59,10 +65,171 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
     fetchData();
   }, [token]);
 
-  // Grouping logic
-  const filteredCategories = categories.filter(cat => 
-    selectedCategoryId ? cat.id === selectedCategoryId : true
-  );
+  // Extract certificate targets for a competition
+  const getCompCertificateTargets = (comp: Competition, compResults: Result[]) => {
+    const targets: { participantName: string; competitionName: string; competitionId: string; rank: number; unitName: string }[] = [];
+    
+    compResults.forEach(res => {
+      const rank = res.rank || 0;
+      if (rank < 1 || rank > 3) return;
+
+      if (res.participantId) {
+        const p = participants.find(part => part.id === res.participantId);
+        const u = p ? units.find(unit => unit.id === p.unitId) : null;
+        targets.push({
+          participantName: p ? p.fullName : 'Participant',
+          competitionName: comp.name,
+          competitionId: comp.id,
+          rank,
+          unitName: u ? u.name : ''
+        });
+      } else if (res.teamId) {
+        const t = teams.find(team => team.id === res.teamId);
+        const u = t ? units.find(unit => unit.id === t.unitId) : null;
+        const teamName = t?.teamName || 'Group Team';
+        if (t?.memberIds && t.memberIds.length > 0) {
+          const memberNames = t.memberIds.map(mid => participants.find(p => p.id === mid)?.fullName).filter(Boolean) as string[];
+          if (memberNames.length > 0) {
+            memberNames.forEach(mName => {
+              targets.push({
+                participantName: mName,
+                competitionName: comp.name,
+                competitionId: comp.id,
+                rank,
+                unitName: u ? u.name : ''
+              });
+            });
+          } else {
+            targets.push({
+              participantName: teamName,
+              competitionName: comp.name,
+              competitionId: comp.id,
+              rank,
+              unitName: u ? u.name : ''
+            });
+          }
+        } else {
+          targets.push({
+            participantName: teamName,
+            competitionName: comp.name,
+            competitionId: comp.id,
+            rank,
+            unitName: u ? u.name : ''
+          });
+        }
+      }
+    });
+
+    return targets;
+  };
+
+  const handleDownloadAll = async (comp: Competition, compResults: Result[]) => {
+    const targets = getCompCertificateTargets(comp, compResults);
+    if (targets.length === 0) {
+      alert('No certificates available to download for this competition.');
+      return;
+    }
+
+    setDownloadingCompId(comp.id);
+    setToastMessage(`Generating and downloading ${targets.length} certificate(s)...`);
+
+    try {
+      for (let i = 0; i < targets.length; i++) {
+        const target = targets[i];
+        const { blob, fileName } = await renderCertificateToBlob({
+          participantName: target.participantName,
+          competitionName: target.competitionName,
+          competitionId: target.competitionId,
+          rank: target.rank,
+          eventSettings
+        });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Stagger downloads by 350ms so browser accepts them as separate files without dropping
+        await new Promise(r => setTimeout(r, 350));
+        URL.revokeObjectURL(url);
+      }
+      setToastMessage(`Downloaded ${targets.length} certificate(s) separately!`);
+      setTimeout(() => setToastMessage(null), 4000);
+    } catch (err: any) {
+      console.error('Error downloading certificates:', err);
+      alert('Failed to download certificates: ' + err.message);
+    } finally {
+      setDownloadingCompId(null);
+    }
+  };
+
+  const handleShareAll = async (comp: Competition, compResults: Result[]) => {
+    const targets = getCompCertificateTargets(comp, compResults);
+    if (targets.length === 0) {
+      alert('No certificates available to share for this competition.');
+      return;
+    }
+
+    setSharingCompId(comp.id);
+    setToastMessage(`Preparing ${targets.length} certificate image(s)...`);
+
+    try {
+      const files: File[] = [];
+      for (const target of targets) {
+        const { blob, fileName } = await renderCertificateToBlob({
+          participantName: target.participantName,
+          competitionName: target.competitionName,
+          competitionId: target.competitionId,
+          rank: target.rank,
+          eventSettings
+        });
+        files.push(new File([blob], fileName, { type: 'image/jpeg' }));
+      }
+
+      const rankEmojis: Record<number, string> = { 1: '🥇 1st Place', 2: '🥈 2nd Place', 3: '🥉 3rd Place' };
+      const winnersSummary = targets.map(t => `${rankEmojis[t.rank] || `Rank ${t.rank}`}: ${t.participantName}${t.unitName ? ` (${t.unitName})` : ''}`).join('\n');
+      const shareTitle = `${comp.name} - Award Certificates`;
+      const shareText = `🏆 *${eventSettings?.festivalName || 'Festival'} 2026*\n📌 *Competition:* ${comp.name}\n\n*Winners:*\n${winnersSummary}\n\nCongratulations to all winners! 🎉`;
+
+      if (navigator.canShare && navigator.canShare({ files })) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          files: files
+        });
+        setToastMessage(`All ${targets.length} certificates shared successfully!`);
+        setTimeout(() => setToastMessage(null), 4000);
+      } else {
+        // Fallback for browsers/desktops without native file share
+        for (const file of files) {
+          const url = URL.createObjectURL(file);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = file.name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          await new Promise(r => setTimeout(r, 350));
+          URL.revokeObjectURL(url);
+        }
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(shareText);
+        }
+        setToastMessage(`Downloaded ${targets.length} separate certificate images & copied winner announcement text! (Direct app share is active on mobile)`);
+        setTimeout(() => setToastMessage(null), 6000);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Error sharing certificates:', err);
+        alert('Could not share certificates: ' + err.message);
+      }
+    } finally {
+      setSharingCompId(null);
+    }
+  };
 
   const getRankBadge = (rank: number) => {
     switch (rank) {
@@ -180,7 +347,49 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
 
                     return (
                       <div key={comp.id} className="p-6">
-                        <h3 className="font-bold text-slate-700 text-sm mb-4">{comp.name}</h3>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
+                              <Trophy className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-slate-800 text-sm leading-tight">{comp.name}</h3>
+                              <p className="text-[11px] text-slate-400 font-medium">
+                                {compResults.length} announced position(s) • Rank 1, 2 & 3
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <button 
+                              onClick={() => handleDownloadAll(comp, compResults)}
+                              disabled={downloadingCompId === comp.id || sharingCompId === comp.id}
+                              className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                              title="Download all certificates for this competition as separate images"
+                            >
+                              {downloadingCompId === comp.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                              ) : (
+                                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                              )}
+                              <span>{downloadingCompId === comp.id ? 'Downloading...' : 'Download All (Separate)'}</span>
+                            </button>
+
+                            <button 
+                              onClick={() => handleShareAll(comp, compResults)}
+                              disabled={downloadingCompId === comp.id || sharingCompId === comp.id}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                              title="Share all certificates together to WhatsApp / other apps without ZIP"
+                            >
+                              {sharingCompId === comp.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Share2 className="w-3.5 h-3.5" />
+                              )}
+                              <span>{sharingCompId === comp.id ? 'Preparing...' : 'Share All (No ZIP)'}</span>
+                            </button>
+                          </div>
+                        </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {compResults.map(res => {
@@ -288,6 +497,14 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
           onClose={() => setSelectedCertificate(null)}
           onSettingsUpdated={onSettingsUpdated}
         />
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900/95 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 text-xs font-semibold border border-slate-700/80 max-w-md animate-bounce-short">
+          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="flex-1 leading-relaxed">{toastMessage}</span>
+        </div>
       )}
 
     </div>
