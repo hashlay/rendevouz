@@ -131,11 +131,18 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2">
         {/* Header Logo & Subtitle */}
-        {eventSettings?.fillLogo ? (
-          <div className="flex justify-center items-center py-1 text-center w-full">
-            {eventSettings?.ssfLogoUrl ? (
+        {(() => {
+          const isOldLogo = eventSettings?.ssfLogoUrl && (
+            eventSettings.ssfLogoUrl.includes('base64') ||
+            eventSettings.ssfLogoUrl.includes('zenith') ||
+            eventSettings.ssfLogoUrl.includes('ssf_logo')
+          );
+          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/tabassum_logo.jpg';
+
+          return eventSettings?.fillLogo ? (
+            <div className="flex justify-center items-center py-1 text-center w-full">
               <img
-                src={eventSettings.ssfLogoUrl}
+                src={adminLogoUrl}
                 alt="Festival Logo"
                 style={{
                   height: '112px',
@@ -145,37 +152,43 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                   display: 'block',
                   margin: '0 auto',
                 }}
-                onError={(e) => (e.currentTarget.style.display = 'none')}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target.src.includes('tabassum_logo.jpg')) {
+                    target.src = '/tabassum_logo.png';
+                  } else {
+                    target.style.display = 'none';
+                  }
+                }}
               />
-            ) : (
-              <div style={{ height: '112px', width: 'auto', maxWidth: '260px', margin: '0 auto' }}>
-                <SSFLogo className="text-emerald-600" showText={false} />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex justify-center items-center gap-3 py-1">
-            {eventSettings?.ssfLogoUrl ? (
+            </div>
+          ) : (
+            <div className="flex justify-center items-center gap-3 py-1">
               <img
-                src={eventSettings.ssfLogoUrl}
+                src={adminLogoUrl}
                 alt="Festival Logo"
                 className="h-12 w-12 object-contain shrink-0 drop-shadow-xs"
-                onError={(e) => (e.currentTarget.style.display = 'none')}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target.src.includes('tabassum_logo.jpg')) {
+                    target.src = '/tabassum_logo.png';
+                  } else {
+                    target.style.display = 'none';
+                  }
+                }}
               />
-            ) : (
-              <SSFLogo className="h-12 w-12 text-emerald-600 shrink-0" showText={false} />
-            )}
-            <div className="h-8 w-px bg-slate-300" />
-            <div className="flex flex-col items-start text-left">
-              <span className="font-display font-bold text-emerald-900 text-base tracking-tight leading-none uppercase">
-                {eventSettings?.festivalName || 'ZENITH'}
-              </span>
-              <span className="text-amber-600 font-mono text-[10px] font-semibold tracking-widest mt-1 uppercase">
-                {eventSettings?.campusName || eventSettings?.sectorName || 'MEELAD SOFTWARE'}
-              </span>
+              <div className="h-8 w-px bg-slate-300" />
+              <div className="flex flex-col items-start text-left">
+                <span className="font-display font-bold text-emerald-900 text-base tracking-tight leading-none uppercase">
+                  {eventSettings?.festivalName || 'TABASSUM MEELAD FEST'}
+                </span>
+                <span className="text-amber-600 font-mono text-[10px] font-semibold tracking-widest mt-1 uppercase">
+                  {eventSettings?.campusName || eventSettings?.sectorName || 'Noorul Islam Madrasa, Jeppu'}
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         <p className="text-xs sm:text-sm text-slate-500 font-sans font-medium">
           Festival Management System • {eventSettings?.eventYear || '2026'}

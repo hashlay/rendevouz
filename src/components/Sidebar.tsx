@@ -62,51 +62,74 @@ export default function Sidebar({
     <div className="h-full flex flex-col justify-between bg-emerald-950 text-emerald-100 border-r border-emerald-900 font-sans">
       <div className="flex-1 overflow-y-auto min-h-0 sidebar-scroll">
         {/* Logo and Event Header */}
-        {eventSettings?.fillLogo ? (
-          <div className="py-3 px-3.5 border-b border-emerald-900 bg-emerald-950/60 flex justify-center items-center text-center w-full min-h-[80px]">
-            {eventSettings?.ssfLogoUrl && !logoFailed ? (
-              <img
-                src={eventSettings.ssfLogoUrl}
-                alt="SSF Logo"
-                referrerPolicy="no-referrer"
-                onError={() => setLogoFailed(true)}
-                style={{
-                  height: '72px',
-                  width: 'auto',
-                  maxWidth: '190px',
-                  objectFit: 'contain',
-                  display: 'block',
-                }}
-              />
-            ) : (
-              <div style={{ height: '72px', width: 'auto', maxWidth: '190px' }}>
-                <SSFLogo className="text-emerald-400" showText={false} />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="p-6 border-b border-emerald-900 bg-emerald-950/50 flex items-center gap-3">
-            {eventSettings?.ssfLogoUrl && !logoFailed ? (
-              <img
-                src={eventSettings.ssfLogoUrl}
-                alt="SSF Logo"
-                referrerPolicy="no-referrer"
-                onError={() => setLogoFailed(true)}
-                className="h-10 sm:h-12 w-auto max-w-[50%] object-contain shrink-0 mx-auto block drop-shadow-md"
-              />
-            ) : (
-              <SSFLogo className="h-10 sm:h-12 w-auto max-w-[50%] bg-white/10 p-2 rounded-xl text-emerald-400 shrink-0 mx-auto block" showText={false} />
-            )}
-            <div className="flex flex-col">
-              <span className="font-display font-extrabold text-amber-400 text-sm tracking-wide leading-none uppercase">
-                {eventSettings?.festivalName || 'SAHITYOTSAV'}
-              </span>
-              <span className="text-emerald-300 text-[10px] font-mono tracking-widest uppercase mt-1">
-                {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'}
-              </span>
+        {(() => {
+          const isOldLogo = eventSettings?.ssfLogoUrl && (
+            eventSettings.ssfLogoUrl.includes('base64') ||
+            eventSettings.ssfLogoUrl.includes('zenith') ||
+            eventSettings.ssfLogoUrl.includes('ssf_logo')
+          );
+          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/tabassum_logo.jpg';
+
+          return eventSettings?.fillLogo ? (
+            <div className="py-3 px-3.5 border-b border-emerald-900 bg-emerald-950/60 flex justify-center items-center text-center w-full min-h-[80px]">
+              {!logoFailed ? (
+                <img
+                  src={adminLogoUrl}
+                  alt="Festival Logo"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.includes('tabassum_logo.jpg')) {
+                      target.src = '/tabassum_logo.png';
+                    } else {
+                      setLogoFailed(true);
+                    }
+                  }}
+                  style={{
+                    height: '72px',
+                    width: 'auto',
+                    maxWidth: '190px',
+                    objectFit: 'contain',
+                    display: 'block',
+                  }}
+                />
+              ) : (
+                <div style={{ height: '72px', width: 'auto', maxWidth: '190px' }}>
+                  <SSFLogo className="text-emerald-400" showText={false} />
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="p-6 border-b border-emerald-900 bg-emerald-950/50 flex items-center gap-3">
+              {!logoFailed ? (
+                <img
+                  src={adminLogoUrl}
+                  alt="Festival Logo"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src.includes('tabassum_logo.jpg')) {
+                      target.src = '/tabassum_logo.png';
+                    } else {
+                      setLogoFailed(true);
+                    }
+                  }}
+                  className="h-10 sm:h-12 w-auto max-w-[50%] object-contain shrink-0 mx-auto block drop-shadow-md"
+                />
+              ) : (
+                <SSFLogo className="h-10 sm:h-12 w-auto max-w-[50%] bg-white/10 p-2 rounded-xl text-emerald-400 shrink-0 mx-auto block" showText={false} />
+              )}
+              <div className="flex flex-col">
+                <span className="font-display font-extrabold text-amber-400 text-sm tracking-wide leading-none uppercase">
+                  {eventSettings?.festivalName || 'TABASSUM MEELAD FEST'}
+                </span>
+                <span className="text-emerald-300 text-[10px] font-mono tracking-widest uppercase mt-1">
+                  {eventSettings?.campusName || eventSettings?.sectorName || 'Noorul Islam Madrasa, Jeppu'}
+                </span>
+              </div>
+            </div>
+          );
+        })()}
 
         {user.role === UserRole.VIEWER && (
           <div className="mx-3 mt-3 p-2.5 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-300 text-[11px] font-mono font-bold flex items-center gap-2">
