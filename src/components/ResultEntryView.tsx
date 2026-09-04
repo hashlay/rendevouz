@@ -702,7 +702,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
           </div>
 
           {/* Direct Candidate Selection Panel (Individual Events Only) */}
-          {selectedComp?.participationType === ParticipationType.INDIVIDUAL && (showDirectPicker || candidatesList.length === 0) && (
+          {selectedComp?.participationType === ParticipationType.INDIVIDUAL && showDirectPicker && (
             <div className="bg-emerald-50/40 border-b border-emerald-200/60 p-5 space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
@@ -720,15 +720,13 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
                   </p>
                 </div>
 
-                {candidatesList.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowDirectPicker(false)}
-                    className="text-xs text-slate-500 hover:text-slate-800 font-semibold px-2.5 py-1 rounded-lg hover:bg-slate-200/60 transition-colors"
-                  >
-                    Hide Picker
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowDirectPicker(false)}
+                  className="text-xs text-slate-500 hover:text-slate-800 font-semibold px-2.5 py-1 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
+                >
+                  ✕ Close Picker
+                </button>
               </div>
 
               {/* Search & Category Filter */}
@@ -979,8 +977,20 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
                   <UserPlus className="h-6 w-6 text-slate-300 mx-auto mb-2" />
                   <p className="font-semibold text-slate-600">No participants currently registered for this event.</p>
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Use the Candidate Picker above to select participants and directly enter results (1st, 2nd, 3rd place).
+                    {showDirectPicker 
+                      ? 'Use the Candidate Picker above to select participants and directly enter results (1st, 2nd, 3rd place).'
+                      : 'Click below to open the Candidate Picker and directly register participants.'}
                   </p>
+                  {!showDirectPicker && selectedComp?.participationType === ParticipationType.INDIVIDUAL && (
+                    <button
+                      type="button"
+                      onClick={() => setShowDirectPicker(true)}
+                      className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all cursor-pointer"
+                    >
+                      <UserPlus className="h-3.5 w-3.5" />
+                      <span>+ Open Candidate Picker</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
