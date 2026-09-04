@@ -119,6 +119,8 @@ export const renderCertificateToBlob = async ({
   const defaultColor = rank === 1 ? '#cc0000' : '#000000';
   const nameColor = templateConfig.nameColor ?? defaultColor;
   const compColor = templateConfig.compColor ?? defaultColor;
+  const nameAlign: 'left' | 'center' = templateConfig.nameAlign || 'left';
+  const compAlign: 'left' | 'center' = templateConfig.compAlign || 'left';
 
   // Custom text overrides if any
   const overrides = eventSettings?.certificateOverrides || {};
@@ -135,7 +137,7 @@ export const renderCertificateToBlob = async ({
     parseFontForCanvas(nameFont, nameSize, 'bold'),
     nameColor,
     true,
-    'center'
+    nameAlign
   );
 
   // Draw Competition Name
@@ -148,7 +150,7 @@ export const renderCertificateToBlob = async ({
     parseFontForCanvas(compFont, compSize, 'bold'),
     compColor,
     true,
-    'left'
+    compAlign
   );
 
   const cleanName = (customParticipantName || 'Participant').replace(/[^\w\s-]/gi, '').trim().replace(/\s+/g, '_');

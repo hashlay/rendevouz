@@ -66,6 +66,8 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
   const compColor = currentConf.compColor ?? (selectedRank === 1 ? '#cc0000' : '#000000');
   const nameFont = currentConf.nameFont || '"Montserrat", sans-serif';
   const compFont = currentConf.compFont || '"Montserrat", sans-serif';
+  const nameAlign: 'left' | 'center' = currentConf.nameAlign || 'left';
+  const compAlign: 'left' | 'center' = currentConf.compAlign || 'left';
 
   // Preview Logic
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -106,14 +108,14 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
     const centerX = img.width / 2;
     
     // Name
-    ctx.textAlign = 'center';
+    ctx.textAlign = nameAlign;
     ctx.textBaseline = 'bottom';
     ctx.fillStyle = nameColor;
     ctx.font = parseFontForCanvas(nameFont, nameSize, 'bold');
     ctx.fillText('PARTICIPANT NAME', centerX + nameX, nameY);
 
     // Competition
-    ctx.textAlign = 'left';
+    ctx.textAlign = compAlign;
     ctx.fillStyle = compColor;
     ctx.font = parseFontForCanvas(compFont, compSize, 'bold');
     ctx.fillText('COMPETITION NAME', centerX + compX, compY);
@@ -121,7 +123,7 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
   
   useEffect(() => {
     renderPreview();
-  }, [nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, nameFont, compFont, selectedRank]);
+  }, [nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, nameFont, compFont, nameAlign, compAlign, selectedRank]);
 
   // Helper to extract canvas / image X, Y coordinates from Mouse, Touch, or Pointer event
   const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
@@ -170,10 +172,16 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
 
     const centerX = imgRef.current.width / 2;
     
-    // hit test with touch-friendly generous hit area
-    const nameHit = Math.abs(imgX - (centerX + nameX)) < 350 && imgY > nameY - nameSize - 40 && imgY < nameY + 40;
+    // hit test with touch-friendly generous hit area respecting alignment
+    const nameStartX = centerX + nameX;
+    const nameHit = nameAlign === 'center'
+      ? Math.abs(imgX - nameStartX) < 350 && imgY > nameY - nameSize - 40 && imgY < nameY + 40
+      : imgX >= nameStartX - 40 && imgX <= nameStartX + 500 && imgY > nameY - nameSize - 40 && imgY < nameY + 40;
+
     const compStartX = centerX + compX;
-    const compHit = imgX >= compStartX - 30 && imgX <= compStartX + 500 && imgY > compY - compSize - 40 && imgY < compY + 40;
+    const compHit = compAlign === 'center'
+      ? Math.abs(imgX - compStartX) < 350 && imgY > compY - compSize - 40 && imgY < compY + 40
+      : imgX >= compStartX - 40 && imgX <= compStartX + 500 && imgY > compY - compSize - 40 && imgY < compY + 40;
     
     if (nameHit) {
       setDragging('name');
@@ -264,7 +272,7 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div>
           <h1 className="text-2xl font-display font-bold text-slate-900">Certificate Studio</h1>
-          <p className="text-sm text-slate-500 mt-1">Adjust coordinates, font sizes, and colors for printed certificates.</p>
+          <p className="text-sm text-slate-500 mt-1">Adjust coordinates, font sizes, colors, and text alignment for printed certificates.</p>
         </div>
         <button 
           onClick={handleSave} 
@@ -322,6 +330,33 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
                <h4 className="font-bold text-sm text-slate-700 border-b pb-2 mb-4">Participant Name Layout</h4>
                <div className="space-y-3">
                  <div>
+                   <label className="text-xs font-bold text-slate-500 mb-1.5 block">Text Alignment</label>
+                   <div className="flex gap-2">
+                     <button
+                       type="button"
+                       onClick={() => handleUpdate(selectedRank, 'nameAlign', 'left')}
+                       className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
+                         nameAlign === 'left'
+                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                           : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                       }`}
+                     >
+                       Left
+                     </button>
+                     <button
+                       type="button"
+                       onClick={() => handleUpdate(selectedRank, 'nameAlign', 'center')}
+                       className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
+                         nameAlign === 'center'
+                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                           : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                       }`}
+                     >
+                       Center
+                     </button>
+                   </div>
+                 </div>
+                 <div>
                    <label className="text-xs font-bold text-slate-500 flex justify-between">X Offset (from center) <span>{nameX}</span></label>
                    <input type="range" min="-400" max="400" value={nameX} onChange={e => handleUpdate(selectedRank, 'nameX', Number(e.target.value))} className="w-full accent-emerald-500" />
                  </div>
@@ -353,6 +388,33 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
              <div>
                <h4 className="font-bold text-sm text-slate-700 border-b pb-2 mb-4">Competition Name Layout</h4>
                <div className="space-y-3">
+                 <div>
+                   <label className="text-xs font-bold text-slate-500 mb-1.5 block">Text Alignment</label>
+                   <div className="flex gap-2">
+                     <button
+                       type="button"
+                       onClick={() => handleUpdate(selectedRank, 'compAlign', 'left')}
+                       className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
+                         compAlign === 'left'
+                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                           : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                       }`}
+                     >
+                       Left
+                     </button>
+                     <button
+                       type="button"
+                       onClick={() => handleUpdate(selectedRank, 'compAlign', 'center')}
+                       className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
+                         compAlign === 'center'
+                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                           : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                       }`}
+                     >
+                       Center
+                     </button>
+                   </div>
+                 </div>
                  <div>
                    <label className="text-xs font-bold text-slate-500 flex justify-between">X Offset (from center) <span>{compX}</span></label>
                    <input type="range" min="-400" max="400" value={compX} onChange={e => handleUpdate(selectedRank, 'compX', Number(e.target.value))} className="w-full accent-emerald-500" />

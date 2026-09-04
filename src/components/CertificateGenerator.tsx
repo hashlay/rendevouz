@@ -93,6 +93,8 @@ export default function CertificateGenerator({
   
   const [nameColor, setNameColor] = useState(templateConfig.nameColor ?? defaultColor);
   const [compColor, setCompColor] = useState(templateConfig.compColor ?? defaultColor);
+  const [nameAlign, setNameAlign] = useState<'left' | 'center'>(templateConfig.nameAlign || 'left');
+  const [compAlign, setCompAlign] = useState<'left' | 'center'>(templateConfig.compAlign || 'left');
   
   const [savingTemplate, setSavingTemplate] = useState(false);
 
@@ -159,7 +161,7 @@ export default function CertificateGenerator({
     // Center text horizontally
     const centerX = img.width / 2;
 
-    // Draw Name (Centered)
+    // Draw Name
     const displayName = pName || 'PARTICIPANT NAME';
     fillMultiLineCanvasText(
       ctx,
@@ -170,10 +172,10 @@ export default function CertificateGenerator({
       parseFontForCanvas(nameFont, nameSize, 'bold'),
       nameColor,
       true,
-      'center'
+      nameAlign
     );
 
-    // Draw Competition (Left-aligned starting from X coordinate)
+    // Draw Competition
     const displayComp = overrideCompName || customCompName || competitionName || 'COMPETITION';
     fillMultiLineCanvasText(
       ctx,
@@ -184,7 +186,7 @@ export default function CertificateGenerator({
       parseFontForCanvas(compFont, compSize, 'bold'),
       compColor,
       true,
-      'left'
+      compAlign
     );
   };
 
@@ -197,7 +199,7 @@ export default function CertificateGenerator({
       if (!ctx) return;
       drawCertificate(ctx, templateImgRef.current, currentDisplayName);
     }
-  }, [imageLoaded, nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, nameFont, compFont, currentDisplayName, customCompName, currentIndex, competitionName]);
+  }, [imageLoaded, nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, nameFont, compFont, nameAlign, compAlign, currentDisplayName, customCompName, currentIndex, competitionName]);
 
   const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -254,9 +256,15 @@ export default function CertificateGenerator({
     }
 
     const centerX = templateImgRef.current.width / 2;
-    const nameHit = Math.abs(imgX - (centerX + nameX)) < 350 && imgY > nameY - nameSize - 40 && imgY < nameY + 40;
+    const nameStartX = centerX + nameX;
+    const nameHit = nameAlign === 'center'
+      ? Math.abs(imgX - nameStartX) < 350 && imgY > nameY - nameSize - 40 && imgY < nameY + 40
+      : imgX >= nameStartX - 40 && imgX <= nameStartX + 500 && imgY > nameY - nameSize - 40 && imgY < nameY + 40;
+
     const compStartX = centerX + compX;
-    const compHit = imgX >= compStartX - 30 && imgX <= compStartX + 500 && imgY > compY - compSize - 40 && imgY < compY + 40;
+    const compHit = compAlign === 'center'
+      ? Math.abs(imgX - compStartX) < 350 && imgY > compY - compSize - 40 && imgY < compY + 40
+      : imgX >= compStartX - 40 && imgX <= compStartX + 500 && imgY > compY - compSize - 40 && imgY < compY + 40;
 
     if (nameHit) {
       setDragging('name');
@@ -352,6 +360,7 @@ export default function CertificateGenerator({
 
       const configData = { 
         nameX, nameY, compX, compY, nameSize, compSize, nameColor, compColor, nameFont, compFont,
+        nameAlign, compAlign,
         _savedBgImageUrl: getBgHash(resolvedBg)
       };
       const newConfig = {
@@ -532,6 +541,34 @@ export default function CertificateGenerator({
               <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Participant Name Settings</h3>
               
               <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Text Alignment</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNameAlign('left')}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
+                      nameAlign === 'left'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    Left
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNameAlign('center')}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
+                      nameAlign === 'center'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    Center
+                  </button>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Edit / Shorten Display Name (Enter key for 2 lines)</label>
                 <textarea
                   rows={2}
@@ -603,6 +640,34 @@ export default function CertificateGenerator({
             <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
               <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Competition Name Settings</h3>
               
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Text Alignment</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCompAlign('left')}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
+                      compAlign === 'left'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    Left
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCompAlign('center')}
+                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border transition-all ${
+                      compAlign === 'center'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    Center
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Edit / Shorten Competition Name (Enter key for 2 lines)</label>
                 <textarea
