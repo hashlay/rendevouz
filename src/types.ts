@@ -278,6 +278,7 @@ export interface EventSettings {
   headerBannerUrl?: string;
   
   // Overrides & configurations
+  chestNumberConfig?: any;
   chestNumberOverrides?: any;
   posterOverrides?: any;
   certificateOverrides?: any;

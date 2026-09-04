@@ -195,10 +195,10 @@ const ChestCardSvg: React.FC<{
             style={{
               width: '100%',
               height: '100%',
-              backgroundColor: '#ffffff',
-              padding: '4px',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
+              backgroundColor: cardConf.qrTransparentBg ? 'transparent' : (cardConf.qrBgColor || '#ffffff'),
+              padding: cardConf.qrTransparentBg ? '0px' : '4px',
+              borderRadius: cardConf.qrTransparentBg ? '0px' : '6px',
+              border: cardConf.qrTransparentBg ? 'none' : '1px solid #cbd5e1',
               boxSizing: 'border-box',
               display: 'flex',
               alignItems: 'center',
@@ -207,8 +207,11 @@ const ChestCardSvg: React.FC<{
           >
             <QRCodeSVG
               value={qrUrl}
-              size={qrSize - 8}
+              size={cardConf.qrTransparentBg ? qrSize : Math.max(16, qrSize - 8)}
               level="M"
+              boostLevel={true}
+              bgColor={cardConf.qrTransparentBg ? 'transparent' : (cardConf.qrBgColor || '#ffffff')}
+              fgColor={cardConf.qrColor || '#000000'}
               style={{ width: '100%', height: '100%' }}
             />
           </div>
@@ -232,7 +235,8 @@ export default function ChestNumberPrintingView({
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedUnit, setSelectedUnit] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [gridPerSheet, setGridPerSheet] = useState<number>(6); // 4, 6, 8, 9, 12 per A4 sheet
+  const [gridPerSheet, setGridPerSheet] = useState<number>(6); // 4, 6, 8, 9, 12, 15, 16, 18, 20, 24 per sheet
+  const [paperSize, setPaperSize] = useState<'a4' | 'a3'>('a4'); // 'a4' (210x297mm) or 'a3' (297x420mm)
 
   // Individual Chest Number Customization Modal State
   const [editingCn, setEditingCn] = useState<any | null>(null);
@@ -298,6 +302,9 @@ export default function ChestNumberPrintingView({
     qrX: 660,
     qrY: 380,
     qrSize: 100, // px
+    qrColor: '#000000',
+    qrBgColor: '#ffffff',
+    qrTransparentBg: false,
 
     // Category Color Mapping
     categoryColors: {
@@ -619,21 +626,65 @@ export default function ChestNumberPrintingView({
       addRegion('unit', unitX - 5, unitY - (cardConf.unitSize || 26), maxUnitW + 10, (unitLines.length * unitGap) + 10);
     }
 
-    // QR Code Box Placeholder / Icon
+    // QR Code Box / Icon
     if (cardConf.showQr !== false) {
       const qSize = cardConf.qrSize || 100;
       const qX = cardConf.qrX ?? 660;
       const qY = cardConf.qrY ?? 380;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(qX, qY, qSize, qSize);
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(qX, qY, qSize, qSize);
+      const isTransparent = cardConf.qrTransparentBg === true;
+      const qrColor = cardConf.qrColor || '#000000';
+      const qrBg = cardConf.qrBgColor || '#ffffff';
 
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 12px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('QR CODE', qX + qSize / 2, qY + qSize / 2 + 4);
+      if (!isTransparent) {
+        ctx.fillStyle = qrBg;
+        ctx.fillRect(qX, qY, qSize, qSize);
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(qX, qY, qSize, qSize);
+      }
+
+      // Draw stylized realistic QR icon with 3 corner finder patterns in qrColor
+      const p = Math.max(3, Math.round(qSize * 0.06));
+      const innerSize = qSize - p * 2;
+      const finderSize = Math.max(10, Math.round(innerSize * 0.28));
+      const borderW = Math.max(2, Math.round(finderSize * 0.22));
+
+      const drawFinder = (fx: number, fy: number) => {
+        // Outer square
+        ctx.fillStyle = qrColor;
+        ctx.fillRect(fx, fy, finderSize, finderSize);
+        // Inner cutout
+        ctx.fillStyle = isTransparent ? (cardConf.cardBgColor || '#ffffff') : qrBg;
+        ctx.fillRect(fx + borderW, fy + borderW, finderSize - borderW * 2, finderSize - borderW * 2);
+        // Center core
+        ctx.fillStyle = qrColor;
+        const coreSize = finderSize - borderW * 4;
+        if (coreSize > 0) {
+          ctx.fillRect(fx + borderW * 2, fy + borderW * 2, coreSize, coreSize);
+        }
+      };
+
+      // 3 Finders (top-left, top-right, bottom-left)
+      drawFinder(qX + p, qY + p);
+      drawFinder(qX + qSize - p - finderSize, qY + p);
+      drawFinder(qX + p, qY + qSize - p - finderSize);
+
+      // Stylized module dots
+      ctx.fillStyle = qrColor;
+      const dotStep = Math.max(3, Math.round(innerSize / 8));
+      for (let x = qX + p; x <= qX + qSize - p - dotStep; x += dotStep) {
+        for (let y = qY + p; y <= qY + qSize - p - dotStep; y += dotStep) {
+          // Avoid the 3 finders
+          const inTL = (x < qX + p + finderSize + 2 && y < qY + p + finderSize + 2);
+          const inTR = (x > qX + qSize - p - finderSize - 2 && y < qY + p + finderSize + 2);
+          const inBL = (x < qX + p + finderSize + 2 && y > qY + qSize - p - finderSize - 2);
+          if (inTL || inTR || inBL) continue;
+          if (Math.sin(x * 12.3 + y * 7.7) > 0.1) {
+            ctx.fillRect(x, y, dotStep * 0.75, dotStep * 0.75);
+          }
+        }
+      }
+
       addRegion('qr', qX, qY, qSize, qSize);
     }
 
@@ -822,6 +873,28 @@ export default function ChestNumberPrintingView({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Paper Size Switcher (A4 vs A3) */}
+          <div className="bg-slate-200 p-1 rounded-xl flex text-xs font-semibold" title="Select Paper Sheet Size">
+            <button
+              onClick={() => {
+                setPaperSize('a4');
+                if (gridPerSheet > 12) setGridPerSheet(6);
+              }}
+              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${paperSize === 'a4' ? 'bg-white text-emerald-800 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              A4 Sheet
+            </button>
+            <button
+              onClick={() => {
+                setPaperSize('a3');
+                if (gridPerSheet === 6) setGridPerSheet(12);
+              }}
+              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${paperSize === 'a3' ? 'bg-white text-emerald-800 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              A3 Sheet (High Capacity)
+            </button>
+          </div>
+
           <div className="bg-slate-200 p-1 rounded-xl flex text-xs font-semibold">
             <button
               onClick={() => setActiveTab('print')}
@@ -845,7 +918,7 @@ export default function ChestNumberPrintingView({
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition disabled:opacity-50 shadow-md shadow-emerald-600/20 cursor-pointer"
           >
             <Printer className="h-4 w-4" />
-            Print A4 Sheets ({selectedChestNumbers.length})
+            Print {paperSize.toUpperCase()} Sheets ({selectedChestNumbers.length})
           </button>
         </div>
       </div>
@@ -861,7 +934,7 @@ export default function ChestNumberPrintingView({
         <div className="space-y-6 print:space-y-0">
           {/* Controls & Filters Bar */}
           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4 print:hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -898,19 +971,61 @@ export default function ChestNumberPrintingView({
                 ))}
               </select>
 
-              {/* Cards Per A4 Sheet Selector */}
+              {/* Sheet Size Selector */}
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs font-bold text-slate-600 whitespace-nowrap">Sheet:</label>
+                <div className="flex-1 flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaperSize('a4');
+                      if (gridPerSheet > 12) setGridPerSheet(6);
+                    }}
+                    className={`flex-1 py-1.5 rounded-lg text-center transition cursor-pointer ${paperSize === 'a4' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    A4
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaperSize('a3');
+                      if (gridPerSheet === 6) setGridPerSheet(12);
+                    }}
+                    className={`flex-1 py-1.5 rounded-lg text-center transition cursor-pointer ${paperSize === 'a3' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    A3
+                  </button>
+                </div>
+              </div>
+
+              {/* Cards Per Sheet Selector (Tailored to A4 or A3) */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-slate-600 whitespace-nowrap">Grid/Page:</label>
+                <label className="text-xs font-bold text-slate-600 whitespace-nowrap">Grid:</label>
                 <select
                   value={gridPerSheet}
                   onChange={(e) => setGridPerSheet(Number(e.target.value))}
                   className="w-full px-3 py-2 bg-amber-50 border border-amber-200 font-bold text-amber-900 rounded-xl text-sm focus:outline-none focus:border-amber-500"
                 >
-                  <option value={4}>4 per A4 sheet (2x2 Grid)</option>
-                  <option value={6}>6 per A4 sheet (2x3 Grid)</option>
-                  <option value={8}>8 per A4 sheet (2x4 Grid)</option>
-                  <option value={9}>9 per A4 sheet (3x3 Grid)</option>
-                  <option value={12}>12 per A4 sheet (3x4 Grid)</option>
+                  {paperSize === 'a4' ? (
+                    <>
+                      <option value={4}>4 per A4 sheet (2×2 Grid)</option>
+                      <option value={6}>6 per A4 sheet (2×3 Grid) — Default</option>
+                      <option value={8}>8 per A4 sheet (2×4 Grid)</option>
+                      <option value={9}>9 per A4 sheet (3×3 Grid)</option>
+                      <option value={12}>12 per A4 sheet (3×4 Grid)</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value={6}>6 per A3 sheet (2×3 Grid — Extra Large)</option>
+                      <option value={8}>8 per A3 sheet (2×4 Grid — Large)</option>
+                      <option value={12}>12 per A3 sheet (3×4 Grid — Standard)</option>
+                      <option value={15}>15 per A3 sheet (3×5 Grid)</option>
+                      <option value={16}>16 per A3 sheet (4×4 Grid)</option>
+                      <option value={18}>18 per A3 sheet (3×6 Grid)</option>
+                      <option value={20}>20 per A3 sheet (4×5 Grid)</option>
+                      <option value={24}>24 per A3 sheet (4×6 Grid — Max Density)</option>
+                    </>
+                  )}
                 </select>
               </div>
             </div>
@@ -984,7 +1099,7 @@ export default function ChestNumberPrintingView({
             </div>
           </div>
 
-          {/* Printable A4 Sheets Render Grid */}
+          {/* Printable Sheets Render Grid */}
           {selectedChestNumbers.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400 print:hidden">
               <Hash className="h-12 w-12 mx-auto text-slate-300 mb-3" />
@@ -993,35 +1108,35 @@ export default function ChestNumberPrintingView({
             </div>
           ) : (
             <div className="chest-print-container">
-              {/* High-DPI Print Styles */}
+              {/* High-DPI Print Styles for A4 / A3 */}
               <style>{`
                 @media print {
                   @page {
-                    size: 210mm 297mm;
+                    size: ${paperSize === 'a3' ? '297mm 420mm' : '210mm 297mm'};
                     margin: 0;
                   }
                   html, body {
                     margin: 0 !important;
                     padding: 0 !important;
-                    width: 210mm !important;
-                    height: 297mm !important;
+                    width: ${paperSize === 'a3' ? '297mm' : '210mm'} !important;
+                    height: ${paperSize === 'a3' ? '420mm' : '297mm'} !important;
                     background: white !important;
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                   }
                   .chest-print-container {
-                    width: 210mm !important;
+                    width: ${paperSize === 'a3' ? '297mm' : '210mm'} !important;
                     margin: 0 !important;
                     padding: 0 !important;
                   }
-                  .a4-page {
+                  .sheet-page, .a4-page {
                     margin: 0 !important;
-                    padding: 4mm 6mm !important;
+                    padding: ${paperSize === 'a3' ? '6mm 8mm' : '4mm 6mm'} !important;
                     box-shadow: none !important;
                     border: none !important;
-                    width: 210mm !important;
-                    height: 297mm !important;
-                    max-height: 297mm !important;
+                    width: ${paperSize === 'a3' ? '297mm' : '210mm'} !important;
+                    height: ${paperSize === 'a3' ? '420mm' : '297mm'} !important;
+                    max-height: ${paperSize === 'a3' ? '420mm' : '297mm'} !important;
                     page-break-after: always !important;
                     break-after: page !important;
                     page-break-inside: avoid !important;
@@ -1042,23 +1157,34 @@ export default function ChestNumberPrintingView({
                 }
               `}</style>
 
-              {/* Render into A4 Pages */}
+              {/* Render into Sheets (A4 or A3) */}
               {Array.from({ length: Math.ceil(selectedChestNumbers.length / gridPerSheet) }).map((_, pageIdx) => {
                 const pageItems = selectedChestNumbers.slice(pageIdx * gridPerSheet, (pageIdx + 1) * gridPerSheet);
 
                 let gridClass = 'grid-cols-2 grid-rows-3 gap-4'; // 6 default
                 if (gridPerSheet === 4) gridClass = 'grid-cols-2 grid-rows-2 gap-4';
-                if (gridPerSheet === 8) gridClass = 'grid-cols-2 grid-rows-4 gap-2';
-                if (gridPerSheet === 9) gridClass = 'grid-cols-3 grid-rows-3 gap-3';
-                if (gridPerSheet === 12) gridClass = 'grid-cols-3 grid-rows-4 gap-1.5';
+                else if (gridPerSheet === 6) gridClass = paperSize === 'a3' ? 'grid-cols-2 grid-rows-3 gap-6' : 'grid-cols-2 grid-rows-3 gap-4';
+                else if (gridPerSheet === 8) gridClass = paperSize === 'a3' ? 'grid-cols-2 grid-rows-4 gap-4' : 'grid-cols-2 grid-rows-4 gap-2';
+                else if (gridPerSheet === 9) gridClass = 'grid-cols-3 grid-rows-3 gap-3';
+                else if (gridPerSheet === 12) gridClass = paperSize === 'a3' ? 'grid-cols-3 grid-rows-4 gap-4' : 'grid-cols-3 grid-rows-4 gap-1.5';
+                else if (gridPerSheet === 15) gridClass = 'grid-cols-3 grid-rows-5 gap-3';
+                else if (gridPerSheet === 16) gridClass = 'grid-cols-4 grid-rows-4 gap-3';
+                else if (gridPerSheet === 18) gridClass = 'grid-cols-3 grid-rows-6 gap-2';
+                else if (gridPerSheet === 20) gridClass = 'grid-cols-4 grid-rows-5 gap-2';
+                else if (gridPerSheet === 24) gridClass = 'grid-cols-4 grid-rows-6 gap-1.5';
+
+                const pW = paperSize === 'a3' ? 297 : 210;
+                const pH = paperSize === 'a3' ? 420 : 297;
 
                 return (
                   <div
                     key={pageIdx}
-                    className={`a4-page bg-white p-6 mb-8 border border-slate-300 rounded-2xl shadow-lg grid ${gridClass} place-items-center print:p-2 print:m-0 print:border-none print:shadow-none print:w-[210mm] print:h-[297mm] print:page-break-after`}
+                    className={`sheet-page a4-page bg-white p-6 mb-8 border border-slate-300 rounded-2xl shadow-lg grid ${gridClass} place-items-center print:p-2 print:m-0 print:border-none print:shadow-none print:page-break-after`}
                     style={{
-                      minHeight: '297mm',
-                      width: '210mm',
+                      minHeight: `${pH}mm`,
+                      maxHeight: `${pH}mm`,
+                      width: `${pW}mm`,
+                      maxWidth: '100%',
                       margin: '0 auto 2rem auto',
                       boxSizing: 'border-box'
                     }}
@@ -1353,6 +1479,67 @@ export default function ChestNumberPrintingView({
                 </div>
               </div>
 
+              {/* QR Code Color & Background Customization */}
+              <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-200/70 space-y-2.5">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-slate-700">QR Code Color</label>
+                    <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-100/70 px-2 py-0.5 rounded-full">Scannable</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={config.qrColor || '#000000'}
+                      onChange={(e) => setConfig({ ...config, qrColor: e.target.value })}
+                      className="h-8 w-12 rounded cursor-pointer border border-slate-300"
+                    />
+                    <input
+                      type="text"
+                      value={config.qrColor || '#000000'}
+                      onChange={(e) => setConfig({ ...config, qrColor: e.target.value })}
+                      placeholder="#000000"
+                      className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config.qrTransparentBg === true}
+                      onChange={(e) => setConfig({ ...config, qrTransparentBg: e.target.checked })}
+                      className="h-4 w-4 rounded accent-emerald-600"
+                    />
+                    <span>Remove QR Code Background (Transparent)</span>
+                  </label>
+                  <p className="text-[10px] text-slate-500 mt-0.5 ml-6">
+                    Removes the white background box so your template artwork shows through seamlessly.
+                  </p>
+                </div>
+
+                {config.qrTransparentBg !== true && (
+                  <div className="pt-2 border-t border-emerald-200/50 space-y-1">
+                    <label className="block text-[11px] font-semibold text-slate-700">QR Background Box Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={config.qrBgColor || '#ffffff'}
+                        onChange={(e) => setConfig({ ...config, qrBgColor: e.target.value })}
+                        className="h-7 w-10 rounded cursor-pointer border border-slate-300"
+                      />
+                      <input
+                        type="text"
+                        value={config.qrBgColor || '#ffffff'}
+                        onChange={(e) => setConfig({ ...config, qrBgColor: e.target.value })}
+                        placeholder="#ffffff"
+                        className="flex-1 px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="pt-3 border-t space-y-3">
                 <label className="block font-bold text-slate-700">Typography & Font Styles</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -1422,7 +1609,7 @@ export default function ChestNumberPrintingView({
                   </div>
                   <div>
                     <input
-                      type="range" min="24" max="140"
+                      type="range" min="24" max="500"
                       value={config.chestSize || 84}
                       onChange={(e) => setConfig({ ...config, chestSize: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
@@ -1452,7 +1639,7 @@ export default function ChestNumberPrintingView({
                   </div>
                   <div>
                     <input
-                      type="range" min="14" max="80"
+                      type="range" min="14" max="500"
                       value={config.nameSize || 36}
                       onChange={(e) => setConfig({ ...config, nameSize: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
@@ -1482,7 +1669,7 @@ export default function ChestNumberPrintingView({
                   </div>
                   <div>
                     <input
-                      type="range" min="12" max="60"
+                      type="range" min="12" max="200"
                       value={config.catSize || 24}
                       onChange={(e) => setConfig({ ...config, catSize: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
@@ -1512,7 +1699,7 @@ export default function ChestNumberPrintingView({
                   </div>
                   <div>
                     <input
-                      type="range" min="12" max="60"
+                      type="range" min="12" max="200"
                       value={config.unitSize || 26}
                       onChange={(e) => setConfig({ ...config, unitSize: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
@@ -1542,11 +1729,34 @@ export default function ChestNumberPrintingView({
                   </div>
                   <div>
                     <input
-                      type="range" min="40" max="360"
+                      type="range" min="40" max="500"
                       value={config.qrSize || 100}
                       onChange={(e) => setConfig({ ...config, qrSize: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
                     />
+                  </div>
+
+                  {/* Inline quick toggle & color */}
+                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                    <label className="flex items-center gap-1.5 font-semibold text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={config.qrTransparentBg === true}
+                        onChange={(e) => setConfig({ ...config, qrTransparentBg: e.target.checked })}
+                        className="h-3.5 w-3.5 rounded accent-emerald-600"
+                      />
+                      <span>Transparent QR Background</span>
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-500 font-medium">Color:</span>
+                      <input
+                        type="color"
+                        value={config.qrColor || '#000000'}
+                        onChange={(e) => setConfig({ ...config, qrColor: e.target.value })}
+                        className="h-6 w-8 rounded cursor-pointer border border-slate-300"
+                        title="Change QR Color"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1686,7 +1896,7 @@ export default function ChestNumberPrintingView({
                       <button
                         type="button"
                         onClick={() => {
-                          setIndividualConfig({ 
+                          setIndividualConfig({
                             ...config,
                             participantNameOverride: individualConfig.participantNameOverride,
                             unitNameOverride: individualConfig.unitNameOverride,
@@ -1904,7 +2114,7 @@ export default function ChestNumberPrintingView({
 
                   {/* QR Code Controls */}
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
-                    <span className="font-bold text-slate-800 block">QR Code Position & Size</span>
+                    <span className="font-bold text-slate-800 block">QR Code Position & Styling</span>
                     <div>
                       <div className="flex justify-between font-semibold text-slate-600 mb-1">
                         <span>QR Code X</span>
@@ -1941,11 +2151,64 @@ export default function ChestNumberPrintingView({
                       <input
                         type="range"
                         min="36"
-                        max="160"
+                        max="240"
                         value={individualConfig.qrSize ?? 100}
                         onChange={(e) => setIndividualConfig({ ...individualConfig, qrSize: Number(e.target.value) })}
                         className="w-full accent-emerald-600"
                       />
+                    </div>
+
+                    {/* QR Code Color Selection */}
+                    <div className="pt-2 border-t border-slate-200 space-y-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">QR Code Color</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={individualConfig.qrColor || config.qrColor || '#000000'}
+                            onChange={(e) => setIndividualConfig({ ...individualConfig, qrColor: e.target.value })}
+                            className="h-7 w-10 rounded cursor-pointer border border-slate-300"
+                          />
+                          <input
+                            type="text"
+                            value={individualConfig.qrColor || config.qrColor || '#000000'}
+                            onChange={(e) => setIndividualConfig({ ...individualConfig, qrColor: e.target.value })}
+                            placeholder="#000000"
+                            className="flex-1 px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      <label className="flex items-center gap-2 font-bold text-slate-800 cursor-pointer pt-1">
+                        <input
+                          type="checkbox"
+                          checked={individualConfig.qrTransparentBg === true}
+                          onChange={(e) => setIndividualConfig({ ...individualConfig, qrTransparentBg: e.target.checked })}
+                          className="h-4 w-4 rounded accent-emerald-600"
+                        />
+                        <span>Remove QR Code Background (Transparent)</span>
+                      </label>
+
+                      {individualConfig.qrTransparentBg !== true && (
+                        <div className="pt-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">QR Background Box Color</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={individualConfig.qrBgColor || config.qrBgColor || '#ffffff'}
+                              onChange={(e) => setIndividualConfig({ ...individualConfig, qrBgColor: e.target.value })}
+                              className="h-7 w-10 rounded cursor-pointer border border-slate-300"
+                            />
+                            <input
+                              type="text"
+                              value={individualConfig.qrBgColor || config.qrBgColor || '#ffffff'}
+                              onChange={(e) => setIndividualConfig({ ...individualConfig, qrBgColor: e.target.value })}
+                              placeholder="#ffffff"
+                              className="flex-1 px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-mono"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -2003,15 +2266,15 @@ export default function ChestNumberPrintingView({
             margin: 0 !important;
             padding: 0 !important;
           }
-          .a4-page {
+          .sheet-page, .a4-page {
             box-shadow: none !important;
             border: none !important;
             margin: 0 auto !important;
-            padding: 0.5cm !important;
+            padding: ${paperSize === 'a3' ? '0.6cm' : '0.4cm'} !important;
             page-break-after: always !important;
             page-break-inside: avoid !important;
-            height: 297mm !important;
-            max-height: 297mm !important;
+            height: ${paperSize === 'a3' ? '420mm' : '297mm'} !important;
+            max-height: ${paperSize === 'a3' ? '420mm' : '297mm'} !important;
             overflow: hidden !important;
           }
         }
