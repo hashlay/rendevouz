@@ -204,7 +204,14 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
 
       const formatCertRankLine = (emoji: string, rankStr: string, list: typeof targets) => {
         if (list.length === 0) return '';
-        return list.map(t => `${emoji} ${rankStr} — ${t.participantName}${t.unitName ? `    Team ${t.unitName}` : ''}`).join('\n');
+        return list
+          .map(t => {
+            const rawUnit = (t.unitName || '').trim();
+            const cleanUnit = rawUnit.replace(/^team\s*[:\-]?\s*/i, '').trim();
+            const teamLabel = cleanUnit ? `    Team ${cleanUnit}` : '';
+            return `${emoji} ${rankStr} — ${t.participantName}${teamLabel}`;
+          })
+          .join('\n');
       };
 
       const winnersSummary = [
