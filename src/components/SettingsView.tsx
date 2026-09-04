@@ -276,7 +276,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       const data = await sRes.json();
       setSectorName(data.sectorName || '');
       setEventTitle(data.eventTitle || '');
-      setFestivalName(data.festivalName || 'At-Tabassum');
+      setFestivalName(data.festivalName || 'tabassum');
       setCampusName(data.campusName || data.sectorName || 'Noorul Islam Madrasa, Jeppu');
       setSsfLogoUrl(data.ssfLogoUrl || '');
       setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '');
@@ -740,8 +740,8 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                   type="button"
                   onClick={() => setEntityMode(m.key as any)}
                   className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${entityMode === m.key
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                      : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-300'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                    : 'bg-white text-slate-800 border-slate-200 hover:border-emerald-300'
                     }`}
                 >
                   <div className="font-extrabold text-xs">{m.label}</div>
@@ -1007,8 +1007,8 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
             onClick={handleSaveCategoryOrder}
             disabled={savingCatOrder}
             className={`px-4 py-2.5 rounded-xl text-xs font-mono font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer ${hasReorderedCats
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400 animate-pulse'
-                : 'bg-purple-600 hover:bg-purple-700 text-white'
+              ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400 animate-pulse'
+              : 'bg-purple-600 hover:bg-purple-700 text-white'
               }`}
           >
             <Save className="w-4 h-4" />

@@ -68,7 +68,7 @@ export default function Sidebar({
             eventSettings.ssfLogoUrl.includes('zenith') ||
             eventSettings.ssfLogoUrl.includes('ssf_logo')
           );
-          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/At-Tabassum_logo.jpg';
+          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/tabassum_logo.jpg';
 
           return eventSettings?.fillLogo ? (
             <div className="py-3 px-3.5 border-b border-emerald-900 bg-emerald-950/60 flex justify-center items-center text-center w-full min-h-[80px]">
@@ -79,8 +79,8 @@ export default function Sidebar({
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     const target = e.currentTarget;
-                    if (target.src.includes('At-Tabassum_logo.jpg')) {
-                      target.src = '/At-Tabassum_logo.png';
+                    if (target.src.includes('tabassum_logo.jpg')) {
+                      target.src = '/tabassum_logo.png';
                     } else {
                       setLogoFailed(true);
                     }
@@ -108,8 +108,8 @@ export default function Sidebar({
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     const target = e.currentTarget;
-                    if (target.src.includes('At-Tabassum_logo.jpg')) {
-                      target.src = '/At-Tabassum_logo.png';
+                    if (target.src.includes('tabassum_logo.jpg')) {
+                      target.src = '/tabassum_logo.png';
                     } else {
                       setLogoFailed(true);
                     }
@@ -121,7 +121,7 @@ export default function Sidebar({
               )}
               <div className="flex flex-col">
                 <span className="font-display font-extrabold text-amber-400 text-sm tracking-wide leading-none uppercase">
-                  {eventSettings?.festivalName || 'At-Tabassum MEELAD FEST'}
+                  {eventSettings?.festivalName || 'tabassum MEELAD FEST'}
                 </span>
                 <span className="text-emerald-300 text-[10px] font-mono tracking-widest uppercase mt-1">
                   {eventSettings?.campusName || eventSettings?.sectorName || 'Noorul Islam Madrasa, Jeppu'}

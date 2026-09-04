@@ -77,7 +77,7 @@ Instead of storing the entire festival in one document, each section is stored a
      ```
      mongodb+srv://<username>:<password>@cluster0.xyz.mongodb.net/<NEW_FESTIVAL_NAME_2026>?retryWrites=true&w=majority
      ```
-   - **Crucial**: Replace `<NEW_FESTIVAL_NAME_2026>` with your new festival identifier (e.g., `At-Tabassum_2026` or `rendezvous_2026`). The server automatically parses this database name from the URL path!
+   - **Crucial**: Replace `<NEW_FESTIVAL_NAME_2026>` with your new festival identifier (e.g., `tabassum_2026` or `rendezvous_2026`). The server automatically parses this database name from the URL path!
 
 2. **Starting Fresh vs Migrating Existing Data**:
    - **Option A (Fresh Festival)**:

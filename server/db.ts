@@ -186,14 +186,14 @@ function ensureDbExists() {
       if (!db.videoHighlights) db.videoHighlights = [];
       if (!db.eventSettings) db.eventSettings = {} as any;
       if (!db.eventSettings.eventTitle) db.eventSettings.eventTitle = 'A SMILE THAT BRINGS HEARTS TOGETHER';
-      if (!db.eventSettings.festivalName) db.eventSettings.festivalName = 'At-Tabassum';
+      if (!db.eventSettings.festivalName) db.eventSettings.festivalName = 'tabassum';
       if (!db.eventSettings.campusName) db.eventSettings.campusName = 'Noorul Islam Madrasa, Jeppu';
       if (!db.eventSettings.sectorName) db.eventSettings.sectorName = 'Noorul Islam Madrasa, Jeppu';
       if (!db.eventSettings.eventYear) db.eventSettings.eventYear = '2026';
       if (!db.eventSettings.venue) db.eventSettings.venue = 'Jeppu';
       if (!db.eventSettings.contactInfo) db.eventSettings.contactInfo = 'zenith.theorganizer@gmail.com';
-      if (!db.eventSettings.ssfLogoUrl || db.eventSettings.ssfLogoUrl.includes('base64') || db.eventSettings.ssfLogoUrl.includes('zenith')) db.eventSettings.ssfLogoUrl = '/At-Tabassum_logo.jpg';
-      if (!db.eventSettings.sahityotsavLogoUrl || db.eventSettings.sahityotsavLogoUrl.includes('base64') || db.eventSettings.sahityotsavLogoUrl.includes('zenith')) db.eventSettings.sahityotsavLogoUrl = '/At-Tabassum_logo.jpg';
+      if (!db.eventSettings.ssfLogoUrl || db.eventSettings.ssfLogoUrl.includes('base64') || db.eventSettings.ssfLogoUrl.includes('zenith')) db.eventSettings.ssfLogoUrl = '/tabassum_logo.jpg';
+      if (!db.eventSettings.sahityotsavLogoUrl || db.eventSettings.sahityotsavLogoUrl.includes('base64') || db.eventSettings.sahityotsavLogoUrl.includes('zenith')) db.eventSettings.sahityotsavLogoUrl = '/tabassum_logo.jpg';
       return;
     } catch (e) {
       console.error("Error reading database file, initializing fresh one", e);
@@ -236,7 +236,7 @@ function ensureDbExists() {
 
   const initialSettings: EventSettings = {
     eventTitle: 'A SMILE THAT BRINGS HEARTS TOGETHER',
-    festivalName: 'At-Tabassum',
+    festivalName: 'tabassum',
     campusName: 'Noorul Islam Madrasa, Jeppu',
     sectorName: 'Noorul Islam Madrasa, Jeppu',
     eventYear: '2026',
@@ -251,8 +251,8 @@ function ensureDbExists() {
     registrationOpen: true,
     fillLogo: true,
     autoRemoveLogoBg: false,
-    ssfLogoUrl: '/At-Tabassum_logo.jpg',
-    sahityotsavLogoUrl: '/At-Tabassum_logo.jpg',
+    ssfLogoUrl: '/tabassum_logo.jpg',
+    sahityotsavLogoUrl: '/tabassum_logo.jpg',
     primaryColor: 'emerald',
     accentColor: 'amber',
     numJudges: 2,

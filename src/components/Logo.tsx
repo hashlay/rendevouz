@@ -17,7 +17,7 @@ export const Logo: React.FC<LogoProps> = ({
   showSubBadge = true,
   size = 'md',
   variant = 'full',
-  title = 'At-Tabassum',
+  title = 'tabassum',
   subtitle = 'Meelad Fest',
   badge = 'NOORUL ISLAM MADRASA',
   showIcon = true,
@@ -39,12 +39,12 @@ export const Logo: React.FC<LogoProps> = ({
       {showIcon && (
         <div className="relative group shrink-0 flex items-center justify-center">
           <img
-            src={customIconUrl || '/At-Tabassum_logo.jpg'}
+            src={customIconUrl || '/tabassum_logo.jpg'}
             alt="Logo Icon"
             onError={(e) => {
               const target = e.currentTarget;
-              if (target.src.includes('At-Tabassum_logo.jpg')) {
-                target.src = '/At-Tabassum_logo.png';
+              if (target.src.includes('tabassum_logo.jpg')) {
+                target.src = '/tabassum_logo.png';
               }
             }}
             className="object-contain rounded-full shadow-md transition-transform duration-300 group-hover:scale-105"

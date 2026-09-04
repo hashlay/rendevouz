@@ -122,13 +122,13 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         setHeroMedia(data.heroMedia || []);
         const mergedSettings = data.cmsSettings || {};
         const DEFAULT_CMS_SETTINGS: any = {
-          headerLogoTitle: 'At-Tabassum',
+          headerLogoTitle: 'tabassum',
           headerLogoSubtitle: 'Meelad Fest',
-          heroLogoTitle: 'At-Tabassum',
+          heroLogoTitle: 'tabassum',
           heroLogoSubtitle: 'Meelad Fest',
           heroLogoBadge: 'NOORUL ISLAM MADRASA',
           heroHideLogo: true,
-          heroTitle: 'At-Tabassum<br /><span class="text-[#C89A4B]">MEELAD FEST</span>',
+          heroTitle: 'tabassum<br /><span class="text-[#C89A4B]">MEELAD FEST</span>',
           heroSubtitle: 'A smile that brings heart together',
           heroInstitutionLeft: 'Noorul Islam Madrasa',
           heroInstitutionRight: 'Jeppu, Mangalore',
@@ -150,19 +150,19 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           conceptModalBadge: 'Theme Concept & Philosophy',
           conceptModalTitle: 'A SMILE THAT BRINGS HEART TOGETHER',
           conceptModalSubtitle: 'Noorul Islam Madrasa',
-          conceptModalFooter: 'At-Tabassum Meelad Fest',
-          conceptModalDescription: 'In a time when genuine connections are often lost amid the rush of everyday life, a simple smile carries the power to bring hearts closer.\n\nAt-Tabassum Meelad Fest 2026 celebrates the spirit of togetherness, compassion, creativity, and shared learning. It creates a vibrant space for young minds to discover their talents, strengthen friendships, embrace meaningful values, and grow through healthy competition.\n\nBeyond a celebration of talent, At-Tabassum is a reminder that kindness connects people, knowledge inspires growth, and a smile can bring hearts together.',
-          footerLogo: '/At-Tabassum_logo.jpg',
-          footerLogoTitle: 'At-Tabassum',
+          conceptModalFooter: 'tabassum Meelad Fest',
+          conceptModalDescription: 'In a time when genuine connections are often lost amid the rush of everyday life, a simple smile carries the power to bring hearts closer.\n\ntabassum Meelad Fest 2026 celebrates the spirit of togetherness, compassion, creativity, and shared learning. It creates a vibrant space for young minds to discover their talents, strengthen friendships, embrace meaningful values, and grow through healthy competition.\n\nBeyond a celebration of talent, tabassum is a reminder that kindness connects people, knowledge inspires growth, and a smile can bring hearts together.',
+          footerLogo: '/tabassum_logo.jpg',
+          footerLogoTitle: 'tabassum',
           footerLogoSubtitle: 'Meelad Fest',
           footerLogoBadge: 'NOORUL ISLAM MADRASA',
-          footerDescription: 'At-Tabassum Meelad Fest 2026 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Noorul Islam Madrasa, Jeppu, Mangalore, bringing students together through meaningful learning, healthy competition, and shared values.',
+          footerDescription: 'tabassum Meelad Fest 2026 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Noorul Islam Madrasa, Jeppu, Mangalore, bringing students together through meaningful learning, healthy competition, and shared values.',
           footerLocation: 'MAS Garden, Jeppu',
           footerEmail: 'zenith.theorganizer@gmail.com',
           footerPhone: '+91 74831 38340',
           footerInstagram: 'https://instagram.com/zeni.th.in',
-          footerYoutube: 'At-Tabassum.hashlay.in',
-          footerFacebook: 'At-Tabassum.hashlay.in',
+          footerYoutube: 'tabassum.hashlay.in',
+          footerFacebook: 'tabassum.hashlay.in',
           footerText: '© 2026 Noorul Islam Madrasa Jeppu. All rights reserved. Developed by Zenith.',
           copyrightText: '© 2026 Noorul Islam Madrasa Jeppu. All rights reserved. Developed by Zenith.',
           heroDesktopImages: ['/hero1.jpg', '/hero2.jpg'],
@@ -538,7 +538,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Header Logo Title</label>
-                    <input type="text" value={settings.headerLogoTitle !== undefined ? settings.headerLogoTitle : 'At-Tabassum'} onChange={(e) => setSettings({ ...settings, headerLogoTitle: e.target.value })} placeholder="At-Tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.headerLogoTitle !== undefined ? settings.headerLogoTitle : 'tabassum'} onChange={(e) => setSettings({ ...settings, headerLogoTitle: e.target.value })} placeholder="tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Header Logo Subtitle</label>
@@ -602,7 +602,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Title</label>
-                    <input type="text" value={settings.heroLogoTitle !== undefined ? settings.heroLogoTitle : 'At-Tabassum'} onChange={(e) => setSettings({ ...settings, heroLogoTitle: e.target.value })} placeholder="At-Tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoTitle !== undefined ? settings.heroLogoTitle : 'tabassum'} onChange={(e) => setSettings({ ...settings, heroLogoTitle: e.target.value })} placeholder="tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Subtitle</label>
@@ -614,7 +614,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Main Title (HTML Allowed)</label>
-                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} placeholder='At-Tabassum<br /><span class="text-[#C89A4B]">MEELAD FEST</span>' className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} placeholder='tabassum<br /><span class="text-[#C89A4B]">MEELAD FEST</span>' className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Subtitle</label>
@@ -742,7 +742,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Footer</label>
-                    <input type="text" value={settings.conceptModalFooter} onChange={(e) => setSettings({ ...settings, conceptModalFooter: e.target.value })} placeholder="At-Tabassum Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalFooter} onChange={(e) => setSettings({ ...settings, conceptModalFooter: e.target.value })} placeholder="tabassum Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Title</label>
@@ -799,7 +799,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Title</label>
-                    <input type="text" value={settings.footerLogoTitle} onChange={(e) => setSettings({ ...settings, footerLogoTitle: e.target.value })} placeholder="At-Tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLogoTitle} onChange={(e) => setSettings({ ...settings, footerLogoTitle: e.target.value })} placeholder="tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Subtitle</label>
@@ -813,7 +813,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Footer Description</label>
-                  <textarea rows={3} value={settings.footerDescription} onChange={(e) => setSettings({ ...settings, footerDescription: e.target.value })} placeholder="At-Tabassum Meelad Fest 2026 is a vibrant celebration of talent, creativity, knowledge, and togetherness..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                  <textarea rows={3} value={settings.footerDescription} onChange={(e) => setSettings({ ...settings, footerDescription: e.target.value })} placeholder="tabassum Meelad Fest 2026 is a vibrant celebration of talent, creativity, knowledge, and togetherness..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -835,11 +835,11 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">YouTube Link</label>
-                    <input type="url" value={settings.footerYoutube} onChange={(e) => setSettings({ ...settings, footerYoutube: e.target.value })} placeholder="At-Tabassum.hashlay.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="url" value={settings.footerYoutube} onChange={(e) => setSettings({ ...settings, footerYoutube: e.target.value })} placeholder="tabassum.hashlay.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Facebook Link</label>
-                    <input type="url" value={settings.footerFacebook} onChange={(e) => setSettings({ ...settings, footerFacebook: e.target.value })} placeholder="At-Tabassum.hashlay.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="url" value={settings.footerFacebook} onChange={(e) => setSettings({ ...settings, footerFacebook: e.target.value })} placeholder="tabassum.hashlay.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
 
