@@ -351,7 +351,7 @@ async function _syncMongoNow() {
         'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
       ];
 
-      await Promise.all(collectionKeys.map(async (colName) => {
+      for (const colName of collectionKeys) {
         const items = (db as any)[colName];
         if (Array.isArray(items)) {
           const col = mongoDb.collection(colName);
@@ -384,7 +384,7 @@ async function _syncMongoNow() {
             });
           }
         }
-      }));
+      }
 
       // Sync all configuration & branding settings
       if (db.eventSettings) {
@@ -544,7 +544,7 @@ async function syncStateFromMongo(force: boolean = false) {
       'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
     ];
 
-    await Promise.all(collectionKeys.map(async (colName) => {
+    for (const colName of collectionKeys) {
       try {
         const docs = await mongoDb.collection(colName).find({}).toArray();
         if (docs) {
@@ -559,7 +559,7 @@ async function syncStateFromMongo(force: boolean = false) {
           (db as any)[colName] = Array.from(dedupeMap.values());
         }
       } catch (_) { }
-    }));
+    }
 
     const mongoSettingsDocs = await mongoDb.collection('settings').find({}).toArray().catch(() => []);
     mongoSettingsDocs.forEach((doc: any) => {

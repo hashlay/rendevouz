@@ -31,13 +31,8 @@ apiRouter.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Ensure MongoDB connection and 100% fresh state sync on every API request
-apiRouter.use(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await dbClient.waitForSync();
-  } catch (err) {
-    console.error('Mongo connection middleware error:', err);
-  }
+// Fast non-blocking API routing (database is initialized on server startup)
+apiRouter.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
