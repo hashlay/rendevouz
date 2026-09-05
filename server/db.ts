@@ -585,7 +585,7 @@ async function syncStateFromMongo(force: boolean = false) {
     if (existingState) {
       const { _id, ...restOfState } = existingState;
       for (const [key, val] of Object.entries(restOfState)) {
-        if (!collectionKeys.includes(key) && key !== 'eventSettings' && key !== 'cmsSettings') {
+        if (!collectionKeys.includes(key) && key !== 'eventSettings' && key !== 'cmsSettings' && key !== 'posterTemplateConfig' && key !== 'certificateTemplateConfig') {
           if (Array.isArray(val)) {
             (db as any)[key] = val;
           } else if (val && typeof val === 'object') {

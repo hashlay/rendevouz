@@ -376,7 +376,41 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   const [selectedThemeIndex, setSelectedThemeIndex] = useState<number>(0);
   const [categories, setCategories] = useState<any[]>([]);
 
+  // Sync state when eventSettings.posterTemplateConfig updates or arrives from API
   useEffect(() => {
+    if (eventSettings?.posterTemplateConfig) {
+      const cfg = eventSettings.posterTemplateConfig;
+      if (Array.isArray(cfg.customThemes) && cfg.customThemes.length > 0) {
+        setCustomThemes(cfg.customThemes);
+      }
+      if (Array.isArray(cfg.themeRules)) {
+        setThemeRules(cfg.themeRules);
+      }
+      if (cfg.themeConfigs && typeof cfg.themeConfigs === 'object') {
+        setThemeConfigs(cfg.themeConfigs);
+      }
+    }
+  }, [eventSettings?.posterTemplateConfig]);
+
+  useEffect(() => {
+    fetch('/api/settings?t=' + Date.now())
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.posterTemplateConfig) {
+          const cfg = data.posterTemplateConfig;
+          if (Array.isArray(cfg.customThemes) && cfg.customThemes.length > 0) {
+            setCustomThemes(cfg.customThemes);
+          }
+          if (Array.isArray(cfg.themeRules)) {
+            setThemeRules(cfg.themeRules);
+          }
+          if (cfg.themeConfigs && typeof cfg.themeConfigs === 'object') {
+            setThemeConfigs(cfg.themeConfigs);
+          }
+        }
+      })
+      .catch(err => console.error('Failed to load settings in PosterSettingsView:', err));
+
     fetch('/api/categories')
       .then(res => res.ok ? res.json() : [])
       .then(data => {

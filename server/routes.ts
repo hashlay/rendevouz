@@ -5678,6 +5678,9 @@ apiRouter.get('/public/settings', async (req, res) => {
   res.json({
     ...(db.eventSettings || {}),
     ...(db.cmsSettings || {}),
+    posterTemplateConfig: db.posterTemplateConfig || db.eventSettings?.posterTemplateConfig,
+    certificateTemplateConfig: db.certificateTemplateConfig || db.eventSettings?.certificateTemplateConfig,
+    posterOverrides: db.eventSettings?.posterOverrides || {},
     dragBlocks: db.dragBlocks || db.eventSettings?.dragBlocks || []
   });
 });
@@ -6235,6 +6238,9 @@ apiRouter.get('/public/settings', async (req, res) => {
   res.json({
     ...(db.eventSettings || {}),
     ...(db.cmsSettings || {}),
+    posterTemplateConfig: db.posterTemplateConfig || db.eventSettings?.posterTemplateConfig,
+    certificateTemplateConfig: db.certificateTemplateConfig || db.eventSettings?.certificateTemplateConfig,
+    posterOverrides: db.eventSettings?.posterOverrides || {},
     dragBlocks: db.dragBlocks || db.eventSettings?.dragBlocks || []
   });
 });
