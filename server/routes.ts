@@ -6487,41 +6487,12 @@ apiRouter.get('/public/results', async (req, res) => {
 
 // Public Standings / House Scores
 apiRouter.get('/public/standings', async (req, res) => {
-  const db = dbClient.get();
-  const units = (db.units || []).filter((u: any) => u.active);
-  const standings = units.map((u: any) => {
-    let overallPoints = 0;
-    let firstPlaceCount = 0;
-    let secondPlaceCount = 0;
-    let thirdPlaceCount = 0;
-
-    (db.results || []).forEach((r: any) => {
-      if (!r.deletedAt && (r.publishedStatus || (r.rank !== undefined && r.rank > 0))) {
-        const p = (db.participants || []).find((p: any) => p.id === r.participantId);
-        const t = (db.teams || []).find((t: any) => t.id === r.teamId);
-        const unitId = p ? p.unitId : (t ? t.unitId : null);
-        if (unitId === u.id || r.department === u.name) {
-          const pts = r.points || (r.rank === 1 ? 20 : r.rank === 2 ? 15 : r.rank === 3 ? 10 : 0);
-          overallPoints += pts;
-          if (r.rank === 1) firstPlaceCount++;
-          if (r.rank === 2) secondPlaceCount++;
-          if (r.rank === 3) thirdPlaceCount++;
-        }
-      }
-    });
-
-    return {
-      unitId: u.id,
-      unitName: u.name,
-      unitCode: u.code,
-      overallPoints,
-      firstPlaceCount,
-      secondPlaceCount,
-      thirdPlaceCount
-    };
-  }).sort((a: any, b: any) => b.overallPoints - a.overallPoints);
-
-  res.json(standings);
+  try {
+    const standings = CalculationService.getUnitStandings();
+    res.json(standings);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Failed to fetch standings', details: e?.message });
+  }
 });
 
 // Public Gallery

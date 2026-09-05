@@ -119,24 +119,27 @@ export const CalculationService = {
     const scoreboardEntries = participants.map(participant => {
       // Find all results for this participant
       // Individual results:
-      const individualResults = db.results.filter(r => 
-        r.participantId === participant.id && 
-        r.status === ResultStatus.PARTICIPATED && 
-        r.publishedStatus &&
-        !r.deletedAt
-      );
+      const individualResults = db.results.filter(r => {
+        if (r.deletedAt) return false;
+        if (r.participantId !== participant.id) return false;
+        const isPub = (r as any).publishedStatus || (r as any).isPublished || (r.rank !== undefined && r.rank > 0);
+        if (!isPub) return false;
+        const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
+        return statusOk;
+      });
       
       // Group results: find teams where this participant is a member
       const teams = db.teams.filter(t => t.memberIds.includes(participant.id) && !t.deletedAt);
       const teamIds = teams.map(t => t.id);
       
-      const groupResults = db.results.filter(r => 
-        r.teamId && 
-        teamIds.includes(r.teamId) && 
-        r.status === ResultStatus.PARTICIPATED && 
-        r.publishedStatus &&
-        !r.deletedAt
-      );
+      const groupResults = db.results.filter(r => {
+        if (r.deletedAt) return false;
+        if (!r.teamId || !teamIds.includes(r.teamId)) return false;
+        const isPub = (r as any).publishedStatus || (r as any).isPublished || (r.rank !== undefined && r.rank > 0);
+        if (!isPub) return false;
+        const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
+        return statusOk;
+      });
       
       // Fetch competition metadata for filtering by On-Stage / Off-Stage
       let filteredIndividualResults = individualResults;
@@ -237,37 +240,56 @@ export const CalculationService = {
     // Sum scores for all 6 units
     const unitStandings = db.units.map(unit => {
       // Find active participants in this unit
-      let participants = db.participants.filter(p => p.unitId === unit.id && !p.deletedAt);
+      // Helper to match unit flexibly (e.g. ash-shukr vs as-shukr vs unit_ash_shukr)
+      const isUnitMatch = (uId?: string, uName?: string) => {
+        if (!uId && !uName) return false;
+        const normTarget = unit.id.toLowerCase().replace(/[-_]/g, '');
+        const normId = uId ? String(uId).toLowerCase().replace(/[-_]/g, '') : '';
+        const normName = uName ? String(uName).toLowerCase().replace(/[-_]/g, '') : '';
+        if (normId === normTarget || normName === normTarget) return true;
+        if (normTarget.includes('shukr') && (normId.includes('shukr') || normName.includes('shukr'))) return true;
+        if (normTarget.includes('sabr') && (normId.includes('sabr') || normName.includes('sabr'))) return true;
+        return false;
+      };
+
+      let participants = db.participants.filter(p => (isUnitMatch(p.unitId) || p.unitId === unit.id) && !p.deletedAt);
       if (filters.categoryId) {
         participants = participants.filter(p => p.selectedCategoryId === filters.categoryId);
       }
       
       const participantIds = participants.map(p => p.id);
       
-      // Individual results for this unit's participants
-      const individualResults = db.results.filter(r => 
-        r.participantId && 
-        participantIds.includes(r.participantId) && 
-        r.status === ResultStatus.PARTICIPATED && 
-        r.publishedStatus &&
-        !r.deletedAt
-      );
+      // Individual results for this unit's participants or directly assigned unit
+      const individualResults = db.results.filter(r => {
+        if (r.deletedAt) return false;
+        const isPub = (r as any).publishedStatus || (r as any).isPublished || (r.rank !== undefined && r.rank > 0);
+        if (!isPub) return false;
+        const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
+        if (!statusOk) return false;
+        
+        if (r.participantId && participantIds.includes(r.participantId)) return true;
+        if (!r.teamId && (isUnitMatch((r as any).unitId, (r as any).unitName || (r as any).department))) return true;
+        return false;
+      });
       
       // Group results for this unit's teams
-      // Team result is added ONLY once towards the unit total, not multiplied!
-      let teams = db.teams.filter(t => t.unitId === unit.id && !t.deletedAt);
+      let teams = db.teams.filter(t => (isUnitMatch(t.unitId) || t.unitId === unit.id) && !t.deletedAt);
       if (filters.categoryId) {
         teams = teams.filter(t => t.categoryId === filters.categoryId);
       }
       const teamIds = teams.map(t => t.id);
       
-      const groupResults = db.results.filter(r => 
-        r.teamId && 
-        teamIds.includes(r.teamId) && 
-        r.status === ResultStatus.PARTICIPATED && 
-        r.publishedStatus &&
-        !r.deletedAt
-      );
+      const groupResults = db.results.filter(r => {
+        if (r.deletedAt) return false;
+        const isPub = (r as any).publishedStatus || (r as any).isPublished || (r.rank !== undefined && r.rank > 0);
+        if (!isPub) return false;
+        const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
+        if (!statusOk) return false;
+        
+        if (r.teamId && teamIds.includes(r.teamId)) return true;
+        if (r.teamId && isUnitMatch((r as any).unitId, (r as any).unitName || (r as any).department)) return true;
+        return false;
+      });
       
       // On-stage subtotals
       const onStageIndividual = individualResults.filter(r => {
