@@ -98,13 +98,10 @@ async function _connectToMongo() {
       } catch (_) { }
     }
 
-    // Write synchronized state to local file store and sync to MongoDB collections
+    // Write synchronized state to local file store
     try {
       fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
     } catch (_) { }
-
-    // Sync all categories, competitions, units, settings to MongoDB collections
-    await _syncMongoNow();
   } catch (err) {
     console.error("❌ Failed to connect to MongoDB. Falling back to local file store.", err);
     isMongoConnected = false;
@@ -547,24 +544,34 @@ async function syncStateFromMongo(force: boolean = false) {
       'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
     ];
 
-    for (const colName of collectionKeys) {
-      try {
-        const docs = await mongoDb.collection(colName).find({}).toArray();
-        if (docs) {
-          const dedupeMap = new Map();
-          docs.forEach((d: any) => {
-            const docId = d.id || d._id;
-            if (docId) {
-              const { _id, ...rest } = d;
-              dedupeMap.set(docId.toString(), { id: docId, ...rest });
-            }
-          });
-          (db as any)[colName] = Array.from(dedupeMap.values());
-        }
-      } catch (_) { }
-    }
+    const [collectionsData, mongoSettingsDocs, existingState] = await Promise.all([
+      Promise.all(
+        collectionKeys.map(async colName => {
+          try {
+            const docs = await mongoDb.collection(colName).find({}).toArray();
+            return { colName, docs };
+          } catch (_) {
+            return { colName, docs: [] };
+          }
+        })
+      ),
+      mongoDb.collection('settings').find({}).toArray().catch(() => []),
+      mongoDb.collection('app_state').findOne({ _id: 'global_state' as any }).catch(() => null)
+    ]);
 
-    const mongoSettingsDocs = await mongoDb.collection('settings').find({}).toArray().catch(() => []);
+    for (const { colName, docs } of collectionsData) {
+      if (docs && docs.length > 0) {
+        const dedupeMap = new Map();
+        docs.forEach((d: any) => {
+          const docId = d.id || d._id;
+          if (docId) {
+            const { _id, ...rest } = d;
+            dedupeMap.set(docId.toString(), { id: docId, ...rest });
+          }
+        });
+        (db as any)[colName] = Array.from(dedupeMap.values());
+      }
+    }
     mongoSettingsDocs.forEach((doc: any) => {
       if (doc._id) {
         const { _id, ...rest } = doc;
@@ -581,7 +588,6 @@ async function syncStateFromMongo(force: boolean = false) {
       }
     });
 
-    const existingState = await mongoDb.collection('app_state').findOne({ _id: 'global_state' as any });
     if (existingState) {
       const { _id, ...restOfState } = existingState;
       for (const [key, val] of Object.entries(restOfState)) {

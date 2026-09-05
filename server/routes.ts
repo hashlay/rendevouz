@@ -445,11 +445,8 @@ apiRouter.post('/auth/login', async (req, res) => {
     { expiresIn: '8h' }
   );
 
-  // Update last login timestamp
+  // Update last login timestamp & audit record
   user.lastLoginAt = new Date().toISOString();
-  await dbClient.save();
-
-  // Audit login success
   const audit: LoginAudit = {
     id: `login_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
     username: user.username,
@@ -459,7 +456,7 @@ apiRouter.post('/auth/login', async (req, res) => {
     timestamp: new Date().toISOString()
   };
   db.loginAudits.unshift(audit);
-  await dbClient.save();
+  dbClient.save().catch(() => {});
 
   // Set secure HTTP-only cookie
   res.cookie(COOKIE_NAME, token, {
