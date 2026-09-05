@@ -599,7 +599,25 @@ async function syncStateFromMongo(force: boolean = false) {
   }
 }
 
+let _initialSyncPromise: Promise<void> | null = null;
+
+export async function ensureInitialSync() {
+  if (!_initialSyncPromise) {
+    _initialSyncPromise = (async () => {
+      await connectToMongo();
+      if (!db || !db.participants || db.participants.length === 0) {
+        await syncStateFromMongo(true);
+      }
+    })();
+  }
+  return _initialSyncPromise;
+}
+
 export const dbClient = {
+  ensureReady: async () => {
+    return ensureInitialSync();
+  },
+
   waitForSync: async () => {
     await connectToMongo();
     await syncStateFromMongo(false);

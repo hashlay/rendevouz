@@ -110,8 +110,10 @@ apiRouter.use('/uploads', express.static(path.join(process.cwd(), 'data/uploads'
 // Connects to DB once and processes all requests instantly in memory.
 let dbNormalized = false;
 
-apiRouter.use((req, res, next) => {
+apiRouter.use(async (req, res, next) => {
   try {
+    await dbClient.ensureReady();
+
     // Auto-normalize legacy totalMark values and title-case participant/competition names ONCE on load
     if (!dbNormalized) {
       const db = dbClient.get();
