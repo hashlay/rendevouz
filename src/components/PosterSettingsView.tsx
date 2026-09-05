@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Award, Trophy, Image as ImageIcon, Download, Upload,
-  Sparkles, RefreshCw, Palette, Layers, CheckCircle2, ChevronDown, Save, X, Plus, Trash2, Move, GripVertical, Copy
+  Sparkles, RefreshCw, Palette, Layers, CheckCircle2, ChevronDown, Save, X, Plus, Trash2, Move, GripVertical, Copy, Zap
 } from 'lucide-react';
 import { User, Category, Unit, Participant, Competition, Result, Team, UserRole } from '../types';
 import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper';
@@ -407,25 +407,50 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   };
 
   // Copy / Duplicate theme layout settings
-  const [sourceThemeToCopy, setSourceThemeToCopy] = useState<number>(0);
+  const [sourceThemeToCopy, setSourceThemeToCopy] = useState<number>(3);
 
   useEffect(() => {
-    if (sourceThemeToCopy === selectedThemeIndex) {
-      const otherIdx = customThemes.findIndex((_, i) => i !== selectedThemeIndex);
-      if (otherIdx !== -1) setSourceThemeToCopy(otherIdx);
+    // Keep sourceThemeToCopy valid and default to Theme 4 (index 3) whenever available
+    if (sourceThemeToCopy === selectedThemeIndex || sourceThemeToCopy >= customThemes.length) {
+      if (customThemes.length > 3 && selectedThemeIndex !== 3) {
+        setSourceThemeToCopy(3);
+      } else {
+        const otherIdx = customThemes.findIndex((_, i) => i !== selectedThemeIndex);
+        if (otherIdx !== -1) setSourceThemeToCopy(otherIdx);
+        else setSourceThemeToCopy(0);
+      }
     }
-  }, [selectedThemeIndex, customThemes]);
+  }, [selectedThemeIndex, customThemes.length]);
 
   const handleCopyThemeSettings = (sourceIdx: number, targetIdx: number) => {
     if (sourceIdx === targetIdx) return;
     const sourceConf = getThemeConfig(sourceIdx);
     setThemeConfigs((prev: any) => ({
       ...prev,
-      [targetIdx]: {
-        ...JSON.parse(JSON.stringify(sourceConf))
-      }
+      [targetIdx]: JSON.parse(JSON.stringify(sourceConf))
     }));
-    alert(`✓ Successfully copied all layout positions, fonts & colors from Theme ${sourceIdx + 1} into Theme ${targetIdx + 1}!\nYou can now edit any specific colors or text.`);
+    alert(`✓ Successfully copied all layout positions, fonts & colors from Theme ${sourceIdx + 1} into Theme ${targetIdx + 1}!\nRemember to click "Save All Poster Settings" to save.`);
+  };
+
+  const handleCopyThemeToAll = (sourceIdx: number) => {
+    if (customThemes.length <= 1) return;
+    const confirmCopy = window.confirm(
+      `Copy all layout positions, fonts, colors, and badge styles from Theme ${sourceIdx + 1} to ALL other themes (Themes 1 through ${customThemes.length})?\n\nThis will make all themes use Theme ${sourceIdx + 1}'s exact positioning!`
+    );
+    if (!confirmCopy) return;
+
+    const sourceConf = getThemeConfig(sourceIdx);
+    const cloned = JSON.parse(JSON.stringify(sourceConf));
+    setThemeConfigs((prev: any) => {
+      const nextConfigs = { ...prev };
+      customThemes.forEach((_, idx) => {
+        if (idx !== sourceIdx) {
+          nextConfigs[idx] = JSON.parse(JSON.stringify(cloned));
+        }
+      });
+      return nextConfigs;
+    });
+    alert(`✓ Successfully applied Theme ${sourceIdx + 1} layout to all ${customThemes.length} themes!\nClick "Save All Poster Settings" to persist these changes to the server.`);
   };
 
   const handleDuplicateTheme = (sourceIdx: number) => {
@@ -1010,19 +1035,17 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                           const reader = new FileReader();
                           reader.onload = (ev) => {
                             const result = ev.target?.result as string;
-                            const previousConf = getThemeConfig(selectedThemeIndex);
-                            setCustomThemes(prev => {
-                              const newThemes = [...prev, result];
-                              const newIdx = newThemes.length - 1;
-                              setSelectedThemeIndex(newIdx);
-                              setThemeConfigs((configs: any) => ({
-                                ...configs,
-                                [newIdx]: {
-                                  ...JSON.parse(JSON.stringify(previousConf))
-                                }
-                              }));
-                              return newThemes;
-                            });
+                            // Prefer copying from Theme 4 (idx 3) if customized, or currently selected theme
+                            const baseSourceIdx = (customThemes.length >= 4 && themeConfigs[3]) ? 3 : selectedThemeIndex;
+                            const sourceConf = getThemeConfig(baseSourceIdx);
+                            const clonedConf = JSON.parse(JSON.stringify(sourceConf));
+                            const newIdx = customThemes.length;
+                            setCustomThemes(prev => [...prev, result]);
+                            setThemeConfigs((configs: any) => ({
+                              ...configs,
+                              [newIdx]: clonedConf
+                            }));
+                            setSelectedThemeIndex(newIdx);
                           };
                           reader.readAsDataURL(file);
                         }
@@ -1033,41 +1056,95 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
                 {/* Copy Theme Settings Section */}
                 {customThemes.length > 1 && (
-                  <div className="bg-slate-50/80 border border-slate-200 rounded-2xl p-3.5 space-y-2 mt-3">
+                  <div className="bg-gradient-to-br from-slate-50 to-emerald-50/50 border border-emerald-200/80 rounded-2xl p-4 space-y-3 mt-3 shadow-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                        <Copy className="w-3.5 h-3.5 text-emerald-600" />
+                        <Copy className="w-4 h-4 text-emerald-600" />
                         <span>Copy Layout & Settings</span>
                       </span>
-                      <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-200">
+                      <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-300">
                         Editing Theme {selectedThemeIndex + 1}
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500">
-                      Copy all element positions, font sizes, colors, and badge styles from another theme into <strong>Theme {selectedThemeIndex + 1}</strong>.
+
+                    <p className="text-[11px] text-slate-600">
+                      Copy all element positions, font sizes, colors, and badge styles from another theme.
                     </p>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
-                      <select
-                        value={sourceThemeToCopy}
-                        onChange={(e) => setSourceThemeToCopy(Number(e.target.value))}
-                        className="flex-1 bg-white border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 font-semibold outline-none focus:ring-1 focus:ring-emerald-500"
-                      >
-                        {customThemes.map((_, i) => (
-                          i !== selectedThemeIndex ? (
-                            <option key={i} value={i}>
-                              Copy from Theme {i + 1} {themeConfigs[i] ? '(Customized)' : '(Default)'}
-                            </option>
-                          ) : null
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyThemeSettings(sourceThemeToCopy, selectedThemeIndex)}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy to Theme {selectedThemeIndex + 1}</span>
-                      </button>
+
+                    {/* Quick Theme 4 Actions */}
+                    {customThemes.length >= 4 && (
+                      <div className="bg-white p-3 rounded-xl border border-emerald-300 shadow-xs space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-emerald-900">
+                          <span className="flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Theme 4 Quick Copy</span>
+                          </span>
+                          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            Source: Theme 4
+                          </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                          {selectedThemeIndex !== 3 && (
+                            <button
+                              type="button"
+                              onClick={() => handleCopyThemeSettings(3, selectedThemeIndex)}
+                              className="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Copy Theme 4 to Theme {selectedThemeIndex + 1}</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleCopyThemeToAll(3)}
+                            className="flex-1 px-3 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                          >
+                            <Zap className="w-3.5 h-3.5" />
+                            <span>⚡ Copy Theme 4 to ALL Themes (5, 6, 7, 8...)</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Custom Source Selector */}
+                    <div className="space-y-2 pt-1 border-t border-slate-200/60">
+                      <label className="block text-[11px] font-bold text-slate-700">
+                        Or choose any theme to copy from:
+                      </label>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <select
+                          value={sourceThemeToCopy}
+                          onChange={(e) => setSourceThemeToCopy(Number(e.target.value))}
+                          className="flex-1 bg-white border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 font-semibold outline-none focus:ring-1 focus:ring-emerald-500"
+                        >
+                          {customThemes.map((_, i) => (
+                            i !== selectedThemeIndex ? (
+                              <option key={i} value={i}>
+                                Copy from Theme {i + 1} {themeConfigs[i] ? '(Customized)' : '(Default)'}
+                              </option>
+                            ) : null
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyThemeSettings(sourceThemeToCopy, selectedThemeIndex)}
+                          className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy to Theme {selectedThemeIndex + 1}</span>
+                        </button>
+                      </div>
+
+                      <div className="flex justify-end pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyThemeToAll(selectedThemeIndex)}
+                          className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:underline flex items-center gap-1 py-1 cursor-pointer"
+                        >
+                          <Zap className="w-3 h-3" />
+                          <span>Apply current Theme {selectedThemeIndex + 1} settings to ALL other themes</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1670,7 +1747,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
           <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-lg w-full flex flex-col items-center">
             <div className="flex items-center justify-between w-full pb-3 border-b border-slate-100 mb-4 px-2">
               <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider font-mono">
-                Default Template Preview \u2014 Theme {selectedThemeIndex + 1}
+                Default Template Preview — Theme {selectedThemeIndex + 1}
               </span>
               <span className="text-[10px] text-slate-400 font-mono">Drag any element to reposition</span>
             </div>
