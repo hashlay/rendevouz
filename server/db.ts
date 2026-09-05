@@ -386,11 +386,12 @@ async function _syncMongoNow() {
         }
       }
 
-      // Sync all configuration & branding settings
+      // Sync all configuration & branding settings (keep eventSettings lightweight < 2KB)
       if (db.eventSettings) {
+        const { posterTemplateConfig, certificateTemplateConfig, ...cleanSettings } = db.eventSettings as any;
         await mongoDb.collection('settings').replaceOne(
           { _id: 'eventSettings' as any },
-          { _id: 'eventSettings', ...db.eventSettings },
+          { _id: 'eventSettings', ...cleanSettings },
           { upsert: true }
         ).catch(() => { });
       }
