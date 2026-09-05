@@ -42,20 +42,28 @@ export const CalculationService = {
     // Get all results for this competition that are not soft-deleted
     const results = db.results.filter(r => r.competitionId === competitionId && !r.deletedAt);
     
+    // Helper to get effective mark for ranking
+    const getMark = (r: Result) => {
+      if (r.averageMark !== undefined && !isNaN(r.averageMark)) return r.averageMark;
+      if (r.totalMark !== undefined && !isNaN(r.totalMark)) return r.totalMark;
+      const j1 = Number(r.judge1Mark) || 0;
+      const j2 = Number(r.judge2Mark) || 0;
+      return j1 + j2;
+    };
+
     // Filter results that should be ranked
     const rankableResults = results.filter(r => 
-      r.status === ResultStatus.PARTICIPATED && 
-      r.averageMark !== undefined && 
-      !isNaN(r.averageMark)
+      (r.status === ResultStatus.PARTICIPATED || (r.status as string) === 'participated' || !r.status) && 
+      getMark(r) >= 0
     );
     
     // Sort rankable results: highest mark first
-    rankableResults.sort((a, b) => (b.averageMark || 0) - (a.averageMark || 0));
+    rankableResults.sort((a, b) => getMark(b) - getMark(a));
     
     // Assign automatic ranks (Dense Ranking: 1, 1, 2, 2, 3, 3)
     let currentRank = 1;
     for (let i = 0; i < rankableResults.length; i++) {
-      if (i > 0 && (rankableResults[i].averageMark || 0) < (rankableResults[i - 1].averageMark || 0)) {
+      if (i > 0 && getMark(rankableResults[i]) < getMark(rankableResults[i - 1])) {
         currentRank++;
       }
       
@@ -66,13 +74,14 @@ export const CalculationService = {
     }
     
     // Handle manual overrides - merge overrides into the rankings
-    // Non-rankable results don't get ranks
+    // Non-rankable results (absent/disqualified) don't get ranks
     results.forEach(r => {
-      if (r.status !== ResultStatus.PARTICIPATED) {
+      const isPart = !r.status || r.status === ResultStatus.PARTICIPATED || (r.status as string) === 'participated';
+      if (!isPart) {
         r.rank = undefined;
       } else if (r.manualRankOverride && r.rank === undefined) {
         // If manual rank override is true, ensure they have a rank (default to 1 if not set)
-        r.rank = r.rank || 1;
+        r.rank = 1;
       }
     });
     

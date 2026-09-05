@@ -3221,11 +3221,49 @@ apiRouter.post('/competitions/:id/register-team', authenticate, requireRole([Use
 // Update Result
 apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
-  const user = (req as any).user as User;
   const resId = req.params.id;
+  const user = (req as any).user as User;
+  let resIndex = db.results.findIndex(r => r.id === resId && !r.deletedAt);
+  if (resIndex === -1 && (req.body.participantId || req.body.teamId) && req.body.competitionId) {
+    resIndex = db.results.findIndex(r => 
+      r.competitionId === req.body.competitionId &&
+      !r.deletedAt &&
+      ((req.body.participantId && r.participantId === req.body.participantId) || (req.body.teamId && r.teamId === req.body.teamId))
+    );
+  }
 
-  const resIndex = db.results.findIndex(r => r.id === resId && !r.deletedAt);
   if (resIndex === -1) {
+    // If candidate and competition are provided, upsert directly into db.results!
+    if (req.body.competitionId && (req.body.participantId || req.body.teamId)) {
+      const j1 = Number(req.body.judge1Mark) || 0;
+      const j2 = Number(req.body.judge2Mark) || 0;
+      const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
+      const newRes: Result = {
+        id: resId.startsWith('v_res_') ? `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}` : resId,
+        categoryId: req.body.categoryId || '',
+        competitionId: req.body.competitionId,
+        participantId: req.body.participantId || undefined,
+        teamId: req.body.teamId || undefined,
+        judge1Mark: j1,
+        judge2Mark: j2,
+        totalMark: j1 + j2,
+        averageMark: Math.round(((j1 + j2) / activeCount) * 100) / 100,
+        status: req.body.status || ResultStatus.PARTICIPATED,
+        remarks: req.body.remarks || '',
+        publishedStatus: req.body.publishedStatus !== undefined ? req.body.publishedStatus : true,
+        manualRankOverride: !!req.body.manualRankOverride,
+        manualRankOverrideReason: req.body.manualRankOverrideReason,
+        rank: req.body.manualRankOverride ? Number(req.body.overrideRank) : undefined,
+        createdBy: user.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      db.results.push(newRes);
+      CalculationService.calculateCompetitionRanks(newRes.competitionId);
+      await dbClient.logAudit(user.id, user.username, user.role, 'Upsert Competition Result', 'Result', newRes.id);
+      await dbClient.save();
+      return res.json({ message: 'Result saved successfully', result: newRes });
+    }
     return res.status(404).json({ error: 'Result not found' });
   }
 
@@ -3421,70 +3459,90 @@ apiRouter.get('/results', authenticate, async (req, res) => {
   // Two-way sync: If querying for a specific competition, also check Judgment Sheet scores to bridge any unpopulated results
   if (compId) {
     const sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === compId && !s.deletedAt);
-    if (sheet) {
-      const sheetScores = (db.judgeScores || []).filter((s: JudgeScore) => s.judgmentSheetId === sheet.id);
-      for (const score of sheetScores) {
-        const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) => a.id === score.greenRoomAssignmentId);
-        if (!gr) continue;
+    const sheetScores = (db.judgeScores || []).filter((s: JudgeScore) => (sheet && s.judgmentSheetId === sheet.id) || s.competitionId === compId);
+    const comp = (db.competitions || []).find(c => c.id === compId);
+    const grs = (db.greenRoomAssignments || []).filter((g: GreenRoomAssignment) => g.competitionId === compId && !g.deletedAt);
+    let materializedAny = false;
 
-        const pId = gr.participantId;
-        const tId = gr.teamId;
-        if (!pId && !tId) continue;
+    for (const score of sheetScores) {
+      let gr = grs.find((a: GreenRoomAssignment) => a.id === score.greenRoomAssignmentId || (score.codeLetter && a.codeLetter === score.codeLetter));
+      let pId = gr?.participantId || (score as any).participantId;
+      let tId = gr?.teamId || (score as any).teamId;
 
-        const existingRes = results.find(r => (pId && r.participantId === pId) || (tId && r.teamId === tId));
-
-        const j1 = score.judgeScores?.find(j => j.judgeNumber === 1);
-        const j2 = score.judgeScores?.find(j => j.judgeNumber === 2);
-        const j1Mark = j1?.mark || 0;
-        const j2Mark = j2?.mark || 0;
-        const activeCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
-        const calculatedAvg = score.averageMark !== undefined ? score.averageMark : Math.round(((j1Mark + j2Mark) / activeCount) * 100) / 100;
-
-        let resStatus: ResultStatus = ResultStatus.PARTICIPATED;
-        if (score.status === JudgeScoreStatus.ABSENT || score.status === 'absent') resStatus = ResultStatus.ABSENT;
-        if (score.status === JudgeScoreStatus.DISQUALIFIED || score.status === 'disqualified') resStatus = ResultStatus.DISQUALIFIED;
-
-        if (existingRes) {
-          // Overlay missing or outdated evaluation fields from Judgment Sheet
-          if (existingRes.judge1Mark === undefined || (j1Mark > 0 && existingRes.judge1Mark === 0)) existingRes.judge1Mark = j1Mark;
-          if (existingRes.judge2Mark === undefined || (j2Mark > 0 && existingRes.judge2Mark === 0)) existingRes.judge2Mark = j2Mark;
-          if (existingRes.totalMark === undefined || (score.totalMark > 0 && existingRes.totalMark === 0)) existingRes.totalMark = score.totalMark || (j1Mark + j2Mark);
-          if (existingRes.averageMark === undefined || (calculatedAvg > 0 && existingRes.averageMark === 0)) existingRes.averageMark = calculatedAvg;
-          if (!existingRes.manualRankOverride && score.rank) existingRes.rank = score.rank;
-          if (score.status) existingRes.status = resStatus;
-        } else if (score.judgeScores && (score.judgeScores.length > 0 || score.status !== JudgeScoreStatus.PARTICIPATED)) {
-          // Synthesize result record from Judgment Sheet score if not explicitly in db.results array yet
-          const virtualRes: any = {
-            id: `v_res_${score.id}`,
-            categoryId: sheet.categoryId,
-            competitionId: compId,
-            participantId: pId,
-            teamId: tId,
-            judge1Mark: j1Mark,
-            judge2Mark: j2Mark,
-            totalMark: score.totalMark || (j1Mark + j2Mark),
-            averageMark: calculatedAvg,
-            rank: score.rank,
-            status: resStatus,
-            remarks: score.remarks,
-            publishedStatus: sheet.publishedToResults || false,
-            createdAt: score.enteredAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          results.push(virtualRes);
+      if (!pId && !tId && comp?.participationType === ParticipationType.GROUP) {
+        const compTeams = (db.teams || []).filter((t: any) => t.competitionId === compId && !t.deletedAt);
+        const letterIdx = (score.codeLetter || '').toUpperCase().charCodeAt(0) - 65;
+        if (letterIdx >= 0 && letterIdx < compTeams.length) {
+          tId = compTeams[letterIdx].id;
         }
       }
+
+      if (!pId && !tId) continue;
+
+      let existingRes = results.find(r => (pId && r.participantId === pId) || (tId && r.teamId === tId));
+
+      const j1 = score.judgeScores?.find(j => j.judgeNumber === 1);
+      const j2 = score.judgeScores?.find(j => j.judgeNumber === 2);
+      const j1Mark = j1?.mark || 0;
+      const j2Mark = j2?.mark || 0;
+      const activeCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
+      const calculatedAvg = score.averageMark !== undefined ? score.averageMark : Math.round(((j1Mark + j2Mark) / activeCount) * 100) / 100;
+
+      let resStatus: ResultStatus = ResultStatus.PARTICIPATED;
+      if (score.status === JudgeScoreStatus.ABSENT || score.status === 'absent') resStatus = ResultStatus.ABSENT;
+      if (score.status === JudgeScoreStatus.DISQUALIFIED || score.status === 'disqualified') resStatus = ResultStatus.DISQUALIFIED;
+
+      if (existingRes) {
+        // Overlay missing or outdated evaluation fields from Judgment Sheet
+        if (existingRes.judge1Mark === undefined || (j1Mark > 0 && existingRes.judge1Mark === 0)) existingRes.judge1Mark = j1Mark;
+        if (existingRes.judge2Mark === undefined || (j2Mark > 0 && existingRes.judge2Mark === 0)) existingRes.judge2Mark = j2Mark;
+        if (existingRes.totalMark === undefined || (score.totalMark > 0 && existingRes.totalMark === 0)) existingRes.totalMark = score.totalMark || (j1Mark + j2Mark);
+        if (existingRes.averageMark === undefined || (calculatedAvg > 0 && existingRes.averageMark === 0)) existingRes.averageMark = calculatedAvg;
+        if (!existingRes.manualRankOverride && score.rank) existingRes.rank = score.rank;
+        if (score.status) existingRes.status = resStatus;
+      } else if ((score.judgeScores && score.judgeScores.length > 0) || (score.totalMark && score.totalMark > 0) || (score.averageMark && score.averageMark > 0) || score.status !== JudgeScoreStatus.PARTICIPATED) {
+        // Auto-materialize into db.results so it is permanent and visible everywhere!
+        const materializedRes: Result = {
+          id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          categoryId: sheet?.categoryId || comp?.categoryId || gr?.categoryId || '',
+          competitionId: compId,
+          participantId: pId || undefined,
+          teamId: tId || undefined,
+          judge1Mark: j1Mark,
+          judge2Mark: j2Mark,
+          totalMark: score.totalMark || (j1Mark + j2Mark),
+          averageMark: calculatedAvg,
+          rank: score.rank,
+          status: resStatus,
+          remarks: score.remarks || '',
+          publishedStatus: sheet?.publishedToResults || false,
+          createdBy: 'system',
+          createdAt: score.enteredAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        db.results.push(materializedRes);
+        results.push(materializedRes);
+        materializedAny = true;
+      }
+    }
+
+    if (materializedAny) {
+      CalculationService.calculateCompetitionRanks(compId);
+      dbClient.save().catch(() => {});
     }
   }
 
   // Ensure all evaluated results in this view have auto-calculated ranks (Dense Ranking: 1, 2, 3...)
   const rankableComps = new Set(results.map(r => r.competitionId));
   rankableComps.forEach(cId => {
-    const compRankable = results.filter(r => r.competitionId === cId && (r.status === 'participated' || r.status === ResultStatus.PARTICIPATED) && r.averageMark !== undefined);
-    compRankable.sort((a, b) => (b.averageMark || 0) - (a.averageMark || 0));
+    CalculationService.calculateCompetitionRanks(cId);
+    const compRankable = results.filter(r => r.competitionId === cId && (r.status === 'participated' || r.status === ResultStatus.PARTICIPATED) && (r.averageMark !== undefined || r.totalMark !== undefined));
+    compRankable.sort((a, b) => ((b.averageMark !== undefined ? b.averageMark : b.totalMark) || 0) - ((a.averageMark !== undefined ? a.averageMark : a.totalMark) || 0));
     let rk = 1;
     for (let i = 0; i < compRankable.length; i++) {
-      if (i > 0 && (compRankable[i].averageMark || 0) < (compRankable[i - 1].averageMark || 0)) {
+      const curMark = compRankable[i].averageMark !== undefined ? compRankable[i].averageMark : compRankable[i].totalMark;
+      const prevMark = i > 0 ? (compRankable[i - 1].averageMark !== undefined ? compRankable[i - 1].averageMark : compRankable[i - 1].totalMark) : undefined;
+      if (i > 0 && curMark !== undefined && prevMark !== undefined && curMark < prevMark) {
         rk++;
       }
       if (!compRankable[i].rank && !compRankable[i].manualRankOverride) {
@@ -3534,51 +3592,68 @@ apiRouter.post('/results/announce', authenticate, requireRole([UserRole.SUPER_AD
     return res.status(400).json({ error: 'Competition ID is required.' });
   }
 
-  let results = db.results.filter(r => r.competitionId === competitionId && !r.deletedAt);
-  if (results.length === 0) {
-    // Check if there are judgeScores or judgmentSheets for this competition to auto-materialize
-    const compScores = (db.judgeScores || []).filter((s: JudgeScore) => s.competitionId === competitionId);
-    if (compScores.length > 0) {
-      const grs = (db.greenRoomAssignments || []).filter((g: GreenRoomAssignment) => g.competitionId === competitionId);
-      const sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === competitionId);
-      for (const score of compScores) {
-        const gr = grs.find((g: GreenRoomAssignment) => g.id === score.greenRoomAssignmentId || g.codeLetter === score.codeLetter);
-        if (!gr) continue;
-        const j1 = score.judgeScores?.find((j: any) => j.judgeNumber === 1);
-        const j2 = score.judgeScores?.find((j: any) => j.judgeNumber === 2);
-        const j1Mark = j1?.mark || 0;
-        const j2Mark = j2?.mark || 0;
-        const nonZeroCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
-        const calculatedAvg = score.averageMark !== undefined ? score.averageMark : Math.round((score.totalMark / nonZeroCount) * 100) / 100;
-        
-        let resStatus = ResultStatus.PARTICIPATED;
-        if (score.status === 'absent') resStatus = ResultStatus.ABSENT;
-        else if (score.status === 'disqualified') resStatus = ResultStatus.DISQUALIFIED;
+  const comp = (db.competitions || []).find((c: any) => c.id === competitionId);
+  const sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === competitionId && !s.deletedAt);
+  const compScores = (db.judgeScores || []).filter((s: JudgeScore) => (sheet && s.judgmentSheetId === sheet.id) || s.competitionId === competitionId);
+  const grs = (db.greenRoomAssignments || []).filter((g: GreenRoomAssignment) => g.competitionId === competitionId && !g.deletedAt);
 
-        const newRes: any = {
-          id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-          categoryId: sheet?.categoryId || gr.categoryId,
-          competitionId,
-          participantId: gr.participantId || undefined,
-          teamId: gr.teamId || undefined,
-          judge1Mark: j1Mark,
-          judge2Mark: j2Mark,
-          totalMark: score.totalMark || (j1Mark + j2Mark),
-          averageMark: calculatedAvg,
-          status: resStatus,
-          remarks: score.remarks,
-          publishedStatus: announce !== false,
-          createdBy: user.id,
-          createdAt: score.enteredAt || new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        db.results.push(newRes);
+  // Auto-materialize any judgment sheet scores not in db.results yet
+  for (const score of compScores) {
+    let gr = grs.find((g: GreenRoomAssignment) => g.id === score.greenRoomAssignmentId || (score.codeLetter && g.codeLetter === score.codeLetter));
+    let pId = gr?.participantId || (score as any).participantId;
+    let tId = gr?.teamId || (score as any).teamId;
+
+    if (!pId && !tId && comp?.participationType === ParticipationType.GROUP) {
+      const compTeams = (db.teams || []).filter((t: any) => t.competitionId === competitionId && !t.deletedAt);
+      const letterIdx = (score.codeLetter || '').toUpperCase().charCodeAt(0) - 65;
+      if (letterIdx >= 0 && letterIdx < compTeams.length) {
+        tId = compTeams[letterIdx].id;
       }
-      CalculationService.calculateCompetitionRanks(competitionId);
-      results = db.results.filter(r => r.competitionId === competitionId && !r.deletedAt);
+    }
+
+    if (!pId && !tId) continue;
+
+    let existingRes = db.results.find(r => r.competitionId === competitionId && !r.deletedAt && ((pId && r.participantId === pId) || (tId && r.teamId === tId)));
+    
+    const j1 = score.judgeScores?.find((j: any) => j.judgeNumber === 1);
+    const j2 = score.judgeScores?.find((j: any) => j.judgeNumber === 2);
+    const j1Mark = j1?.mark || 0;
+    const j2Mark = j2?.mark || 0;
+    const nonZeroCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
+    const calculatedAvg = score.averageMark !== undefined ? score.averageMark : Math.round((score.totalMark / nonZeroCount) * 100) / 100;
+    
+    let resStatus = ResultStatus.PARTICIPATED;
+    if (score.status === 'absent') resStatus = ResultStatus.ABSENT;
+    else if (score.status === 'disqualified') resStatus = ResultStatus.DISQUALIFIED;
+
+    if (!existingRes) {
+      const newRes: Result = {
+        id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        categoryId: sheet?.categoryId || comp?.categoryId || gr?.categoryId || '',
+        competitionId,
+        participantId: pId || undefined,
+        teamId: tId || undefined,
+        judge1Mark: j1Mark,
+        judge2Mark: j2Mark,
+        totalMark: score.totalMark || (j1Mark + j2Mark),
+        averageMark: calculatedAvg,
+        status: resStatus,
+        remarks: score.remarks || '',
+        publishedStatus: announce !== false,
+        createdBy: user.id,
+        createdAt: score.enteredAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      db.results.push(newRes);
+    } else {
+      if (existingRes.judge1Mark === undefined || (j1Mark > 0 && existingRes.judge1Mark === 0)) existingRes.judge1Mark = j1Mark;
+      if (existingRes.judge2Mark === undefined || (j2Mark > 0 && existingRes.judge2Mark === 0)) existingRes.judge2Mark = j2Mark;
+      if (existingRes.totalMark === undefined || (score.totalMark > 0 && existingRes.totalMark === 0)) existingRes.totalMark = score.totalMark || (j1Mark + j2Mark);
+      if (existingRes.averageMark === undefined || (calculatedAvg > 0 && existingRes.averageMark === 0)) existingRes.averageMark = calculatedAvg;
     }
   }
 
+  let results = db.results.filter(r => r.competitionId === competitionId && !r.deletedAt);
   if (results.length === 0) {
     return res.status(404).json({ error: 'No results found for this competition.' });
   }
@@ -3588,6 +3663,12 @@ apiRouter.post('/results/announce', authenticate, requireRole([UserRole.SUPER_AD
     r.publishedStatus = shouldAnnounce;
     r.updatedAt = new Date().toISOString();
   });
+
+  if (sheet) {
+    sheet.publishedToResults = shouldAnnounce;
+    sheet.status = JudgmentSheetStatus.COMPLETED;
+    sheet.updatedAt = new Date().toISOString();
+  }
 
   // Calculate ranks so official ranks (1st, 2nd, 3rd) are assigned
   CalculationService.calculateCompetitionRanks(competitionId);

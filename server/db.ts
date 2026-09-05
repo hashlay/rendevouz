@@ -602,10 +602,15 @@ async function syncStateFromMongo(force: boolean = false) {
 let _initialSyncPromise: Promise<void> | null = null;
 
 export async function ensureInitialSync() {
+  if (!isMongoConnected || !db || !db.competitions || db.competitions.length === 0) {
+    _initialSyncPromise = null;
+    mongoConnectedPromise = null;
+    isMongoConnecting = false;
+  }
   if (!_initialSyncPromise) {
     _initialSyncPromise = (async () => {
       await connectToMongo();
-      if (!db || !db.participants || db.participants.length === 0) {
+      if (!db || !db.competitions || db.competitions.length === 0) {
         await syncStateFromMongo(true);
       }
     })();
