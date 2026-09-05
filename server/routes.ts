@@ -3048,6 +3048,173 @@ apiRouter.post('/competitions/:id/register-candidate', authenticate, requireRole
   return res.json({ success: true, message: 'Participant registered to competition successfully', participant: part });
 });
 
+// Direct Register Group Team to Competition
+apiRouter.post('/competitions/:id/register-team', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.RESULT_MANAGER]), async (req, res) => {
+  const db = dbClient.get();
+  const compId = req.params.id;
+  const { memberIds, unitId, teamName } = req.body;
+  const user = (req as any).user as User;
+
+  const comp = (db.competitions || []).find((c: any) => c.id === compId && !c.deletedAt);
+  if (!comp) return res.status(404).json({ error: 'Competition not found' });
+
+  if (comp.participationType !== ParticipationType.GROUP) {
+    return res.status(400).json({ error: 'Selected competition is not a group event.' });
+  }
+
+  const maxCapacity = Number(comp.teamSize) || 2;
+  const minCapacity = Math.min(2, maxCapacity);
+
+  if (!Array.isArray(memberIds) || memberIds.length < minCapacity || memberIds.length > maxCapacity) {
+    return res.status(400).json({ error: `Team size must be between ${minCapacity} and ${maxCapacity} members for ${comp.name}.` });
+  }
+
+  // Validate all members exist and belong to the same unit
+  const members: Participant[] = [];
+  for (const mid of memberIds) {
+    const p = (db.participants || []).find((part: any) => part.id === mid && !part.deletedAt);
+    if (!p) {
+      return res.status(404).json({ error: 'Selected candidate not found or deleted.' });
+    }
+    members.push(p);
+  }
+
+  const resolvedUnitId = unitId || members[0]?.unitId;
+  if (!resolvedUnitId) {
+    return res.status(400).json({ error: 'Unit / House ID is required.' });
+  }
+
+  // Check that all members belong to resolvedUnitId
+  for (const p of members) {
+    const unitObj = (db.units || []).find((u: any) => u.id === resolvedUnitId || u.name === resolvedUnitId);
+    const isUnitMatch = p.unitId === resolvedUnitId || (unitObj && (p.unitId === unitObj.id || p.unitId === unitObj.name));
+    if (!isUnitMatch) {
+      return res.status(400).json({ error: `Candidate ${p.fullName} belongs to a different unit/house.` });
+    }
+  }
+
+  if (!db.teams) db.teams = [];
+
+  // Check if any member is already in an active team for this competition
+  for (const p of members) {
+    const isAlreadyInSameComp = db.teams.some((t: any) =>
+      t.competitionId === compId && t.memberIds && t.memberIds.includes(p.id) && !t.deletedAt
+    );
+    if (isAlreadyInSameComp) {
+      return res.status(400).json({ error: `Candidate ${p.fullName} is already registered in another team for this competition.` });
+    }
+  }
+
+  const serial = db.teams.filter((t: any) => t.competitionId === compId && !t.deletedAt).length + 1;
+  const firstMember = members[0];
+  const unitObj = (db.units || []).find((u: any) => u.id === resolvedUnitId);
+  const finalTeamName = (teamName && teamName.trim())
+    ? teamName.trim()
+    : (firstMember ? `${firstMember.fullName} & Team` : `${unitObj?.name || 'Group'} Team ${serial}`);
+
+  const newTeam: Team = {
+    id: `team_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    teamNumber: `T-${String(db.teams.length + 1).padStart(3, '0')}`,
+    teamName: finalTeamName,
+    unitId: resolvedUnitId,
+    categoryId: comp.categoryId,
+    competitionId: compId,
+    memberIds,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  db.teams.push(newTeam);
+
+  // Sync group competition into registrations for each member
+  if (!db.hasOwnProperty('registrations')) (db as any).registrations = [];
+  for (const mid of memberIds) {
+    let reg = (db as any).registrations.find((r: any) => r.participantId === mid && !r.deletedAt);
+    if (!reg) {
+      const p = members.find(m => m.id === mid);
+      reg = {
+        id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        participantId: mid,
+        categoryId: comp.categoryId || p?.selectedCategoryId || p?.categoryId,
+        selectedIndividualCompetitionIds: [],
+        selectedGroupCompetitionIds: [compId],
+        registrationStatus: 'confirmed',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      (db as any).registrations.push(reg);
+    } else {
+      if (!Array.isArray(reg.selectedGroupCompetitionIds)) reg.selectedGroupCompetitionIds = [];
+      if (!reg.selectedGroupCompetitionIds.includes(compId)) {
+        reg.selectedGroupCompetitionIds.push(compId);
+        reg.updatedAt = new Date().toISOString();
+      }
+    }
+  }
+
+  // Auto generate Green Room Assignment
+  if (!db.greenRoomAssignments) db.greenRoomAssignments = [];
+  let gr = db.greenRoomAssignments.find((a: any) => a.competitionId === compId && a.teamId === newTeam.id && !a.deletedAt);
+  if (!gr) {
+    const compAssignments = db.greenRoomAssignments.filter((a: any) => a.competitionId === compId && !a.deletedAt);
+    const nextIndex = compAssignments.length;
+    gr = {
+      id: `gr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      competitionId: compId,
+      categoryId: comp.categoryId,
+      teamId: newTeam.id,
+      codeLetter: indexToCodeLetter(nextIndex),
+      status: GreenRoomStatus.ASSIGNED,
+      generatedBy: user.id,
+      generatedAt: new Date().toISOString()
+    };
+    db.greenRoomAssignments.push(gr);
+  }
+
+  // Auto generate Judgment Sheet if missing
+  if (!db.judgmentSheets) db.judgmentSheets = [];
+  let sheet = db.judgmentSheets.find((s: any) => s.competitionId === compId && !s.deletedAt);
+  if (!sheet) {
+    sheet = {
+      id: `js_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      competitionId: compId,
+      categoryId: comp.categoryId,
+      status: JudgmentSheetStatus.PENDING,
+      maxMarks: db.eventSettings?.maxMarksPerJudge || 100,
+      numJudges: comp.numJudges || db.eventSettings?.numJudges || 2,
+      createdBy: user.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.judgmentSheets.push(sheet);
+  }
+
+  // Auto create empty JudgeScore entry if missing
+  if (!db.judgeScores) db.judgeScores = [];
+  let score = db.judgeScores.find((s: any) => s.judgmentSheetId === sheet.id && s.greenRoomAssignmentId === gr.id);
+  if (!score) {
+    score = {
+      id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${gr.codeLetter}`,
+      judgmentSheetId: sheet.id,
+      competitionId: compId,
+      codeLetter: gr.codeLetter,
+      greenRoomAssignmentId: gr.id,
+      judgeScores: [],
+      totalMark: 0,
+      averageMark: 0,
+      status: JudgeScoreStatus.PARTICIPATED,
+      enteredBy: user.id,
+      enteredAt: new Date().toISOString()
+    };
+    db.judgeScores.push(score);
+  }
+
+  await dbClient.logAudit(user.id, user.username, user.role, 'Direct Register Group Team', 'Team', newTeam.id, resolvedUnitId, undefined, newTeam);
+  await dbClient.save();
+
+  return res.json({ success: true, message: 'Group team registered to competition successfully', team: newTeam });
+});
+
 // Update Result
 apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Trophy, ClipboardCheck, Edit3, Trash2, CheckCircle2, 
-  RefreshCw, AlertTriangle, ChevronRight, BookOpen, ToggleLeft, CheckCircle, Settings, CheckSquare, ShieldAlert, X,
-  Plus, UserPlus, Search
+  RefreshCw, AlertTriangle, ChevronRight, BookOpen, ToggleLeft, CheckCircle, Settings, CheckSquare, Square, ShieldAlert, X,
+  Plus, UserPlus, Search, Users, Users2
 } from 'lucide-react';
 import { User, UserRole, Category, Competition, Unit, ResultStatus, ParticipationType, Result, Participant } from '../types';
 
@@ -37,6 +37,12 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
   const [directCategoryFilter, setDirectCategoryFilter] = useState<'current' | 'all'>('current');
   const [directGenderFilter, setDirectGenderFilter] = useState<'all' | 'male' | 'female'>('all');
   const [quickRegisteringId, setQuickRegisteringId] = useState<string | null>(null);
+
+  // Group direct registration state
+  const [selectedGroupUnitId, setSelectedGroupUnitId] = useState<string>('');
+  const [selectedGroupMemberIds, setSelectedGroupMemberIds] = useState<string[]>([]);
+  const [customTeamName, setCustomTeamName] = useState<string>('');
+  const [registeringTeam, setRegisteringTeam] = useState<boolean>(false);
 
   // Entered/Published results for selected event
   const [savedResults, setSavedResults] = useState<any[]>([]);
@@ -270,7 +276,11 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
           const teamData = await teamRes.json();
           if (!teamRes.ok) throw new Error('Failed to fetch teams');
           setCandidatesList(teamData);
-          setShowDirectPicker(false);
+          if (teamData.length === 0) {
+            setShowDirectPicker(true);
+          } else {
+            setShowDirectPicker(false);
+          }
         }
       } catch (e) {
         console.error(e);
@@ -282,6 +292,16 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
     fetchEventData();
   }, [selectedCompId]);
 
+  useEffect(() => {
+    setSelectedGroupMemberIds([]);
+    setSelectedGroupUnitId('');
+    setCustomTeamName('');
+  }, [selectedCompId]);
+
+  const isGroupComp = selectedComp?.participationType === ParticipationType.GROUP;
+  const maxTeamSize = isGroupComp ? (Number(selectedComp?.teamSize) || 2) : 1;
+  const minTeamSize = isGroupComp ? Math.min(2, maxTeamSize) : 1;
+
   // Memoized eligible participants for direct selection
   const eligibleParticipants = useMemo(() => {
     let list = participants.filter(p => !p.deletedAt);
@@ -290,6 +310,10 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
     }
     if (directGenderFilter !== 'all') {
       list = list.filter(p => (p.gender || '').toLowerCase() === directGenderFilter);
+    }
+    // For group competition: Filter by selected unit if chosen
+    if (isGroupComp && selectedGroupUnitId) {
+      list = list.filter(p => p.unitId === selectedGroupUnitId);
     }
     if (directSearch.trim()) {
       const q = directSearch.trim().toLowerCase();
@@ -302,7 +326,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
       });
     }
     return list;
-  }, [participants, directCategoryFilter, selectedCatId, directGenderFilter, directSearch, units]);
+  }, [participants, directCategoryFilter, selectedCatId, directGenderFilter, directSearch, units, isGroupComp, selectedGroupUnitId]);
 
   // Quick Register without immediately entering marks
   const handleQuickRegister = async (participant: Participant) => {
@@ -332,6 +356,105 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
   // Direct Enter Result (registers & opens mark entry drawer)
   const handleDirectEnterResult = (participant: Participant) => {
     handleOpenEntry(participant);
+  };
+
+  // Group team candidate toggle
+  const handleToggleGroupMember = (part: Participant) => {
+    if (selectedGroupMemberIds.includes(part.id)) {
+      setSelectedGroupMemberIds(prev => prev.filter(id => id !== part.id));
+      return;
+    }
+
+    // Auto-detect unit if not explicitly selected
+    if (!selectedGroupUnitId) {
+      setSelectedGroupUnitId(part.unitId);
+    } else if (part.unitId !== selectedGroupUnitId) {
+      const activeUnit = units.find(u => u.id === selectedGroupUnitId)?.name || 'the selected unit';
+      const partUnit = units.find(u => u.id === part.unitId)?.name || 'a different unit';
+      setToast({
+        type: 'error',
+        text: `All team members must belong to the same ${entityLabel}. (Currently: ${activeUnit}, ${part.fullName} is from ${partUnit})`
+      });
+      return;
+    }
+
+    if (selectedGroupMemberIds.length >= maxTeamSize) {
+      setToast({
+        type: 'error',
+        text: `Team size limit reached! This competition allows a maximum of ${maxTeamSize} members.`
+      });
+      return;
+    }
+
+    setSelectedGroupMemberIds(prev => [...prev, part.id]);
+  };
+
+  // Direct register group team
+  const handleRegisterGroupTeam = async (andEnterResult: boolean = false) => {
+    if (!selectedCompId) return;
+
+    if (selectedGroupMemberIds.length < minTeamSize) {
+      setToast({
+        type: 'error',
+        text: `Please select at least ${minTeamSize} members to form a team (maximum ${maxTeamSize}).`
+      });
+      return;
+    }
+
+    if (selectedGroupMemberIds.length > maxTeamSize) {
+      setToast({
+        type: 'error',
+        text: `Team size cannot exceed ${maxTeamSize} members for ${selectedComp?.name}.`
+      });
+      return;
+    }
+
+    const firstMember = participants.find(p => p.id === selectedGroupMemberIds[0]);
+    const finalUnitId = selectedGroupUnitId || firstMember?.unitId;
+
+    if (!finalUnitId) {
+      setToast({ type: 'error', text: `Please select a ${entityLabel} for the team.` });
+      return;
+    }
+
+    setRegisteringTeam(true);
+    try {
+      const res = await fetch(`/api/competitions/${selectedCompId}/register-team`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          memberIds: selectedGroupMemberIds,
+          unitId: finalUnitId,
+          teamName: customTeamName.trim() || undefined
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to register team');
+
+      const createdTeam = data.team;
+      setCandidatesList(prev => prev.some(c => c.id === createdTeam.id) ? prev : [...prev, createdTeam]);
+
+      // Reset selection state
+      setSelectedGroupMemberIds([]);
+      setCustomTeamName('');
+
+      setToast({
+        type: 'success',
+        text: `✓ Registered "${createdTeam.teamName}" with ${selectedGroupMemberIds.length} members!`
+      });
+
+      if (andEnterResult) {
+        handleOpenEntry(createdTeam);
+      }
+    } catch (err: any) {
+      setToast({ type: 'error', text: err.message || 'Failed to register group team' });
+    } finally {
+      setRegisteringTeam(false);
+    }
   };
 
   // Open Marks entry card
@@ -692,212 +815,561 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
             </div>
             
             <div className="flex items-center gap-2">
-              {selectedComp?.participationType === ParticipationType.INDIVIDUAL && (
-                <button
-                  type="button"
-                  onClick={() => setShowDirectPicker(!showDirectPicker)}
-                  className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 shadow-sm ${
-                    showDirectPicker 
-                      ? 'bg-slate-200 text-slate-800 hover:bg-slate-300' 
-                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  }`}
-                >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  <span>{showDirectPicker ? 'Close Candidate Picker' : '+ Direct Register Candidate'}</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowDirectPicker(!showDirectPicker)}
+                className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                  showDirectPicker 
+                    ? 'bg-slate-200 text-slate-800 hover:bg-slate-300' 
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
+              >
+                {isGroupComp ? <Users className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
+                <span>
+                  {showDirectPicker 
+                    ? (isGroupComp ? 'Close Team Builder' : 'Close Candidate Picker') 
+                    : (isGroupComp ? '+ Direct Register Group Team' : '+ Direct Register Candidate')}
+                </span>
+              </button>
               <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] px-3 py-1 rounded-xl font-mono font-semibold">
-                Candidates Registered: {candidatesList.length}
+                {isGroupComp ? 'Teams Registered:' : 'Candidates Registered:'} {candidatesList.length}
               </div>
             </div>
           </div>
 
-          {/* Direct Candidate Selection Panel (Individual Events Only) */}
-          {selectedComp?.participationType === ParticipationType.INDIVIDUAL && showDirectPicker && (
-            <div className="bg-emerald-50/40 border-b border-emerald-200/60 p-5 space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <UserPlus className="h-4 w-4 text-emerald-700" />
-                    <h5 className="font-bold text-slate-800 text-sm">Direct Candidate Entry & Registration</h5>
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded font-mono">
-                      Auto-Syncs Sheets & Portal
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {candidatesList.length === 0
-                      ? 'This event has no pre-registered candidates. Search and select any candidate below to directly register them and enter their marks (1st, 2nd, 3rd place). Green room sheet, judgment sheet, and student portal are automatically updated.'
-                      : 'Search and select any additional participant to directly register them and enter their marks.'}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowDirectPicker(false)}
-                  className="text-xs text-slate-500 hover:text-slate-800 font-semibold px-2.5 py-1 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
-                >
-                  ✕ Close Picker
-                </button>
-              </div>
-
-              {/* Search & Category Filter */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={directSearch}
-                    onChange={(e) => setDirectSearch(e.target.value)}
-                    placeholder="Search by participant name, chest number, class, or team..."
-                    className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
-                  />
-                  {directSearch && (
-                    <button onClick={() => setDirectSearch('')} className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* Gender Filter (All / Male / Female) */}
-                  <div className="inline-flex items-center bg-white border border-slate-200 p-0.5 rounded-xl text-xs font-semibold shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => setDirectGenderFilter('all')}
-                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                        directGenderFilter === 'all'
-                          ? 'bg-slate-800 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      All Genders
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDirectGenderFilter('male')}
-                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
-                        directGenderFilter === 'male'
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-blue-700'
-                      }`}
-                    >
-                      <span>Male</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDirectGenderFilter('female')}
-                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
-                        directGenderFilter === 'female'
-                          ? 'bg-rose-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:text-rose-700'
-                      }`}
-                    >
-                      <span>Female</span>
-                    </button>
+          {/* Direct Selection Panel: Group Team Builder OR Individual Candidate Picker */}
+          {showDirectPicker && (
+            isGroupComp ? (
+              /* GROUP TEAM BUILDER PANEL */
+              <div className="bg-emerald-50/40 border-b border-emerald-200/60 p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-emerald-700" />
+                      <h5 className="font-bold text-slate-800 text-sm">Direct Group Team Registration & Result Entry</h5>
+                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded font-mono">
+                        Team Size: {minTeamSize} - {maxTeamSize} Members
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {candidatesList.length === 0
+                        ? `This group event has no pre-registered teams. Select between ${minTeamSize} and ${maxTeamSize} candidates from the same ${entityLabel} below to form an official team and directly enter scores (1st, 2nd, 3rd place).`
+                        : `Select candidates from the same ${entityLabel} below to register a new team and enter results.`}
+                    </p>
                   </div>
 
-                  <select
-                    value={directCategoryFilter}
-                    onChange={(e) => setDirectCategoryFilter(e.target.value as any)}
-                    className="bg-white border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 outline-none font-medium"
+                  <button
+                    type="button"
+                    onClick={() => setShowDirectPicker(false)}
+                    className="text-xs text-slate-500 hover:text-slate-800 font-semibold px-2.5 py-1 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
                   >
-                    <option value="current">Current Category ({categories.find(c => c.id === selectedCatId)?.name || 'Event Category'})</option>
-                    <option value="all">All Categories ({participants.filter(p => !p.deletedAt).length} total)</option>
-                  </select>
+                    ✕ Close Team Builder
+                  </button>
                 </div>
-              </div>
 
-              {/* Candidate Results Grid/List */}
-              <div className="max-h-80 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-100 bg-white rounded-2xl border border-slate-200 p-2.5 shadow-inner">
-                {eligibleParticipants.length > 0 ? (
-                  eligibleParticipants.map(part => {
-                    const isAlreadyInList = candidatesList.some(c => c.id === part.id);
-                    const hasSavedResult = savedResults.some(r => r.participantId === part.id);
-                    const partUnit = units.find(u => u.id === part.unitId);
-                    const partCat = categories.find(c => c.id === (part.selectedCategoryId || part.categoryId));
-                    const isRegistering = quickRegisteringId === part.id;
+                {/* Team Roster Assembly Box */}
+                <div className="bg-white border-2 border-emerald-500/30 rounded-2xl p-4 shadow-sm space-y-3">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                        Team Formation Roster:
+                      </span>
+                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full font-mono ${
+                        selectedGroupMemberIds.length >= minTeamSize && selectedGroupMemberIds.length <= maxTeamSize
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-amber-100 text-amber-800 border border-amber-300'
+                      }`}>
+                        {selectedGroupMemberIds.length} / {maxTeamSize} Members Selected {selectedGroupMemberIds.length < minTeamSize && `(Min ${minTeamSize})`}
+                      </span>
+                      {selectedGroupUnitId && (
+                        <span className="text-xs bg-slate-100 text-slate-700 font-bold px-2.5 py-0.5 rounded-full border border-slate-200">
+                          {entityLabel}: {units.find(u => u.id === selectedGroupUnitId)?.name || 'Selected'}
+                        </span>
+                      )}
+                    </div>
 
-                    return (
-                      <div key={part.id} className="pt-2 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 hover:bg-slate-50/80 rounded-xl transition-colors">
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 shrink-0">
-                            {part.profilePhoto || part.chestNumber || '—'}
-                          </span>
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-slate-800 text-xs">{part.fullName}</span>
-                              {part.gender && (
-                                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border capitalize ${
-                                  part.gender.toLowerCase() === 'female'
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                    : 'bg-blue-50 text-blue-700 border-blue-200'
-                                }`}>
-                                  {part.gender}
-                                </span>
-                              )}
-                              {part.candidateClass && (
-                                <span className="text-[10px] bg-slate-100 text-slate-700 font-mono font-bold px-1.5 py-0.5 rounded border border-slate-200">
-                                  Class: {part.candidateClass}
-                                </span>
-                              )}
-                              {isAlreadyInList && (
-                                <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded font-mono flex items-center gap-0.5">
-                                  <CheckCircle2 className="h-3 w-3" /> Registered
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono mt-0.5">
-                              <span>{entityLabel}: {partUnit?.name || 'Unknown'}</span>
-                              <span>•</span>
-                              <span>Category: {partCat?.name || 'General'}</span>
-                            </div>
-                          </div>
-                        </div>
+                    {/* Team Action Buttons */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {selectedGroupMemberIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedGroupMemberIds([]);
+                            setCustomTeamName('');
+                          }}
+                          className="px-2.5 py-1.5 text-xs text-slate-500 hover:text-rose-600 font-semibold hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                        >
+                          Clear Selection
+                        </button>
+                      )}
 
-                        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                          {isAlreadyInList ? (
+                      <button
+                        type="button"
+                        onClick={() => handleRegisterGroupTeam(false)}
+                        disabled={registeringTeam || selectedGroupMemberIds.length < minTeamSize}
+                        className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        title="Add this team to registry without entering marks yet"
+                      >
+                        {registeringTeam ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                        <span>Quick Register Team</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRegisterGroupTeam(true)}
+                        disabled={registeringTeam || selectedGroupMemberIds.length < minTeamSize}
+                        className="flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm px-4 py-1.5 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        title="Directly register this team and open judges score sheet"
+                      >
+                        <Trophy className="h-3.5 w-3.5" />
+                        <span>Enter Result & Register</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Selected Member Chips & Optional Team Name Input */}
+                  <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                    <div className="flex-1 w-full flex items-center gap-2 flex-wrap min-h-[36px]">
+                      {selectedGroupMemberIds.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic">
+                          No members selected yet. Click candidates from the list below to add them to this team.
+                        </p>
+                      ) : (
+                        selectedGroupMemberIds.map(mid => {
+                          const part = participants.find(p => p.id === mid);
+                          return (
+                            <span
+                              key={mid}
+                              className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-900 border border-emerald-200 px-2.5 py-1 rounded-xl text-xs font-medium shadow-2xs"
+                            >
+                              <span className="font-mono font-bold text-emerald-700 bg-white px-1.5 py-0.5 rounded border border-emerald-100 text-[10px]">
+                                {part?.profilePhoto || part?.chestNumber || '—'}
+                              </span>
+                              <span className="font-bold text-xs">{part?.fullName || 'Candidate'}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleGroupMember(part!)}
+                                className="text-emerald-700 hover:text-rose-600 ml-0.5 font-bold hover:bg-white rounded-full p-0.5"
+                                title="Remove member"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    <div className="w-full sm:w-64 shrink-0">
+                      <input
+                        type="text"
+                        placeholder="Custom Team Name (Optional)..."
+                        value={customTeamName}
+                        onChange={(e) => setCustomTeamName(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filters Row */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Entity / Unit Filter */}
+                  <div className="sm:w-56">
+                    <select
+                      value={selectedGroupUnitId}
+                      onChange={(e) => {
+                        setSelectedGroupUnitId(e.target.value);
+                        setSelectedGroupMemberIds([]);
+                      }}
+                      className="w-full bg-white border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 outline-none font-medium"
+                    >
+                      <option value="">All {entityLabel}s (Any)</option>
+                      {units.map(u => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Search Box */}
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={directSearch}
+                      onChange={(e) => setDirectSearch(e.target.value)}
+                      placeholder={`Search member by name, chest number, class, ${entityLabel}...`}
+                      className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                    {directSearch && (
+                      <button onClick={() => setDirectSearch('')} className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Gender Filter */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="inline-flex items-center bg-white border border-slate-200 p-0.5 rounded-xl text-xs font-semibold shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setDirectGenderFilter('all')}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                          directGenderFilter === 'all'
+                            ? 'bg-slate-800 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        All Genders
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDirectGenderFilter('male')}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
+                          directGenderFilter === 'male'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-blue-700'
+                        }`}
+                      >
+                        <span>Male</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDirectGenderFilter('female')}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
+                          directGenderFilter === 'female'
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-rose-700'
+                        }`}
+                      >
+                        <span>Female</span>
+                      </button>
+                    </div>
+
+                    {/* Category Filter */}
+                    <select
+                      value={directCategoryFilter}
+                      onChange={(e) => setDirectCategoryFilter(e.target.value as any)}
+                      className="bg-white border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 outline-none font-medium"
+                    >
+                      <option value="current">Current Category ({categories.find(c => c.id === selectedCatId)?.name || 'Event Category'})</option>
+                      <option value="all">All Categories ({participants.filter(p => !p.deletedAt).length} total)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Candidate Member Picker List */}
+                <div className="max-h-80 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-100 bg-white rounded-2xl border border-slate-200 p-2.5 shadow-inner">
+                  {eligibleParticipants.length > 0 ? (
+                    eligibleParticipants.map(part => {
+                      const isSelectedInDraft = selectedGroupMemberIds.includes(part.id);
+                      const isAlreadyInAnotherTeam = candidatesList.some((t: any) =>
+                        t.memberIds && Array.isArray(t.memberIds) && t.memberIds.includes(part.id)
+                      );
+                      const isDifferentUnit = selectedGroupUnitId && part.unitId !== selectedGroupUnitId;
+                      const isTeamFull = !isSelectedInDraft && selectedGroupMemberIds.length >= maxTeamSize;
+
+                      const partUnit = units.find(u => u.id === part.unitId);
+                      const partCat = categories.find(c => c.id === (part.selectedCategoryId || part.categoryId));
+
+                      return (
+                        <div
+                          key={part.id}
+                          onClick={() => {
+                            if (!isAlreadyInAnotherTeam && !isDifferentUnit && (!isTeamFull || isSelectedInDraft)) {
+                              handleToggleGroupMember(part);
+                            }
+                          }}
+                          className={`pt-2 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 rounded-xl transition-all ${
+                            isSelectedInDraft
+                              ? 'bg-emerald-50/90 border border-emerald-300'
+                              : isAlreadyInAnotherTeam || isDifferentUnit || isTeamFull
+                              ? 'opacity-60 bg-slate-50/50 cursor-not-allowed'
+                              : 'hover:bg-slate-50/80 cursor-pointer'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
                             <button
                               type="button"
-                              onClick={() => handleOpenEntry(part)}
-                              className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl transition-colors shadow-sm"
+                              disabled={isAlreadyInAnotherTeam || isDifferentUnit || (isTeamFull && !isSelectedInDraft)}
+                              className="shrink-0"
                             >
-                              <Edit3 className="h-3.5 w-3.5" />
-                              <span>{hasSavedResult ? 'Edit Score' : 'Enter Score'}</span>
+                              {isSelectedInDraft ? (
+                                <CheckSquare className="h-5 w-5 text-emerald-600" />
+                              ) : (
+                                <Square className="h-5 w-5 text-slate-300" />
+                              )}
                             </button>
-                          ) : (
-                            <>
+
+                            <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 shrink-0">
+                              {part.profilePhoto || part.chestNumber || '—'}
+                            </span>
+
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`font-bold text-xs ${isSelectedInDraft ? 'text-emerald-900 font-extrabold' : 'text-slate-800'}`}>
+                                  {part.fullName}
+                                </span>
+                                {part.gender && (
+                                  <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border capitalize ${
+                                    part.gender.toLowerCase() === 'female'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-blue-50 text-blue-700 border-blue-200'
+                                  }`}>
+                                    {part.gender}
+                                  </span>
+                                )}
+                                {part.candidateClass && (
+                                  <span className="text-[10px] bg-slate-100 text-slate-700 font-mono font-bold px-1.5 py-0.5 rounded border border-slate-200">
+                                    Class: {part.candidateClass}
+                                  </span>
+                                )}
+                                {isAlreadyInAnotherTeam && (
+                                  <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded font-mono">
+                                    Already in Registered Team
+                                  </span>
+                                )}
+                                {isDifferentUnit && (
+                                  <span className="text-[9px] bg-slate-200 text-slate-600 font-bold px-1.5 py-0.5 rounded font-mono">
+                                    Different {entityLabel}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono mt-0.5">
+                                <span>{entityLabel}: {partUnit?.name || 'Unknown'}</span>
+                                <span>•</span>
+                                <span>Category: {partCat?.name || 'General'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                            {isSelectedInDraft ? (
+                              <span className="text-xs font-bold text-emerald-700 bg-white border border-emerald-300 px-3 py-1 rounded-xl shadow-2xs">
+                                ✓ Added to Team
+                              </span>
+                            ) : isAlreadyInAnotherTeam ? (
+                              <span className="text-[11px] font-semibold text-slate-400">
+                                Unavailable
+                              </span>
+                            ) : isDifferentUnit ? (
+                              <span className="text-[11px] font-semibold text-slate-400">
+                                Unit Mismatch
+                              </span>
+                            ) : isTeamFull ? (
+                              <span className="text-[11px] font-semibold text-slate-400">
+                                Team Full (Max {maxTeamSize})
+                              </span>
+                            ) : (
                               <button
                                 type="button"
-                                onClick={() => handleQuickRegister(part)}
-                                disabled={isRegistering}
-                                className="flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-2.5 py-1.5 rounded-xl transition-colors"
-                                title="Add to candidate registry without entering marks yet"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleGroupMember(part);
+                                }}
+                                className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-xl transition-colors cursor-pointer"
                               >
-                                {isRegistering ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                                <span>Quick Register</span>
+                                + Add to Team
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDirectEnterResult(part)}
-                                className="flex items-center gap-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-xl shadow-sm transition-colors"
-                                title="Directly enter marks and register this candidate"
-                              >
-                                <Trophy className="h-3.5 w-3.5" />
-                                <span>Enter Result & Register</span>
-                              </button>
-                            </>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="p-6 text-center text-xs text-slate-400 font-mono">
-                    No {directGenderFilter !== 'all' ? `${directGenderFilter} ` : ''}participants found {directSearch ? `matching "${directSearch}"` : 'in this category'}
-                  </div>
-                )}
+                      );
+                    })
+                  ) : (
+                    <div className="p-6 text-center text-xs text-slate-400 font-mono">
+                      No candidates found {selectedGroupUnitId ? `in this ${entityLabel}` : ''} {directSearch ? `matching "${directSearch}"` : ''}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              /* INDIVIDUAL CANDIDATE SELECTION PANEL */
+              <div className="bg-emerald-50/40 border-b border-emerald-200/60 p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <UserPlus className="h-4 w-4 text-emerald-700" />
+                      <h5 className="font-bold text-slate-800 text-sm">Direct Candidate Entry & Registration</h5>
+                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded font-mono">
+                        Auto-Syncs Sheets & Portal
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {candidatesList.length === 0
+                        ? 'This event has no pre-registered candidates. Search and select any candidate below to directly register them and enter their marks (1st, 2nd, 3rd place). Green room sheet, judgment sheet, and student portal are automatically updated.'
+                        : 'Search and select any additional participant to directly register them and enter their marks.'}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowDirectPicker(false)}
+                    className="text-xs text-slate-500 hover:text-slate-800 font-semibold px-2.5 py-1 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
+                  >
+                    ✕ Close Picker
+                  </button>
+                </div>
+
+                {/* Search & Category Filter */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={directSearch}
+                      onChange={(e) => setDirectSearch(e.target.value)}
+                      placeholder="Search by participant name, chest number, class, or team..."
+                      className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                    {directSearch && (
+                      <button onClick={() => setDirectSearch('')} className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Gender Filter (All / Male / Female) */}
+                    <div className="inline-flex items-center bg-white border border-slate-200 p-0.5 rounded-xl text-xs font-semibold shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setDirectGenderFilter('all')}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                          directGenderFilter === 'all'
+                            ? 'bg-slate-800 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        All Genders
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDirectGenderFilter('male')}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
+                          directGenderFilter === 'male'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-blue-700'
+                        }`}
+                      >
+                        <span>Male</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDirectGenderFilter('female')}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 ${
+                          directGenderFilter === 'female'
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-rose-700'
+                        }`}
+                      >
+                        <span>Female</span>
+                      </button>
+                    </div>
+
+                    <select
+                      value={directCategoryFilter}
+                      onChange={(e) => setDirectCategoryFilter(e.target.value as any)}
+                      className="bg-white border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 outline-none font-medium"
+                    >
+                      <option value="current">Current Category ({categories.find(c => c.id === selectedCatId)?.name || 'Event Category'})</option>
+                      <option value="all">All Categories ({participants.filter(p => !p.deletedAt).length} total)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Candidate Results Grid/List */}
+                <div className="max-h-80 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-100 bg-white rounded-2xl border border-slate-200 p-2.5 shadow-inner">
+                  {eligibleParticipants.length > 0 ? (
+                    eligibleParticipants.map(part => {
+                      const isAlreadyInList = candidatesList.some(c => c.id === part.id);
+                      const hasSavedResult = savedResults.some(r => r.participantId === part.id);
+                      const partUnit = units.find(u => u.id === part.unitId);
+                      const partCat = categories.find(c => c.id === (part.selectedCategoryId || part.categoryId));
+                      const isRegistering = quickRegisteringId === part.id;
+
+                      return (
+                        <div key={part.id} className="pt-2 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 hover:bg-slate-50/80 rounded-xl transition-colors">
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 shrink-0">
+                              {part.profilePhoto || part.chestNumber || '—'}
+                            </span>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-slate-800 text-xs">{part.fullName}</span>
+                                {part.gender && (
+                                  <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border capitalize ${
+                                    part.gender.toLowerCase() === 'female'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-blue-50 text-blue-700 border-blue-200'
+                                  }`}>
+                                    {part.gender}
+                                  </span>
+                                )}
+                                {part.candidateClass && (
+                                  <span className="text-[10px] bg-slate-100 text-slate-700 font-mono font-bold px-1.5 py-0.5 rounded border border-slate-200">
+                                    Class: {part.candidateClass}
+                                  </span>
+                                )}
+                                {isAlreadyInList && (
+                                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded font-mono flex items-center gap-0.5">
+                                    <CheckCircle2 className="h-3 w-3" /> Registered
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono mt-0.5">
+                                <span>{entityLabel}: {partUnit?.name || 'Unknown'}</span>
+                                <span>•</span>
+                                <span>Category: {partCat?.name || 'General'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                            {isAlreadyInList ? (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEntry(part)}
+                                className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl transition-colors shadow-sm"
+                              >
+                                <Edit3 className="h-3.5 w-3.5" />
+                                <span>{hasSavedResult ? 'Edit Score' : 'Enter Score'}</span>
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickRegister(part)}
+                                  disabled={isRegistering}
+                                  className="flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-2.5 py-1.5 rounded-xl transition-colors"
+                                  title="Add to candidate registry without entering marks yet"
+                                >
+                                  {isRegistering ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                                  <span>Quick Register</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDirectEnterResult(part)}
+                                  className="flex items-center gap-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-xl shadow-sm transition-colors"
+                                  title="Directly enter marks and register this candidate"
+                                >
+                                  <Trophy className="h-3.5 w-3.5" />
+                                  <span>Enter Result & Register</span>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-6 text-center text-xs text-slate-400 font-mono">
+                      No {directGenderFilter !== 'all' ? `${directGenderFilter} ` : ''}participants found {directSearch ? `matching "${directSearch}"` : 'in this category'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
           )}
 
           {candidatesLoading ? (
@@ -985,21 +1457,27 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
                 })
               ) : (
                 <div className="p-8 text-center text-slate-400 text-xs font-mono bg-slate-50/50 rounded-2xl m-4 border border-dashed border-slate-200">
-                  <UserPlus className="h-6 w-6 text-slate-300 mx-auto mb-2" />
-                  <p className="font-semibold text-slate-600">No participants currently registered for this event.</p>
+                  {isGroupComp ? (
+                    <Users className="h-6 w-6 text-slate-300 mx-auto mb-2" />
+                  ) : (
+                    <UserPlus className="h-6 w-6 text-slate-300 mx-auto mb-2" />
+                  )}
+                  <p className="font-semibold text-slate-600">
+                    {isGroupComp ? 'No group teams currently registered for this event.' : 'No participants currently registered for this event.'}
+                  </p>
                   <p className="text-[11px] text-slate-400 mt-1">
                     {showDirectPicker 
-                      ? 'Use the Candidate Picker above to select participants and directly enter results (1st, 2nd, 3rd place).'
-                      : 'Click below to open the Candidate Picker and directly register participants.'}
+                      ? (isGroupComp ? 'Use the Team Builder above to select members and directly enter results (1st, 2nd, 3rd place).' : 'Use the Candidate Picker above to select participants and directly enter results (1st, 2nd, 3rd place).')
+                      : (isGroupComp ? 'Click below to open the Team Builder and directly register group teams.' : 'Click below to open the Candidate Picker and directly register participants.')}
                   </p>
-                  {!showDirectPicker && selectedComp?.participationType === ParticipationType.INDIVIDUAL && (
+                  {!showDirectPicker && (
                     <button
                       type="button"
                       onClick={() => setShowDirectPicker(true)}
                       className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all cursor-pointer"
                     >
-                      <UserPlus className="h-3.5 w-3.5" />
-                      <span>+ Open Candidate Picker</span>
+                      {isGroupComp ? <Users className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
+                      <span>{isGroupComp ? '+ Open Team Builder' : '+ Open Candidate Picker'}</span>
                     </button>
                   )}
                 </div>
