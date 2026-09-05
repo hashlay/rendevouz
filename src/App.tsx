@@ -38,17 +38,15 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [activeTab, setActiveTab] = useState('dashboard');
-  
-  const [eventSettings, setEventSettings] = useState<any>(() => {
-    try {
-      const cached = localStorage.getItem('eventSettings_cache');
-      if (cached) return JSON.parse(cached);
-    } catch (e) {
-      console.error('Error parsing cached settings:', e);
-    }
-    return null;
-  });
+  const [eventSettings, setEventSettings] = useState<any>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Clear stale heavy cache from localStorage once on boot
+  useEffect(() => {
+    try {
+      localStorage.removeItem('eventSettings_cache');
+    } catch (_) {}
+  }, []);
 
   // Audit Logs drawer states
   const [showLogs, setShowLogs] = useState(false);
@@ -122,15 +120,9 @@ export default function App() {
     try {
       const res = await fetch(`/api/settings?t=${Date.now()}`);
       const data = await res.json();
-
       setEventSettings(data);
-      try {
-        localStorage.setItem('eventSettings_cache', JSON.stringify(data));
-      } catch (e) {
-        console.warn('Could not cache eventSettings to localStorage (quota exceeded):', e);
-      }
     } catch (e) {
-      console.error(e);
+      console.error('Failed to fetch event settings:', e);
     }
   };
 

@@ -376,9 +376,11 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   const [selectedThemeIndex, setSelectedThemeIndex] = useState<number>(0);
   const [categories, setCategories] = useState<any[]>([]);
 
-  // Sync state when eventSettings.posterTemplateConfig updates or arrives from API
+  const isInitialSyncRef = useRef(true);
+
+  // Sync state when eventSettings arrives initially if not yet fetched
   useEffect(() => {
-    if (eventSettings?.posterTemplateConfig) {
+    if (isInitialSyncRef.current && eventSettings?.posterTemplateConfig) {
       const cfg = eventSettings.posterTemplateConfig;
       if (Array.isArray(cfg.customThemes) && cfg.customThemes.length > 0) {
         setCustomThemes(cfg.customThemes);
@@ -393,7 +395,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   }, [eventSettings?.posterTemplateConfig]);
 
   useEffect(() => {
-    fetch('/api/settings?t=' + Date.now())
+    fetch('/api/settings?t=' + Date.now(), { cache: 'no-store' })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.posterTemplateConfig) {
@@ -407,6 +409,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
           if (cfg.themeConfigs && typeof cfg.themeConfigs === 'object') {
             setThemeConfigs(cfg.themeConfigs);
           }
+          isInitialSyncRef.current = false;
         }
       })
       .catch(err => console.error('Failed to load settings in PosterSettingsView:', err));
