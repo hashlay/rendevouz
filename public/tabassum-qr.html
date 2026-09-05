@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Official Results QR Code - Tabassum</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at 50% 0%, #0f172a, #020617);
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 520px;
+      width: 100%;
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 28px;
+      padding: 2.25rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      text-align: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      margin-bottom: 1rem;
+    }
+    .badge .dot {
+      width: 6px;
+      height: 6px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p.subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 1.5rem;
+    }
+    .qr-card {
+      background: #ffffff;
+      padding: 1.25rem;
+      border-radius: 24px;
+      box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.3);
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      border: 4px solid #ffffff;
+    }
+    .qr-card img {
+      width: 280px;
+      height: 280px;
+      display: block;
+      border-radius: 12px;
+    }
+    .url-box {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+    .url-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #38bdf8;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .copy-btn {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .copy-btn:hover {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #10b981;
+      color: #ffffff;
+      box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+    }
+    .btn-primary:hover {
+      background: #059669;
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #f8fafc;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.14);
+      transform: translateY(-1px);
+    }
+    .btn-full {
+      grid-column: span 2;
+    }
+    .info-list {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 14px;
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+    .info-list li {
+      margin-left: 1.2rem;
+      margin-bottom: 4px;
+    }
+    .info-list li:last-child {
+      margin-bottom: 0;
+    }
+    .info-list strong {
+      color: #e2e8f0;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+        color: #000000;
+        padding: 0;
+      }
+      .container {
+        border: none;
+        box-shadow: none;
+        background: #ffffff;
+        padding: 0;
+        max-width: 100%;
+      }
+      .badge, .url-box, .actions, .info-list {
+        display: none !important;
+      }
+      h1 {
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+      p.subtitle {
+        color: #333333 !important;
+        font-size: 16px;
+      }
+      .qr-card {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        margin-top: 2rem;
+      }
+      .qr-card img {
+        width: 380px;
+        height: 380px;
+      }
+      .print-url {
+        display: block !important;
+        margin-top: 1.5rem;
+        font-family: monospace;
+        font-size: 18px;
+        font-weight: bold;
+        color: #000000;
+      }
+    }
+    .print-url {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="badge">
+      <span class="dot"></span>
+      Permanent Static QR &bull; Unlimited Scans
+    </div>
+
+    <h1>Scan for Live Results</h1>
+    <p class="subtitle">Direct link to Tabassum Festival Official Results Portal</p>
+
+    <div class="qr-card">
+      <img src="/tabassum-results-qr.png" alt="Tabassum Results QR Code" id="qrImg">
+    </div>
+
+    <div class="print-url">
+      https://tabassum.hashlay.in/results
+    </div>
+
+    <div class="url-box">
+      <span class="url-text" id="urlText">https://tabassum.hashlay.in/results</span>
+      <button class="copy-btn" onclick="copyUrl()">Copy URL</button>
+    </div>
+
+    <div class="actions">
+      <a href="/tabassum-results-qr.png" download="tabassum-results-qr.png" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download PNG (2100px)
+      </a>
+      <a href="/tabassum-results-qr.svg" download="tabassum-results-qr.svg" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+        Vector SVG
+      </a>
+      <button onclick="window.print()" class="btn btn-secondary btn-full">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print Poster / Flyer Sheet
+      </button>
+    </div>
+
+    <ul class="info-list">
+      <li><strong>Permanent Lifetime Validity:</strong> Encodes the direct URL directly into the matrix with zero middleman or URL shorteners.</li>
+      <li><strong>No Scan Limits:</strong> Works for hundreds of thousands of concurrent users simultaneously.</li>
+      <li><strong>Universal Compatibility:</strong> Scans instantly on iOS Camera, Google Lens, Samsung Camera, WhatsApp, and Android.</li>
+    </ul>
+  </div>
+
+  <script>
+    function copyUrl() {
+      const url = document.getElementById('urlText').textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.style.background = '#10b981';
+        btn.style.color = '#ffffff';
+        setTimeout(() => {
+          btn.textContent = orig;
+          btn.style.background = '';
+          btn.style.color = '';
+        }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

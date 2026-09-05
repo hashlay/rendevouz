@@ -26,6 +26,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState(user.role === UserRole.UNIT_TEAM_LEADER ? (user.assignedUnitId || '') : '');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [selectedGender, setSelectedGender] = useState('');
   const [selectedEdStatus, setSelectedEdStatus] = useState('');
   const [selectedPlacementFilter, setSelectedPlacementFilter] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -53,6 +54,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const [editDob, setEditDob] = useState('');
   const [editCandidateClass, setEditCandidateClass] = useState('');
   const [editCategoryId, setEditCategoryId] = useState('');
+  const [editGender, setEditGender] = useState<string>('male');
   const [editComps, setEditComps] = useState<string[]>([]);
   const [editGroupComps, setEditGroupComps] = useState<string[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -186,7 +188,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     setLoading(true);
     try {
       const ts = Date.now();
-      const pUrl = `/api/participants?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}&t=${ts}`;
+      const pUrl = `/api/participants?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}&gender=${selectedGender}&t=${ts}`;
       
       const safeFetch = (url: string, headers?: any) => {
         const joiner = url.includes('?') ? '&' : '?';
@@ -217,7 +219,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
   useEffect(() => {
     fetchLists();
-  }, [selectedUnitId, selectedCategoryId, selectedEdStatus]);
+  }, [selectedUnitId, selectedCategoryId, selectedGender, selectedEdStatus]);
 
   // Fetch complete profile details (results, rankings, registered events)
   const viewProfile = async (p: Participant) => {
@@ -296,6 +298,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       : '';
     setEditCandidateClass(initialClass);
     setEditCategoryId(p.selectedCategoryId || '');
+    setEditGender(p.gender || 'male');
 
     // Fetch registered individual & group competitions
     try {
@@ -393,6 +396,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
           dob: editDob,
           candidateClass: editCandidateClass,
           selectedCategoryId: editCategoryId,
+          gender: editGender,
           selectedCompetitionIds: [...editComps, ...editGroupComps]
         })
       });
@@ -504,6 +508,11 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       if (searchLower && !p.fullName.toLowerCase().includes(searchLower) && !(p.profilePhoto || '').toLowerCase().includes(searchLower)) {
         return false;
       }
+      if (selectedGender) {
+        const targetG = selectedGender.toLowerCase();
+        const pG = (p.gender || '').toLowerCase();
+        if (pG !== targetG) return false;
+      }
       if (selectedPlacementFilter) {
         const pRanks = participantRanksMap.get(p.id) || [];
         const hasRank1 = pRanks.includes(1);
@@ -548,11 +557,11 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       const origB = participants.indexOf(b);
       return origA - origB;
     });
-  }, [participants, debouncedSearch, selectedPlacementFilter, participantRanksMap, categoryOrderMap]);
+  }, [participants, debouncedSearch, selectedGender, selectedPlacementFilter, participantRanksMap, categoryOrderMap]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, selectedUnitId, selectedCategoryId, selectedEdStatus, selectedPlacementFilter]);
+  }, [debouncedSearch, selectedUnitId, selectedCategoryId, selectedGender, selectedEdStatus, selectedPlacementFilter]);
 
   const totalPages = Math.ceil(filteredParticipants.length / pageSize) || 1;
   const paginatedParticipants = React.useMemo(() => {
@@ -601,6 +610,17 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
             {categories.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
+          </select>
+
+          {/* Gender selection filter */}
+          <select
+            value={selectedGender}
+            onChange={(e) => setSelectedGender(e.target.value)}
+            className="px-3 py-2 border border-slate-300 rounded-xl text-slate-700 focus:outline-none text-xs font-semibold bg-slate-50 cursor-pointer"
+          >
+            <option value="">All Genders</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
           </select>
 
           {/* Placement Awards Filter */}
@@ -705,6 +725,15 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                           {p.profilePhoto}
                         </span>
                         <h4 className="font-semibold text-slate-900 text-sm truncate">{p.fullName}</h4>
+                        {p.gender && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border capitalize shrink-0 ${
+                            p.gender.toLowerCase() === 'female'
+                              ? 'bg-pink-50 text-pink-700 border-pink-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
+                            {p.gender}
+                          </span>
+                        )}
                       </div>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">
                         {p.educationStatus.replace('_', ' ')}
@@ -813,7 +842,18 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                       <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-4 font-mono font-bold text-slate-500 whitespace-nowrap">{p.profilePhoto}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="font-semibold text-slate-900">{p.fullName}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-slate-900">{p.fullName}</span>
+                            {p.gender && (
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border capitalize shrink-0 ${
+                                p.gender.toLowerCase() === 'female'
+                                  ? 'bg-pink-50 text-pink-700 border-pink-200'
+                                  : 'bg-blue-50 text-blue-700 border-blue-200'
+                              }`}>
+                                {p.gender}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{p.educationStatus.replace('_', ' ')}</span>
                         </td>
                         <td className="px-6 py-4 font-semibold text-slate-700 whitespace-nowrap">{unit ? unit.name : 'Unknown'}</td>
@@ -1013,6 +1053,10 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                       <span>EDUCATION STATUS:</span>
                       <span className="text-slate-800 font-bold capitalize">{selectedPart.educationStatus.replace('_', ' ')}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span>GENDER:</span>
+                      <span className="text-slate-800 font-bold capitalize">{selectedPart.gender || '—'}</span>
+                    </div>
                     {selectedPart.phone && (
                       <div className="flex justify-between">
                         <span>PHONE:</span>
@@ -1091,17 +1135,31 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Category</label>
-                <select
-                  value={editCategoryId}
-                  onChange={(e) => setEditCategoryId(e.target.value)}
-                  className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold bg-white cursor-pointer"
-                >
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Category</label>
+                  <select
+                    value={editCategoryId}
+                    onChange={(e) => setEditCategoryId(e.target.value)}
+                    className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold bg-white cursor-pointer"
+                  >
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Gender</label>
+                  <select
+                    value={editGender}
+                    onChange={(e) => setEditGender(e.target.value)}
+                    className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold bg-white cursor-pointer capitalize"
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
               </div>
 
               <div>

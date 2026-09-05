@@ -124,17 +124,23 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
     }
   };
 
-  // Delete Team
+  // Delete Team Permanently
   const handleDeleteTeam = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this group team?')) return;
+    if (!confirm('Are you sure you want to permanently delete this group team? The members will be freed up to join another team.')) return;
     try {
       const res = await fetch(`/api/teams/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to delete team');
+        let errorMsg = 'Failed to delete team';
+        try {
+          const data = await res.json();
+          errorMsg = data.error || errorMsg;
+        } catch {
+          errorMsg = `Server error (${res.status})`;
+        }
+        throw new Error(errorMsg);
       }
       fetchLists();
     } catch (e: any) {

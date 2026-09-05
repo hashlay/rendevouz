@@ -1430,9 +1430,8 @@ apiRouter.delete('/competitions/:id', authenticate, requireRole([UserRole.SUPER_
     if (r.competitionId === compId) r.deletedAt = now;
   });
 
-  (db.teams || []).forEach(t => {
-    if (t.competitionId === compId) t.deletedAt = now;
-  });
+  // Permanently purge teams for this competition so participants are instantly freed up
+  db.teams = (db.teams || []).filter(t => t.competitionId !== compId);
 
   (db.greenRoomAssignments || []).forEach(gr => {
     if (gr.competitionId === compId) gr.deletedAt = now;
@@ -1448,6 +1447,9 @@ apiRouter.delete('/competitions/:id', authenticate, requireRole([UserRole.SUPER_
     }
     if (Array.isArray(reg.selectedGroupTeamIds)) {
       reg.selectedGroupTeamIds = reg.selectedGroupTeamIds.filter((id: string) => id !== compId);
+    }
+    if (Array.isArray(reg.selectedGroupCompetitionIds)) {
+      reg.selectedGroupCompetitionIds = reg.selectedGroupCompetitionIds.filter((id: string) => id !== compId);
     }
   });
 
@@ -1533,6 +1535,11 @@ apiRouter.get('/participants', authenticate, async (req, res) => {
 
   if (req.query.categoryId) {
     participants = participants.filter(p => p.selectedCategoryId === req.query.categoryId);
+  }
+
+  if (req.query.gender) {
+    const g = String(req.query.gender).toLowerCase();
+    participants = participants.filter(p => (p.gender || '').toLowerCase() === g);
   }
 
   if (req.query.search) {
@@ -2649,8 +2656,8 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
   res.json({ message: 'Team updated successfully', team });
 });
 
-// Soft Delete Team
-apiRouter.post('/teams/:id/delete', authenticate, async (req, res) => {
+// Permanent Delete Team
+const handleDeleteTeamPermanent = async (req: any, res: any) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
 
@@ -2661,7 +2668,8 @@ apiRouter.post('/teams/:id/delete', authenticate, async (req, res) => {
 
   const teamId = req.params.id;
 
-  const teamIndex = db.teams.findIndex(t => t.id === teamId && !t.deletedAt);
+  if (!db.teams) db.teams = [];
+  const teamIndex = db.teams.findIndex(t => t.id === teamId);
   if (teamIndex === -1) {
     return res.status(404).json({ error: 'Team not found' });
   }
@@ -2674,19 +2682,72 @@ apiRouter.post('/teams/:id/delete', authenticate, async (req, res) => {
   }
 
   // Safety check: has results?
-  const hasResults = db.results.some(r => r.teamId === teamId && !r.deletedAt);
+  const hasResults = (db.results || []).some(r => r.teamId === teamId && !r.deletedAt);
   if (hasResults) {
     return res.status(400).json({ error: 'Cannot delete team because results have been entered. Remove results first.' });
   }
 
-  team.deletedAt = new Date().toISOString();
-  team.deletedBy = user.username;
+  const memberIds = Array.isArray(team.memberIds) ? [...team.memberIds] : [];
+  const compId = team.competitionId;
 
-  await dbClient.logAudit(user.id, user.username, user.role, 'Delete Group Team', 'Team', teamId, team.unitId, undefined, { deleted: true });
+  // 1. Permanently remove the team from db.teams
+  db.teams.splice(teamIndex, 1);
+  db.teams = db.teams.filter(t => t.id !== teamId);
+
+  // 2. Permanently remove any results for this team
+  db.results = (db.results || []).filter(r => r.teamId !== teamId);
+
+  // 3. Remove team from green room assignments
+  db.greenRoomAssignments = (db.greenRoomAssignments || []).filter(gr => (gr as any).teamId !== teamId);
+
+  // 4. Free up members in db.registrations so they can join another team without quota blockage
+  if (memberIds.length > 0 && (db as any).registrations) {
+    for (const memberId of memberIds) {
+      const inOtherTeamForComp = db.teams.some(t =>
+        !t.deletedAt &&
+        t.competitionId === compId &&
+        Array.isArray(t.memberIds) &&
+        t.memberIds.includes(memberId)
+      );
+
+      if (!inOtherTeamForComp) {
+        (db as any).registrations.forEach((reg: any) => {
+          if (reg.participantId === memberId) {
+            if (Array.isArray(reg.selectedGroupCompetitionIds)) {
+              reg.selectedGroupCompetitionIds = reg.selectedGroupCompetitionIds.filter((id: string) => id !== compId);
+            }
+            if (Array.isArray(reg.selectedGroupTeamIds)) {
+              reg.selectedGroupTeamIds = reg.selectedGroupTeamIds.filter((id: string) => id !== compId && id !== teamId);
+            }
+          }
+        });
+      }
+    }
+  }
+
+  // 5. Direct MongoDB Atlas permanent deletion
+  const mongoDb = getDb();
+  if (mongoDb) {
+    try {
+      await Promise.all([
+        mongoDb.collection('teams').deleteMany({ $or: [{ id: teamId }, { _id: teamId as any }] }),
+        mongoDb.collection('results').deleteMany({ teamId: teamId }),
+        mongoDb.collection('greenRoomAssignments').deleteMany({ teamId: teamId }),
+        mongoDb.collection('app_state').updateOne({ _id: 'global_state' as any }, { $pull: { teams: { id: teamId } } } as any)
+      ]);
+    } catch (mongoErr) {
+      console.error('Direct MongoDB permanent delete error for team:', mongoErr);
+    }
+  }
+
+  await dbClient.logAudit(user.id, user.username, user.role, 'Delete Group Team', 'Team', teamId, team.unitId, team, { permanentlyDeleted: true });
   await dbClient.save();
 
-  res.json({ message: 'Team deleted successfully' });
-});
+  res.json({ message: 'Team deleted permanently and participants are now available for other teams' });
+};
+
+apiRouter.delete('/teams/:id', authenticate, handleDeleteTeamPermanent);
+apiRouter.post('/teams/:id/delete', authenticate, handleDeleteTeamPermanent);
 
 
 // 10. RESULT ENTRY & SCOREBOARDS (CRUD)
