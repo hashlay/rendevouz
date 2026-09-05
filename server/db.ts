@@ -475,7 +475,7 @@ if (typeof process !== 'undefined') {
   process.on('beforeExit', () => {
     if (_mongoSyncTimer) {
       clearTimeout(_mongoSyncTimer);
-      _syncMongoNow().catch(() => {});
+      _syncMongoNow().catch(() => { });
     }
   });
 }
