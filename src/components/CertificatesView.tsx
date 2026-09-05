@@ -26,6 +26,10 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const filteredCategories = categories.filter(cat =>
+    !selectedCategoryId || cat.id === selectedCategoryId
+  );
+
   // Bulk action states
   const [downloadingCompId, setDownloadingCompId] = useState<string | null>(null);
   const [sharingCompId, setSharingCompId] = useState<string | null>(null);

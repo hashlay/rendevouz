@@ -124,7 +124,11 @@ export default function App() {
       const data = await res.json();
 
       setEventSettings(data);
-      localStorage.setItem('eventSettings_cache', JSON.stringify(data));
+      try {
+        localStorage.setItem('eventSettings_cache', JSON.stringify(data));
+      } catch (e) {
+        console.warn('Could not cache eventSettings to localStorage (quota exceeded):', e);
+      }
     } catch (e) {
       console.error(e);
     }
