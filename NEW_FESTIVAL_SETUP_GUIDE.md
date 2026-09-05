@@ -43,7 +43,7 @@ Instead of storing the entire festival in one document, each section is stored a
 | Collection | What It Stores |
 | --- | --- |
 | `users` | Admin, Judges, Operators, Sector Teams with hashed passwords |
-| `units` | Teams / Units (e.g., As-Shukr, As-Sabr) |
+| `units` | Teams / Units (e.g., Ash-Shukr, As-Sabr) |
 | `categories` | Categories (Kids, Sub-Junior, Junior, Senior) with age rules & chest prefixes |
 | `competitions` | Programs, stage assignments, max marks, judges count |
 | `participants` | Participant profiles, assigned chest numbers, unit affiliations |
@@ -84,7 +84,7 @@ Instead of storing the entire festival in one document, each section is stored a
      - When you start the server with a new empty database, `server/db.ts` detects the empty database and automatically seeds:
        - Super Admin user (`admin` / `admin123` or your `INITIAL_ADMIN_PASSWORD`)
        - Default categories (Kids, Sub-Junior, Junior, Senior) with starting chest numbers (101, 201, 301, 401)
-       - Default units (As-Shukr, As-Sabr)
+       - Default units (Ash-Shukr, As-Sabr)
        - Default category counters
        - Default event settings
    - **Option B (Migrating Data from an existing JSON or legacy database)**:
