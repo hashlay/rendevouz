@@ -19,6 +19,9 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [registrations, setRegistrations] = useState<any[]>([]);
+  const participantsRef = useRef<Participant[]>([]);
+  const registrationsRef = useRef<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Workflow selectors
@@ -190,21 +193,27 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
   const fetchMasters = async () => {
     try {
       const ts = Date.now();
-      const [cRes, compRes, uRes, pRes] = await Promise.all([
+      const [cRes, compRes, uRes, pRes, rRes] = await Promise.all([
         fetch(`/api/categories?t=${ts}`),
         fetch(`/api/competitions?t=${ts}`),
         fetch(`/api/units?t=${ts}`),
-        fetch(`/api/participants?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`/api/participants?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/registrations', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
       if (!pRes.ok) {
         throw new Error('Failed to fetch data');
       }
-      const [cData, compData, uData, pData] = await Promise.all([cRes.json(), compRes.json(), uRes.json(), pRes.json()]);
+      const [cData, compData, uData, pData, rData] = await Promise.all([
+        cRes.json(), compRes.json(), uRes.json(), pRes.json(), rRes.ok ? rRes.json() : []
+      ]);
 
       setCategories(cData);
       setCompetitions(compData);
       setUnits(uData);
       setParticipants(pData);
+      participantsRef.current = pData;
+      setRegistrations(rData);
+      registrationsRef.current = rData;
     } catch (e) {
       console.error(e);
     } finally {
@@ -232,55 +241,42 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
       setCandidatesLoading(true);
       try {
         const ts = Date.now();
-        // Fetch saved results for this competition
-        const resRes = await fetch(`/api/results?competitionId=${selectedCompId}&t=${ts}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const resData = await resRes.json();
-        if (!resRes.ok) throw new Error('Failed to fetch results');
-        setSavedResults(resData);
 
+        // 1. Instantly populate candidates list from memory without waiting for network!
         if (comp?.participationType === ParticipationType.INDIVIDUAL) {
-          // Fetch participants registered in selected individual competition
-          const partRes = await fetch(`/api/participants?categoryId=${selectedCatId}&t=${ts}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const partData = await partRes.json();
-          if (!partRes.ok) throw new Error('Failed to fetch participants');
+          const allParts = participantsRef.current.length > 0 ? participantsRef.current : participants;
+          const allRegs = registrationsRef.current.length > 0 ? registrationsRef.current : registrations;
 
-          // Fetch registrations to filter participants by selected competition
-          const regRes = await fetch('/api/registrations', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const regData = await regRes.json();
-          
-          if (!regRes.ok) throw new Error('Failed to fetch registrations');
-
-          // Filter participants to only those who registered for this specific competition
-          const filteredParticipants = partData.filter((p: any) => {
-            const pReg = regData.find((r: any) => r.participantId === p.id);
+          const catParts = allParts.filter((p: any) => !selectedCatId || (p.selectedCategoryId || p.categoryId) === selectedCatId);
+          const filtered = catParts.filter((p: any) => {
+            const pReg = allRegs.find((r: any) => r.participantId === p.id);
             return pReg && pReg.selectedIndividualCompetitionIds && pReg.selectedIndividualCompetitionIds.includes(selectedCompId);
           });
+          setCandidatesList(filtered);
+          setShowDirectPicker(filtered.length === 0);
+        }
 
-          setCandidatesList(filteredParticipants);
-          if (filteredParticipants.length === 0) {
-            setShowDirectPicker(true);
-          } else {
-            setShowDirectPicker(false);
-          }
-        } else {
-          // Fetch group teams registered in this competition
-          const teamRes = await fetch(`/api/teams?competitionId=${selectedCompId}`, {
+        // 2. Fetch saved results for this competition (and teams if group)
+        const fetchPromises: Promise<any>[] = [
+          fetch(`/api/results?competitionId=${selectedCompId}&t=${ts}`, {
             headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const teamData = await teamRes.json();
-          if (!teamRes.ok) throw new Error('Failed to fetch teams');
+          }).then(r => r.json())
+        ];
+
+        if (comp?.participationType === ParticipationType.GROUP) {
+          fetchPromises.push(
+            fetch(`/api/teams?competitionId=${selectedCompId}&t=${ts}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            }).then(r => r.json())
+          );
+        }
+
+        const [resData, teamData] = await Promise.all(fetchPromises);
+        setSavedResults(resData || []);
+
+        if (comp?.participationType === ParticipationType.GROUP && Array.isArray(teamData)) {
           setCandidatesList(teamData);
-          if (teamData.length === 0) {
-            setShowDirectPicker(true);
-          } else {
-            setShowDirectPicker(false);
-          }
+          setShowDirectPicker(teamData.length === 0);
         }
       } catch (e) {
         console.error(e);
@@ -572,13 +568,19 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
 
       // Clear draft
       localStorage.removeItem(`result_draft_${user.id}`);
-      
-      // Trigger refresh of list entries
-      const refreshRes = await fetch(`/api/results?competitionId=${selectedCompId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const refreshData = await refreshRes.json();
-      setSavedResults(refreshData);
+
+      // Optimistically update savedResults immediately with returned result
+      if (data.result) {
+        setSavedResults(prev => {
+          const idx = prev.findIndex(r => r.id === data.result.id || (data.result.participantId && r.participantId === data.result.participantId) || (data.result.teamId && r.teamId === data.result.teamId));
+          if (idx >= 0) {
+            const copy = [...prev];
+            copy[idx] = data.result;
+            return copy;
+          }
+          return [...prev, data.result];
+        });
+      }
 
       // Ensure candidate is in candidatesList if they were entered via direct entry
       const candidateName = activeCandidate.fullName || activeCandidate.teamName || 'Candidate';
@@ -592,6 +594,11 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
         type: 'success',
         text: `✓ Saved marks and published result for ${candidateName}!`
       });
+
+      // Background refresh to sync ranks without blocking UI
+      fetch(`/api/results?competitionId=${selectedCompId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).then(r => r.json()).then(setSavedResults).catch(() => {});
     } catch (err: any) {
       setToast({ type: 'error', text: err.message || 'Failed to save result' });
     } finally {

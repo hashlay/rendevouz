@@ -35,6 +35,18 @@ export const loadCertificateImage = (url: string): Promise<HTMLImageElement> => 
   return promise;
 };
 
+export const preloadCertificateImages = (eventSettings?: any) => {
+  const urls = [
+    '/certificate_1.jpg',
+    '/certificate_2.jpg',
+    eventSettings?.certTheme1Url,
+    eventSettings?.certTheme2Url,
+    eventSettings?.certTheme3Url
+  ].filter(Boolean) as string[];
+
+  urls.forEach(u => loadCertificateImage(u).catch(() => {}));
+};
+
 const fillMultiLineCanvasText = (
   ctx: CanvasRenderingContext2D,
   rawText: string,

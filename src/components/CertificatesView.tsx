@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileBadge, Search, Filter, RefreshCw, Eye, EyeOff, Download, Share2, Trophy, Check, Loader2 } from 'lucide-react';
 import { UserRole, Category, Unit, Participant, Competition, Result, Team } from '../types';
 import CertificateGenerator from './CertificateGenerator';
-import { renderCertificateToBlob } from '../utils/certificateRenderer';
+import { renderCertificateToBlob, preloadCertificateImages } from '../utils/certificateRenderer';
 
 interface CertificatesViewProps {
   user: any;
@@ -66,6 +66,7 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
   };
 
   useEffect(() => {
+    preloadCertificateImages(eventSettings);
     fetchData();
   }, [token]);
 

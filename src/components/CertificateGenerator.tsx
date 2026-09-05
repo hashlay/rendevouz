@@ -19,6 +19,7 @@ interface CertificateGeneratorProps {
 }
 
 import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper';
+import { loadCertificateImage } from '../utils/certificateRenderer';
 
 const FONT_OPTIONS = UNIVERSAL_FONT_OPTIONS;
 
@@ -102,7 +103,7 @@ export default function CertificateGenerator({
   const templateImgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    const img = new Image();
+    let active = true;
     const customUrl = rank === 1 
       ? eventSettings?.certTheme1Url 
       : rank === 2 
@@ -110,15 +111,24 @@ export default function CertificateGenerator({
         : eventSettings?.certTheme3Url;
 
     const fallbackUrl = rank === 1 ? '/certificate_1.jpg' : '/certificate_2.jpg';
-    img.src = customUrl || fallbackUrl;
+    const targetUrl = customUrl || fallbackUrl;
 
-    img.onload = () => {
-      templateImgRef.current = img;
-      setImageLoaded(true);
-    };
-    img.onerror = () => {
-      img.src = fallbackUrl;
-    };
+    loadCertificateImage(targetUrl)
+      .then(img => {
+        if (!active) return;
+        templateImgRef.current = img;
+        setImageLoaded(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        loadCertificateImage(fallbackUrl).then(img => {
+          if (!active) return;
+          templateImgRef.current = img;
+          setImageLoaded(true);
+        }).catch(() => {});
+      });
+
+    return () => { active = false; };
   }, [rank, eventSettings]);
 
   const fillMultiLineCanvasText = (

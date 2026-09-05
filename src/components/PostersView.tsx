@@ -21,6 +21,8 @@ import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper'
 
 const FONT_OPTIONS = UNIVERSAL_FONT_OPTIONS;
 
+const posterImageCache = new Map<string, HTMLImageElement>();
+
 /**
  * Fixed team font colors for Posters Section:
  * - Ash-shukr: Dark Blue (#2b2bc3)
@@ -353,6 +355,16 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
       setLocalThemeConfigs(themeConfigs || {});
     }
   }, [isModalOpen, themeConfigs]);
+
+  useEffect(() => {
+    (customThemes || []).forEach((t: string) => {
+      if (t && !posterImageCache.has(t)) {
+        const img = new Image();
+        img.onload = () => posterImageCache.set(t, img);
+        img.src = t;
+      }
+    });
+  }, [customThemes]);
 
   const getThemeConfig = (idx: number) => {
     const aComp = competitions.find(c => c.id === selectedCompId);
@@ -783,12 +795,28 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     const backgroundSource = customThemes[themeIdx] || customThemes[0];
 
     if (backgroundSource) {
+      const cached = posterImageCache.get(backgroundSource);
+      if (cached && cached.complete && cached.naturalWidth > 0) {
+        const W = cached.naturalWidth || cached.width || 1080;
+        const H = cached.naturalHeight || cached.height || 1350;
+        if (canvas.width !== W || canvas.height !== H) {
+          canvas.width = W;
+          canvas.height = H;
+        }
+        ctx.drawImage(cached, 0, 0, W, H);
+        drawPosterOverlay(ctx, W, H, compIdx, themeIdx);
+        return;
+      }
+
       const img = new Image();
       img.onload = () => {
+        posterImageCache.set(backgroundSource, img);
         const W = img.naturalWidth || img.width || 1080;
         const H = img.naturalHeight || img.height || 1350;
-        canvas.width = W;
-        canvas.height = H;
+        if (canvas.width !== W || canvas.height !== H) {
+          canvas.width = W;
+          canvas.height = H;
+        }
         ctx.drawImage(img, 0, 0, W, H);
         drawPosterOverlay(ctx, W, H, compIdx, themeIdx);
       };

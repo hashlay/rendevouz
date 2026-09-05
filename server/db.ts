@@ -404,18 +404,20 @@ async function _syncMongoNow() {
         ).catch(() => { });
       }
 
-      if (db.posterTemplateConfig) {
+      const ptc = db.posterTemplateConfig || (db.eventSettings as any)?.posterTemplateConfig;
+      if (ptc) {
         await mongoDb.collection('settings').replaceOne(
           { _id: 'posterTemplateConfig' as any },
-          { _id: 'posterTemplateConfig', ...db.posterTemplateConfig },
+          { _id: 'posterTemplateConfig', ...ptc },
           { upsert: true }
         ).catch(() => { });
       }
 
-      if (db.certificateTemplateConfig) {
+      const ctc = db.certificateTemplateConfig || (db.eventSettings as any)?.certificateTemplateConfig;
+      if (ctc) {
         await mongoDb.collection('settings').replaceOne(
           { _id: 'certificateTemplateConfig' as any },
-          { _id: 'certificateTemplateConfig', ...db.certificateTemplateConfig },
+          { _id: 'certificateTemplateConfig', ...ctc },
           { upsert: true }
         ).catch(() => { });
       }
@@ -568,8 +570,14 @@ async function syncStateFromMongo(force: boolean = false) {
         const { _id, ...rest } = doc;
         if (doc._id === 'eventSettings') db.eventSettings = { ...db.eventSettings, ...rest };
         if (doc._id === 'cmsSettings') db.cmsSettings = { ...rest };
-        if (doc._id === 'posterTemplateConfig') db.posterTemplateConfig = { ...rest };
-        if (doc._id === 'certificateTemplateConfig') db.certificateTemplateConfig = { ...rest };
+        if (doc._id === 'posterTemplateConfig') {
+          db.posterTemplateConfig = { ...rest };
+          if (db.eventSettings) db.eventSettings.posterTemplateConfig = { ...rest };
+        }
+        if (doc._id === 'certificateTemplateConfig') {
+          db.certificateTemplateConfig = { ...rest };
+          if (db.eventSettings) db.eventSettings.certificateTemplateConfig = { ...rest };
+        }
       }
     });
 

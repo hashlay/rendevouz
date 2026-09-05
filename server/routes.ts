@@ -110,10 +110,8 @@ apiRouter.use('/uploads', express.static(path.join(process.cwd(), 'data/uploads'
 // Connects to DB once and processes all requests instantly in memory.
 let dbNormalized = false;
 
-apiRouter.use(async (req, res, next) => {
+apiRouter.use((req, res, next) => {
   try {
-    await dbClient.waitForSync();
-
     // Auto-normalize legacy totalMark values and title-case participant/competition names ONCE on load
     if (!dbNormalized) {
       const db = dbClient.get();
@@ -879,7 +877,13 @@ const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1cQ
 
 apiRouter.get('/settings', async (req, res) => {
   const db = dbClient.get();
-  const settings = db.eventSettings || {};
+  const rawSettings = db.eventSettings || {};
+  const settings = {
+    ...rawSettings,
+    posterTemplateConfig: db.posterTemplateConfig || rawSettings.posterTemplateConfig,
+    certificateTemplateConfig: db.certificateTemplateConfig || rawSettings.certificateTemplateConfig,
+    posterOverrides: rawSettings.posterOverrides || db.posterOverrides || {}
+  };
   if (!settings.photoHubDriveLink) {
     settings.photoHubDriveLink = DEFAULT_PHOTO_HUB_DRIVE_LINK;
   }
@@ -932,9 +936,11 @@ apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, User
 
   if (req.body.posterTemplateConfig) {
     db.posterTemplateConfig = req.body.posterTemplateConfig;
+    if (db.eventSettings) db.eventSettings.posterTemplateConfig = req.body.posterTemplateConfig;
   }
   if (req.body.certificateTemplateConfig) {
     db.certificateTemplateConfig = req.body.certificateTemplateConfig;
+    if (db.eventSettings) db.eventSettings.certificateTemplateConfig = req.body.certificateTemplateConfig;
   }
 
   // Aggressively clean up redundant base64 strings in overrides to prevent massive JSON bloat
@@ -3259,8 +3265,6 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
   resultObj.updatedAt = new Date().toISOString();
   resultObj.updatedBy = user.id;
 
-  await dbClient.save();
-
   // Recalculate competition ranks
   CalculationService.calculateCompetitionRanks(resultObj.competitionId);
 
@@ -3392,7 +3396,6 @@ apiRouter.post('/results/:id/delete', authenticate, requireRole([UserRole.SUPER_
 
 // Read Results for specific competition
 apiRouter.get('/results', authenticate, async (req, res) => {
-  await dbClient.waitForSync();
   const db = dbClient.get();
   let results = (db.results || []).filter(r => !r.deletedAt);
 
