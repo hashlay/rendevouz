@@ -357,11 +357,27 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   const campusName = eventSettings?.campusName || eventSettings?.sectorName || 'Campus';
 
   const defaultThemes = [
-    'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjEzNTAiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzEiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMDIwNjE3Ii8+PHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiMwZjE3MmEiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMxZTFiNGIiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iMTA4MCIgaGVpZ2h0PSIxMzUwIiBmaWxsPSJ1cmwoI2cxKSIvPjwvc3ZnPg==',
-    'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjEzNTAiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzIiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMDIyYzIyIi8+PHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiMwNjRlM2IiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwNjVmNDYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iMTA4MCIgaGVpZ2h0PSIxMzUwIiBmaWxsPSJ1cmwoI2cyKSIvPjwvc3ZnPg==',
-    'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjEzNTAiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzMiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjNDUwYTBhIi8+PHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiM4ODEzMzciLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM5ZjEyMzkiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iMTA4MCIgaGVpZ2h0PSIxMzUwIiBmaWxsPSJ1cmwoI2czKSIvPjwvc3ZnPg==',
-    'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjEzNTAiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZzQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMDkwOTBiIi8+PHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiMxODE4MWIiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMyNzI3MmEiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iMTA4MCIgaGVpZ2h0PSIxMzUwIiBmaWxsPSJ1cmwoI2c0KSIvPjwvc3ZnPg=='
+    '/themes/theme_blue.jpg',
+    '/themes/theme_brown.jpg',
+    '/themes/theme_green.jpg',
+    '/themes/theme_purple.jpg'
   ];
+
+  // Helper to ensure 4 themes and copy layout to theme 4 if missing
+  const normalizeThemesAndConfigs = (themesIn: any, configsIn: any) => {
+    let themes = Array.isArray(themesIn) && themesIn.length > 0 ? [...themesIn] : [...defaultThemes];
+    if (themes.length === 3) {
+      themes.push('/themes/theme_purple.jpg');
+    } else if (themes.length >= 4 && (!themes[3] || themes[3].startsWith('data:image/svg'))) {
+      themes[3] = '/themes/theme_purple.jpg';
+    }
+    const configs = { ...(configsIn || {}) };
+    const baseConfig = configs[0] || configs[1] || configs[2] || getDefaultThemeConfig();
+    if (!configs[3]) {
+      configs[3] = { ...baseConfig };
+    }
+    return { themes, configs };
+  };
 
   // Migrate from old config if needed
   const rawTemplateConfig = eventSettings?.posterTemplateConfig || {};
@@ -370,9 +386,11 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     customThemes: rawTemplateConfig.customThemes || defaultThemes
   });
 
-  const [customThemes, setCustomThemes] = useState<string[]>(migratedConfig.customThemes || defaultThemes);
+  const { themes: initialThemes, configs: initialConfigs } = normalizeThemesAndConfigs(migratedConfig.customThemes, migratedConfig.themeConfigs);
+
+  const [customThemes, setCustomThemes] = useState<string[]>(initialThemes);
   const [themeRules, setThemeRules] = useState<any[]>(migratedConfig.themeRules || []);
-  const [themeConfigs, setThemeConfigs] = useState<any>(migratedConfig.themeConfigs || {});
+  const [themeConfigs, setThemeConfigs] = useState<any>(initialConfigs);
   const [selectedThemeIndex, setSelectedThemeIndex] = useState<number>(0);
   const [categories, setCategories] = useState<any[]>([]);
 
@@ -382,14 +400,11 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   useEffect(() => {
     if (isInitialSyncRef.current && eventSettings?.posterTemplateConfig) {
       const cfg = eventSettings.posterTemplateConfig;
-      if (Array.isArray(cfg.customThemes) && cfg.customThemes.length > 0) {
-        setCustomThemes(cfg.customThemes);
-      }
+      const { themes, configs } = normalizeThemesAndConfigs(cfg.customThemes, cfg.themeConfigs);
+      setCustomThemes(themes);
+      setThemeConfigs(configs);
       if (Array.isArray(cfg.themeRules)) {
         setThemeRules(cfg.themeRules);
-      }
-      if (cfg.themeConfigs && typeof cfg.themeConfigs === 'object') {
-        setThemeConfigs(cfg.themeConfigs);
       }
     }
   }, [eventSettings?.posterTemplateConfig]);
@@ -400,14 +415,11 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       .then(data => {
         if (data?.posterTemplateConfig) {
           const cfg = data.posterTemplateConfig;
-          if (Array.isArray(cfg.customThemes) && cfg.customThemes.length > 0) {
-            setCustomThemes(cfg.customThemes);
-          }
+          const { themes, configs } = normalizeThemesAndConfigs(cfg.customThemes, cfg.themeConfigs);
+          setCustomThemes(themes);
+          setThemeConfigs(configs);
           if (Array.isArray(cfg.themeRules)) {
             setThemeRules(cfg.themeRules);
-          }
-          if (cfg.themeConfigs && typeof cfg.themeConfigs === 'object') {
-            setThemeConfigs(cfg.themeConfigs);
           }
           isInitialSyncRef.current = false;
         }

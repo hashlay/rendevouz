@@ -877,12 +877,37 @@ apiRouter.delete('/gallery/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
 
 const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1cQNek6Q2EiThqdFrUDb1I8cfsmQneP1J';
 
+function ensureTheme4(cfg: any) {
+  if (!cfg || typeof cfg !== 'object') return;
+  if (!Array.isArray(cfg.customThemes)) {
+    cfg.customThemes = [
+      '/themes/theme_blue.jpg',
+      '/themes/theme_brown.jpg',
+      '/themes/theme_green.jpg',
+      '/themes/theme_purple.jpg'
+    ];
+  } else {
+    if (cfg.customThemes.length === 3) {
+      cfg.customThemes.push('/themes/theme_purple.jpg');
+    } else if (cfg.customThemes.length >= 4 && (!cfg.customThemes[3] || cfg.customThemes[3].startsWith('data:image/svg'))) {
+      cfg.customThemes[3] = '/themes/theme_purple.jpg';
+    }
+  }
+  if (!cfg.themeConfigs) cfg.themeConfigs = {};
+  const ref = cfg.themeConfigs[0] || cfg.themeConfigs[1] || cfg.themeConfigs[2] || {};
+  if (!cfg.themeConfigs[3]) {
+    cfg.themeConfigs[3] = { ...ref };
+  }
+}
+
 apiRouter.get('/settings', async (req, res) => {
   const db = dbClient.get();
   const rawSettings = db.eventSettings || {};
+  const ptc = db.posterTemplateConfig || rawSettings.posterTemplateConfig;
+  ensureTheme4(ptc);
   const settings = {
     ...rawSettings,
-    posterTemplateConfig: db.posterTemplateConfig || rawSettings.posterTemplateConfig,
+    posterTemplateConfig: ptc,
     certificateTemplateConfig: db.certificateTemplateConfig || rawSettings.certificateTemplateConfig,
     posterOverrides: rawSettings.posterOverrides || db.posterOverrides || {}
   };
@@ -5819,10 +5844,12 @@ apiRouter.post('/results/:id/publish-certificate', authenticate, requireRole([Us
 // Public Event Settings
 apiRouter.get('/public/settings', async (req, res) => {
   const db = dbClient.get();
+  const ptc = db.posterTemplateConfig || db.eventSettings?.posterTemplateConfig;
+  ensureTheme4(ptc);
   res.json({
     ...(db.eventSettings || {}),
     ...(db.cmsSettings || {}),
-    posterTemplateConfig: db.posterTemplateConfig || db.eventSettings?.posterTemplateConfig,
+    posterTemplateConfig: ptc,
     certificateTemplateConfig: db.certificateTemplateConfig || db.eventSettings?.certificateTemplateConfig,
     posterOverrides: db.eventSettings?.posterOverrides || {},
     dragBlocks: db.dragBlocks || db.eventSettings?.dragBlocks || []
