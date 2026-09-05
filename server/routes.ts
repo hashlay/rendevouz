@@ -3477,6 +3477,22 @@ apiRouter.get('/results', authenticate, async (req, res) => {
     }
   }
 
+  // Ensure all evaluated results in this view have auto-calculated ranks (Dense Ranking: 1, 2, 3...)
+  const rankableComps = new Set(results.map(r => r.competitionId));
+  rankableComps.forEach(cId => {
+    const compRankable = results.filter(r => r.competitionId === cId && (r.status === 'participated' || r.status === ResultStatus.PARTICIPATED) && r.averageMark !== undefined);
+    compRankable.sort((a, b) => (b.averageMark || 0) - (a.averageMark || 0));
+    let rk = 1;
+    for (let i = 0; i < compRankable.length; i++) {
+      if (i > 0 && (compRankable[i].averageMark || 0) < (compRankable[i - 1].averageMark || 0)) {
+        rk++;
+      }
+      if (!compRankable[i].rank && !compRankable[i].manualRankOverride) {
+        compRankable[i].rank = rk;
+      }
+    }
+  });
+
   const enrichedResults = results.map(r => {
     let participantName = undefined;
     let teamName = undefined;
@@ -3518,7 +3534,51 @@ apiRouter.post('/results/announce', authenticate, requireRole([UserRole.SUPER_AD
     return res.status(400).json({ error: 'Competition ID is required.' });
   }
 
-  const results = db.results.filter(r => r.competitionId === competitionId && !r.deletedAt);
+  let results = db.results.filter(r => r.competitionId === competitionId && !r.deletedAt);
+  if (results.length === 0) {
+    // Check if there are judgeScores or judgmentSheets for this competition to auto-materialize
+    const compScores = (db.judgeScores || []).filter((s: JudgeScore) => s.competitionId === competitionId);
+    if (compScores.length > 0) {
+      const grs = (db.greenRoomAssignments || []).filter((g: GreenRoomAssignment) => g.competitionId === competitionId);
+      const sheet = (db.judgmentSheets || []).find((s: JudgmentSheet) => s.competitionId === competitionId);
+      for (const score of compScores) {
+        const gr = grs.find((g: GreenRoomAssignment) => g.id === score.greenRoomAssignmentId || g.codeLetter === score.codeLetter);
+        if (!gr) continue;
+        const j1 = score.judgeScores?.find((j: any) => j.judgeNumber === 1);
+        const j2 = score.judgeScores?.find((j: any) => j.judgeNumber === 2);
+        const j1Mark = j1?.mark || 0;
+        const j2Mark = j2?.mark || 0;
+        const nonZeroCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
+        const calculatedAvg = score.averageMark !== undefined ? score.averageMark : Math.round((score.totalMark / nonZeroCount) * 100) / 100;
+        
+        let resStatus = ResultStatus.PARTICIPATED;
+        if (score.status === 'absent') resStatus = ResultStatus.ABSENT;
+        else if (score.status === 'disqualified') resStatus = ResultStatus.DISQUALIFIED;
+
+        const newRes: any = {
+          id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          categoryId: sheet?.categoryId || gr.categoryId,
+          competitionId,
+          participantId: gr.participantId || undefined,
+          teamId: gr.teamId || undefined,
+          judge1Mark: j1Mark,
+          judge2Mark: j2Mark,
+          totalMark: score.totalMark || (j1Mark + j2Mark),
+          averageMark: calculatedAvg,
+          status: resStatus,
+          remarks: score.remarks,
+          publishedStatus: announce !== false,
+          createdBy: user.id,
+          createdAt: score.enteredAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        db.results.push(newRes);
+      }
+      CalculationService.calculateCompetitionRanks(competitionId);
+      results = db.results.filter(r => r.competitionId === competitionId && !r.deletedAt);
+    }
+  }
+
   if (results.length === 0) {
     return res.status(404).json({ error: 'No results found for this competition.' });
   }
@@ -3528,6 +3588,9 @@ apiRouter.post('/results/announce', authenticate, requireRole([UserRole.SUPER_AD
     r.publishedStatus = shouldAnnounce;
     r.updatedAt = new Date().toISOString();
   });
+
+  // Calculate ranks so official ranks (1st, 2nd, 3rd) are assigned
+  CalculationService.calculateCompetitionRanks(competitionId);
 
   await dbClient.logAudit(user.id, user.username, user.role, shouldAnnounce ? 'Announce Competition Results' : 'Un-announce Competition Results', 'Competition', competitionId);
   await dbClient.save();
