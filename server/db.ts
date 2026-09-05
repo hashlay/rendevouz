@@ -69,9 +69,43 @@ async function _connectToMongo() {
     }
     if (!db.units || db.units.length === 0) {
       db.units = [
-        { id: 'unit_ash_shukr', name: 'Ash-Shukr', code: 'SHK', active: true },
+        { id: 'unit_as_shukr', name: 'As-Shukr', code: 'SHK', active: true },
         { id: 'unit_as_sabr', name: 'As-Sabr', code: 'SBR', active: true }
       ];
+    }
+
+    // Automatically normalize team name from Ash-Shukr to As-Shukr across units, participants, and results
+    if (Array.isArray(db.units)) {
+      let unitRenamed = false;
+      db.units.forEach((u: any) => {
+        if (u.name === 'Ash-Shukr' || u.name === 'ASH-SHUKR' || u.name === 'ash-shukr') {
+          u.name = 'As-Shukr';
+          unitRenamed = true;
+        }
+      });
+      if (unitRenamed) {
+        try {
+          await mongoDb.collection('units').updateMany(
+            { name: { $in: ['Ash-Shukr', 'ASH-SHUKR', 'ash-shukr'] } },
+            { $set: { name: 'As-Shukr' } }
+          );
+        } catch (_) { }
+      }
+    }
+
+    if (Array.isArray(db.participants)) {
+      db.participants.forEach((p: any) => {
+        if (p.unit === 'Ash-Shukr' || p.unit === 'ASH-SHUKR') p.unit = 'As-Shukr';
+        if (p.unitName === 'Ash-Shukr' || p.unitName === 'ASH-SHUKR') p.unitName = 'As-Shukr';
+      });
+    }
+
+    if (Array.isArray(db.results)) {
+      db.results.forEach((r: any) => {
+        ['first', 'second', 'third'].forEach(rk => {
+          if (r[rk]?.unit === 'Ash-Shukr' || r[rk]?.unit === 'ASH-SHUKR') r[rk].unit = 'As-Shukr';
+        });
+      });
     }
 
     // Normalize category starting chest numbers (convert legacy 1000/2000/3000/4000 to 101/201/301/401)
@@ -220,7 +254,7 @@ function ensureDbExists() {
   ];
 
   const initialUnits: Unit[] = [
-    { id: 'unit_ash_shukr', name: 'Ash-Shukr', code: 'SHK', active: true },
+    { id: 'unit_as_shukr', name: 'As-Shukr', code: 'SHK', active: true },
     { id: 'unit_as_sabr', name: 'As-Sabr', code: 'SBR', active: true }
   ];
 
