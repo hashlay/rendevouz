@@ -902,14 +902,14 @@ function ensureTheme4(cfg: any) {
 
 apiRouter.get('/settings', async (req, res) => {
   const db = dbClient.get();
-  const rawSettings = db.eventSettings || {};
-  const ptc = db.posterTemplateConfig || rawSettings.posterTemplateConfig;
+  const rawSettings: any = db.eventSettings || {};
+  const ptc = (db as any).posterTemplateConfig || rawSettings.posterTemplateConfig;
   ensureTheme4(ptc);
-  const settings = {
+  const settings: any = {
     ...rawSettings,
     posterTemplateConfig: ptc,
-    certificateTemplateConfig: db.certificateTemplateConfig || rawSettings.certificateTemplateConfig,
-    posterOverrides: rawSettings.posterOverrides || db.posterOverrides || {}
+    certificateTemplateConfig: (db as any).certificateTemplateConfig || rawSettings.certificateTemplateConfig,
+    posterOverrides: rawSettings.posterOverrides || (db as any).posterOverrides || {}
   };
   if (!settings.photoHubDriveLink) {
     settings.photoHubDriveLink = DEFAULT_PHOTO_HUB_DRIVE_LINK;
@@ -1720,7 +1720,7 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
 
       // Add pre-selected competition IDs if passed
       for (const cId of rawCompIds) {
-        const found = (db.competitions || []).find((c: Competition) => !c.deletedAt && c.id === cId);
+        const found = (db.competitions || []).find((c: any) => !c.deletedAt && c.id === cId);
         if (found && !matchedComps.some(mc => mc.id === found.id)) {
           matchedComps.push(found);
         }
@@ -1733,7 +1733,7 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
         const normalizedTarget = normalizeStr(cleanName);
 
         // 1. Try matching within participant's category first
-        let matchedComp = (db.competitions || []).find((c: Competition) =>
+        let matchedComp = (db.competitions || []).find((c: any) =>
           !c.deletedAt &&
           c.categoryId === p.selectedCategoryId &&
           normalizeStr(c.name) === normalizedTarget
@@ -1741,7 +1741,7 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
 
         // 2. If not found in category, check across all competitions
         if (!matchedComp) {
-          matchedComp = (db.competitions || []).find((c: Competition) =>
+          matchedComp = (db.competitions || []).find((c: any) =>
             !c.deletedAt &&
             normalizeStr(c.name) === normalizedTarget
           );
@@ -2890,7 +2890,7 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
       categoryId,
       participantId: participantId || undefined,
       teamId: teamId || undefined,
-      chestNumber: cNum || part?.profilePhoto || undefined,
+      chestNumber: (typeof cNum === 'number' ? cNum : (cNum ? Number(cNum) : undefined)),
       codeLetter: indexToCodeLetter(nextIndex),
       status: GreenRoomStatus.ASSIGNED,
       generatedBy: user.id,
@@ -3025,7 +3025,7 @@ apiRouter.post('/competitions/:id/register-candidate', authenticate, requireRole
       competitionId: compId,
       categoryId: comp.categoryId,
       participantId,
-      chestNumber: cNum || part.profilePhoto || undefined,
+      chestNumber: (typeof cNum === 'number' ? cNum : (cNum ? Number(cNum) : undefined)),
       codeLetter: indexToCodeLetter(nextIndex),
       status: GreenRoomStatus.ASSIGNED,
       generatedBy: user.id,
@@ -3351,7 +3351,7 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
       categoryId: resultObj.categoryId,
       participantId: resultObj.participantId,
       teamId: resultObj.teamId,
-      chestNumber: cNum || part?.profilePhoto || undefined,
+      chestNumber: (typeof cNum === 'number' ? cNum : (cNum ? Number(cNum) : undefined)),
       codeLetter: indexToCodeLetter(nextIndex),
       status: GreenRoomStatus.ASSIGNED,
       generatedBy: user.id,
@@ -3514,8 +3514,8 @@ apiRouter.get('/results', authenticate, async (req, res) => {
       const calculatedAvg = score.averageMark !== undefined ? score.averageMark : Math.round(((j1Mark + j2Mark) / activeCount) * 100) / 100;
 
       let resStatus: ResultStatus = ResultStatus.PARTICIPATED;
-      if (score.status === JudgeScoreStatus.ABSENT || score.status === 'absent') resStatus = ResultStatus.ABSENT;
-      if (score.status === JudgeScoreStatus.DISQUALIFIED || score.status === 'disqualified') resStatus = ResultStatus.DISQUALIFIED;
+      if (String(score.status).toLowerCase() === 'absent') resStatus = ResultStatus.ABSENT;
+      if (String(score.status).toLowerCase() === 'disqualified') resStatus = ResultStatus.DISQUALIFIED;
 
       if (existingRes) {
         // Overlay missing or outdated evaluation fields from Judgment Sheet
@@ -3561,7 +3561,7 @@ apiRouter.get('/results', authenticate, async (req, res) => {
   const rankableComps = new Set(results.map(r => r.competitionId));
   rankableComps.forEach(cId => {
     CalculationService.calculateCompetitionRanks(cId);
-    const compRankable = results.filter(r => r.competitionId === cId && (r.status === 'participated' || r.status === ResultStatus.PARTICIPATED) && (r.averageMark !== undefined || r.totalMark !== undefined));
+    const compRankable = results.filter(r => r.competitionId === cId && (!r.status || String(r.status).toLowerCase() === 'participated') && (r.averageMark !== undefined || r.totalMark !== undefined));
     compRankable.sort((a, b) => ((b.averageMark !== undefined ? b.averageMark : b.totalMark) || 0) - ((a.averageMark !== undefined ? a.averageMark : a.totalMark) || 0));
     let rk = 1;
     for (let i = 0; i < compRankable.length; i++) {
@@ -5539,8 +5539,8 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
     const j2Mark = j2?.mark || 0;
 
     let resultStatus: ResultStatus = ResultStatus.PARTICIPATED;
-    if (score.status === JudgeScoreStatus.ABSENT || score.status === 'absent') resultStatus = ResultStatus.ABSENT;
-    if (score.status === JudgeScoreStatus.DISQUALIFIED || score.status === 'disqualified') resultStatus = ResultStatus.DISQUALIFIED;
+    if (String(score.status).toLowerCase() === 'absent') resultStatus = ResultStatus.ABSENT;
+    if (String(score.status).toLowerCase() === 'disqualified') resultStatus = ResultStatus.DISQUALIFIED;
 
     const existingResult = (db.results || []).find(r =>
       r.competitionId === sheet.competitionId &&
@@ -5850,9 +5850,9 @@ apiRouter.get('/public/settings', async (req, res) => {
     ...(db.eventSettings || {}),
     ...(db.cmsSettings || {}),
     posterTemplateConfig: ptc,
-    certificateTemplateConfig: db.certificateTemplateConfig || db.eventSettings?.certificateTemplateConfig,
-    posterOverrides: db.eventSettings?.posterOverrides || {},
-    dragBlocks: db.dragBlocks || db.eventSettings?.dragBlocks || []
+    certificateTemplateConfig: (db as any).certificateTemplateConfig || (db.eventSettings as any)?.certificateTemplateConfig,
+    posterOverrides: (db.eventSettings as any)?.posterOverrides || {},
+    dragBlocks: (db as any).dragBlocks || (db.eventSettings as any)?.dragBlocks || []
   });
 });
 
@@ -6409,10 +6409,10 @@ apiRouter.get('/public/settings', async (req, res) => {
   res.json({
     ...(db.eventSettings || {}),
     ...(db.cmsSettings || {}),
-    posterTemplateConfig: db.posterTemplateConfig || db.eventSettings?.posterTemplateConfig,
-    certificateTemplateConfig: db.certificateTemplateConfig || db.eventSettings?.certificateTemplateConfig,
-    posterOverrides: db.eventSettings?.posterOverrides || {},
-    dragBlocks: db.dragBlocks || db.eventSettings?.dragBlocks || []
+    posterTemplateConfig: (db as any).posterTemplateConfig || (db.eventSettings as any)?.posterTemplateConfig,
+    certificateTemplateConfig: (db as any).certificateTemplateConfig || (db.eventSettings as any)?.certificateTemplateConfig,
+    posterOverrides: (db.eventSettings as any)?.posterOverrides || {},
+    dragBlocks: (db as any).dragBlocks || (db.eventSettings as any)?.dragBlocks || []
   });
 });
 

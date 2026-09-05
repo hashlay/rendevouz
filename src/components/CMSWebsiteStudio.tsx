@@ -103,7 +103,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
       });
       if (response.ok) {
         const data = await response.json();
-        const defaultBlocks: DragBlock[] = [
+        const defaultBlocks: any[] = [
           { id: '1', title: 'Hero Section', type: 'hero', enabled: true, order: 1 },
           { id: '2', title: 'About & Concept', type: 'about', enabled: true, order: 2 },
           { id: '3', title: 'Live Team Standings', type: 'results', enabled: true, order: 3 },
