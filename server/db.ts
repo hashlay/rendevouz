@@ -351,7 +351,7 @@ async function _syncMongoNow() {
         'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
       ];
 
-      for (const colName of collectionKeys) {
+      await Promise.all(collectionKeys.map(async (colName) => {
         const items = (db as any)[colName];
         if (Array.isArray(items)) {
           const col = mongoDb.collection(colName);
@@ -384,7 +384,7 @@ async function _syncMongoNow() {
             });
           }
         }
-      }
+      }));
 
       // Sync all configuration & branding settings
       if (db.eventSettings) {
@@ -464,8 +464,17 @@ export async function saveDb() {
     console.error("Failed to serialize database", e);
   }
 
-  // Sync to MongoDB Atlas immediately for 100% instant persistence
-  await _syncMongoNow().catch(err => console.error("Background Mongo Sync Error:", err));
+  // Sync to MongoDB Atlas in background without blocking the HTTP response
+  _scheduleMongSync();
+}
+
+if (typeof process !== 'undefined') {
+  process.on('beforeExit', () => {
+    if (_mongoSyncTimer) {
+      clearTimeout(_mongoSyncTimer);
+      _syncMongoNow().catch(() => {});
+    }
+  });
 }
 
 // Initialize on import
@@ -511,7 +520,7 @@ export async function bumpStateVersion() {
 async function syncStateFromMongo(force: boolean = false) {
   if (!mongoClient || !isMongoConnected) return;
   const now = Date.now();
-  if (!force && now - lastVersionCheckTime < 1000) return;
+  if (!force && now - lastVersionCheckTime < 3000) return;
   lastVersionCheckTime = now;
 
   try {
@@ -535,7 +544,7 @@ async function syncStateFromMongo(force: boolean = false) {
       'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
     ];
 
-    for (const colName of collectionKeys) {
+    await Promise.all(collectionKeys.map(async (colName) => {
       try {
         const docs = await mongoDb.collection(colName).find({}).toArray();
         if (docs) {
@@ -550,7 +559,7 @@ async function syncStateFromMongo(force: boolean = false) {
           (db as any)[colName] = Array.from(dedupeMap.values());
         }
       } catch (_) { }
-    }
+    }));
 
     const mongoSettingsDocs = await mongoDb.collection('settings').find({}).toArray().catch(() => []);
     mongoSettingsDocs.forEach((doc: any) => {
