@@ -45,7 +45,7 @@ export default function CertificateGenerator({
       : rank === 2 
         ? eventSettings?.certTheme2Url 
         : eventSettings?.certTheme3Url;
-  const fallbackBg = rank === 1 ? '/certificate_1.jpg' : '/certificate_2.jpg';
+  const fallbackBg = rank === 1 ? '/certificate_1.jpg' : rank === 2 ? '/certificate_2.jpg' : '/certificate_3.jpg';
   const resolvedBg = activeBg || fallbackBg;
 
   // Customization state - lookup competition-specific config first, then fallback to rank default
@@ -53,13 +53,13 @@ export default function CertificateGenerator({
   const compSpecificConfig = eventSettings?.certificateTemplateConfig?.[compKey];
   const globalRankConfig = eventSettings?.certificateTemplateConfig?.[rank] || {};
   
-  // Invalidate overrides if they were saved for a different background image (or legacy overrides)
-  const isCompValid = compSpecificConfig && compSpecificConfig._savedBgImageUrl === getBgHash(resolvedBg);
-  const isGlobalValid = globalRankConfig && globalRankConfig._savedBgImageUrl === getBgHash(resolvedBg);
+  // Use saved config, falling back gracefully without dropping user edits
+  const isCompValid = compSpecificConfig && (!compSpecificConfig._savedBgImageUrl || compSpecificConfig._savedBgImageUrl === getBgHash(resolvedBg));
+  const isGlobalValid = globalRankConfig && (!globalRankConfig._savedBgImageUrl || globalRankConfig._savedBgImageUrl === getBgHash(resolvedBg));
 
-  const validCompConfig = isCompValid ? compSpecificConfig : null;
-  const validGlobalConfig = isGlobalValid ? globalRankConfig : {};
-  const templateConfig = validCompConfig || validGlobalConfig;
+  const validCompConfig = isCompValid ? compSpecificConfig : (compSpecificConfig?.nameX !== undefined ? compSpecificConfig : null);
+  const validGlobalConfig = isGlobalValid ? globalRankConfig : (globalRankConfig?.nameX !== undefined ? globalRankConfig : null);
+  const templateConfig = validCompConfig || validGlobalConfig || globalRankConfig || {};
 
   const [nameX, setNameX] = useState(templateConfig.nameX ?? (rank === 1 ? -151 : -125));
   const [nameY, setNameY] = useState(templateConfig.nameY ?? (rank === 1 ? 461 : 461));
@@ -110,7 +110,7 @@ export default function CertificateGenerator({
         ? eventSettings?.certTheme2Url 
         : eventSettings?.certTheme3Url;
 
-    const fallbackUrl = rank === 1 ? '/certificate_1.jpg' : '/certificate_2.jpg';
+    const fallbackUrl = rank === 1 ? '/certificate_1.jpg' : rank === 2 ? '/certificate_2.jpg' : '/certificate_3.jpg';
     const targetUrl = customUrl || fallbackUrl;
 
     loadCertificateImage(targetUrl)
@@ -365,7 +365,7 @@ export default function CertificateGenerator({
         : rank === 2 
           ? eventSettings?.certTheme2Url 
           : eventSettings?.certTheme3Url;
-      const fallbackBg = rank === 1 ? '/certificate_1.jpg' : '/certificate_2.jpg';
+      const fallbackBg = rank === 1 ? '/certificate_1.jpg' : rank === 2 ? '/certificate_2.jpg' : '/certificate_3.jpg';
       const resolvedBg = activeBg || fallbackBg;
 
       const configData = { 

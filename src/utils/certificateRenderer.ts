@@ -96,7 +96,7 @@ export const renderCertificateToBlob = async ({
       : rank === 2 
         ? eventSettings?.certTheme2Url 
         : eventSettings?.certTheme3Url;
-  const fallbackBg = rank === 1 ? '/certificate_1.jpg' : '/certificate_2.jpg';
+  const fallbackBg = rank === 1 ? '/certificate_1.jpg' : rank === 2 ? '/certificate_2.jpg' : '/certificate_3.jpg';
   const resolvedBg = activeBg || fallbackBg;
 
   const img = await loadCertificateImage(resolvedBg);
@@ -116,9 +116,9 @@ export const renderCertificateToBlob = async ({
   const compSpecificConfig = eventSettings?.certificateTemplateConfig?.[compKey];
   const globalRankConfig = eventSettings?.certificateTemplateConfig?.[rank] || {};
 
-  const isCompValid = compSpecificConfig && compSpecificConfig._savedBgImageUrl === getBgHash(resolvedBg);
-  const isGlobalValid = globalRankConfig && globalRankConfig._savedBgImageUrl === getBgHash(resolvedBg);
-  const templateConfig = (isCompValid ? compSpecificConfig : null) || (isGlobalValid ? globalRankConfig : {});
+  const isCompValid = compSpecificConfig && (!compSpecificConfig._savedBgImageUrl || compSpecificConfig._savedBgImageUrl === getBgHash(resolvedBg));
+  const isGlobalValid = globalRankConfig && (!globalRankConfig._savedBgImageUrl || globalRankConfig._savedBgImageUrl === getBgHash(resolvedBg));
+  const templateConfig = (isCompValid ? compSpecificConfig : null) || (isGlobalValid ? globalRankConfig : null) || globalRankConfig || {};
 
   const nameX = templateConfig.nameX ?? (rank === 1 ? -151 : -125);
   const nameY = templateConfig.nameY ?? (rank === 1 ? 461 : 461);

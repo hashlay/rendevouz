@@ -56,7 +56,7 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
       [1, 2, 3].forEach(r => {
         if (finalConfig[r]) {
           const bg = r === 1 ? certTheme1Url : r === 2 ? certTheme2Url : certTheme3Url;
-          finalConfig[r] = { ...finalConfig[r], _savedBgImageUrl: getBgHash(bg || (r === 1 ? '/certificate_1.jpg' : '/certificate_2.jpg')) };
+          finalConfig[r] = { ...finalConfig[r], _savedBgImageUrl: getBgHash(bg || (r === 1 ? '/certificate_1.jpg' : r === 2 ? '/certificate_2.jpg' : '/certificate_3.jpg')) };
         }
       });
       
@@ -104,7 +104,7 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
       ? certTheme1Url || '/certificate_1.jpg'
       : selectedRank === 2 
         ? certTheme2Url || '/certificate_2.jpg'
-        : certTheme3Url || '/certificate_2.jpg';
+        : certTheme3Url || '/certificate_3.jpg';
         
     img.src = url;
     img.onload = () => {
