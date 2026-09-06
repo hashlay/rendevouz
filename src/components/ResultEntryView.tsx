@@ -14,22 +14,15 @@ interface ResultEntryViewProps {
 
 export default function ResultEntryView({ user, token, eventSettings }: ResultEntryViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
-  // Master lists with instant session cache for 0ms initial load
-  const cachedMasters = useMemo(() => {
-    try {
-      const raw = sessionStorage.getItem('re_masters_cache');
-      return raw ? JSON.parse(raw) : null;
-    } catch (_) { return null; }
-  }, []);
-
-  const [categories, setCategories] = useState<Category[]>(() => cachedMasters?.categories || []);
-  const [competitions, setCompetitions] = useState<Competition[]>(() => cachedMasters?.competitions || []);
-  const [units, setUnits] = useState<Unit[]>(() => cachedMasters?.units || []);
-  const [participants, setParticipants] = useState<Participant[]>(() => cachedMasters?.participants || []);
-  const [registrations, setRegistrations] = useState<any[]>(() => cachedMasters?.registrations || []);
-  const participantsRef = useRef<Participant[]>(cachedMasters?.participants || []);
-  const registrationsRef = useRef<any[]>(cachedMasters?.registrations || []);
-  const [loading, setLoading] = useState(!cachedMasters);
+  // Master lists
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [registrations, setRegistrations] = useState<any[]>([]);
+  const participantsRef = useRef<Participant[]>([]);
+  const registrationsRef = useRef<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Workflow selectors
   const [selectedCatId, setSelectedCatId] = useState('');
@@ -221,15 +214,6 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
       participantsRef.current = pData;
       setRegistrations(rData);
       registrationsRef.current = rData;
-      try {
-        sessionStorage.setItem('re_masters_cache', JSON.stringify({
-          categories: cData,
-          competitions: compData,
-          units: uData,
-          participants: pData,
-          registrations: rData
-        }));
-      } catch (_) {}
     } catch (e) {
       console.error(e);
     } finally {

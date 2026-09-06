@@ -994,7 +994,7 @@ apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, User
   cleanOverrides(db.eventSettings.certificateOverrides);
 
   await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Update Event Settings', 'EventSettings', 'global', undefined, prevSettings, db.eventSettings);
-  await dbClient.save(['settings']);
+  await dbClient.save();
 
   // Do NOT return massive settings object back to the client!
   res.json({
@@ -3283,7 +3283,7 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
       db.results.push(newRes);
       CalculationService.calculateCompetitionRanks(newRes.competitionId);
       await dbClient.logAudit(user.id, user.username, user.role, 'Upsert Competition Result', 'Result', newRes.id);
-      await dbClient.save(['results', 'judgeScores', 'greenRoomAssignments', 'judgmentSheets']);
+      await dbClient.save();
       return res.json({ message: 'Result saved successfully', result: newRes });
     }
     return res.status(404).json({ error: 'Result not found' });
@@ -3426,7 +3426,7 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
   }
 
   await dbClient.logAudit(user.id, user.username, user.role, 'Update Competition Result', 'Result', resId, undefined, oldRes, resultObj);
-  await dbClient.save(['results', 'judgeScores', 'greenRoomAssignments', 'judgmentSheets']);
+  await dbClient.save();
 
   res.json({ message: 'Result updated successfully', result: resultObj });
 });
@@ -3446,10 +3446,12 @@ apiRouter.post('/results/:id/delete', authenticate, requireRole([UserRole.SUPER_
   resultObj.deletedAt = new Date().toISOString();
   resultObj.deletedBy = user.username;
 
+  await dbClient.save();
+
   // Recalculate ranks immediately
   CalculationService.calculateCompetitionRanks(resultObj.competitionId);
   await dbClient.logAudit(user.id, user.username, user.role, 'Delete Competition Result', 'Result', resId, undefined, { deleted: true });
-  await dbClient.save(['results', 'judgeScores']);
+  await dbClient.save();
 
   res.json({ message: 'Result deleted successfully' });
 });
