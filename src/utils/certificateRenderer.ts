@@ -120,15 +120,15 @@ export const renderCertificateToBlob = async ({
   const isGlobalValid = globalRankConfig && (!globalRankConfig._savedBgImageUrl || globalRankConfig._savedBgImageUrl === getBgHash(resolvedBg));
   const templateConfig = (isCompValid ? compSpecificConfig : null) || (isGlobalValid ? globalRankConfig : null) || globalRankConfig || {};
 
-  const nameX = templateConfig.nameX ?? (rank === 1 ? -151 : -125);
-  const nameY = templateConfig.nameY ?? (rank === 1 ? 461 : 461);
-  const compX = templateConfig.compX ?? (rank === 1 ? -37 : -30);
-  const compY = templateConfig.compY ?? (rank === 1 ? 553 : 553);
-  const nameSize = templateConfig.nameSize ?? (rank === 1 ? 33 : 33);
-  const compSize = templateConfig.compSize ?? (rank === 1 ? 25 : 25);
+  const nameX = templateConfig.nameX ?? -410;
+  const nameY = templateConfig.nameY ?? 671;
+  const compX = templateConfig.compX ?? -414;
+  const compY = templateConfig.compY ?? 913;
+  const nameSize = templateConfig.nameSize ?? 68;
+  const compSize = templateConfig.compSize ?? 68;
   const nameFont = templateConfig.nameFont || '"Montserrat", "Inter", sans-serif';
   const compFont = templateConfig.compFont || '"Montserrat", "Inter", sans-serif';
-  const defaultColor = rank === 1 ? '#cc0000' : '#000000';
+  const defaultColor = '#000000';
   const nameColor = templateConfig.nameColor ?? defaultColor;
   const compColor = templateConfig.compColor ?? defaultColor;
   const nameAlign: 'left' | 'center' = templateConfig.nameAlign || 'left';

@@ -61,12 +61,12 @@ export default function CertificateGenerator({
   const validGlobalConfig = isGlobalValid ? globalRankConfig : (globalRankConfig?.nameX !== undefined ? globalRankConfig : null);
   const templateConfig = validCompConfig || validGlobalConfig || globalRankConfig || {};
 
-  const [nameX, setNameX] = useState(templateConfig.nameX ?? (rank === 1 ? -151 : -125));
-  const [nameY, setNameY] = useState(templateConfig.nameY ?? (rank === 1 ? 461 : 461));
-  const [compX, setCompX] = useState(templateConfig.compX ?? (rank === 1 ? -37 : -30));
-  const [compY, setCompY] = useState(templateConfig.compY ?? (rank === 1 ? 553 : 553));
-  const [nameSize, setNameSize] = useState(templateConfig.nameSize ?? (rank === 1 ? 33 : 33));
-  const [compSize, setCompSize] = useState(templateConfig.compSize ?? (rank === 1 ? 25 : 25));
+  const [nameX, setNameX] = useState(templateConfig.nameX ?? -410);
+  const [nameY, setNameY] = useState(templateConfig.nameY ?? 671);
+  const [compX, setCompX] = useState(templateConfig.compX ?? -414);
+  const [compY, setCompY] = useState(templateConfig.compY ?? 913);
+  const [nameSize, setNameSize] = useState(templateConfig.nameSize ?? 68);
+  const [compSize, setCompSize] = useState(templateConfig.compSize ?? 68);
   // Custom text overrides for long names & competition titles
   const [customParticipantNames, setCustomParticipantNames] = useState<Record<number, string>>(() => {
     const overrides = eventSettings?.certificateOverrides || {};
@@ -89,8 +89,7 @@ export default function CertificateGenerator({
   const [compFont, setCompFont] = useState(templateConfig.compFont || '"Montserrat", "Inter", sans-serif');
   
   // Base on rank, pick default colors
-  // 1st place has a red/burgundy theme. 2nd and 3rd place use black text.
-  const defaultColor = rank === 1 ? '#cc0000' : '#000000';
+  const defaultColor = '#000000';
   
   const [nameColor, setNameColor] = useState(templateConfig.nameColor ?? defaultColor);
   const [compColor, setCompColor] = useState(templateConfig.compColor ?? defaultColor);
@@ -606,7 +605,7 @@ export default function CertificateGenerator({
                   <span className="font-mono">{nameSize}px</span>
                 </label>
                 <input 
-                  type="range" min="20" max="80" value={nameSize} 
+                  type="range" min="16" max="120" value={nameSize} 
                   onChange={(e) => setNameSize(Number(e.target.value))}
                   className="w-full accent-emerald-600"
                 />
@@ -618,7 +617,7 @@ export default function CertificateGenerator({
                   <span className="font-mono">{nameX}</span>
                 </label>
                 <input 
-                  type="range" min="-500" max="500" value={nameX} 
+                  type="range" min="-600" max="600" value={nameX} 
                   onChange={(e) => setNameX(Number(e.target.value))}
                   className="w-full accent-emerald-600"
                 />
@@ -630,7 +629,7 @@ export default function CertificateGenerator({
                   <span className="font-mono">{nameY}</span>
                 </label>
                 <input 
-                  type="range" min="200" max="1500" value={nameY} 
+                  type="range" min="100" max="1500" value={nameY} 
                   onChange={(e) => setNameY(Number(e.target.value))}
                   className="w-full accent-emerald-600"
                 />
@@ -706,7 +705,7 @@ export default function CertificateGenerator({
                   <span className="font-mono">{compSize}px</span>
                 </label>
                 <input 
-                  type="range" min="16" max="60" value={compSize} 
+                  type="range" min="16" max="120" value={compSize} 
                   onChange={(e) => setCompSize(Number(e.target.value))}
                   className="w-full accent-emerald-600"
                 />
@@ -718,7 +717,7 @@ export default function CertificateGenerator({
                   <span className="font-mono">{compX}</span>
                 </label>
                 <input 
-                  type="range" min="-500" max="500" value={compX} 
+                  type="range" min="-600" max="600" value={compX} 
                   onChange={(e) => setCompX(Number(e.target.value))}
                   className="w-full accent-emerald-600"
                 />
@@ -730,7 +729,7 @@ export default function CertificateGenerator({
                   <span className="font-mono">{compY}</span>
                 </label>
                 <input 
-                  type="range" min="200" max="1500" value={compY} 
+                  type="range" min="100" max="1500" value={compY} 
                   onChange={(e) => setCompY(Number(e.target.value))}
                   className="w-full accent-emerald-600"
                 />

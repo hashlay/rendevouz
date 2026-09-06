@@ -79,14 +79,14 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
   };
 
   const currentConf = config[selectedRank] || {};
-  const nameX = currentConf.nameX ?? (selectedRank === 1 ? -151 : -125);
-  const nameY = currentConf.nameY ?? 461;
-  const compX = currentConf.compX ?? (selectedRank === 1 ? -37 : -30);
-  const compY = currentConf.compY ?? 553;
-  const nameSize = currentConf.nameSize ?? 33;
-  const compSize = currentConf.compSize ?? 25;
-  const nameColor = currentConf.nameColor ?? (selectedRank === 1 ? '#cc0000' : '#000000');
-  const compColor = currentConf.compColor ?? (selectedRank === 1 ? '#cc0000' : '#000000');
+  const nameX = currentConf.nameX ?? -410;
+  const nameY = currentConf.nameY ?? 671;
+  const compX = currentConf.compX ?? -414;
+  const compY = currentConf.compY ?? 913;
+  const nameSize = currentConf.nameSize ?? 68;
+  const compSize = currentConf.compSize ?? 68;
+  const nameColor = currentConf.nameColor ?? '#000000';
+  const compColor = currentConf.compColor ?? '#000000';
   const nameFont = currentConf.nameFont || '"Montserrat", sans-serif';
   const compFont = currentConf.compFont || '"Montserrat", sans-serif';
   const nameAlign: 'left' | 'center' = currentConf.nameAlign || 'left';
@@ -380,31 +380,31 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
                    </div>
                  </div>
                  <div>
-                   <label className="text-xs font-bold text-slate-500 flex justify-between">X Offset (from center) <span>{nameX}</span></label>
-                   <input type="range" min="-400" max="400" value={nameX} onChange={e => handleUpdate(selectedRank, 'nameX', Number(e.target.value))} className="w-full accent-emerald-500" />
-                 </div>
-                 <div>
-                   <label className="text-xs font-bold text-slate-500 flex justify-between">Y Position <span>{nameY}</span></label>
-                   <input type="range" min="100" max="1000" value={nameY} onChange={e => handleUpdate(selectedRank, 'nameY', Number(e.target.value))} className="w-full accent-emerald-500" />
-                 </div>
-                 <div>
-                   <label className="text-xs font-bold text-slate-500 flex justify-between">Font Size <span>{nameSize}</span></label>
-                   <input type="range" min="12" max="100" value={nameSize} onChange={e => handleUpdate(selectedRank, 'nameSize', Number(e.target.value))} className="w-full accent-emerald-500" />
-                 </div>
-                 <div>
-                    <label className="text-xs font-bold text-slate-500 mb-1 block">Font Family</label>
-                    <select
-                      value={nameFont}
-                      onChange={e => handleUpdate(selectedRank, 'nameFont', e.target.value)}
-                      className="w-full text-xs p-1.5 border rounded-lg bg-white font-semibold"
-                    >
-                      {UNIVERSAL_FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                    </select>
+                    <label className="text-xs font-bold text-slate-500 flex justify-between">X Offset (from center) <span>{nameX}</span></label>
+                    <input type="range" min="-600" max="600" value={nameX} onChange={e => handleUpdate(selectedRank, 'nameX', Number(e.target.value))} className="w-full accent-emerald-500" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-500">Color</label>
-                    <input type="color" value={nameColor} onChange={e => handleUpdate(selectedRank, 'nameColor', e.target.value)} className="w-full h-8 rounded border" />
+                    <label className="text-xs font-bold text-slate-500 flex justify-between">Y Position <span>{nameY}</span></label>
+                    <input type="range" min="100" max="1500" value={nameY} onChange={e => handleUpdate(selectedRank, 'nameY', Number(e.target.value))} className="w-full accent-emerald-500" />
                   </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 flex justify-between">Font Size <span>{nameSize}</span></label>
+                    <input type="range" min="12" max="120" value={nameSize} onChange={e => handleUpdate(selectedRank, 'nameSize', Number(e.target.value))} className="w-full accent-emerald-500" />
+                  </div>
+                  <div>
+                     <label className="text-xs font-bold text-slate-500 mb-1 block">Font Family</label>
+                     <select
+                       value={nameFont}
+                       onChange={e => handleUpdate(selectedRank, 'nameFont', e.target.value)}
+                       className="w-full text-xs p-1.5 border rounded-lg bg-white font-semibold"
+                     >
+                       {UNIVERSAL_FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                     </select>
+                   </div>
+                   <div>
+                     <label className="text-xs font-bold text-slate-500">Color</label>
+                     <input type="color" value={nameColor} onChange={e => handleUpdate(selectedRank, 'nameColor', e.target.value)} className="w-full h-8 rounded border" />
+                   </div>
                </div>
              </div>
              
@@ -439,17 +439,17 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
                    </div>
                  </div>
                  <div>
-                   <label className="text-xs font-bold text-slate-500 flex justify-between">X Offset (from center) <span>{compX}</span></label>
-                   <input type="range" min="-400" max="400" value={compX} onChange={e => handleUpdate(selectedRank, 'compX', Number(e.target.value))} className="w-full accent-emerald-500" />
-                 </div>
-                 <div>
-                   <label className="text-xs font-bold text-slate-500 flex justify-between">Y Position <span>{compY}</span></label>
-                   <input type="range" min="100" max="1000" value={compY} onChange={e => handleUpdate(selectedRank, 'compY', Number(e.target.value))} className="w-full accent-emerald-500" />
-                 </div>
-                 <div>
-                   <label className="text-xs font-bold text-slate-500 flex justify-between">Font Size <span>{compSize}</span></label>
-                   <input type="range" min="12" max="100" value={compSize} onChange={e => handleUpdate(selectedRank, 'compSize', Number(e.target.value))} className="w-full accent-emerald-500" />
-                 </div>
+                    <label className="text-xs font-bold text-slate-500 flex justify-between">X Offset (from center) <span>{compX}</span></label>
+                    <input type="range" min="-600" max="600" value={compX} onChange={e => handleUpdate(selectedRank, 'compX', Number(e.target.value))} className="w-full accent-emerald-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 flex justify-between">Y Position <span>{compY}</span></label>
+                    <input type="range" min="100" max="1500" value={compY} onChange={e => handleUpdate(selectedRank, 'compY', Number(e.target.value))} className="w-full accent-emerald-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 flex justify-between">Font Size <span>{compSize}</span></label>
+                    <input type="range" min="12" max="120" value={compSize} onChange={e => handleUpdate(selectedRank, 'compSize', Number(e.target.value))} className="w-full accent-emerald-500" />
+                  </div>
                  <div>
                     <label className="text-xs font-bold text-slate-500 mb-1 block">Font Family</label>
                     <select
