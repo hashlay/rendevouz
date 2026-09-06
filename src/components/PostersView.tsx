@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Award, Trophy, Image as ImageIcon, Download, Upload, Search, Filter, X,
-  Sparkles, RefreshCw, Palette, Layers, CheckCircle2, ChevronDown, Save
+  Sparkles, RefreshCw, Palette, Layers, CheckCircle2, ChevronDown, Save, Share2
 } from 'lucide-react';
 import { User, Category, Unit, Participant, Competition, Result, Team, UserRole } from '../types';
 
@@ -316,13 +316,21 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
   const festivalName = eventSettings?.festivalName || 'Sahityotsav';
   const campusName = eventSettings?.campusName || eventSettings?.sectorName || 'Campus';
 
-  const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState<Result[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
+  // Instant session cache for 0ms initial load
+  const cachedPosterData = React.useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem('posters_view_cache');
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+  }, []);
+
+  const [loading, setLoading] = useState(!cachedPosterData);
+  const [results, setResults] = useState<Result[]>(() => cachedPosterData?.results || []);
+  const [categories, setCategories] = useState<Category[]>(() => cachedPosterData?.categories || []);
+  const [units, setUnits] = useState<Unit[]>(() => cachedPosterData?.units || []);
+  const [competitions, setCompetitions] = useState<Competition[]>(() => cachedPosterData?.competitions || []);
+  const [participants, setParticipants] = useState<Participant[]>(() => cachedPosterData?.participants || []);
+  const [teams, setTeams] = useState<Team[]>(() => cachedPosterData?.teams || []);
 
   // Selection states
   const [selectedCompId, setSelectedCompId] = useState('');
@@ -723,6 +731,16 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
       setCompetitions(compData);
       setParticipants(partData);
       setTeams(teamData);
+      try {
+        sessionStorage.setItem('posters_view_cache', JSON.stringify({
+          results: resData,
+          categories: catData,
+          units: unitData,
+          competitions: compData,
+          participants: partData,
+          teams: teamData
+        }));
+      } catch (_) {}
     } catch (e) {
       console.error("Failed to load poster data", e);
     } finally {
@@ -1115,6 +1133,86 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     selectedCompId, isModalOpen, customThemes, themeRules, themeConfigs,
     localThemeConfigs, hoveredElement, dragging, loading
   ]);
+
+  const [sharingPoster, setSharingPoster] = useState(false);
+
+  const handleSharePoster = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !activeComp) return;
+
+    setSharingPoster(true);
+    try {
+      const compIdx = getAnnouncementIndex(selectedCompId);
+      const formattedNum = compIdx > 0 ? String(compIdx).padStart(2, '0') : '01';
+      const catName = activeCategory?.name || '';
+      const festivalTitle = (festivalName || 'TABASSUM MEELAD FEST 2K26').toUpperCase();
+      const campus = eventSettings?.campusName || eventSettings?.sectorName || 'Noorul Islam Madrasa, Jeppu';
+      const slogan = eventSettings?.festivalTagline || eventSettings?.slogan || 'A Smile That Brings Hearts Together...';
+      const hashtags = eventSettings?.shareHashtags || '#Tabassum2K26 #MeeladFest #Results #NoorulIslamMadrasa #Jeppu #Congratulations';
+
+      const rank1Winners = compResults.filter(r => r.rank === 1);
+      const rank2Winners = compResults.filter(r => r.rank === 2);
+      const rank3Winners = compResults.filter(r => r.rank === 3);
+
+      const formatLine = (emoji: string, rankStr: string, list: typeof compResults) => {
+        if (list.length === 0) return '';
+        return list.map(r => {
+          const unit = r.unitName ? ` (Team ${r.unitName})` : '';
+          return `${emoji} ${rankStr}: ${r.participantName}${unit}`;
+        }).join('\n');
+      };
+
+      const winnersSummary = [
+        formatLine('🥇', '1st', rank1Winners),
+        formatLine('🥈', '2nd', rank2Winners),
+        formatLine('🥉', '3rd', rank3Winners)
+      ].filter(Boolean).join('\n');
+
+      const shareTitle = `🏆 ${festivalTitle} — RESULT ${formattedNum}`;
+      const shareText = `🏆 ${festivalTitle} — RESULT ${formattedNum}
+✨ ${slogan}
+
+${activeComp.name}
+${catName}
+
+${winnersSummary}
+
+🌿 Congratulations to all the winners and participants!
+${campus}
+${hashtags}`;
+
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+      if (!blob) throw new Error('Failed to generate poster blob');
+
+      const fileName = `Result_${formattedNum}_${activeComp.name.replace(/\s+/g, '_')}.jpg`;
+      const file = new File([blob], fileName, { type: 'image/jpeg' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          files: [file]
+        });
+      } else {
+        // Direct download and copy text fallback
+        const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = dataUrl;
+        link.click();
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(shareText);
+        }
+        alert('Poster image downloaded and winner caption copied to clipboard!');
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Share error:', err);
+      }
+    } finally {
+      setSharingPoster(false);
+    }
+  };
 
   const handleDownload = () => {
     const canvas = canvasRef.current;
@@ -1545,8 +1643,17 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
                     <div className="mt-6 space-y-2 pt-4 border-t border-slate-100">
                       <button
+                        onClick={handleSharePoster}
+                        disabled={sharingPoster}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all disabled:opacity-50"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        {sharingPoster ? 'Preparing Share...' : 'Share to WhatsApp / Social Media'}
+                      </button>
+
+                      <button
                         onClick={handleDownload}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
                       >
                         <Download className="w-4 h-4" />
                         Download JPG (HD)

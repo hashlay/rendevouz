@@ -13,13 +13,22 @@ interface CertificatesViewProps {
 
 export default function CertificatesView({ user, token, eventSettings, onSettingsUpdated }: CertificatesViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
-  const [results, setResults] = useState<Result[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Instant session cache for 0ms initial load
+  const cachedCertData = React.useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem('cert_view_cache');
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+  }, []);
+
+  const [results, setResults] = useState<Result[]>(() => cachedCertData?.results || []);
+  const [categories, setCategories] = useState<Category[]>(() => cachedCertData?.categories || []);
+  const [units, setUnits] = useState<Unit[]>(() => cachedCertData?.units || []);
+  const [competitions, setCompetitions] = useState<Competition[]>(() => cachedCertData?.competitions || []);
+  const [participants, setParticipants] = useState<Participant[]>(() => cachedCertData?.participants || []);
+  const [teams, setTeams] = useState<Team[]>(() => cachedCertData?.teams || []);
+  const [loading, setLoading] = useState(!cachedCertData);
   const [selectedCertificate, setSelectedCertificate] = useState<{names: string[], comp: string, compId: string, rank: number} | null>(null);
 
   // Filters
@@ -36,7 +45,7 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const fetchData = async () => {
-    setLoading(true);
+    if (!cachedCertData) setLoading(true);
     try {
       const ts = Date.now();
       const headers = { 'Authorization': `Bearer ${token}` };
@@ -49,15 +58,34 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
         fetch(`/api/units?t=${ts}`, { headers })
       ]);
 
+      let resData: Result[] = [];
+      let catData: Category[] = [];
+      let compData: Competition[] = [];
+      let partData: Participant[] = [];
+      let teamData: Team[] = [];
+      let unitData: Unit[] = [];
+
       if (resRes.ok) {
-        const data = await resRes.json();
-        setResults(data.filter((r: Result) => r.rank && r.rank <= 3));
+        const raw = await resRes.json();
+        resData = raw.filter((r: Result) => r.rank && r.rank <= 3);
+        setResults(resData);
       }
-      if (catRes.ok) setCategories(await catRes.json());
-      if (compRes.ok) setCompetitions(await compRes.json());
-      if (partRes.ok) setParticipants(await partRes.json());
-      if (teamRes.ok) setTeams(await teamRes.json());
-      if (unitRes.ok) setUnits(await unitRes.json());
+      if (catRes.ok) { catData = await catRes.json(); setCategories(catData); }
+      if (compRes.ok) { compData = await compRes.json(); setCompetitions(compData); }
+      if (partRes.ok) { partData = await partRes.json(); setParticipants(partData); }
+      if (teamRes.ok) { teamData = await teamRes.json(); setTeams(teamData); }
+      if (unitRes.ok) { unitData = await unitRes.json(); setUnits(unitData); }
+
+      try {
+        sessionStorage.setItem('cert_view_cache', JSON.stringify({
+          results: resData,
+          categories: catData,
+          competitions: compData,
+          participants: partData,
+          teams: teamData,
+          units: unitData
+        }));
+      } catch (_) {}
     } catch (error) {
       console.error('Error fetching data for certificates:', error);
     } finally {
@@ -139,16 +167,18 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
     setToastMessage(`Generating and downloading ${targets.length} certificate(s)...`);
 
     try {
-      for (let i = 0; i < targets.length; i++) {
-        const target = targets[i];
-        const { blob, fileName } = await renderCertificateToBlob({
+      // Pre-render all certificates in parallel across all CPU cores!
+      const renderedList = await Promise.all(
+        targets.map(target => renderCertificateToBlob({
           participantName: target.participantName,
           competitionName: target.competitionName,
           competitionId: target.competitionId,
           rank: target.rank,
           eventSettings
-        });
+        }))
+      );
 
+      for (const { blob, fileName } of renderedList) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -157,8 +187,8 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
         a.click();
         document.body.removeChild(a);
 
-        // Stagger downloads by 350ms so browser accepts them as separate files without dropping
-        await new Promise(r => setTimeout(r, 350));
+        // Stagger browser download prompts by 200ms
+        await new Promise(r => setTimeout(r, 200));
         URL.revokeObjectURL(url);
       }
       setToastMessage(`Downloaded ${targets.length} certificate(s) separately!`);
@@ -182,17 +212,18 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
     setToastMessage(`Preparing ${targets.length} certificate image(s)...`);
 
     try {
-      const files: File[] = [];
-      for (const target of targets) {
-        const { blob, fileName } = await renderCertificateToBlob({
+      // Parallelize rendering for instant generation!
+      const renderedList = await Promise.all(
+        targets.map(target => renderCertificateToBlob({
           participantName: target.participantName,
           competitionName: target.competitionName,
           competitionId: target.competitionId,
           rank: target.rank,
           eventSettings
-        });
-        files.push(new File([blob], fileName, { type: 'image/jpeg' }));
-      }
+        }))
+      );
+
+      const files: File[] = renderedList.map(({ blob, fileName }) => new File([blob], fileName, { type: 'image/jpeg' }));
 
       const festivalTitle = (eventSettings?.festivalName || 'TABASSUM MEELAD FEST 2K26').toUpperCase();
       const compIdx = competitions.findIndex(c => c.id === comp.id) + 1;
