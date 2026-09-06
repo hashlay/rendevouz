@@ -16,8 +16,15 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
   const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
 
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(() => {
+    try {
+      const cached = sessionStorage.getItem('dashboard_stats_cache');
+      return cached ? JSON.parse(cached) : null;
+    } catch (_) {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(!stats);
   const [error, setError] = useState<string | null>(null);
 
   const [showPendingModal, setShowPendingModal] = useState(false);
@@ -25,18 +32,21 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
   const [pendingLoading, setPendingLoading] = useState(false);
 
   const fetchStats = async () => {
-    // If stats are already there, don't show full page loading to prevent flicker
+    // Only show spinner on first visit if no cached data exists
     if (!stats) setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/dashboard-stats', {
+      const res = await fetch(`/api/dashboard-stats?t=${Date.now()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch dashboard statistics');
       setStats(data);
+      try {
+        sessionStorage.setItem('dashboard_stats_cache', JSON.stringify(data));
+      } catch (_) {}
     } catch (err: any) {
-      setError(err.message);
+      if (!stats) setError(err.message);
     } finally {
       setLoading(false);
     }
