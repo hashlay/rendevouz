@@ -352,10 +352,27 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
   const [savingTemplate, setSavingTemplate] = useState(false);
 
   useEffect(() => {
-    if (isModalOpen) {
+    if (selectedCompId) {
+      const aComp = competitions.find(c => c.id === selectedCompId);
+      const compIdx = getAnnouncementIndex(selectedCompId);
+      const aCat = aComp ? categories.find(cat => cat.id === aComp.categoryId) : null;
+      const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
+
+      const compOverride = (eventSettings?.posterOverrides && aComp?.name && eventSettings.posterOverrides[aComp.name]) ||
+                           (eventSettings?.posterOverrides && selectedCompId && eventSettings.posterOverrides[selectedCompId]);
+
+      const baseTheme = { ...getDefaultThemeConfig(), ...(themeConfigs[themeIdx] || {}) };
+      const mergedTheme = { ...baseTheme, ...(compOverride || {}) };
+
+      setLocalThemeConfigs((prev: any) => ({
+        ...(themeConfigs || {}),
+        ...prev,
+        [themeIdx]: mergedTheme
+      }));
+    } else if (isModalOpen) {
       setLocalThemeConfigs(themeConfigs || {});
     }
-  }, [isModalOpen, themeConfigs]);
+  }, [isModalOpen, selectedCompId, eventSettings?.posterOverrides]);
 
   useEffect(() => {
     (customThemes || []).forEach((t: string) => {
@@ -371,10 +388,9 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     const aComp = competitions.find(c => c.id === selectedCompId);
     const compOverride = (eventSettings?.posterOverrides && aComp?.name && eventSettings.posterOverrides[aComp.name]) ||
                          (eventSettings?.posterOverrides && selectedCompId && eventSettings.posterOverrides[selectedCompId]);
-    const isOverrideValid = compOverride && (compOverride._savedThemeIndex === undefined || compOverride._savedThemeIndex === idx);
     const baseTheme = { ...getDefaultThemeConfig(), ...(themeConfigs[idx] || {}) };
-    const savedLocal = localThemeConfigs[idx] || {};
-    return { ...baseTheme, ...(isOverrideValid ? compOverride : {}), ...savedLocal };
+    const savedLocal = localThemeConfigs[idx];
+    return { ...baseTheme, ...(compOverride || {}), ...(savedLocal || {}) };
   };
 
   const updateLocalConf = (key: string, value: any) => {
@@ -422,8 +438,10 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
       const compIdx = getAnnouncementIndex(selectedCompId);
       const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
       
+      const currentConf = getThemeConfig(themeIdx);
       const individualConfig = {
-        ...localThemeConfigs[themeIdx],
+        ...currentConf,
+        ...(localThemeConfigs[themeIdx] || {}),
         _savedThemeIndex: themeIdx,
         _savedBgImageUrl: getBgHash(customThemes[themeIdx] || customThemes[0])
       };

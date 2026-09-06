@@ -966,6 +966,11 @@ apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     db.certificateTemplateConfig = req.body.certificateTemplateConfig;
     if (db.eventSettings) db.eventSettings.certificateTemplateConfig = req.body.certificateTemplateConfig;
   }
+  if (req.body.posterOverrides) {
+    db.posterOverrides = req.body.posterOverrides;
+    if (db.eventSettings) db.eventSettings.posterOverrides = req.body.posterOverrides;
+  }
+
 
   // Aggressively clean up redundant base64 strings in overrides to prevent massive JSON bloat
   const cleanOverrides = (overrides: any) => {
