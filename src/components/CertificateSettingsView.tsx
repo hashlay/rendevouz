@@ -26,6 +26,29 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
     }));
   };
 
+  useEffect(() => {
+    if (eventSettings?.certificateTemplateConfig) {
+      setConfig(eventSettings.certificateTemplateConfig);
+    }
+    if (eventSettings?.certTheme1Url) setCertTheme1Url(eventSettings.certTheme1Url);
+    if (eventSettings?.certTheme2Url) setCertTheme2Url(eventSettings.certTheme2Url);
+    if (eventSettings?.certTheme3Url) setCertTheme3Url(eventSettings.certTheme3Url);
+  }, [eventSettings]);
+
+  useEffect(() => {
+    fetch('/api/settings?t=' + Date.now(), { cache: 'no-store' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          if (data.certificateTemplateConfig) setConfig(data.certificateTemplateConfig);
+          if (data.certTheme1Url) setCertTheme1Url(data.certTheme1Url);
+          if (data.certTheme2Url) setCertTheme2Url(data.certTheme2Url);
+          if (data.certTheme3Url) setCertTheme3Url(data.certTheme3Url);
+        }
+      })
+      .catch(err => console.error('Failed to load settings in CertificateSettingsView:', err));
+  }, []);
+
   const handleSave = async () => {
     setLoading(true);
     try {
