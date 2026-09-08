@@ -35,7 +35,14 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
   const [sharingCompId, setSharingCompId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Set to false in the future to re-enable certificates instantly
+  const CERTIFICATES_DISABLED = true;
+
   const fetchData = async () => {
+    if (CERTIFICATES_DISABLED) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const ts = Date.now();
@@ -66,9 +73,29 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
   };
 
   useEffect(() => {
-    preloadCertificateImages(eventSettings);
-    fetchData();
+    if (!CERTIFICATES_DISABLED) {
+      preloadCertificateImages(eventSettings);
+      fetchData();
+    } else {
+      setLoading(false);
+    }
   }, [token]);
+
+  if (CERTIFICATES_DISABLED) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto mt-8">
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+          <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200 shadow-sm">
+            <FileBadge className="w-7 h-7" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Certificate system is currently disabled</h2>
+          <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+            The certificate generation and download system is currently disabled for this festival to preserve server bandwidth and maximize speed. All certificate configurations and templates remain securely stored.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Extract certificate targets for a competition
   const getCompCertificateTargets = (comp: Competition, compResults: Result[]) => {

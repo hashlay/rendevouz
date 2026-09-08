@@ -319,7 +319,7 @@ if (!process.env.VERCEL) {
   if (t2?.unref) t2.unref();
 }
 
-async function _syncMongoNow() {
+async function _syncMongoNow(targetCollections?: string[]) {
   if (isMongoConnected && mongoClient && !isMongoConnecting && db) {
     try {
       const mongoUriStr = process.env.MONGO_URI || process.env.MONGODB_URI || '';
@@ -327,22 +327,30 @@ async function _syncMongoNow() {
       const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
       const mongoDb = mongoClient.db(dbName);
 
-      // Dedicated per-collection updates to strictly prevent MongoDB 16MB document limit
-      const collectionKeys = [
+      const allCollectionKeys = [
         'users', 'units', 'categories', 'competitions', 'participants', 'teams',
         'results', 'registrations', 'chestNumbers', 'counters', 'greenRoomAssignments',
         'judgmentSheets', 'judgeScores', 'gallery', 'videoHighlights', 'dragBlocks', 'heroMedia'
       ];
 
-      // Update all 17 collections in parallel with Promise.all for 10x faster execution!
-      await Promise.all([
-        ...collectionKeys.map(async colName => {
+      // If specific collections are requested, only update those to save execution time & prevent timeouts
+      const collectionsToSync = targetCollections && targetCollections.length > 0
+        ? allCollectionKeys.filter(k => targetCollections.includes(k))
+        : allCollectionKeys;
+
+      const shouldSyncSettings = !targetCollections || targetCollections.length === 0 || 
+        targetCollections.some(t => ['settings', 'eventSettings', 'cmsSettings', 'posterTemplateConfig', 'certificateTemplateConfig'].includes(t));
+
+      const tasks: Promise<any>[] = [];
+
+      collectionsToSync.forEach(colName => {
+        tasks.push((async () => {
           const items = (db as any)[colName];
           if (Array.isArray(items)) {
             const col = mongoDb.collection(colName);
             const activeIds = items.map((i: any) => i.id || i._id).filter(Boolean);
 
-            // Delete any document from MongoDB Atlas that was removed from memory
+            // Delete documents removed from memory
             if (activeIds.length > 0) {
               await col.deleteMany({
                 $and: [
@@ -369,52 +377,47 @@ async function _syncMongoNow() {
               });
             }
           }
-        }),
+        })());
+      });
 
-        // Settings updates in parallel
-        (async () => {
-          if (db.eventSettings) {
-            const { posterTemplateConfig, certificateTemplateConfig, ...cleanSettings } = db.eventSettings as any;
-            await mongoDb.collection('settings').replaceOne(
-              { _id: 'eventSettings' as any },
-              { _id: 'eventSettings', ...cleanSettings },
-              { upsert: true }
-            ).catch(() => { });
-          }
-        })(),
+      if (shouldSyncSettings) {
+        if (db.eventSettings) {
+          const { posterTemplateConfig, certificateTemplateConfig, ...cleanSettings } = db.eventSettings as any;
+          tasks.push(mongoDb.collection('settings').replaceOne(
+            { _id: 'eventSettings' as any },
+            { _id: 'eventSettings', ...cleanSettings },
+            { upsert: true }
+          ).catch(() => { }));
+        }
 
-        (async () => {
-          if (db.cmsSettings) {
-            await mongoDb.collection('settings').replaceOne(
-              { _id: 'cmsSettings' as any },
-              { _id: 'cmsSettings', ...db.cmsSettings },
-              { upsert: true }
-            ).catch(() => { });
-          }
-        })(),
+        if (db.cmsSettings) {
+          tasks.push(mongoDb.collection('settings').replaceOne(
+            { _id: 'cmsSettings' as any },
+            { _id: 'cmsSettings', ...db.cmsSettings },
+            { upsert: true }
+          ).catch(() => { }));
+        }
 
-        (async () => {
-          const ptc = db.posterTemplateConfig || (db.eventSettings as any)?.posterTemplateConfig;
-          if (ptc) {
-            await mongoDb.collection('settings').replaceOne(
-              { _id: 'posterTemplateConfig' as any },
-              { _id: 'posterTemplateConfig', ...ptc },
-              { upsert: true }
-            ).catch(() => { });
-          }
-        })(),
+        const ptc = db.posterTemplateConfig || (db.eventSettings as any)?.posterTemplateConfig;
+        if (ptc) {
+          tasks.push(mongoDb.collection('settings').replaceOne(
+            { _id: 'posterTemplateConfig' as any },
+            { _id: 'posterTemplateConfig', ...ptc },
+            { upsert: true }
+          ).catch(() => { }));
+        }
 
-        (async () => {
-          const ctc = db.certificateTemplateConfig || (db.eventSettings as any)?.certificateTemplateConfig;
-          if (ctc) {
-            await mongoDb.collection('settings').replaceOne(
-              { _id: 'certificateTemplateConfig' as any },
-              { _id: 'certificateTemplateConfig', ...ctc },
-              { upsert: true }
-            ).catch(() => { });
-          }
-        })()
-      ]);
+        const ctc = db.certificateTemplateConfig || (db.eventSettings as any)?.certificateTemplateConfig;
+        if (ctc) {
+          tasks.push(mongoDb.collection('settings').replaceOne(
+            { _id: 'certificateTemplateConfig' as any },
+            { _id: 'certificateTemplateConfig', ...ctc },
+            { upsert: true }
+          ).catch(() => { }));
+        }
+      }
+
+      await Promise.all(tasks);
     } catch (e: any) {
       console.error("MongoDB sync error:", e.message);
     }
@@ -424,16 +427,17 @@ async function _syncMongoNow() {
 let _mongoSyncTimer: NodeJS.Timeout | null = null;
 const MONGO_SYNC_DEBOUNCE_MS = 3000;
 
-function _scheduleMongSync() {
+function _scheduleMongSync(targetCollections?: string[]) {
   if (_mongoSyncTimer) clearTimeout(_mongoSyncTimer);
   _mongoSyncTimer = setTimeout(() => {
     _mongoSyncTimer = null;
-    _syncMongoNow();
+    _syncMongoNow(targetCollections);
   }, MONGO_SYNC_DEBOUNCE_MS);
 }
 
-export async function saveDb() {
+export async function saveDb(target?: string | string[]) {
   if (!db) return;
+  const targetCollections = target ? (Array.isArray(target) ? target : [target]) : undefined;
   // Truncate logs in memory (fast, no I/O)
   if (db.auditLogs && db.auditLogs.length > 50) {
     db.auditLogs = db.auditLogs.slice(-50);
@@ -444,7 +448,7 @@ export async function saveDb() {
 
   if (process.env.VERCEL) {
     // In Vercel serverless, directly await sync so it persists before function freezes
-    await _syncMongoNow();
+    await _syncMongoNow(targetCollections);
   } else {
     // Write to local file synchronously so disk state is immediately persistent
     try {
@@ -453,7 +457,7 @@ export async function saveDb() {
     } catch (e) {
       console.error("Failed to serialize database", e);
     }
-    _scheduleMongSync();
+    _scheduleMongSync(targetCollections);
   }
 }
 
@@ -656,8 +660,8 @@ export const dbClient = {
     return db;
   },
 
-  save: async () => {
-    await saveDb();
+  save: async (target?: string | string[]) => {
+    await saveDb(target);
     await bumpStateVersion();
   },
 

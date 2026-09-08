@@ -44,13 +44,18 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
     setLoading(true);
     setError(null);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
       const data = await res.json();
 
       if (!res.ok) {
@@ -69,7 +74,12 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
         onLoginSuccess(loggedUser, data.token);
       }
     } catch (err: any) {
-      setError(err.message);
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        setError('Server took too long to respond. Please check your network connection and try again.');
+      } else {
+        setError(err.message || 'Login failed');
+      }
     } finally {
       setLoading(false);
     }

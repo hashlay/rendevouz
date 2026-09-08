@@ -3,9 +3,28 @@ import { UserRole } from '../types';
 import { Save } from 'lucide-react';
 import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper';
 
+// Set to false in the future to re-enable certificates instantly
+const CERTIFICATES_DISABLED = true;
+
 const getBgHash = (bg: string) => { if (!bg || typeof bg !== 'string') return ''; return bg.length > 200 ? `hash_${bg.length}_${bg.slice(-30)}` : bg; };
 
 export default function CertificateSettingsView({ user, token, eventSettings, onSettingsUpdated }: any) {
+  if (CERTIFICATES_DISABLED) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto mt-8">
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+          <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200 shadow-sm">
+            <Save className="w-7 h-7" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Certificate system is currently disabled</h2>
+          <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+            The certificate generation and studio system is currently disabled for this festival to preserve server bandwidth and maximize speed. All your layout coordinates and settings remain saved and will be restored immediately when re-enabled.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const [loading, setLoading] = useState(false);
   const ranks = [1, 2, 3];
   

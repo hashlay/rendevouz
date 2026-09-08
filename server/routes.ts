@@ -972,34 +972,13 @@ apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, User
   }
 
 
-  // Aggressively clean up redundant base64 strings in overrides to prevent massive JSON bloat
-  const cleanOverrides = (overrides: any) => {
-    if (!overrides || typeof overrides !== 'object') return;
-    Object.keys(overrides).forEach(key => {
-      const ov = overrides[key];
-      if (ov && typeof ov._savedBgImageUrl === 'string' && ov._savedBgImageUrl.length > 200) {
-        const bg = ov._savedBgImageUrl;
-        ov._savedBgImageUrl = `hash_${bg.length}_${bg.slice(-30)}`;
-      }
-    });
-  };
-
-  if (req.body.chestNumberOverrides) cleanOverrides(req.body.chestNumberOverrides);
-  if (req.body.posterOverrides) cleanOverrides(req.body.posterOverrides);
-  if (req.body.certificateOverrides) cleanOverrides(req.body.certificateOverrides);
-
   db.eventSettings = {
     ...db.eventSettings,
     ...req.body
   };
 
-  // Clean existing database bloat
-  cleanOverrides(db.eventSettings.chestNumberOverrides);
-  cleanOverrides(db.eventSettings.posterOverrides);
-  cleanOverrides(db.eventSettings.certificateOverrides);
-
   await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Update Event Settings', 'EventSettings', 'global', undefined, prevSettings, db.eventSettings);
-  await dbClient.save();
+  await dbClient.save(['settings']);
 
   // Do NOT return massive settings object back to the client!
   res.json({
@@ -2073,76 +2052,15 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
   }
   (db as any).registrations.push(registration);
 
-  // Direct instant write-through to MongoDB Atlas for 100% permanent persistence
-  const mongoDb = getDb();
-  if (mongoDb) {
-    try {
-      await Promise.all([
-        mongoDb.collection('participants').replaceOne(
-          { $or: [{ id: newParticipant.id }, { _id: newParticipant.id as any }] },
-          { id: newParticipant.id, ...newParticipant },
-          { upsert: true }
-        ),
-        mongoDb.collection('registrations').replaceOne(
-          { participantId: newParticipant.id },
-          { ...registration },
-          { upsert: true }
-        ),
-        generatedChest ? mongoDb.collection('chestNumbers').replaceOne(
-          { id: generatedChest.id },
-          { ...generatedChest },
-          { upsert: true }
-        ) : Promise.resolve(),
-        mongoDb.collection('app_state').replaceOne(
-          { _id: 'global_state' as any },
-          { ...db },
-          { upsert: true }
-        )
-      ]);
-    } catch (mongoErr) {
-      console.error('Direct MongoDB participant create error:', mongoErr);
-    }
-  }
-
   await dbClient.logAudit(user.id, user.username, user.role, 'Register Participant', 'Participant', newParticipant.id, finalUnitId, undefined, newParticipant);
+
+  // Directly await saving to MongoDB collections before sending response, guaranteeing persistence on Vercel Serverless
+  await dbClient.save(['participants', 'registrations', 'chestNumbers', 'counters', 'teams']);
 
   res.json({
     message: 'Participant registered successfully',
     participant: newParticipant,
     chestNumber: generatedChest?.chestNumber
-  });
-
-  setImmediate(async () => {
-    try {
-      const mongoDb = getDb();
-      if (mongoDb) {
-        await Promise.all([
-          mongoDb.collection('participants').replaceOne(
-            { $or: [{ id: newParticipant.id }, { _id: newParticipant.id as any }] },
-            { id: newParticipant.id, ...newParticipant },
-            { upsert: true }
-          ),
-          mongoDb.collection('registrations').replaceOne(
-            { participantId: newParticipant.id },
-            { ...registration },
-            { upsert: true }
-          ),
-          generatedChest ? mongoDb.collection('chestNumbers').replaceOne(
-            { id: generatedChest.id },
-            { ...generatedChest },
-            { upsert: true }
-          ) : Promise.resolve(),
-          mongoDb.collection('app_state').replaceOne(
-            { _id: 'global_state' as any },
-            { ...db },
-            { upsert: true }
-          )
-        ]);
-      }
-      await dbClient.save();
-    } catch (mongoErr) {
-      console.error('Background MongoDB participant create error:', mongoErr);
-    }
   });
 });
 
@@ -2316,35 +2234,8 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
 
   existingPart.updatedAt = new Date().toISOString();
 
-  // Direct instant write-through to MongoDB Atlas for 100% permanent persistence
-  const updatedReg = ((db as any).registrations || []).find((r: any) => r.participantId === partId);
-  const mongoDb = getDb();
-  if (mongoDb) {
-    try {
-      await Promise.all([
-        mongoDb.collection('participants').replaceOne(
-          { $or: [{ id: partId }, { _id: partId as any }] },
-          { id: partId, ...existingPart },
-          { upsert: true }
-        ),
-        updatedReg ? mongoDb.collection('registrations').replaceOne(
-          { participantId: partId },
-          { ...updatedReg },
-          { upsert: true }
-        ) : Promise.resolve(),
-        mongoDb.collection('app_state').replaceOne(
-          { _id: 'global_state' as any },
-          { ...db },
-          { upsert: true }
-        )
-      ]);
-    } catch (mongoErr) {
-      console.error('Direct MongoDB participant update error:', mongoErr);
-    }
-  }
-
   await dbClient.logAudit(user.id, user.username, user.role, 'Update Participant', 'Participant', partId, existingPart.unitId, oldPart, existingPart);
-  await dbClient.save();
+  await dbClient.save(['participants', 'registrations', 'teams']);
 
   res.json({ message: 'Participant updated successfully', participant: existingPart });
 });
@@ -5585,7 +5476,7 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
   }
 
   await dbClient.logAudit(user.id, user.username, user.role, 'Update Judgment Scores', 'JudgmentSheet', sheetId);
-  await dbClient.save();
+  await dbClient.save(['judgmentSheets', 'judgeScores', 'results']);
 
   try {
     const mongoDb = getDb();
@@ -5647,7 +5538,7 @@ apiRouter.post('/judgment-sheets/:id/lock', authenticate, requireRole([UserRole.
   sheet.lockedAt = new Date().toISOString();
 
   await dbClient.logAudit(user.id, user.username, user.role, 'Lock Judgment Sheet', 'JudgmentSheet', sheetId);
-  await dbClient.save();
+  await dbClient.save(['judgmentSheets']);
 
   res.json({ message: 'Judgment sheet locked successfully' });
 });
