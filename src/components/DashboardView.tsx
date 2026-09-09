@@ -16,24 +16,22 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
   const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
 
-  const [stats, setStats] = useState<any>(() => {
-    try {
-      const cached = sessionStorage.getItem('dashboard_stats_cache');
-      return cached ? JSON.parse(cached) : null;
-    } catch (_) {
-      return null;
-    }
-  });
-  const [loading, setLoading] = useState(!stats);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Clear legacy sessionStorage cache once on boot
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem('dashboard_stats_cache');
+    } catch (_) {}
+  }, []);
 
   const [showPendingModal, setShowPendingModal] = useState(false);
   const [pendingComps, setPendingComps] = useState<any[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
 
   const fetchStats = async () => {
-    // Only show spinner on first visit if no cached data exists
-    if (!stats) setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/dashboard-stats?t=${Date.now()}`, {
@@ -42,11 +40,8 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch dashboard statistics');
       setStats(data);
-      try {
-        sessionStorage.setItem('dashboard_stats_cache', JSON.stringify(data));
-      } catch (_) {}
     } catch (err: any) {
-      if (!stats) setError(err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }

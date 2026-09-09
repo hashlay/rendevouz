@@ -147,7 +147,9 @@ function ensureDbExists() {
       // Ensure all arrays exist
       if (!db.users) db.users = [];
       if (!db.loginAudits) db.loginAudits = [];
+      else if (db.loginAudits.length > 100) db.loginAudits = db.loginAudits.slice(-100);
       if (!db.auditLogs) db.auditLogs = [];
+      else if (db.auditLogs.length > 100) db.auditLogs = db.auditLogs.slice(-100);
       if (!db.units) db.units = [];
       if (!db.categories) db.categories = [];
       if (!db.competitions) db.competitions = [];

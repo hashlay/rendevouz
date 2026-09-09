@@ -33,6 +33,7 @@ import HighlightsStudio from './components/HighlightsStudio';
 import GalleryStudio from './components/GalleryStudio';
 import CMSWebsiteStudio from './components/CMSWebsiteStudio';
 import Footer from './components/Footer';
+import { AdminDataProvider } from './context/AdminDataContext';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -270,7 +271,9 @@ export default function App() {
         />
 
         <main className="flex-1 pb-6 min-w-0 max-w-full w-full overflow-x-hidden">
-          {renderTabContent()}
+          <AdminDataProvider token={token}>
+            {renderTabContent()}
+          </AdminDataProvider>
         </main>
 
         <Footer eventSettings={eventSettings} />

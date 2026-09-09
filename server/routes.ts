@@ -31,8 +31,35 @@ apiRouter.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Fast non-blocking API routing (database is initialized on server startup)
+// Real-time synchronization helper to bust public site cache
+export function bustPublicCache() {
+  const publicUrl = process.env.PUBLIC_API_URL || 'http://localhost:5000';
+  const secret = process.env.INTERNAL_CACHE_BUST_SECRET || 'rendezvous_secret_cache_bust_2026';
+  fetch(`${publicUrl}/api/internal/cache-bust`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-secret': secret
+    }
+  }).catch(() => {});
+}
+
+// In-memory cache for dashboard analytics with 10s TTL
+let cachedDashboardStats: any = null;
+let lastDashboardStatsTime = 0;
+const DASHBOARD_STATS_TTL = 10000;
+
+export function invalidateDashboardStatsCache() {
+  cachedDashboardStats = null;
+  lastDashboardStatsTime = 0;
+  bustPublicCache();
+}
+
+// Invalidate stats cache and notify public website immediately on any write/mutation request
 apiRouter.use((req: Request, res: Response, next: NextFunction) => {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    invalidateDashboardStatsCache();
+  }
   next();
 });
 
@@ -967,7 +994,7 @@ apiRouter.put('/settings', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     if (db.eventSettings) db.eventSettings.certificateTemplateConfig = req.body.certificateTemplateConfig;
   }
   if (req.body.posterOverrides) {
-    db.posterOverrides = req.body.posterOverrides;
+    (db as any).posterOverrides = req.body.posterOverrides;
     if (db.eventSettings) db.eventSettings.posterOverrides = req.body.posterOverrides;
   }
 
@@ -3885,95 +3912,139 @@ apiRouter.delete('/users/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, 
 // 13. DATA DASHBOARD & STATS SUMMARY
 
 apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
+  const now = Date.now();
+  if (cachedDashboardStats && (now - lastDashboardStatsTime < DASHBOARD_STATS_TTL)) {
+    return res.json(cachedDashboardStats);
+  }
+
   const db = dbClient.get();
-  const user = (req as any).user as User;
+  const participants = db.participants.filter(p => !p.deletedAt);
+  const teams = db.teams.filter(t => !t.deletedAt);
+  const results = db.results.filter(r => !r.deletedAt);
 
-  // Scoped filters
-  let participants = db.participants.filter(p => !p.deletedAt);
-  let teams = db.teams.filter(t => !t.deletedAt);
-  let results = db.results.filter(r => !r.deletedAt);
+  // Single-pass O(N) indexing for lightning fast calculation
+  const activeParticipantIds = new Set(participants.map(p => p.id));
+  const activeIndividualCompsWithReg = new Set<string>();
+  let individualRegistrationsCount = 0;
 
-  // Global stats are now shown to all users, including unit team leaders, 
-  // so they can see complete announced results and standings.
-  // Registrations counts
-  const individualRegistrationsCount = participants.reduce((sum, p) => {
-    const reg = (db as any).registrations?.find((r: any) => r.participantId === p.id);
-    return sum + (reg ? reg.selectedIndividualCompetitionIds.length : 0);
-  }, 0);
+  ((db as any).registrations || []).forEach((r: any) => {
+    if (activeParticipantIds.has(r.participantId)) {
+      const compIds = r.selectedIndividualCompetitionIds || [];
+      individualRegistrationsCount += compIds.length;
+      compIds.forEach((cId: string) => activeIndividualCompsWithReg.add(cId));
+    }
+  });
 
-  // Group registrations count
-  const groupRegistrationsCount = teams.length;
+  const activeTeamCompsWithReg = new Set<string>();
+  teams.forEach(t => {
+    if (t.competitionId) activeTeamCompsWithReg.add(t.competitionId);
+  });
 
-  // Active units count
-  const unitsCount = db.units.filter(u => u.active).length;
+  const enteredCompIds = new Set<string>();
+  results.forEach(r => {
+    if (r.competitionId) enteredCompIds.add(r.competitionId);
+  });
 
-  // Total active competitions
-  const compsCount = db.competitions.filter(c => c.active).length;
-
-  // Results progress (Competition level)
-  // Find all active competitions that have at least 1 valid registration (individual or team)
+  // Active competitions with registrations
   const activeCompetitions = db.competitions.filter(comp => {
     if (!comp.active) return false;
-
     if (comp.participationType === ParticipationType.INDIVIDUAL) {
-      // Check if any individual is registered for this competition
-      const regsInComp = (db as any).registrations?.filter((r: any) => r.selectedIndividualCompetitionIds.includes(comp.id)) || [];
-      const hasActiveReg = regsInComp.some((r: any) => {
-        const p = db.participants.find(part => part.id === r.participantId);
-        return p && !p.deletedAt;
-      });
-      return hasActiveReg;
+      return activeIndividualCompsWithReg.has(comp.id);
     } else {
-      // Check if any team is registered for this competition
-      return db.teams.some(t => t.competitionId === comp.id && !t.deletedAt);
+      return activeTeamCompsWithReg.has(comp.id);
     }
   });
 
   const totalResultsExpected = activeCompetitions.length;
-
-  // A competition is considered "entered" if it has at least one result
-  const resultsEnteredCount = activeCompetitions.filter(comp => {
-    return db.results.some(r => r.competitionId === comp.id && !r.deletedAt);
-  }).length;
-
+  const resultsEnteredCount = activeCompetitions.filter(comp => enteredCompIds.has(comp.id)).length;
   const resultsPendingCount = Math.max(0, totalResultsExpected - resultsEnteredCount);
 
-  // Leading Unit Preview
+  // Standings and Scoreboard
   const standings = CalculationService.getUnitStandings();
   const leadingUnit = standings[0] || null;
 
-  // Top Individual Preview
   const scoreboard = CalculationService.getIndividualScoreboard();
   const topIndividual = scoreboard[0] || null;
 
-  // Top Individual On-Stage
   const scoreboardOnStage = CalculationService.getIndividualScoreboard({ stageType: StageType.ON_STAGE });
   const topIndividualOnStage = scoreboardOnStage[0] || null;
 
-  // Top Individual Off-Stage
   const scoreboardOffStage = CalculationService.getIndividualScoreboard({ stageType: StageType.OFF_STAGE });
   const topIndividualOffStage = scoreboardOffStage[0] || null;
 
-  // Counts by Unit
+  // Counts by Unit & Category (single-pass frequency maps)
+  const unitCountMap = new Map<string, number>();
+  const catCountMap = new Map<string, number>();
+  participants.forEach(p => {
+    if (p.unitId) unitCountMap.set(p.unitId, (unitCountMap.get(p.unitId) || 0) + 1);
+    if (p.selectedCategoryId) catCountMap.set(p.selectedCategoryId, (catCountMap.get(p.selectedCategoryId) || 0) + 1);
+  });
+
   const participantsByUnit = db.units.map(u => ({
     unitId: u.id,
     unitName: u.name,
-    count: db.participants.filter(p => p.unitId === u.id && !p.deletedAt).length
+    count: unitCountMap.get(u.id) || 0
   }));
 
-  // Counts by Category
   const participantsByCategory = db.categories.map(cat => ({
     categoryId: cat.id,
     categoryName: cat.name,
-    count: db.participants.filter(p => p.selectedCategoryId === cat.id && !p.deletedAt).length
+    count: catCountMap.get(cat.id) || 0
   }));
 
-  res.json({
+  const compMap = new Map(db.competitions.map(c => [c.id, c.name]));
+  const catMap = new Map(db.categories.map(c => [c.id, c.name]));
+  const unitMap = new Map(db.units.map(u => [u.id, u.name]));
+  const partMap = new Map(participants.map(p => [p.id, p]));
+  const teamMap = new Map(teams.map(t => [t.id, t]));
+
+  const recentRegistrations = participants.slice(-5).reverse().map(p => ({
+    id: p.id,
+    fullName: p.fullName,
+    unitName: unitMap.get(p.unitId) || 'Unknown',
+    categoryName: catMap.get(p.selectedCategoryId) || 'Unknown',
+    createdAt: p.createdAt
+  }));
+
+  const recentResults = results.filter(r => r.publishedStatus).slice(-5).reverse().map(r => {
+    let participantName = 'Unknown';
+    let unitName = 'Unknown';
+    if (r.participantId) {
+      const p = partMap.get(r.participantId);
+      participantName = p ? p.fullName : 'Unknown';
+      unitName = p ? (unitMap.get(p.unitId) || 'Unknown') : 'Unknown';
+    } else if (r.teamId) {
+      const t = teamMap.get(r.teamId);
+      participantName = t ? t.teamNumber : 'Unknown';
+      unitName = t ? (unitMap.get(t.unitId) || 'Unknown') : 'Unknown';
+    }
+
+    const j1 = Number(r.judge1Mark) || 0;
+    const j2 = Number(r.judge2Mark) || 0;
+    const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
+    const calculatedAvg = Math.round(((j1 + j2) / activeCount) * 100) / 100;
+    const averageMark = r.averageMark !== undefined ? r.averageMark : calculatedAvg;
+
+    return {
+      id: r.id,
+      competitionName: compMap.get(r.competitionId) || 'Unknown',
+      categoryName: catMap.get(r.categoryId) || 'Unknown',
+      participantName,
+      unitName,
+      totalMark: r.totalMark,
+      averageMark,
+      status: r.status,
+      rank: r.rank,
+      updatedAt: r.updatedAt
+    };
+  });
+
+  const payload = {
     totalParticipants: participants.length,
-    totalUnits: unitsCount,
-    totalCompetitions: compsCount,
+    totalUnits: db.units.filter(u => u.active).length,
+    totalCompetitions: db.competitions.filter(c => c.active).length,
     individualRegistrations: individualRegistrationsCount,
-    groupTeamsCount: groupRegistrationsCount,
+    groupTeamsCount: teams.length,
     resultsEntered: resultsEnteredCount,
     resultsPending: resultsPendingCount,
     leadingUnit,
@@ -3982,47 +4053,14 @@ apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
     topIndividualOffStage,
     participantsByUnit,
     participantsByCategory,
-    recentRegistrations: db.participants.filter(p => !p.deletedAt).slice(-5).reverse().map(p => ({
-      id: p.id,
-      fullName: p.fullName,
-      unitName: db.units.find(u => u.id === p.unitId)?.name || 'Unknown',
-      categoryName: db.categories.find(c => c.id === p.selectedCategoryId)?.name || 'Unknown',
-      createdAt: p.createdAt
-    })),
-    recentResults: db.results.filter(r => !r.deletedAt && r.publishedStatus).slice(-5).reverse().map(r => {
-      const comp = db.competitions.find(c => c.id === r.competitionId);
-      const cat = db.categories.find(c => c.id === r.categoryId);
-      let participantName = 'Unknown';
-      let unitName = 'Unknown';
-      if (r.participantId) {
-        const p = db.participants.find(part => part.id === r.participantId);
-        participantName = p ? p.fullName : 'Unknown';
-        unitName = p ? (db.units.find(u => u.id === p.unitId)?.name || 'Unknown') : 'Unknown';
-      } else if (r.teamId) {
-        const t = db.teams.find(team => team.id === r.teamId);
-        participantName = t ? t.teamNumber : 'Unknown';
-        unitName = t ? (db.units.find(u => u.id === t.unitId)?.name || 'Unknown') : 'Unknown';
-      }
-      const j1 = Number(r.judge1Mark) || 0;
-      const j2 = Number(r.judge2Mark) || 0;
-      const activeCount = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
-      const calculatedAvg = Math.round(((j1 + j2) / activeCount) * 100) / 100;
-      const averageMark = r.averageMark !== undefined ? r.averageMark : calculatedAvg;
+    recentRegistrations,
+    recentResults
+  };
 
-      return {
-        id: r.id,
-        competitionName: comp ? comp.name : 'Unknown',
-        categoryName: cat ? cat.name : 'Unknown',
-        participantName,
-        unitName,
-        totalMark: r.totalMark,
-        averageMark,
-        status: r.status,
-        rank: r.rank,
-        updatedAt: r.updatedAt
-      };
-    })
-  });
+  cachedDashboardStats = payload;
+  lastDashboardStatsTime = Date.now();
+
+  res.json(payload);
 });
 
 apiRouter.get('/dashboard-stats/pending-competitions', authenticate, async (req, res) => {

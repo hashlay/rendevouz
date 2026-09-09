@@ -5,6 +5,7 @@ import {
   Plus, UserPlus, Search, Users, Users2
 } from 'lucide-react';
 import { User, UserRole, Category, Competition, Unit, ResultStatus, ParticipationType, Result, Participant } from '../types';
+import { useAdminData } from '../context/AdminDataContext';
 
 interface ResultEntryViewProps {
   user: User;
@@ -14,15 +15,24 @@ interface ResultEntryViewProps {
 
 export default function ResultEntryView({ user, token, eventSettings }: ResultEntryViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
-  // Master lists
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [registrations, setRegistrations] = useState<any[]>([]);
-  const participantsRef = useRef<Participant[]>([]);
-  const registrationsRef = useRef<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    categories: sharedCats,
+    competitions: sharedComps,
+    units: sharedUnits,
+    participants: sharedParticipants,
+    registrations: sharedRegs,
+    refreshMasterData
+  } = useAdminData();
+
+  // Master lists initialized from shared context
+  const [categories, setCategories] = useState<Category[]>(() => sharedCats || []);
+  const [competitions, setCompetitions] = useState<Competition[]>(() => sharedComps || []);
+  const [units, setUnits] = useState<Unit[]>(() => sharedUnits || []);
+  const [participants, setParticipants] = useState<Participant[]>(() => sharedParticipants || []);
+  const [registrations, setRegistrations] = useState<any[]>(() => sharedRegs || []);
+  const participantsRef = useRef<Participant[]>(sharedParticipants || []);
+  const registrationsRef = useRef<any[]>(sharedRegs || []);
+  const [loading, setLoading] = useState(sharedComps.length === 0);
 
   // Workflow selectors
   const [selectedCatId, setSelectedCatId] = useState('');
@@ -190,33 +200,24 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
     overrideReason, publishing, user.id
   ]);
 
-  const fetchMasters = async () => {
-    try {
-      const ts = Date.now();
-      const [cRes, compRes, uRes, pRes, rRes] = await Promise.all([
-        fetch(`/api/categories?t=${ts}`),
-        fetch(`/api/competitions?t=${ts}`),
-        fetch(`/api/units?t=${ts}`),
-        fetch(`/api/participants?t=${ts}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('/api/registrations', { headers: { 'Authorization': `Bearer ${token}` } })
-      ]);
-      if (!pRes.ok) {
-        throw new Error('Failed to fetch data');
-      }
-      const [cData, compData, uData, pData, rData] = await Promise.all([
-        cRes.json(), compRes.json(), uRes.json(), pRes.json(), rRes.ok ? rRes.json() : []
-      ]);
+  // Sync shared master data into local state immediately
+  useEffect(() => {
+    if (sharedCats.length > 0) {
+      setCategories(sharedCats);
+      setCompetitions(sharedComps);
+      setUnits(sharedUnits);
+      setParticipants(sharedParticipants);
+      participantsRef.current = sharedParticipants;
+      setRegistrations(sharedRegs);
+      registrationsRef.current = sharedRegs;
+      setLoading(false);
+    }
+  }, [sharedCats, sharedComps, sharedUnits, sharedParticipants, sharedRegs]);
 
-      setCategories(cData);
-      setCompetitions(compData);
-      setUnits(uData);
-      setParticipants(pData);
-      participantsRef.current = pData;
-      setRegistrations(rData);
-      registrationsRef.current = rData;
-    } catch (e) {
-      console.error(e);
-    } finally {
+  const fetchMasters = async () => {
+    if (sharedCats.length === 0) {
+      setLoading(true);
+      await refreshMasterData(true);
       setLoading(false);
     }
   };

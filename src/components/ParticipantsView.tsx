@@ -4,6 +4,7 @@ import {
   RefreshCw, CheckCircle, Award, Compass, Sparkles, X, ChevronRight, ListCollapse, Hash, Printer 
 } from 'lucide-react';
 import { User, UserRole, Category, Unit, Participant, Competition, EducationStatus } from '../types';
+import { useAdminData } from '../context/AdminDataContext';
 
 interface ParticipantsViewProps {
   user: User;
@@ -14,12 +15,22 @@ interface ParticipantsViewProps {
 export default function ParticipantsView({ user, token, eventSettings }: ParticipantsViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
   const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
+  const {
+    categories: sharedCats,
+    units: sharedUnits,
+    competitions: sharedComps,
+    teams: sharedTeams,
+    results: sharedResults,
+    participants: sharedParticipants,
+    refreshMasterData
+  } = useAdminData();
+
   // Master lists
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [participants, setParticipants] = useState<Participant[]>(() => sharedParticipants || []);
+  const [categories, setCategories] = useState<Category[]>(() => sharedCats || []);
+  const [units, setUnits] = useState<Unit[]>(() => sharedUnits || []);
+  const [competitions, setCompetitions] = useState<Competition[]>(() => sharedComps || []);
+  const [loading, setLoading] = useState(sharedParticipants.length === 0);
 
   // Filters state
   const [search, setSearch] = useState('');
@@ -184,32 +195,32 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     }
   };
 
+  // Sync shared master data into local state immediately
+  useEffect(() => {
+    if (sharedCats.length > 0) setCategories(sharedCats);
+    if (sharedUnits.length > 0) setUnits(sharedUnits);
+    if (sharedComps.length > 0) setCompetitions(sharedComps);
+    if (sharedTeams.length > 0) setTeams(sharedTeams);
+    if (sharedResults.length > 0) setResults(sharedResults);
+    if (sharedParticipants.length > 0 && !selectedUnitId && !selectedCategoryId && !selectedGender) {
+      setParticipants(sharedParticipants);
+      setLoading(false);
+    }
+  }, [sharedCats, sharedUnits, sharedComps, sharedTeams, sharedResults, sharedParticipants, selectedUnitId, selectedCategoryId, selectedGender]);
+
   const fetchLists = async () => {
-    setLoading(true);
+    if (participants.length === 0) setLoading(true);
     try {
       const ts = Date.now();
       const pUrl = `/api/participants?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}&gender=${selectedGender}&t=${ts}`;
       
-      const safeFetch = (url: string, headers?: any) => {
-        const joiner = url.includes('?') ? '&' : '?';
-        return fetch(`${url}${joiner}t=${ts}`, { headers }).then(r => r.ok ? r.json() : []).catch(() => []);
-      };
-
-      const [pData, cData, uData, compData, resData, tData] = await Promise.all([
-        safeFetch(pUrl, { 'Authorization': `Bearer ${token}` }),
-        safeFetch('/api/categories'),
-        safeFetch('/api/units'),
-        safeFetch('/api/competitions'),
-        safeFetch('/api/results', { 'Authorization': `Bearer ${token}` }),
-        safeFetch('/api/teams', { 'Authorization': `Bearer ${token}` })
-      ]);
-
-      setParticipants(pData);
-      setCategories(cData);
-      setUnits(uData);
-      setCompetitions(compData);
-      setResults(resData || []);
-      setTeams(tData || []);
+      const res = await fetch(pUrl, { 
+        headers: { 'Authorization': `Bearer ${token}` } 
+      });
+      if (res.ok) {
+        const pData = await res.json();
+        setParticipants(pData);
+      }
     } catch (e) {
       console.error(e);
     } finally {
