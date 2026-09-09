@@ -18,10 +18,10 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
     themeTitle: '', themeDescription: '',
     heroTitle: '', heroSubtitle: '', heroDate: '', heroLocation: '',
     headerLogoTitle: 'RENDEZVOUS',
-    headerLogoSubtitle: 'Silver Edition',
-    heroLogoTitle: 'RENDEZVOUS',
-    heroLogoSubtitle: 'Silver Edition',
-    heroLogoBadge: 'KULLIYATHU IMAM RABBANI',
+    headerLogoSubtitle: '26',
+    heroLogoTitle: 'RENDEZVOUS 26',
+    heroLogoSubtitle: 'Decoding Phytolore',
+    heroLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
   });
 
   const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1cQNek6Q2EiThqdFrUDb1I8cfsmQneP1J';
@@ -31,28 +31,28 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
   const [photoHubDriveLink, setPhotoHubDriveLink] = useState(DEFAULT_PHOTO_HUB_DRIVE_LINK);
 
   const DEFAULT_COLOR_THEME: Record<string, string> = {
-    primaryAccent: '#FF2B2B',
-    bodyBg: '#0D0D0D',
-    cardBg: '#161619',
-    cardElevatedBg: '#1A1A1E',
-    borderSubtle: '#2A2A32',
-    textPrimary: '#FFFFFF',
-    textSecondary: '#E4E4E7',
-    textMuted: '#A1A1AA',
-    goldAccent: '#F59E0B',
+    primaryAccent: '#18BA46',
+    bodyBg: '#012002',
+    cardBg: '#07380B',
+    cardElevatedBg: '#0B4A12',
+    borderSubtle: '#176523',
+    textPrimary: '#F4F8F4',
+    textSecondary: '#A2D5A4',
+    textMuted: '#7EA681',
+    goldAccent: '#FFA20A',
     successAccent: '#10B981',
   };
 
   const COLOR_ITEMS = [
-    { key: 'primaryAccent', label: 'Primary Brand Red Accent', desc: 'Main CTAs, buttons, active highlights, live badges, hover borders', default: '#FF2B2B' },
-    { key: 'bodyBg', label: 'Page Body & Modal Background', desc: 'Main background of public website & participant portal', default: '#0D0D0D' },
-    { key: 'cardBg', label: 'Card & Section Container Background', desc: 'Winner posters, video cards, result item containers, gallery frames', default: '#161619' },
-    { key: 'cardElevatedBg', label: 'Elevated Card & Header Background', desc: 'Table headers, inner card sections, video player header', default: '#1A1A1E' },
-    { key: 'borderSubtle', label: 'Subtle Border & Divider Lines', desc: 'Card borders, input fields, modal boundaries, section dividers', default: '#2A2A32' },
-    { key: 'textPrimary', label: 'Primary Heading & Title Text', desc: 'Participant name, main headings, modal titles, rank numbers', default: '#FFFFFF' },
-    { key: 'textSecondary', label: 'Secondary Sub-header Text', desc: 'Subheadings, card titles, chest number badges', default: '#E4E4E7' },
-    { key: 'textMuted', label: 'Muted Text & Timestamps', desc: 'Program categories, unit names, timestamps, durations', default: '#A1A1AA' },
-    { key: 'goldAccent', label: 'Gold Rank #1 & Distinction Badge', desc: 'Rank #1 Gold medals, A+ grade badges, logged-in status badge', default: '#F59E0B' },
+    { key: 'primaryAccent', label: 'Primary Brand Accent', desc: 'Main buttons, active tabs, CTA, hover borders, live badges', default: '#18BA46' },
+    { key: 'bodyBg', label: 'Page Body & Modal Background', desc: 'Main website/portal background', default: '#012002' },
+    { key: 'cardBg', label: 'Card & Section Container Background', desc: 'Result cards, winner posters, gallery containers', default: '#07380B' },
+    { key: 'cardElevatedBg', label: 'Elevated Card & Header Background', desc: 'Headers, inner cards, table headings, video headers', default: '#0B4A12' },
+    { key: 'borderSubtle', label: 'Subtle Border & Divider Lines', desc: 'Card borders, modal boundaries, dividers, inputs', default: '#176523' },
+    { key: 'textPrimary', label: 'Primary Heading & Title Text', desc: 'Participant names, major headings, rank text', default: '#F4F8F4' },
+    { key: 'textSecondary', label: 'Secondary Sub-header Text', desc: 'Subheadings, card titles, chest-number labels', default: '#A2D5A4' },
+    { key: 'textMuted', label: 'Muted Text & Timestamps', desc: 'Categories, timestamps, unit names, secondary metadata', default: '#7EA681' },
+    { key: 'goldAccent', label: 'Gold Rank #1 & Distinction Badge', desc: 'Rank #1 Gold medals, A+ grade badges, distinction badges', default: '#FFA20A' },
     { key: 'successAccent', label: 'Success & Verification Green', desc: 'Verified status badges, play buttons, green room indicators', default: '#10B981' },
   ];
 

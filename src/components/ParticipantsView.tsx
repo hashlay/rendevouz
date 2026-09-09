@@ -73,7 +73,9 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const criteriaMode = eventSettings?.participantLoginCriteria || 'class';
   const classRangeStart = Number(eventSettings?.classRangeStart) || 1;
   const classRangeEnd = Number(eventSettings?.classRangeEnd) || 12;
-  const availableClasses = Array.from({ length: classRangeEnd - classRangeStart + 1 }, (_, i) => `Class ${classRangeStart + i}`);
+  const availableClasses: string[] = (eventSettings?.availableClasses && eventSettings.availableClasses.length > 0)
+    ? eventSettings.availableClasses
+    : Array.from({ length: classRangeEnd - classRangeStart + 1 }, (_, i) => `Class ${classRangeStart + i}`);
 
   // Deletion confirm
   const [deletingId, setDeletingId] = useState<string | null>(null);
