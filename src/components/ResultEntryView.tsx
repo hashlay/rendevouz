@@ -248,7 +248,9 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
           const allParts = participantsRef.current.length > 0 ? participantsRef.current : participants;
           const allRegs = registrationsRef.current.length > 0 ? registrationsRef.current : registrations;
 
-          const catParts = allParts.filter((p: any) => !selectedCatId || (p.selectedCategoryId || p.categoryId) === selectedCatId);
+          const isGeneralComp = comp?.categoryId === 'cat_general' || 
+            categories.find(c => c.id === comp?.categoryId)?.name.toLowerCase() === 'general';
+          const catParts = allParts.filter((p: any) => isGeneralComp || !selectedCatId || (p.selectedCategoryId || p.categoryId) === selectedCatId);
           const filtered = catParts.filter((p: any) => {
             const pReg = allRegs.find((r: any) => r.participantId === p.id);
             return pReg && pReg.selectedIndividualCompetitionIds && pReg.selectedIndividualCompetitionIds.includes(selectedCompId);
@@ -302,7 +304,9 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
   // Memoized eligible participants for direct selection
   const eligibleParticipants = useMemo(() => {
     let list = participants.filter(p => !p.deletedAt);
-    if (directCategoryFilter === 'current' && selectedCatId) {
+    const isGeneralComp = selectedComp?.categoryId === 'cat_general' || 
+      categories.find(c => c.id === selectedComp?.categoryId)?.name.toLowerCase() === 'general';
+    if (directCategoryFilter === 'current' && selectedCatId && !isGeneralComp) {
       list = list.filter(p => (p.selectedCategoryId || (p as any).categoryId) === selectedCatId);
     }
     if (directGenderFilter !== 'all') {
@@ -526,7 +530,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
     );
 
     const payload = {
-      categoryId: selectedCatId,
+      categoryId: selectedComp?.categoryId || selectedCatId,
       competitionId: selectedCompId,
       participantId: selectedComp?.participationType === ParticipationType.INDIVIDUAL ? activeCandidate.id : undefined,
       teamId: selectedComp?.participationType === ParticipationType.GROUP ? activeCandidate.id : undefined,

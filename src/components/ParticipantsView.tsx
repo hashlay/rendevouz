@@ -1099,7 +1099,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       {/* --- EDIT RECORD POPUP --- */}
       {editingPart && (
         <div className="fixed inset-0 bg-slate-900/60  z-50 flex items-center justify-center p-4 font-sans">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-lg w-full p-6  space-y-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-lg w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="font-display font-bold text-slate-800 text-base">Edit Candidate Records</h3>
               <button onClick={() => setEditingPart(null)} className="p-1 rounded-lg hover:bg-slate-50 text-slate-400 hover:text-slate-600">
@@ -1268,6 +1268,101 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                     })}
                   {competitions.filter(c => c.categoryId === editCategoryId && c.participationType === 'group').length === 0 && (
                     <span className="text-slate-400 font-mono text-[10px]">No group competitions available for this category.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* --- GENERAL COMPETITIONS (OPEN FOR ALL CATEGORIES) --- */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-slate-700">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    General Competitions (All Categories)
+                  </span>
+                  <span className="text-[9px] text-amber-700 font-bold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                    Open for All (Indiv & Group)
+                  </span>
+                </label>
+                <div className="space-y-2 max-h-44 overflow-y-auto border border-amber-200/80 rounded-xl p-3 bg-amber-50/20">
+                  {competitions
+                    .filter(c => {
+                      const isGenCat = c.categoryId === 'cat_general' || categories.find(cat => cat.id === c.categoryId)?.name.toLowerCase() === 'general';
+                      if (editCategoryId && (editCategoryId === 'cat_general' || categories.find(cat => cat.id === editCategoryId)?.name.toLowerCase() === 'general')) {
+                        return false;
+                      }
+                      return isGenCat;
+                    })
+                    .map(comp => {
+                      const isGroup = comp.participationType === 'group';
+                      const isChecked = isGroup ? editGroupComps.includes(comp.id) : editComps.includes(comp.id);
+                      return (
+                        <label key={comp.id} className="flex items-center gap-2.5 cursor-pointer select-none text-slate-700 hover:text-slate-900 bg-white/80 hover:bg-white p-2 rounded-lg border border-slate-200/70 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                const allSelected = [...editComps, ...editGroupComps, comp.id];
+                                const allComps = allSelected.map(id => competitions.find(c => c.id === id)).filter(Boolean);
+                                const onStageCount = allComps.filter(c => c!.stageType === 'on_stage').length;
+                                const offStageCount = allComps.filter(c => c!.stageType === 'off_stage').length;
+                                const maxOn = (eventSettings as any)?.maxOnStageEvents;
+                                const maxOff = (eventSettings as any)?.maxOffStageEvents;
+                                const maxInd = (eventSettings as any)?.maxIndividualEvents;
+                                const maxGrp = (eventSettings as any)?.maxGroupEvents;
+
+                                if (isGroup) {
+                                  if (maxGrp != null && editGroupComps.length >= maxGrp) {
+                                    return alert(`Cannot select more than ${maxGrp} group competitions.`);
+                                  }
+                                } else {
+                                  if (maxInd != null && editComps.length >= maxInd) {
+                                    return alert(`Cannot select more than ${maxInd} individual competitions.`);
+                                  }
+                                }
+
+                                if (maxOn != null && comp.stageType === 'on_stage' && onStageCount > maxOn) {
+                                  return alert(`Cannot select more than ${maxOn} on-stage competitions.`);
+                                }
+                                if (maxOff != null && comp.stageType === 'off_stage' && offStageCount > maxOff) {
+                                  return alert(`Cannot select more than ${maxOff} off-stage competitions.`);
+                                }
+
+                                if (isGroup) {
+                                  setEditGroupComps([...editGroupComps, comp.id]);
+                                } else {
+                                  setEditComps([...editComps, comp.id]);
+                                }
+                              } else {
+                                if (isGroup) {
+                                  setEditGroupComps(editGroupComps.filter(id => id !== comp.id));
+                                } else {
+                                  setEditComps(editComps.filter(id => id !== comp.id));
+                                }
+                              }
+                            }}
+                            className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer shrink-0"
+                          />
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 flex-1">
+                            <span className="font-semibold text-xs text-slate-800">{comp.name}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                                isGroup ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              }`}>
+                                {isGroup ? `Group${comp.teamSize ? ` (${comp.teamSize})` : ''}` : 'Individual'}
+                              </span>
+                              {comp.stageType && (
+                                <span className="text-[9px] font-mono text-slate-400 uppercase">
+                                  {comp.stageType.replace('_', ' ')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  {competitions.filter(c => c.categoryId === 'cat_general' || categories.find(cat => cat.id === c.categoryId)?.name.toLowerCase() === 'general').length === 0 && (
+                    <span className="text-slate-400 font-mono text-[10px]">No general competitions configured.</span>
                   )}
                 </div>
               </div>

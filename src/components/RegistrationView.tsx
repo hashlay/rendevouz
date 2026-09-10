@@ -533,6 +533,69 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
                 })}
               </div>
             )}
+
+            {/* General Competitions (Open for all categories) */}
+            {(() => {
+              const generalCategory = categories.find(c => c.id === 'cat_general' || c.name.toLowerCase() === 'general');
+              const isNotGeneralCatSelected = selectedCategoryId !== generalCategory?.id;
+              const generalComps = competitions.filter(c => c.categoryId === 'cat_general' || (generalCategory && c.categoryId === generalCategory.id));
+              if (!isNotGeneralCatSelected || generalComps.length === 0) return null;
+
+              return (
+                <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-display font-bold text-slate-700 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="text-amber-500">✨</span> General Competitions (Open For All)
+                    </span>
+                    <span className="text-[10px] text-amber-700 font-bold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      Individual & Group
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+                    {generalComps.map(comp => {
+                      const isChecked = selectedComps.includes(comp.id);
+                      return (
+                        <div
+                          key={comp.id}
+                          onClick={() => handleCompToggle(comp.id)}
+                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                            isChecked
+                              ? 'bg-amber-50/80 border-amber-500 text-amber-950 shadow-xs'
+                              : 'bg-white border-slate-200 hover:border-amber-300 text-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                              isChecked ? 'bg-amber-600 border-amber-600 text-white' : 'border-slate-300 bg-slate-50'
+                            }`}>
+                              {isChecked && <Check className="w-3.5 h-3.5" />}
+                            </div>
+                            <div>
+                              <span className="font-bold text-xs block">{comp.name}</span>
+                              <div className="flex gap-2 mt-0.5 font-mono text-[9px] font-bold">
+                                <span className={`uppercase px-1.5 py-0.2 rounded ${
+                                  comp.participationType === ParticipationType.INDIVIDUAL ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'
+                                }`}>
+                                  {comp.participationType}
+                                </span>
+                                {comp.stageType && (
+                                  <span className="text-slate-400 uppercase">{comp.stageType.replace('_', ' ')}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {comp.duration > 0 && (
+                            <span className="font-mono text-[10px] text-slate-400 font-bold shrink-0">{comp.duration}m</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 

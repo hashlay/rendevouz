@@ -1992,10 +1992,12 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
     return res.status(400).json({ error: `Cannot select more than ${db.eventSettings.maxOffStageEvents} off-stage competitions.` });
   }
 
-  // Verify that all competitions belong to the SELECTED category
+  // Verify that all competitions belong to the SELECTED category (or General category)
+  const generalCategoryForCreate = (db.categories || []).find(c => c.id === 'cat_general' || c.name.toLowerCase() === 'general');
   for (const compId of competitionIds) {
     const comp = db.competitions.find(c => c.id === compId);
-    if (!comp || comp.categoryId !== selectedCategoryId) {
+    const isGeneral = comp && generalCategoryForCreate && comp.categoryId === generalCategoryForCreate.id;
+    if (!comp || (comp.categoryId !== selectedCategoryId && !isGeneral)) {
       return res.status(400).json({ error: `Competition ${compId} is invalid or does not belong to the selected category.` });
     }
   }
@@ -2190,10 +2192,12 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
       return res.status(400).json({ error: `Cannot select more than ${db.eventSettings.maxOffStageEvents} off-stage competitions.` });
     }
 
-    // Verify category matches
+    // Verify category matches (General category competitions are allowed for all participants)
+    const generalCategoryForEdit = (db.categories || []).find(c => c.id === 'cat_general' || c.name.toLowerCase() === 'general');
     for (const compId of competitionIds) {
       const comp = db.competitions.find(c => c.id === compId);
-      if (!comp || comp.categoryId !== finalCat) {
+      const isGeneral = comp && generalCategoryForEdit && comp.categoryId === generalCategoryForEdit.id;
+      if (!comp || (comp.categoryId !== finalCat && !isGeneral)) {
         return res.status(400).json({ error: `Competition ${compId} is invalid or does not belong to the selected category.` });
       }
     }
@@ -2465,7 +2469,10 @@ apiRouter.post('/teams', authenticate, async (req, res) => {
     return res.status(400).json({ error: 'Selected competition is not a group event.' });
   }
 
-  if (comp.categoryId !== categoryId) {
+  const generalCatForTeam = (db.categories || []).find(c => c.id === 'cat_general' || c.name.toLowerCase() === 'general');
+  const isGeneralTeamComp = comp && generalCatForTeam && comp.categoryId === generalCatForTeam.id;
+
+  if (!isGeneralTeamComp && comp.categoryId !== categoryId) {
     return res.status(400).json({ error: 'Selected competition category mismatch.' });
   }
 
@@ -2489,11 +2496,12 @@ apiRouter.post('/teams', authenticate, async (req, res) => {
     if (!isUnitMatch) {
       return res.status(400).json({ error: `Member ${p.fullName} belongs to a different unit.` });
     }
-    // Category match
+    // Category match (General competitions allow members from any category)
     const targetCatId = categoryId || comp.categoryId;
     const catObj = (db.categories || []).find((c: any) => c.id === targetCatId || c.name === targetCatId);
     const pCatId = p.selectedCategoryId || (p as any).categoryId;
     const isCategoryMatch = 
+      isGeneralTeamComp ||
       pCatId === targetCatId ||
       (catObj && (pCatId === catObj.id || pCatId === catObj.name)) ||
       (p.selectedCategoryId && (p.selectedCategoryId === comp.categoryId || p.selectedCategoryId === targetCatId)) ||
@@ -2766,9 +2774,12 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     return res.status(400).json({ error: 'Result already entered for this participant/team in this competition. Edit the existing record instead.' });
   }
 
+  const targetComp = (db.competitions || []).find((c: any) => c.id === competitionId);
+  const resultCatId = targetComp?.categoryId || categoryId;
+
   const newResult: Result = {
     id: `res_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-    categoryId,
+    categoryId: resultCatId,
     competitionId,
     participantId: participantId || undefined,
     teamId: teamId || undefined,
@@ -3421,7 +3432,11 @@ apiRouter.get('/results', authenticate, async (req, res) => {
     results = results.filter(r => r.competitionId === compId);
   }
   if (catId) {
-    results = results.filter(r => r.categoryId === catId);
+    results = results.filter(r => {
+      if (r.categoryId === catId) return true;
+      const c = (db.competitions || []).find((comp: any) => comp.id === r.competitionId);
+      return c && c.categoryId === catId;
+    });
   }
   if (req.query.stageType) {
     const stageType = String(req.query.stageType);
@@ -5880,8 +5895,9 @@ apiRouter.get('/public/results', async (req, res) => {
         const p = db.participants.find(p => p.id === r.participantId);
         if (p) {
           participantName = p.fullName;
-          const chest = db.chestNumbers.find(c => c.participantId === p.id && c.categoryId === p.selectedCategoryId);
-          codeNumber = chest ? chest.chestNumber.toString() : '';
+          const chest = db.chestNumbers.find(c => c.participantId === p.id && c.categoryId === p.selectedCategoryId)
+            || db.chestNumbers.find(c => c.participantId === p.id);
+          codeNumber = chest ? chest.chestNumber.toString() : (p.profilePhoto || '');
           const unit = db.units.find(u => u.id === p.unitId);
           department = unit ? unit.name : '';
         }
@@ -5931,6 +5947,10 @@ apiRouter.get('/public/results', async (req, res) => {
       else if (m >= 30) grade = 'D+';
       else grade = 'D';
 
+      const compCat = comp ? db.categories.find(c => c.id === comp.categoryId) : null;
+      const isGenComp = compCat && (compCat.id === 'cat_general' || compCat.name.toLowerCase() === 'general');
+      const finalCategoryName = isGenComp ? (compCat ? compCat.name : 'General') : (cat ? cat.name : (compCat ? compCat.name : 'General'));
+
       return {
         id: r.id,
         competitionId: r.competitionId,
@@ -5939,7 +5959,7 @@ apiRouter.get('/public/results', async (req, res) => {
         teamId: r.teamId || null,
         teamMemberIds: teamMemberIds || [],
         eventName: comp ? comp.name : 'Unknown',
-        category: cat ? cat.name : 'Unknown',
+        category: finalCategoryName,
         participationType,
         participantName,
         codeNumber,
