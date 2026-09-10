@@ -323,7 +323,7 @@ export interface EventSettings {
 
 export interface ChestNumber {
   id: string;
-  chestNumber?: number; // e.g. 1000, 1001, 2000
+  chestNumber?: number | string; // e.g. 1000, 1001, 2000, '0000AB000', 'AB101'
   codeNumber?: string;
   participantId?: string;
   entityId?: string;
@@ -358,7 +358,7 @@ export interface GreenRoomAssignment {
   categoryId: string;
   participantId?: string; // For individual
   teamId?: string; // For group
-  chestNumber?: number;
+  chestNumber?: number | string;
   codeLetter: string; // A, B, C... Z, AA, AB...
   status: GreenRoomStatus;
   generatedBy: string;

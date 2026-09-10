@@ -490,8 +490,11 @@ export default function ChestNumberPrintingView({
     }
     if (selectedCategory && cn.categoryId !== selectedCategory && cn.categoryName !== selectedCategory) return false;
     if (selectedUnit && cn.unitId !== selectedUnit && cn.unitName !== selectedUnit) return false;
-    return true;
-  }).sort((a, b) => a.chestNumber - b.chestNumber);
+  }).sort((a, b) => {
+    const cA = (a.chestNumber ?? '').toString();
+    const cB = (b.chestNumber ?? '').toString();
+    return cA.localeCompare(cB, undefined, { numeric: true, sensitivity: 'base' });
+  });
 
   const selectedChestNumbers = filtered.filter(cn => selectedIds.includes(cn.id));
 

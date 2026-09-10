@@ -1154,8 +1154,11 @@ apiRouter.get('/categories', async (req, res) => {
   const minChestNumbers: Record<string, number> = {};
   if (db.chestNumbers && Array.isArray(db.chestNumbers)) {
     for (const cn of db.chestNumbers) {
-      if (!minChestNumbers[cn.categoryId] || cn.chestNumber < minChestNumbers[cn.categoryId]) {
-        minChestNumbers[cn.categoryId] = cn.chestNumber;
+      const n = typeof cn.chestNumber === 'number' ? cn.chestNumber : Number(cn.chestNumber);
+      if (!isNaN(n) && n > 0) {
+        if (!minChestNumbers[cn.categoryId] || n < minChestNumbers[cn.categoryId]) {
+          minChestNumbers[cn.categoryId] = n;
+        }
       }
     }
   }
@@ -1597,10 +1600,12 @@ apiRouter.get('/participants', authenticate, async (req, res) => {
     const orderB = catOrder.get(b.selectedCategoryId || b.categoryId) ?? 999;
     if (orderA !== orderB) return orderA - orderB;
 
-    const numA = parseInt((a.chestNumber || a.profilePhoto || '').replace(/\D/g, ''), 10);
-    const numB = parseInt((b.chestNumber || b.profilePhoto || '').replace(/\D/g, ''), 10);
-    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-    return 0;
+    const chestA = (a.chestNumber || a.profilePhoto || '').toString();
+    const chestB = (b.chestNumber || b.profilePhoto || '').toString();
+    const numA = parseInt(chestA.replace(/\D/g, ''), 10);
+    const numB = parseInt(chestB.replace(/\D/g, ''), 10);
+    if (!isNaN(numA) && !isNaN(numB) && numA !== numB) return numA - numB;
+    return chestA.localeCompare(chestB, undefined, { numeric: true, sensitivity: 'base' });
   });
 
   res.json(formattedParticipants);
@@ -1654,12 +1659,14 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
       if (!db.chestNumbers) db.chestNumbers = [];
 
       if (rawChestNumber && rawChestNumber !== '-' && rawChestNumber !== '—' && rawChestNumber !== 'N/A') {
-        const numVal = parseInt(rawChestNumber.replace(/\D/g, ''), 10);
-        const finalNum = !isNaN(numVal) ? numVal : rawChestNumber;
+        const isPureInt = /^[1-9]\d*$/.test(rawChestNumber);
+        const finalNum: number | string = isPureInt ? parseInt(rawChestNumber, 10) : rawChestNumber;
         chestNumberString = rawChestNumber;
 
         // Sync or register chestNumber record in db.chestNumbers
-        const existingCnIdx = db.chestNumbers.findIndex((cn: any) => !cn.deletedAt && cn.chestNumber.toString() === rawChestNumber);
+        const existingCnIdx = db.chestNumbers.findIndex((cn: any) =>
+          !cn.deletedAt && cn.chestNumber?.toString().trim().toLowerCase() === rawChestNumber.toLowerCase()
+        );
         if (existingCnIdx !== -1) {
           db.chestNumbers[existingCnIdx].participantId = participantId;
           db.chestNumbers[existingCnIdx].categoryId = category?.id || 'cat_junior';
@@ -1678,7 +1685,8 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
         }
 
         // Keep counter updated so auto-generation doesn't conflict
-        if (!isNaN(numVal) && category) {
+        if (isPureInt && category) {
+          const numVal = parseInt(rawChestNumber, 10);
           if (!db.counters) db.counters = [];
           let counter = db.counters.find((c: Counter) => c.categoryId === category.id);
           if (counter && counter.currentValue < numVal) {
@@ -1688,7 +1696,7 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
       } else {
         // Fallback: auto-generate next chest number if omitted
         const generatedChest = unit && category ? generateNextChestNumber(db, category.id, user.id, participantId, unit.id) : null;
-        chestNumberString = generatedChest ? generatedChest.chestNumber.toString() : 'PENDING';
+        chestNumberString = generatedChest ? (generatedChest.chestNumber !== undefined ? generatedChest.chestNumber.toString() : 'PENDING') : 'PENDING';
       }
 
       const p: Participant = {
@@ -1995,10 +2003,31 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
   // Pre-generate participant ID to allow chest number generation
   const participantId = `part_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
-  // Auto-generate chest number from the atomic counter system immediately
+  // Auto-generate or assign custom chest number
   if (!db.chestNumbers) db.chestNumbers = [];
-  const generatedChest = generateNextChestNumber(db, selectedCategoryId, user.id, participantId, finalUnitId);
-  const chestNumberString = generatedChest ? generatedChest.chestNumber.toString() : 'PENDING';
+  const customChest = (req.body.chestNumber || req.body.profilePhoto || '').toString().trim();
+  let generatedChest: ChestNumber | null = null;
+  let chestNumberString = '';
+
+  if (customChest && customChest !== '-' && customChest !== '—' && customChest !== 'N/A') {
+    chestNumberString = customChest;
+    const isPureInt = /^[1-9]\d*$/.test(customChest);
+    const finalChestVal: number | string = isPureInt ? parseInt(customChest, 10) : customChest;
+
+    generatedChest = {
+      id: `chest_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      chestNumber: finalChestVal as any,
+      participantId,
+      categoryId: selectedCategoryId,
+      unitId: finalUnitId,
+      generatedBy: user.id,
+      generatedAt: new Date().toISOString()
+    };
+    db.chestNumbers.push(generatedChest);
+  } else {
+    generatedChest = generateNextChestNumber(db, selectedCategoryId, user.id, participantId, finalUnitId);
+    chestNumberString = generatedChest ? (generatedChest.chestNumber !== undefined ? generatedChest.chestNumber.toString() : 'PENDING') : 'PENDING';
+  }
 
   const newParticipant: Participant = {
     id: participantId,
@@ -2016,7 +2045,8 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
     guardianPhone,
     address,
     notes,
-    profilePhoto: chestNumberString, // Using numeric chest number directly
+    chestNumber: chestNumberString,
+    profilePhoto: chestNumberString, // Using chest number directly
     active: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -2810,7 +2840,7 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
       categoryId,
       participantId: participantId || undefined,
       teamId: teamId || undefined,
-      chestNumber: (typeof cNum === 'number' ? cNum : (cNum ? Number(cNum) : undefined)),
+      chestNumber: (cNum !== undefined && cNum !== null && cNum !== '' ? cNum : undefined),
       codeLetter: indexToCodeLetter(nextIndex),
       status: GreenRoomStatus.ASSIGNED,
       generatedBy: user.id,
@@ -2945,7 +2975,7 @@ apiRouter.post('/competitions/:id/register-candidate', authenticate, requireRole
       competitionId: compId,
       categoryId: comp.categoryId,
       participantId,
-      chestNumber: (typeof cNum === 'number' ? cNum : (cNum ? Number(cNum) : undefined)),
+      chestNumber: (cNum !== undefined && cNum !== null && cNum !== '' ? cNum : undefined),
       codeLetter: indexToCodeLetter(nextIndex),
       status: GreenRoomStatus.ASSIGNED,
       generatedBy: user.id,
@@ -3271,7 +3301,7 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
       categoryId: resultObj.categoryId,
       participantId: resultObj.participantId,
       teamId: resultObj.teamId,
-      chestNumber: (typeof cNum === 'number' ? cNum : (cNum ? Number(cNum) : undefined)),
+      chestNumber: (cNum !== undefined && cNum !== null && cNum !== '' ? cNum : undefined),
       codeLetter: indexToCodeLetter(nextIndex),
       status: GreenRoomStatus.ASSIGNED,
       generatedBy: user.id,
@@ -4144,7 +4174,7 @@ function generateNextChestNumber(db: any, categoryId: string, userId: string, pa
   const chestNum = counter.currentValue;
 
   // Verify no duplicate among active non-deleted chest numbers
-  const existing = (db.chestNumbers || []).find((cn: ChestNumber) => !cn.deletedAt && cn.chestNumber === chestNum);
+  const existing = (db.chestNumbers || []).find((cn: ChestNumber) => !cn.deletedAt && cn.chestNumber?.toString() === chestNum.toString());
   if (existing) {
     return generateNextChestNumber(db, categoryId, userId, participantId, unitId);
   }
@@ -4357,11 +4387,18 @@ const handleChestNumberUpdate = async (req: Request, res: Response) => {
   const db = dbClient.get();
   const user = (req as any).user as User;
   const targetId = req.params.id;
-  const newChestNum = Number(req.body.chestNumber);
+  const rawInput = (req.body.chestNumber !== undefined && req.body.chestNumber !== null)
+    ? String(req.body.chestNumber).trim()
+    : '';
 
-  if (!newChestNum || Number.isNaN(newChestNum) || newChestNum <= 0) {
-    return res.status(400).json({ error: 'Valid positive numeric chest number is required.' });
+  if (!rawInput) {
+    return res.status(400).json({ error: 'Valid chest number is required.' });
   }
+
+  // Pure positive integer without leading zeros stored as number; mixed alphanumeric or zero-prefixed kept as string
+  const isPureInt = /^[1-9]\d*$/.test(rawInput);
+  const newChestNum: number | string = isPureInt ? parseInt(rawInput, 10) : rawInput;
+  const newChestStr = String(newChestNum).trim().toLowerCase();
 
   // Find target chest record & participant
   const targetChest = (db.chestNumbers || []).find((cn: ChestNumber) =>
@@ -4369,36 +4406,46 @@ const handleChestNumberUpdate = async (req: Request, res: Response) => {
   );
 
   const partId = targetChest ? (targetChest.participantId || targetChest.entityId) : targetId;
-  const partA = db.participants.find(p => (p.id === partId || p.profilePhoto === targetId || p.profilePhoto === String(targetId)) && !p.deletedAt);
+  const partA = db.participants.find(p => (
+    p.id === partId ||
+    String(p.profilePhoto || '').trim().toLowerCase() === String(targetId).trim().toLowerCase() ||
+    String(p.chestNumber || '').trim().toLowerCase() === String(targetId).trim().toLowerCase()
+  ) && !p.deletedAt);
 
   if (!partA) {
     return res.status(404).json({ error: 'Participant not found.' });
   }
 
-  const oldChestNumA = targetChest ? targetChest.chestNumber : (Number(partA.profilePhoto) || 0);
+  const oldChestNumA = targetChest ? targetChest.chestNumber : (partA.chestNumber || partA.profilePhoto || '');
 
-  if (oldChestNumA === newChestNum) {
+  if (String(oldChestNumA).trim().toLowerCase() === newChestStr) {
     return res.json({ message: 'Chest number unchanged.', participant: partA });
   }
 
   // Check if newChestNum is already assigned to another active participant (Participant B)
   const otherChest = (db.chestNumbers || []).find((cn: ChestNumber) =>
     !cn.deletedAt &&
-    cn.chestNumber === newChestNum &&
+    cn.chestNumber !== undefined &&
+    cn.chestNumber !== null &&
+    String(cn.chestNumber).trim().toLowerCase() === newChestStr &&
     cn.participantId !== partA.id &&
     cn.entityId !== partA.id
   );
 
   const partB = otherChest
     ? db.participants.find(p => p.id === (otherChest.participantId || otherChest.entityId) && !p.deletedAt)
-    : db.participants.find(p => p.id !== partA.id && !p.deletedAt && (p.profilePhoto === String(newChestNum) || (p.profilePhoto as any) === newChestNum));
+    : db.participants.find(p => p.id !== partA.id && !p.deletedAt && (
+        String(p.profilePhoto || '').trim().toLowerCase() === newChestStr ||
+        String(p.chestNumber || '').trim().toLowerCase() === newChestStr
+      ));
 
   let isSwapped = false;
 
   // Swapping logic if Participant B exists
-  if (partB && oldChestNumA > 0) {
+  if (partB && oldChestNumA && String(oldChestNumA).trim() !== '') {
     isSwapped = true;
     partB.profilePhoto = String(oldChestNumA);
+    partB.chestNumber = String(oldChestNumA);
     partB.updatedAt = new Date().toISOString();
 
     if (otherChest) {
@@ -4409,6 +4456,7 @@ const handleChestNumberUpdate = async (req: Request, res: Response) => {
 
   // Update Participant A
   partA.profilePhoto = String(newChestNum);
+  partA.chestNumber = String(newChestNum);
   partA.updatedAt = new Date().toISOString();
 
   if (targetChest) {
@@ -4509,7 +4557,7 @@ apiRouter.get('/chest-numbers/export', authenticate, async (req, res) => {
     const p = db.participants.find(part => part.id === cn.participantId);
     const u = db.units.find(unit => unit.id === cn.unitId);
     const c = db.categories.find(cat => cat.id === cn.categoryId);
-    csv += `${cn.chestNumber},"${p?.fullName || 'Unknown'}","${u?.name || 'Unknown'}","${c?.name || 'Unknown'}","${cn.generatedAt}"\n`;
+    csv += `"${cn.chestNumber}","${p?.fullName || 'Unknown'}","${u?.name || 'Unknown'}","${c?.name || 'Unknown'}","${cn.generatedAt}"\n`;
   }
 
   res.setHeader('Content-Type', 'text/csv');

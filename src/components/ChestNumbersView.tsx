@@ -130,8 +130,11 @@ export default function ChestNumbersView({ user, token, eventSettings }: ChestNu
       }
       return true;
     })
-    .filter(cn => !filterCategory || cn.categoryId === filterCategory)
-    .sort((a, b) => a.chestNumber - b.chestNumber);
+    .sort((a, b) => {
+      const cA = (a.chestNumber ?? '').toString();
+      const cB = (b.chestNumber ?? '').toString();
+      return cA.localeCompare(cB, undefined, { numeric: true, sensitivity: 'base' });
+    });
 
   if (loading) {
     return (
@@ -320,10 +323,11 @@ export default function ChestNumbersView({ user, token, eventSettings }: ChestNu
                       {editingId === cn.id ? (
                         <div className="flex items-center gap-2">
                           <input
-                            type="number"
+                            type="text"
                             value={editValue}
-                            onChange={e => setEditValue(parseInt(e.target.value))}
-                            className="w-24 px-2 py-1 border border-slate-300 rounded text-sm"
+                            onChange={e => setEditValue(e.target.value)}
+                            className="w-28 px-2 py-1 border border-slate-300 rounded text-sm font-mono"
+                            placeholder="Chest #"
                           />
                           <button onClick={() => handleEdit(cn.id)} className="text-emerald-600 text-xs font-semibold">Save</button>
                           <button onClick={() => setEditingId(null)} className="text-slate-400 text-xs">Cancel</button>
@@ -342,7 +346,7 @@ export default function ChestNumbersView({ user, token, eventSettings }: ChestNu
                     {isAdmin && (
                       <td className="px-4 py-3 print:hidden">
                         <button
-                          onClick={() => { setEditingId(cn.id); setEditValue(cn.chestNumber); }}
+                          onClick={() => { setEditingId(cn.id); setEditValue((cn.chestNumber ?? '').toString()); }}
                           className="text-amber-600 hover:text-amber-700"
                         >
                           <Edit2 className="h-4 w-4" />

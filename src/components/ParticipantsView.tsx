@@ -109,7 +109,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         // Determine if parts[0] is a chest number
         const firstVal = cleanVal(parts[0]);
         const secondVal = cleanVal(parts[1]);
-        const firstIsChest = !isNaN(Number(firstVal)) || (firstVal.length <= 6 && /\d/.test(firstVal));
+        const firstIsChest = !isNaN(Number(firstVal)) || (firstVal.length <= 15 && /\d/.test(firstVal) && !firstVal.includes(' '));
 
         let chestNumber = '';
         let fullName = '';
@@ -564,6 +564,9 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       }
       if (!isNaN(numA) && isNaN(numB)) return -1;
       if (isNaN(numA) && !isNaN(numB)) return 1;
+
+      const strCmp = chestStrA.localeCompare(chestStrB, undefined, { numeric: true, sensitivity: 'base' });
+      if (strCmp !== 0) return strCmp;
 
       // Tie-breaker: Registration Order (Original Array Index)
       const origA = participants.indexOf(a);
