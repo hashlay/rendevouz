@@ -201,30 +201,31 @@ function ensureDbExists() {
   ];
 
   const initialUnits: Unit[] = [
-    { id: 'unit_ash_shukr', name: 'Ash-Shukr', code: 'SHK', active: true },
-    { id: 'unit_as_sabr', name: 'As-Sabr', code: 'SBR', active: true }
+    { id: 'unit_sirafi', name: 'Sirafi Seafarers', code: 'SIR', active: true },
+    { id: 'unit_tabrizi', name: 'Tabrizi Taraz', code: 'TAB', active: true },
+    { id: 'unit_zanzibari', name: 'Zanzibari Souqs', code: 'ZAN', active: true }
   ];
 
   const initialCategories: Category[] = [
-    { id: 'cat_kids', name: 'Kids', startingChestNumber: 101, dobStart: '2019-01-01', dobEnd: '2026-12-31', active: true },
-    { id: 'cat_sub_junior', name: 'Sub-Junior', startingChestNumber: 201, dobStart: '2016-01-01', dobEnd: '2018-12-31', active: true },
-    { id: 'cat_junior', name: 'Junior', startingChestNumber: 301, dobStart: '2014-01-01', dobEnd: '2015-12-31', active: true },
-    { id: 'cat_senior', name: 'Senior', startingChestNumber: 401, dobStart: '2010-01-01', dobEnd: '2013-12-31', active: true }
+    { id: 'cat_premier', name: 'Premier', startingChestNumber: 101, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
+    { id: 'cat_sub_junior', name: 'Sub Junior', startingChestNumber: 201, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
+    { id: 'cat_junior', name: 'Junior', startingChestNumber: 301, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
+    { id: 'cat_general', name: 'General', startingChestNumber: 501, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true }
   ];
 
   // Default initial competitions array starts empty (0 programs) for new databases
   const initialCompetitions: Competition[] = [];
 
   const initialSettings: EventSettings = {
-    eventTitle: 'A SMILE THAT BRINGS HEARTS TOGETHER',
-    festivalName: 'At-Tabassum',
-    campusName: 'Noorul Islam Madrasa, Jeppu',
-    sectorName: 'Noorul Islam Madrasa, Jeppu',
+    eventTitle: 'Decoding Phytolore',
+    festivalName: 'Rendezvous 26',
+    campusName: 'Imam Rabbani Life Festival',
+    sectorName: 'Imam Rabbani Life Festival',
     eventYear: '2026',
-    cutoffDate: '2026-05-01',
-    eventDate: '2026-08-15',
-    venue: 'Jeppu',
-    contactInfo: 'zenith.theorganizer@gmail.com',
+    cutoffDate: '2026-09-01',
+    eventDate: '2026-09-23',
+    venue: 'Imam Rabbani Campus',
+    contactInfo: 'contacthashlay@gmail.com',
     maxIndividualEvents: 10,
     maxGroupEvents: 10,
     maxOnStageEvents: null,
@@ -232,10 +233,10 @@ function ensureDbExists() {
     registrationOpen: true,
     fillLogo: true,
     autoRemoveLogoBg: false,
-    ssfLogoUrl: '/tabassum_logo.png',
-    sahityotsavLogoUrl: '/tabassum_logo.png',
-    primaryColor: 'emerald',
-    accentColor: 'amber',
+    ssfLogoUrl: '/rendezvous_icon.png',
+    sahityotsavLogoUrl: '/rendezvous_logo.png',
+    primaryColor: '#18BA46',
+    accentColor: '#18BA46',
     numJudges: 2,
     markDecimalPrecision: 2,
     autoRankingEnabled: true,
