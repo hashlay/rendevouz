@@ -145,9 +145,10 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
           const isOldLogo = eventSettings?.ssfLogoUrl && (
             eventSettings.ssfLogoUrl.includes('base64') ||
             eventSettings.ssfLogoUrl.includes('zenith') ||
-            eventSettings.ssfLogoUrl.includes('ssf_logo')
+            eventSettings.ssfLogoUrl.includes('ssf_logo') ||
+            eventSettings.ssfLogoUrl.includes('tabassum')
           );
-          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/tabassum_logo.jpg';
+          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/rendezvous_logo.png';
 
           return eventSettings?.fillLogo ? (
             <div className="flex justify-center items-center py-1 text-center w-full">
@@ -164,8 +165,8 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                 }}
                 onError={(e) => {
                   const target = e.currentTarget;
-                  if (target.src.includes('tabassum_logo.jpg')) {
-                    target.src = '/tabassum_logo.png';
+                  if (!target.src.includes('rendezvous_icon.png')) {
+                    target.src = '/rendezvous_icon.png';
                   } else {
                     target.style.display = 'none';
                   }
@@ -180,8 +181,8 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                 className="h-12 w-12 object-contain shrink-0 drop-shadow-xs"
                 onError={(e) => {
                   const target = e.currentTarget;
-                  if (target.src.includes('tabassum_logo.jpg')) {
-                    target.src = '/tabassum_logo.png';
+                  if (!target.src.includes('rendezvous_icon.png')) {
+                    target.src = '/rendezvous_icon.png';
                   } else {
                     target.style.display = 'none';
                   }
@@ -190,10 +191,10 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
               <div className="h-8 w-px bg-slate-300" />
               <div className="flex flex-col items-start text-left">
                 <span className="font-display font-bold text-emerald-900 text-base tracking-tight leading-none uppercase">
-                  {eventSettings?.festivalName || 'At-Tabassum MEELAD FEST'}
+                  {eventSettings?.festivalName || 'RENDEZVOUS 26'}
                 </span>
                 <span className="text-amber-600 font-mono text-[10px] font-semibold tracking-widest mt-1 uppercase">
-                  {eventSettings?.campusName || eventSettings?.sectorName || 'Noorul Islam Madrasa, Jeppu'}
+                  {eventSettings?.campusName || eventSettings?.sectorName || 'Imam Rabbani Life Festival'}
                 </span>
               </div>
             </div>

@@ -274,12 +274,12 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
         fetch(`/api/categories?t=${Date.now()}`)
       ]);
       const data = await sRes.json();
-      setSectorName(data.sectorName || 'Noorul Islam Madrasa, Jeppu');
-      setEventTitle(data.eventTitle || 'A SMILE THAT BRINGS HEARTS TOGETHER');
-      setFestivalName(data.festivalName || 'At-Tabassum');
-      setCampusName(data.campusName || data.sectorName || 'Noorul Islam Madrasa, Jeppu');
-      setSsfLogoUrl(data.ssfLogoUrl || '/tabassum_logo.png');
-      setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '/tabassum_logo.png');
+      setSectorName(data.sectorName || 'Imam Rabbani Life Festival');
+      setEventTitle(data.eventTitle || 'Decoding Phytolore');
+      setFestivalName(data.festivalName || 'RENDEZVOUS 26');
+      setCampusName(data.campusName || data.sectorName || 'Imam Rabbani Life Festival');
+      setSsfLogoUrl(data.ssfLogoUrl || '/rendezvous_icon.png');
+      setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '/rendezvous_logo.png');
       setCertTheme1Url(data.certTheme1Url || '');
       setCertTheme2Url(data.certTheme2Url || '');
       setCertTheme3Url(data.certTheme3Url || '');

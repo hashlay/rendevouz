@@ -221,12 +221,12 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
         files.push(new File([blob], fileName, { type: 'image/jpeg' }));
       }
 
-      const festivalTitle = (eventSettings?.festivalName || 'TABASSUM MEELAD FEST 2K26').toUpperCase();
+      const festivalTitle = (eventSettings?.festivalName || 'RENDEZVOUS 26').toUpperCase();
       const compIdx = competitions.findIndex(c => c.id === comp.id) + 1;
       const formattedNum = compIdx > 0 ? String(compIdx).padStart(2, '0') : '01';
-      const slogan = eventSettings?.festivalTagline || eventSettings?.slogan || 'A Smile That Brings Hearts Together...';
-      const campus = eventSettings?.campusName || eventSettings?.sectorName || 'Noorul Islam Madrasa, Jeppu';
-      const hashtags = eventSettings?.shareHashtags || '#Tabassum2K26 #MeeladFest #Results #NoorulIslamMadrasa #Jeppu #Congratulations';
+      const slogan = eventSettings?.festivalTagline || eventSettings?.slogan || 'Decoding Phytolore';
+      const campus = eventSettings?.campusName || eventSettings?.sectorName || 'Imam Rabbani Life Festival';
+      const hashtags = eventSettings?.shareHashtags || '#Rendezvous26 #ImamRabbani #LifeFestival #DecodingPhytolore #Results #Congratulations';
 
       const catName = categories.find(c => c.id === comp.categoryId)?.name || '';
 

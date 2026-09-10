@@ -66,9 +66,10 @@ export default function Sidebar({
           const isOldLogo = eventSettings?.ssfLogoUrl && (
             eventSettings.ssfLogoUrl.includes('base64') ||
             eventSettings.ssfLogoUrl.includes('zenith') ||
-            eventSettings.ssfLogoUrl.includes('ssf_logo')
+            eventSettings.ssfLogoUrl.includes('ssf_logo') ||
+            eventSettings.ssfLogoUrl.includes('tabassum')
           );
-          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/tabassum_logo.jpg';
+          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/rendezvous_logo.png';
 
           return eventSettings?.fillLogo ? (
             <div className="py-3 px-3.5 border-b border-emerald-900 bg-emerald-950/60 flex justify-center items-center text-center w-full min-h-[80px]">
@@ -79,8 +80,8 @@ export default function Sidebar({
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     const target = e.currentTarget;
-                    if (target.src.includes('tabassum_logo.jpg')) {
-                      target.src = '/tabassum_logo.png';
+                    if (!target.src.includes('rendezvous_icon.png')) {
+                      target.src = '/rendezvous_icon.png';
                     } else {
                       setLogoFailed(true);
                     }
@@ -108,8 +109,8 @@ export default function Sidebar({
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     const target = e.currentTarget;
-                    if (target.src.includes('tabassum_logo.jpg')) {
-                      target.src = '/tabassum_logo.png';
+                    if (!target.src.includes('rendezvous_icon.png')) {
+                      target.src = '/rendezvous_icon.png';
                     } else {
                       setLogoFailed(true);
                     }
@@ -121,10 +122,10 @@ export default function Sidebar({
               )}
               <div className="flex flex-col">
                 <span className="font-display font-extrabold text-amber-400 text-sm tracking-wide leading-none uppercase">
-                  {eventSettings?.festivalName || 'At-Tabassum MEELAD FEST'}
+                  {eventSettings?.festivalName || 'RENDEZVOUS 26'}
                 </span>
                 <span className="text-emerald-300 text-[10px] font-mono tracking-widest uppercase mt-1">
-                  {eventSettings?.campusName || eventSettings?.sectorName || 'Noorul Islam Madrasa, Jeppu'}
+                  {eventSettings?.campusName || eventSettings?.sectorName || 'Imam Rabbani Life Festival'}
                 </span>
               </div>
             </div>

@@ -109,9 +109,9 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           { id: '3', title: 'Live Team Standings', type: 'results', enabled: true, order: 3 },
           { id: '4', title: 'Announced Results & Placements', type: 'announcements', enabled: true, order: 4 },
           { id: '5', title: 'Photo Hub (Drive & QR)', type: 'smile', enabled: true, order: 5 },
-          { id: '6', title: 'Media Gallery (Photo Uploads)', type: 'gallery', enabled: true, order: 6 },
-          { id: '7', title: 'Live Broadcast Streams', type: 'live_stages', enabled: true, order: 7 },
-          { id: '8', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: true, order: 8 },
+          { id: '6', title: 'Media Gallery (Photo Uploads)', type: 'gallery', enabled: false, order: 6 },
+          { id: '7', title: 'Live Broadcast Streams', type: 'live_stages', enabled: false, order: 7 },
+          { id: '8', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: false, order: 8 },
           { id: '9', title: 'Result Posters (Latest 8)', type: 'posters', enabled: true, order: 9 }
         ];
         let fetchedBlocks = data.dragBlocks && data.dragBlocks.length > 0 ? data.dragBlocks : defaultBlocks;
@@ -124,54 +124,54 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         setHeroMedia(data.heroMedia || []);
         const mergedSettings = data.cmsSettings || {};
         const DEFAULT_CMS_SETTINGS: any = {
-          headerLogoTitle: 'At-Tabassum',
-          headerLogoSubtitle: 'Meelad Fest',
-          heroLogoTitle: 'At-Tabassum',
-          heroLogoSubtitle: 'Meelad Fest',
-          heroLogoBadge: 'NOORUL ISLAM MADRASA',
+          headerLogoTitle: 'RENDEZVOUS',
+          headerLogoSubtitle: '26',
+          heroLogoTitle: 'RENDEZVOUS 26',
+          heroLogoSubtitle: 'Decoding Phytolore',
+          heroLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
           heroHideLogo: true,
-          heroTitle: 'At-Tabassum<br /><span class="text-[#C89A4B]">MEELAD FEST</span>',
-          heroSubtitle: 'A smile that brings heart together',
-          heroInstitutionLeft: 'Noorul Islam Madrasa',
-          heroInstitutionRight: 'Jeppu, Mangalore',
-          heroDate: 'September 05, 2026',
-          heroLocation: 'MAS Garden, Jeppu',
+          heroTitle: 'RENDEZVOUS<br /><span class="text-[#18BA46]">26</span>',
+          heroSubtitle: 'Decoding Phytolore',
+          heroInstitutionLeft: 'Imam Rabbani',
+          heroInstitutionRight: 'Life Festival',
+          heroDate: '2026 September 23, 24',
+          heroLocation: 'Imam Rabbani Campus',
           aboutBadge: 'Festival Vision',
-          aboutMainHeading: 'ABOUT THE <span class="text-[#FF2B2B]">FESTIVAL</span>',
+          aboutMainHeading: 'ABOUT THE <span class="text-[#18BA46]">FESTIVAL</span>',
           aboutTitle: 'Kulliyathu Imam Rabbani',
-          aboutSubtitle: 'Off-Campus of Markaz Garden, Poonoor',
-          aboutDescription: 'Kulliyathu Imam Rabbani stands as a premier center of higher Islamic learning and academic excellence, functioning as a key off-campus institute under the revered banner of Markaz Garden, Poonoor.\n\nThe Imam Rabbani LIFE Festival (Rendezvous Silver Edition) is an annual flagship celebration of intellectual, creative, and moral excellence. It brings together over 1200 students across 40+ disciplines.',
+          aboutSubtitle: 'Imam Rabbani Life Festival 2026',
+          aboutDescription: 'Kulliyathu Imam Rabbani stands as a premier center of higher Islamic learning and academic excellence, functioning as a key institute dedicated to intellectual and spiritual enlightenment.\n\nThe Imam Rabbani LIFE Festival (Rendezvous 26) is an annual flagship celebration of intellectual, creative, and moral excellence.',
           aboutImageBadge: 'INAUGURATION SESSION',
-          aboutImageTitle: 'KULLIYATHU IMAM RABBANI',
+          aboutImageTitle: 'RENDEZVOUS 26',
           aboutImageSubtitle: 'Distinguished Scholars & Dignitaries at Grand Assembly',
-          aboutImageLocation: 'Main Stage Auditorium • Markaz Garden Campus',
-          aboutImageFooter: 'Markaz Garden Off-Campus',
-          themeTitle: 'Transcending the Illusions',
-          themeDescription: 'In a world crowded with digital superficiality and sensory illusions, \'Transcending the Illusions\' calls upon the youth to pierce through modern worldly deceptions through classical wisdom, spiritual clarity, and moral fortitude.',
+          aboutImageLocation: 'Main Stage Auditorium • Imam Rabbani Campus',
+          aboutImageFooter: 'Imam Rabbani Life Festival',
+          themeTitle: 'Decoding Phytolore',
+          themeDescription: 'In an era of rapid technological acceleration, "Decoding Phytolore" calls upon the youth to explore the profound wisdom of natural heritage, botanical lore, classical scholarship, and divine creation.',
           themeButtonText: 'READ PHILOSOPHICAL CONCEPT',
           conceptModalBadge: 'Theme Concept & Philosophy',
-          conceptModalTitle: 'A SMILE THAT BRINGS HEART TOGETHER',
-          conceptModalSubtitle: 'Noorul Islam Madrasa',
-          conceptModalFooter: 'At-Tabassum Meelad Fest',
-          conceptModalDescription: 'In a time when genuine connections are often lost amid the rush of everyday life, a simple smile carries the power to bring hearts closer.\n\nAt-Tabassum Meelad Fest 2026 celebrates the spirit of togetherness, compassion, creativity, and shared learning. It creates a vibrant space for young minds to discover their talents, strengthen friendships, embrace meaningful values, and grow through healthy competition.\n\nBeyond a celebration of talent, At-Tabassum is a reminder that kindness connects people, knowledge inspires growth, and a smile can bring hearts together.',
-          footerLogo: '/tabassum_logo.jpg',
-          footerLogoTitle: 'At-Tabassum',
-          footerLogoSubtitle: 'Meelad Fest',
-          footerLogoBadge: 'NOORUL ISLAM MADRASA',
-          footerDescription: 'At-Tabassum Meelad Fest 2026 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Noorul Islam Madrasa, Jeppu, Mangalore, bringing students together through meaningful learning, healthy competition, and shared values.',
-          footerLocation: 'MAS Garden, Jeppu',
-          footerEmail: 'zenith.theorganizer@gmail.com',
+          conceptModalTitle: 'DECODING PHYTOLORE',
+          conceptModalSubtitle: 'Imam Rabbani Life Festival',
+          conceptModalFooter: 'Rendezvous 26',
+          conceptModalDescription: 'Decoding Phytolore delves into the profound wisdom of natural heritage, botanical lore, and life systems woven into sacred traditions and intellectual history.\n\nRendezvous 26 celebrates the spirit of togetherness, intellectual vitality, artistic expression, and shared scholarship under the banner of the Imam Rabbani Life Festival.\n\nBeyond a festival of talent, Rendezvous 26 creates a dynamic sanctuary for minds to flourish, heritage to be rediscovered, and brotherhood to flourish through meaningful learning and healthy competition.',
+          footerLogo: '/rendezvous_icon.png',
+          footerLogoTitle: 'RENDEZVOUS',
+          footerLogoSubtitle: '26',
+          footerLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
+          footerDescription: 'Rendezvous 26 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Imam Rabbani Life Festival, bringing students together through meaningful learning, healthy competition, and shared values.',
+          footerLocation: 'Imam Rabbani Campus',
+          footerEmail: 'contacthashlay@gmail.com',
           footerPhone: '+91 74831 38340',
-          footerInstagram: 'https://instagram.com/zeni.th.in',
-          footerYoutube: 'tabassum.hashlay.in',
-          footerFacebook: 'tabassum.hashlay.in',
-          footerText: '© 2026 Noorul Islam Madrasa Jeppu. All rights reserved. Developed by Zenith.',
-          copyrightText: '© 2026 Noorul Islam Madrasa Jeppu. All rights reserved. Developed by Zenith.',
-          heroDesktopImages: ['/hero1.jpg', '/hero2.jpg'],
+          footerInstagram: 'https://instagram.com',
+          footerYoutube: 'https://youtube.com',
+          footerFacebook: 'https://facebook.com',
+          footerText: '© 2026 Imam Rabbani Life Festival. All rights reserved. Developed by Zenith.',
+          copyrightText: '© 2026 Imam Rabbani Life Festival. All rights reserved. Developed by Zenith.',
+          heroDesktopImages: ['/rendezvous_hero_desktop.jpg', '/hero1.jpg', '/hero2.jpg'],
           heroDesktopLoopEnabled: true,
-          heroDesktopLoopInterval: 3,
+          heroDesktopLoopInterval: 5,
           heroMobileLoopEnabled: true,
-          heroMobileLoopInterval: 3
+          heroMobileLoopInterval: 5
         };
 
         const finalSettings: any = { ...DEFAULT_CMS_SETTINGS };
@@ -547,11 +547,11 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Header Logo Title</label>
-                    <input type="text" value={settings.headerLogoTitle !== undefined ? settings.headerLogoTitle : 'At-Tabassum'} onChange={(e) => setSettings({ ...settings, headerLogoTitle: e.target.value })} placeholder="At-Tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.headerLogoTitle !== undefined ? settings.headerLogoTitle : 'RENDEZVOUS'} onChange={(e) => setSettings({ ...settings, headerLogoTitle: e.target.value })} placeholder="RENDEZVOUS" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Header Logo Subtitle</label>
-                    <input type="text" value={settings.headerLogoSubtitle !== undefined ? settings.headerLogoSubtitle : 'Meelad Fest'} onChange={(e) => setSettings({ ...settings, headerLogoSubtitle: e.target.value })} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.headerLogoSubtitle !== undefined ? settings.headerLogoSubtitle : '26'} onChange={(e) => setSettings({ ...settings, headerLogoSubtitle: e.target.value })} placeholder="26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                 </div>
               </div>
@@ -611,31 +611,31 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Title</label>
-                    <input type="text" value={settings.heroLogoTitle !== undefined ? settings.heroLogoTitle : 'At-Tabassum'} onChange={(e) => setSettings({ ...settings, heroLogoTitle: e.target.value })} placeholder="At-Tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoTitle !== undefined ? settings.heroLogoTitle : 'RENDEZVOUS'} onChange={(e) => setSettings({ ...settings, heroLogoTitle: e.target.value })} placeholder="RENDEZVOUS" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Subtitle</label>
-                    <input type="text" value={settings.heroLogoSubtitle !== undefined ? settings.heroLogoSubtitle : 'Meelad Fest'} onChange={(e) => setSettings({ ...settings, heroLogoSubtitle: e.target.value })} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoSubtitle !== undefined ? settings.heroLogoSubtitle : '26'} onChange={(e) => setSettings({ ...settings, heroLogoSubtitle: e.target.value })} placeholder="26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Badge</label>
-                    <input type="text" value={settings.heroLogoBadge !== undefined ? settings.heroLogoBadge : 'NOORUL ISLAM MADRASA'} onChange={(e) => setSettings({ ...settings, heroLogoBadge: e.target.value })} placeholder="NOORUL ISLAM MADRASA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoBadge !== undefined ? settings.heroLogoBadge : 'IMAM RABBANI LIFE FESTIVAL'} onChange={(e) => setSettings({ ...settings, heroLogoBadge: e.target.value })} placeholder="IMAM RABBANI LIFE FESTIVAL" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Main Title (HTML Allowed)</label>
-                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} placeholder='At-Tabassum<br /><span class="text-[#C89A4B]">MEELAD FEST</span>' className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} placeholder='RENDEZVOUS<br /><span class="text-[#18BA46]">26</span>' className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Subtitle</label>
-                    <input type="text" value={settings.heroSubtitle} onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })} placeholder="A smile that brings heart together" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroSubtitle} onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })} placeholder="Decoding Phytolore" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Institution Text (Left)</label>
-                    <input type="text" value={settings.heroInstitutionLeft} onChange={(e) => setSettings({ ...settings, heroInstitutionLeft: e.target.value })} placeholder="Noorul Islam Madrasa" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroInstitutionLeft} onChange={(e) => setSettings({ ...settings, heroInstitutionLeft: e.target.value })} placeholder="Imam Rabbani" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Institution Text (Right)</label>
-                    <input type="text" value={settings.heroInstitutionRight} onChange={(e) => setSettings({ ...settings, heroInstitutionRight: e.target.value })} placeholder="Off-Campus of Markaz Garden, Poonoor" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroInstitutionRight} onChange={(e) => setSettings({ ...settings, heroInstitutionRight: e.target.value })} placeholder="Life Festival" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Date string</label>
@@ -751,21 +751,21 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Footer</label>
-                    <input type="text" value={settings.conceptModalFooter} onChange={(e) => setSettings({ ...settings, conceptModalFooter: e.target.value })} placeholder="At-Tabassum Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalFooter} onChange={(e) => setSettings({ ...settings, conceptModalFooter: e.target.value })} placeholder="Rendezvous 26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Title</label>
-                    <input type="text" value={settings.conceptModalTitle} onChange={(e) => setSettings({ ...settings, conceptModalTitle: e.target.value })} placeholder="A SMILE THAT BRINGS HEART TOGETHER" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalTitle} onChange={(e) => setSettings({ ...settings, conceptModalTitle: e.target.value })} placeholder="DECODING PHYTOLORE" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Subtitle</label>
-                    <input type="text" value={settings.conceptModalSubtitle} onChange={(e) => setSettings({ ...settings, conceptModalSubtitle: e.target.value })} placeholder="Noorul Islam Madrasa" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalSubtitle} onChange={(e) => setSettings({ ...settings, conceptModalSubtitle: e.target.value })} placeholder="Imam Rabbani Life Festival" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Modal Description (Paragraphs)</label>
                   <p className="text-[10px] text-slate-400 mb-1">Separate paragraphs with a blank line.</p>
-                  <textarea value={settings.conceptModalDescription} onChange={(e) => setSettings({ ...settings, conceptModalDescription: e.target.value })} placeholder="In a time when genuine connections are often lost amid the rush of everyday life..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-32" />
+                  <textarea value={settings.conceptModalDescription} onChange={(e) => setSettings({ ...settings, conceptModalDescription: e.target.value })} placeholder="Decoding Phytolore delves into the profound wisdom of natural heritage, botanical lore, and life systems..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-32" />
                 </div>
               </div>
 
@@ -808,31 +808,31 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Title</label>
-                    <input type="text" value={settings.footerLogoTitle} onChange={(e) => setSettings({ ...settings, footerLogoTitle: e.target.value })} placeholder="At-Tabassum" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLogoTitle} onChange={(e) => setSettings({ ...settings, footerLogoTitle: e.target.value })} placeholder="RENDEZVOUS" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Subtitle</label>
-                    <input type="text" value={settings.footerLogoSubtitle} onChange={(e) => setSettings({ ...settings, footerLogoSubtitle: e.target.value })} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLogoSubtitle} onChange={(e) => setSettings({ ...settings, footerLogoSubtitle: e.target.value })} placeholder="26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Badge</label>
-                    <input type="text" value={settings.footerLogoBadge} onChange={(e) => setSettings({ ...settings, footerLogoBadge: e.target.value })} placeholder="NOORUL ISLAM MADRASA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLogoBadge} onChange={(e) => setSettings({ ...settings, footerLogoBadge: e.target.value })} placeholder="IMAM RABBANI LIFE FESTIVAL" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Footer Description</label>
-                  <textarea rows={3} value={settings.footerDescription} onChange={(e) => setSettings({ ...settings, footerDescription: e.target.value })} placeholder="At-Tabassum Meelad Fest 2026 is a vibrant celebration of talent, creativity, knowledge, and togetherness..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                  <textarea rows={3} value={settings.footerDescription} onChange={(e) => setSettings({ ...settings, footerDescription: e.target.value })} placeholder="Rendezvous 26 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Imam Rabbani Life Festival, bringing students together through meaningful learning, healthy competition, and shared values." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Location</label>
-                    <input type="text" value={settings.footerLocation} onChange={(e) => setSettings({ ...settings, footerLocation: e.target.value })} placeholder="MAS Garden, Jeppu" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLocation} onChange={(e) => setSettings({ ...settings, footerLocation: e.target.value })} placeholder="Imam Rabbani Campus" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
-                    <input type="email" value={settings.footerEmail} onChange={(e) => setSettings({ ...settings, footerEmail: e.target.value })} placeholder="zenith.theorganizer@gmail.com" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="email" value={settings.footerEmail} onChange={(e) => setSettings({ ...settings, footerEmail: e.target.value })} placeholder="contacthashlay@gmail.com" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Phone</label>
@@ -840,21 +840,21 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Instagram Link</label>
-                    <input type="url" value={settings.footerInstagram} onChange={(e) => setSettings({ ...settings, footerInstagram: e.target.value })} placeholder="https://instagram.com/zeni.th.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="url" value={settings.footerInstagram} onChange={(e) => setSettings({ ...settings, footerInstagram: e.target.value })} placeholder="https://instagram.com" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">YouTube Link</label>
-                    <input type="url" value={settings.footerYoutube} onChange={(e) => setSettings({ ...settings, footerYoutube: e.target.value })} placeholder="tabassum.hashlay.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="url" value={settings.footerYoutube} onChange={(e) => setSettings({ ...settings, footerYoutube: e.target.value })} placeholder="https://youtube.com" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Facebook Link</label>
-                    <input type="url" value={settings.footerFacebook} onChange={(e) => setSettings({ ...settings, footerFacebook: e.target.value })} placeholder="tabassum.hashlay.in" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="url" value={settings.footerFacebook} onChange={(e) => setSettings({ ...settings, footerFacebook: e.target.value })} placeholder="https://facebook.com" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Copyright Text</label>
-                  <input type="text" value={settings.footerText} onChange={(e) => setSettings({ ...settings, footerText: e.target.value })} placeholder="© 2026 Noorul Islam Madrasa Jeppu. All rights reserved. Developed by Zenith." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                  <input type="text" value={settings.footerText} onChange={(e) => setSettings({ ...settings, footerText: e.target.value })} placeholder="© 2026 Imam Rabbani Life Festival. All rights reserved. Developed by Zenith." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                 </div>
               </div>
 
