@@ -20,21 +20,25 @@ export default function ChestNumbersView({ user, token, eventSettings }: ChestNu
   const [generating, setGenerating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterTeam, setFilterTeam] = useState('');
   const [categories, setCategories] = useState<any[]>([]);
+  const [units, setUnits] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<number>(0);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const fetchData = async () => {
     try {
-      const [cnRes, statsRes, catRes] = await Promise.all([
+      const [cnRes, statsRes, catRes, unitRes] = await Promise.all([
         fetch('/api/chest-numbers', { credentials: 'include' }),
         fetch('/api/chest-numbers/stats', { credentials: 'include' }),
-        fetch('/api/categories', { credentials: 'include' })
+        fetch('/api/categories', { credentials: 'include' }),
+        fetch('/api/units', { credentials: 'include' })
       ]);
       if (cnRes.ok) setChestNumbers(await cnRes.json());
       if (statsRes.ok) setStats(await statsRes.json());
       if (catRes.ok) setCategories(await catRes.json());
+      if (unitRes.ok) setUnits(await unitRes.json());
     } catch (e) {
       console.error('Error fetching chest numbers:', e);
     } finally {
@@ -124,10 +128,13 @@ export default function ChestNumbersView({ user, token, eventSettings }: ChestNu
     .filter(cn => {
       if (searchTerm) {
         const s = searchTerm.toLowerCase();
-        return cn.participantName?.toLowerCase().includes(s) || 
-               cn.chestNumber?.toString().includes(s) ||
-               cn.unitName?.toLowerCase().includes(s);
+        const matchName = cn.participantName?.toLowerCase().includes(s);
+        const matchNum = cn.chestNumber?.toString().includes(s);
+        const matchUnit = cn.unitName?.toLowerCase().includes(s);
+        if (!matchName && !matchNum && !matchUnit) return false;
       }
+      if (filterCategory && cn.categoryId !== filterCategory && cn.categoryName !== filterCategory) return false;
+      if (filterTeam && cn.unitId !== filterTeam && cn.unitName !== filterTeam) return false;
       return true;
     })
     .sort((a, b) => {
@@ -270,10 +277,21 @@ export default function ChestNumbersView({ user, token, eventSettings }: ChestNu
           <select
             value={filterCategory}
             onChange={e => setFilterCategory(e.target.value)}
-            className="appearance-none bg-white border border-slate-300 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="appearance-none bg-white border border-slate-300 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
           >
             <option value="">All Categories</option>
             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+        </div>
+        <div className="relative">
+          <select
+            value={filterTeam}
+            onChange={e => setFilterTeam(e.target.value)}
+            className="appearance-none bg-white border border-slate-300 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+          >
+            <option value="">All {entityLabel}s</option>
+            {units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
           <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
         </div>
@@ -293,6 +311,8 @@ export default function ChestNumbersView({ user, token, eventSettings }: ChestNu
             <span className="font-mono text-xs font-semibold text-emerald-700 tracking-widest uppercase mt-1">{eventSettings?.campusName?.toUpperCase() || 'CAMPUS'} COMMITTEE</span>
             <h1 className="text-xl font-bold text-center mt-4 uppercase">
               Chest Number List
+              {filterCategory ? ` — ${categories.find(c => c.id === filterCategory)?.name || filterCategory}` : ''}
+              {filterTeam ? ` (${units.find(u => u.id === filterTeam)?.name || filterTeam})` : ''}
             </h1>
           </div>
           <div className="flex-shrink-0 w-32"></div>
