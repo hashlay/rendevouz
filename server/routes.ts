@@ -6261,13 +6261,16 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
         (!rPartId && !rCode && res.participantName === participant.fullName);
     });
 
+    const isCompCompleted = (db.judgmentSheets || []).some((js: any) => !js.deletedAt && js.competitionId === compId && (js.status === JudgmentSheetStatus.COMPLETED || js.status === JudgmentSheetStatus.LOCKED)) ||
+      (db.results || []).some((res: any) => !res.deletedAt && res.competitionId === compId);
+
     return {
       id: compId,
       competitionId: compId,
       program: comp ? comp.name : 'Individual Program',
       category: cat ? cat.name : (category ? category.name : 'General'),
       type: 'individual',
-      status: hasResult ? 'completed' : 'upcoming'
+      status: (hasResult || isCompCompleted) ? 'completed' : 'upcoming'
     };
   });
 
@@ -6281,6 +6284,8 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
       return (res.teamId === t.id) ||
         (res.raw && Array.isArray(res.raw.teamMemberIds) && res.raw.teamMemberIds.includes(participant.id));
     });
+    const isCompCompleted = (db.judgmentSheets || []).some((js: any) => !js.deletedAt && js.competitionId === t.competitionId && (js.status === JudgmentSheetStatus.COMPLETED || js.status === JudgmentSheetStatus.LOCKED)) ||
+      (db.results || []).some((res: any) => !res.deletedAt && res.competitionId === t.competitionId);
 
     return {
       id: t.id,
@@ -6288,7 +6293,7 @@ function getEnrichedParticipant(participant: any, db: any, chestNumStr?: string)
       program: comp ? `${comp.name} (Group - ${t.name || 'Team'})` : 'Group Program',
       category: cat ? cat.name : (category ? category.name : 'General'),
       type: 'group',
-      status: hasResult ? 'completed' : 'upcoming'
+      status: (hasResult || isCompCompleted) ? 'completed' : 'upcoming'
     };
   });
 
