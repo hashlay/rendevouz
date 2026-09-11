@@ -83,8 +83,101 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
   // Bulk Import State
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkModalTab, setBulkModalTab] = useState<'new_participants' | 'assign_competitions'>('new_participants');
+  const [assignMode, setAssignMode] = useState<'append' | 'replace'>('append');
   const [bulkText, setBulkText] = useState('');
   const [importingBulk, setImportingBulk] = useState(false);
+
+  const handleBulkAssignCompetitions = async () => {
+    if (!bulkText.trim()) return;
+    setImportingBulk(true);
+
+    try {
+      const cleanVal = (s?: string) => {
+        if (!s) return '';
+        const trimmed = s.trim();
+        if (trimmed === '-' || trimmed === '—' || trimmed === 'N/A' || trimmed === 'null') return '';
+        return trimmed;
+      };
+
+      const lines = bulkText.trim().split('\n');
+      const entriesToAssign = lines.map(line => {
+        const parts = line.split(',').map(s => s.trim());
+        if (parts.length < 2) return null;
+
+        const chestNumber = cleanVal(parts[0]);
+        let fullName = '';
+        let categoryName = '';
+        let compParts: string[] = [];
+
+        if (parts.length >= 4) {
+          fullName = cleanVal(parts[1]);
+          categoryName = cleanVal(parts[2]);
+          compParts = parts.slice(3).map(cleanVal).filter(Boolean);
+        } else if (parts.length === 3) {
+          const isCat = categories.some(c => c.name.toLowerCase() === parts[1].toLowerCase());
+          if (isCat) {
+            categoryName = cleanVal(parts[1]);
+          } else {
+            fullName = cleanVal(parts[1]);
+          }
+          compParts = parts.slice(2).map(cleanVal).filter(Boolean);
+        } else {
+          compParts = parts.slice(1).map(cleanVal).filter(Boolean);
+        }
+
+        const compNames: string[] = [];
+        compParts.forEach(cp => {
+          cp.split(/[;|]/).forEach(sub => {
+            const trimmed = sub.trim();
+            if (trimmed && trimmed !== '-' && trimmed !== '—' && trimmed !== 'N/A') {
+              compNames.push(trimmed);
+            }
+          });
+        });
+
+        return {
+          chestNumber,
+          fullName,
+          categoryName,
+          competitionNames: compNames
+        };
+      }).filter(Boolean);
+
+      if (entriesToAssign.length === 0) {
+        throw new Error('No valid participant entries found. Please provide at least Chest Number and Competition Name.');
+      }
+
+      const res = await fetch('/api/participants/bulk-assign-competitions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ entries: entriesToAssign, mode: assignMode })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Bulk competition assignment failed');
+
+      let alertMsg = data.message || `Successfully updated competitions!`;
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        alertMsg += '\n\n⚠️ Notes & Unmatched:\n' + data.errors.slice(0, 8).join('\n');
+        if (data.errors.length > 8) {
+          alertMsg += `\n...and ${data.errors.length - 8} more.`;
+        }
+      }
+
+      alert(alertMsg);
+      setShowBulkModal(false);
+      setBulkText('');
+      fetchLists();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setImportingBulk(false);
+    }
+  };
 
   const handleBulkImport = async () => {
     if (!bulkText.trim()) return;
@@ -676,34 +769,110 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                 <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-                <span>Bulk Import Participants (CSV / Excel)</span>
+                <span>Bulk Participant & Competition Manager</span>
               </h3>
               <button onClick={() => setShowBulkModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-3.5 bg-emerald-50 text-emerald-900 rounded-2xl text-xs space-y-1.5 border border-emerald-200">
-              <p className="font-bold flex items-center gap-1.5">
-                <span>Format: One participant per line (CSV format):</span>
-              </p>
-              <p className="font-mono text-[11px] bg-white/90 p-2 rounded-xl border border-emerald-300 text-slate-800 break-all font-semibold">
-                Chest Number, Full Name, Category, Unit/House, Date of Birth (YYYY-MM-DD), Class, Gender, Competitions (Optional)
-              </p>
-              <div className="text-[10px] text-emerald-800 space-y-1 pt-1 font-sans">
-                <p><strong>• Single Competition:</strong> <span className="font-mono">301, Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English</span></p>
-                <p><strong>• Multiple Competitions:</strong> <span className="font-mono">302, Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English; Qira'at Recitation</span> (use <code className="bg-emerald-100 px-1 rounded">;</code> to separate)</p>
-                <p><strong>• Custom Chest Numbers:</strong> Provide custom chest numbers (e.g. <span className="font-mono">101</span> for Kids, <span className="font-mono">201</span> for Sub-Junior, <span className="font-mono">301</span> for Junior, <span className="font-mono">401</span> for Senior). If blank or <code className="bg-emerald-100 px-1 rounded">-</code>, next available number is auto-generated.</p>
-                <p><strong>• Whitespace Safe:</strong> Extra leading or trailing spaces are automatically trimmed and normalized.</p>
-                <p><strong>• Blank Fields:</strong> Use <code className="bg-emerald-100 px-1 rounded">-</code> for unknown fields (e.g. <span className="font-mono">303, Rayan, Junior, Zenith, -, Class 8, Male, Elocution English</span>)</p>
-              </div>
+            {/* Modal Navigation Tabs */}
+            <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => { setBulkModalTab('new_participants'); setBulkText(''); }}
+                className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  bulkModalTab === 'new_participants'
+                    ? 'bg-white text-emerald-700 shadow-xs border border-slate-200/60 font-bold'
+                    : 'text-slate-500 hover:text-slate-800 font-semibold'
+                }`}
+              >
+                <span>1. Import New Participants</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setBulkModalTab('assign_competitions'); setBulkText(''); }}
+                className={`flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  bulkModalTab === 'assign_competitions'
+                    ? 'bg-white text-emerald-700 shadow-xs border border-slate-200/60 font-bold'
+                    : 'text-slate-500 hover:text-slate-800 font-semibold'
+                }`}
+              >
+                <span>2. Bulk Assign / Edit Competitions</span>
+              </button>
             </div>
+
+            {bulkModalTab === 'new_participants' ? (
+              <div className="p-3.5 bg-emerald-50 text-emerald-900 rounded-2xl text-xs space-y-1.5 border border-emerald-200">
+                <p className="font-bold flex items-center gap-1.5">
+                  <span>Format: One participant per line (CSV format):</span>
+                </p>
+                <p className="font-mono text-[11px] bg-white/90 p-2 rounded-xl border border-emerald-300 text-slate-800 break-all font-semibold">
+                  Chest Number, Full Name, Category, Unit/House, Date of Birth (YYYY-MM-DD), Class, Gender, Competitions (Optional)
+                </p>
+                <div className="text-[10px] text-emerald-800 space-y-1 pt-1 font-sans">
+                  <p><strong>• Single Competition:</strong> <span className="font-mono">301, Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English</span></p>
+                  <p><strong>• Multiple Competitions:</strong> <span className="font-mono">302, Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English; Qira'at Recitation</span> (use <code className="bg-emerald-100 px-1 rounded">;</code> to separate)</p>
+                  <p><strong>• General Category Support:</strong> You can include General category competitions alongside category competitions (e.g. <span className="font-mono">Sudoku; General Quiz</span>). They will be automatically linked!</p>
+                  <p><strong>• Custom Chest Numbers:</strong> Provide custom chest numbers (e.g. <span className="font-mono">101</span> for Kids, <span className="font-mono">201</span> for Sub-Junior, <span className="font-mono">301</span> for Junior, <span className="font-mono">401</span> for Senior). If blank or <code className="bg-emerald-100 px-1 rounded">-</code>, next available number is auto-generated.</p>
+                  <p><strong>• Whitespace Safe:</strong> Extra leading or trailing spaces are automatically trimmed and normalized.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-3.5 bg-indigo-50 text-indigo-900 rounded-2xl text-xs space-y-1.5 border border-indigo-200">
+                  <p className="font-bold flex items-center gap-1.5">
+                    <span>Format: Add / update competitions for existing participants</span>
+                  </p>
+                  <p className="font-mono text-[11px] bg-white/90 p-2 rounded-xl border border-indigo-300 text-slate-800 break-all font-semibold">
+                    Chest Number, Competitions
+                    <span className="text-slate-400 font-normal"> (or: Chest Number, Full Name, Category, Competitions)</span>
+                  </p>
+                  <div className="text-[10px] text-indigo-800 space-y-1 pt-1 font-sans">
+                    <p><strong>• Simple Format:</strong> <span className="font-mono">301, Sudoku; General Quiz</span></p>
+                    <p><strong>• Full Format:</strong> <span className="font-mono">302, Muhammed Rayan, Premier, Sudoku; Pencil Drawing</span></p>
+                    <p><strong>• General Category Competitions:</strong> All participants can join General Category competitions! Simply specify the General competition name (e.g. <span className="font-mono">General Quiz</span>) and it will be assigned seamlessly.</p>
+                    <p><strong>• Multiple Competitions:</strong> Separate competitions using a semicolon <code className="bg-indigo-100 px-1 rounded">;</code>.</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+                  <span className="font-bold text-slate-700">Assignment Mode:</span>
+                  <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                    <input
+                      type="radio"
+                      name="assignMode"
+                      value="append"
+                      checked={assignMode === 'append'}
+                      onChange={() => setAssignMode('append')}
+                      className="text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span>Append (Keep existing & add new)</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                    <input
+                      type="radio"
+                      name="assignMode"
+                      value="replace"
+                      checked={assignMode === 'replace'}
+                      onChange={() => setAssignMode('replace')}
+                      className="text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span>Replace All (Overwrite)</span>
+                  </label>
+                </div>
+              </div>
+            )}
 
             <textarea
               rows={8}
               value={bulkText}
               onChange={(e) => setBulkText(e.target.value)}
-              placeholder="Paste CSV lines here..."
+              placeholder={
+                bulkModalTab === 'new_participants'
+                  ? "Paste new participants CSV lines here...\ne.g. 301, Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English; General Quiz"
+                  : "Paste competition assignment lines here...\ne.g.\n301, Sudoku; General Quiz\n302, Muhammed Rayan, Premier, Sudoku; Pencil Drawing\n303, General Quiz"
+              }
               className="w-full p-3 border border-slate-300 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
 
@@ -711,14 +880,25 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
               <button onClick={() => setShowBulkModal(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">
                 Cancel
               </button>
-              <button
-                onClick={handleBulkImport}
-                disabled={importingBulk || !bulkText.trim()}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow"
-              >
-                {importingBulk ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
-                Import Participants Now
-              </button>
+              {bulkModalTab === 'new_participants' ? (
+                <button
+                  onClick={handleBulkImport}
+                  disabled={importingBulk || !bulkText.trim()}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer"
+                >
+                  {importingBulk ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+                  Import Participants Now
+                </button>
+              ) : (
+                <button
+                  onClick={handleBulkAssignCompetitions}
+                  disabled={importingBulk || !bulkText.trim()}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer"
+                >
+                  {importingBulk ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  {assignMode === 'append' ? 'Add Competitions to Participants' : 'Replace Participant Competitions'}
+                </button>
+              )}
             </div>
           </div>
         </div>

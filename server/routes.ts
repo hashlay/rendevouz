@@ -1832,6 +1832,7 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
+      p.registeredEvents = [...individualCompIds, ...groupCompIds];
       (db as any).registrations.push(registration);
 
       imported++;
@@ -1842,6 +1843,237 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
 
   await dbClient.save();
   res.json({ message: `Bulk imported ${imported} participants successfully`, imported, errors });
+});
+
+// Bulk Assign / Edit Competitions for Existing Participants
+apiRouter.post('/participants/bulk-assign-competitions', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const db = dbClient.get();
+  const user = (req as any).user as User;
+  const { entries, mode = 'append' } = req.body;
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return res.status(400).json({ error: 'Entries array is required.' });
+  }
+
+  let updatedCount = 0;
+  let errors: string[] = [];
+
+  const normalizeStr = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase();
+  const generalCat = (db.categories || []).find(c => c.id === 'cat_general' || c.name.toLowerCase() === 'general');
+
+  for (const entry of entries) {
+    try {
+      const rawChest = (entry.chestNumber || entry.chest || '').toString().trim();
+      const rawName = (entry.fullName || entry.name || '').toString().trim();
+      if (!rawChest && !rawName) continue;
+
+      // 1. Locate participant by chest number or name
+      let participant = (db.participants || []).find(p => !p.deletedAt && rawChest && (
+        (p.chestNumber && p.chestNumber.toString().toLowerCase() === rawChest.toLowerCase()) ||
+        (p.profilePhoto && p.profilePhoto.toString().toLowerCase() === rawChest.toLowerCase())
+      ));
+
+      if (!participant && rawChest) {
+        const cn = (db.chestNumbers || []).find((c: any) => !c.deletedAt && c.chestNumber && c.chestNumber.toString().toLowerCase() === rawChest.toLowerCase());
+        if (cn) {
+          participant = (db.participants || []).find(p => p.id === cn.participantId && !p.deletedAt);
+        }
+      }
+
+      if (!participant && rawName) {
+        participant = (db.participants || []).find(p => !p.deletedAt && normalizeStr(p.fullName) === normalizeStr(rawName));
+      }
+
+      if (!participant) {
+        errors.push(`Participant not found with Chest #${rawChest || 'N/A'}${rawName ? ` ("${rawName}")` : ''}`);
+        continue;
+      }
+
+      // 2. Parse competition names
+      const compNames: string[] = [];
+      if (Array.isArray(entry.competitionNames)) {
+        compNames.push(...entry.competitionNames);
+      } else if (typeof entry.competitionNames === 'string' && entry.competitionNames.trim()) {
+        compNames.push(...entry.competitionNames.split(/[;,|]/));
+      } else if (typeof entry.competitions === 'string' && entry.competitions.trim()) {
+        compNames.push(...entry.competitions.split(/[;,|]/));
+      }
+
+      const matchedComps: Competition[] = [];
+      const unmatchedNames: string[] = [];
+
+      for (const rawComp of compNames) {
+        const cleanComp = rawComp.trim();
+        if (!cleanComp || cleanComp === '-' || cleanComp === '—' || cleanComp === 'N/A') continue;
+        const normTarget = normalizeStr(cleanComp);
+
+        // A. Look in participant's assigned category
+        let comp = (db.competitions || []).find((c: any) =>
+          !c.deletedAt &&
+          c.categoryId === participant!.selectedCategoryId &&
+          normalizeStr(c.name) === normTarget
+        );
+
+        // B. Look in General category (open to all participants)
+        if (!comp && generalCat) {
+          comp = (db.competitions || []).find((c: any) =>
+            !c.deletedAt &&
+            c.categoryId === generalCat.id &&
+            normalizeStr(c.name) === normTarget
+          );
+        }
+
+        // C. Look across all active competitions
+        if (!comp) {
+          comp = (db.competitions || []).find((c: any) =>
+            !c.deletedAt &&
+            normalizeStr(c.name) === normTarget
+          );
+        }
+
+        if (comp) {
+          if (!matchedComps.some(mc => mc.id === comp!.id)) {
+            matchedComps.push(comp);
+          }
+        } else {
+          unmatchedNames.push(cleanComp);
+        }
+      }
+
+      if (unmatchedNames.length > 0) {
+        errors.push(`Participant #${participant.chestNumber || participant.fullName}: Unmatched competition(s) [${unmatchedNames.join(', ')}]`);
+      }
+
+      if (matchedComps.length === 0 && unmatchedNames.length > 0) {
+        continue;
+      }
+
+      // 3. Separate individual vs group competitions
+      const newIndCompIds = matchedComps.filter(c => c.participationType !== ParticipationType.GROUP && (c.participationType as any) !== 'group').map(c => c.id);
+      const newGrpComps = matchedComps.filter(c => c.participationType === ParticipationType.GROUP || (c.participationType as any) === 'group');
+      const newGrpCompIds = newGrpComps.map(c => c.id);
+
+      // Auto-join / auto-create group teams for group competitions
+      if (!db.teams) db.teams = [];
+      for (const gComp of newGrpComps) {
+        const teamLimit = gComp.teamSize || 10;
+        let availableTeam = db.teams.find((t: any) =>
+          t.unitId === participant!.unitId &&
+          t.competitionId === gComp.id &&
+          !t.deletedAt &&
+          Array.isArray(t.memberIds) &&
+          t.memberIds.length < teamLimit
+        );
+
+        if (availableTeam) {
+          if (!availableTeam.memberIds.includes(participant.id)) {
+            availableTeam.memberIds.push(participant.id);
+            availableTeam.updatedAt = new Date().toISOString();
+          }
+        } else {
+          const autoTeam: Team = {
+            id: `team_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            teamNumber: `T-${String(db.teams.length + 1).padStart(3, '0')}`,
+            teamName: `${participant.fullName} & Team`,
+            unitId: participant.unitId,
+            categoryId: participant.selectedCategoryId,
+            competitionId: gComp.id,
+            memberIds: [participant.id],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          db.teams.push(autoTeam);
+        }
+      }
+
+      // 4. Update Registration record
+      if (!(db as any).registrations) (db as any).registrations = [];
+      let reg = (db as any).registrations.find((r: any) => r.participantId === participant!.id && !r.deletedAt);
+      if (!reg) {
+        reg = {
+          id: `reg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          participantId: participant.id,
+          categoryId: participant.selectedCategoryId,
+          selectedIndividualCompetitionIds: [],
+          selectedGroupCompetitionIds: [],
+          selectedGroupTeamIds: [],
+          registrationStatus: 'confirmed',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        (db as any).registrations.push(reg);
+      }
+
+      if (mode === 'replace') {
+        reg.selectedIndividualCompetitionIds = newIndCompIds;
+        reg.selectedGroupCompetitionIds = newGrpCompIds;
+        reg.selectedGroupTeamIds = newGrpCompIds;
+        participant.registeredEvents = [...newIndCompIds, ...newGrpCompIds];
+      } else {
+        // 'append' (default): merge without duplicates
+        const mergedInd = Array.from(new Set([...(reg.selectedIndividualCompetitionIds || []), ...newIndCompIds]));
+        const mergedGrp = Array.from(new Set([...(reg.selectedGroupCompetitionIds || reg.selectedGroupTeamIds || []), ...newGrpCompIds]));
+        reg.selectedIndividualCompetitionIds = mergedInd;
+        reg.selectedGroupCompetitionIds = mergedGrp;
+        reg.selectedGroupTeamIds = mergedGrp;
+        participant.registeredEvents = Array.from(new Set([...(participant.registeredEvents || []), ...newIndCompIds, ...newGrpCompIds]));
+      }
+
+      reg.updatedAt = new Date().toISOString();
+      participant.updatedAt = new Date().toISOString();
+      updatedCount++;
+    } catch (err: any) {
+      errors.push(err.message || 'Error processing entry');
+    }
+  }
+
+  await dbClient.save(['participants', 'registrations', 'teams', 'chestNumbers']);
+
+  try {
+    const mongoDb = getDb();
+    if (mongoDb) {
+      const partOps = (db.participants || []).map((p: any) => ({
+        updateOne: {
+          filter: { $or: [{ id: p.id }, { _id: p.id as any }] },
+          update: { $set: { id: p.id, ...p } },
+          upsert: true
+        }
+      }));
+      if (partOps.length > 0) {
+        await mongoDb.collection('participants').bulkWrite(partOps, { ordered: false }).catch(() => {});
+      }
+
+      const regOps = ((db as any).registrations || []).map((r: any) => ({
+        updateOne: {
+          filter: { $or: [{ id: r.id }, { _id: r.id as any }] },
+          update: { $set: { id: r.id, ...r } },
+          upsert: true
+        }
+      }));
+      if (regOps.length > 0) {
+        await mongoDb.collection('registrations').bulkWrite(regOps, { ordered: false }).catch(() => {});
+      }
+
+      const teamOps = (db.teams || []).map((t: any) => ({
+        updateOne: {
+          filter: { $or: [{ id: t.id }, { _id: t.id as any }] },
+          update: { $set: { id: t.id, ...t } },
+          upsert: true
+        }
+      }));
+      if (teamOps.length > 0) {
+        await mongoDb.collection('teams').bulkWrite(teamOps, { ordered: false }).catch(() => {});
+      }
+    }
+  } catch (mongoErr) {
+    console.error('Mongo sync error in bulk-assign-competitions:', mongoErr);
+  }
+
+  res.json({
+    message: `Successfully updated competitions for ${updatedCount} participant${updatedCount === 1 ? '' : 's'}.`,
+    updated: updatedCount,
+    errors
+  });
 });
 
 // Bulk Import Results
