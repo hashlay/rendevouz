@@ -2789,7 +2789,7 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     averageMark,
     status,
     remarks,
-    publishedStatus: publishedStatus !== undefined ? publishedStatus : true,
+    publishedStatus: publishedStatus !== undefined ? !!publishedStatus : false,
     manualRankOverride: !!manualRankOverride,
     manualRankOverrideReason,
     rank: manualRankOverride ? Number(overrideRank) : undefined,
@@ -2860,7 +2860,7 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     db.greenRoomAssignments.push(gr);
   }
 
-  // Auto-create or sync corresponding JudgmentSheet status to COMPLETED
+  // Auto-create or sync corresponding JudgmentSheet status
   if (!db.judgmentSheets) db.judgmentSheets = [];
   let sheet = db.judgmentSheets.find((s: JudgmentSheet) => s.competitionId === competitionId && !s.deletedAt);
   const comp = (db.competitions || []).find((c: any) => c.id === competitionId);
@@ -2873,7 +2873,7 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
       competitionId,
       categoryId,
       status: JudgmentSheetStatus.COMPLETED,
-      publishedToResults: newResult.publishedStatus,
+      publishedToResults: !!newResult.publishedStatus,
       maxMarks: finalMaxMarks,
       numJudges,
       createdBy: user.id,
@@ -2882,8 +2882,12 @@ apiRouter.post('/results', authenticate, requireRole([UserRole.SUPER_ADMIN, User
     };
     db.judgmentSheets.push(sheet);
   } else {
-    sheet.status = JudgmentSheetStatus.COMPLETED;
-    sheet.publishedToResults = newResult.publishedStatus;
+    if (sheet.status !== JudgmentSheetStatus.LOCKED) {
+      sheet.status = JudgmentSheetStatus.COMPLETED;
+    }
+    if (newResult.publishedStatus) {
+      sheet.publishedToResults = true;
+    }
     sheet.updatedAt = new Date().toISOString();
   }
 
@@ -3236,7 +3240,7 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
         averageMark: Math.round(((j1 + j2) / activeCount) * 100) / 100,
         status: req.body.status || ResultStatus.PARTICIPATED,
         remarks: req.body.remarks || '',
-        publishedStatus: req.body.publishedStatus !== undefined ? req.body.publishedStatus : true,
+        publishedStatus: req.body.publishedStatus !== undefined ? !!req.body.publishedStatus : false,
         manualRankOverride: !!req.body.manualRankOverride,
         manualRankOverrideReason: req.body.manualRankOverrideReason,
         rank: req.body.manualRankOverride ? Number(req.body.overrideRank) : undefined,
@@ -3656,7 +3660,7 @@ apiRouter.post('/results/announce', authenticate, requireRole([UserRole.SUPER_AD
 
   if (sheet) {
     sheet.publishedToResults = shouldAnnounce;
-    sheet.status = JudgmentSheetStatus.COMPLETED;
+    sheet.status = shouldAnnounce ? JudgmentSheetStatus.LOCKED : JudgmentSheetStatus.COMPLETED;
     sheet.updatedAt = new Date().toISOString();
   }
 
@@ -3665,6 +3669,31 @@ apiRouter.post('/results/announce', authenticate, requireRole([UserRole.SUPER_AD
 
   await dbClient.logAudit(user.id, user.username, user.role, shouldAnnounce ? 'Announce Competition Results' : 'Un-announce Competition Results', 'Competition', competitionId);
   await dbClient.save();
+
+  try {
+    const mongoDb = getDb();
+    if (mongoDb) {
+      const resOps = results.map((r: Result) => ({
+        updateOne: {
+          filter: { $or: [{ id: r.id }, { _id: r.id as any }] },
+          update: { $set: { id: r.id, ...r } },
+          upsert: true
+        }
+      }));
+      if (resOps.length > 0) {
+        await mongoDb.collection('results').bulkWrite(resOps, { ordered: false }).catch(() => {});
+      }
+      if (sheet) {
+        await mongoDb.collection('judgmentSheets').replaceOne(
+          { $or: [{ id: sheet.id }, { _id: sheet.id as any }] },
+          { id: sheet.id, ...sheet },
+          { upsert: true }
+        ).catch(() => {});
+      }
+    }
+  } catch (mongoErr) {
+    console.error('Mongo announce sync error:', mongoErr);
+  }
 
   res.json({ message: `Results ${shouldAnnounce ? 'announced' : 'un-announced'} successfully for ${results.length} entries.`, count: results.length });
 });
@@ -5050,16 +5079,16 @@ apiRouter.get('/judgment-sheets', authenticate, async (req, res) => {
     const scores = (db.judgeScores || []).filter((sc: JudgeScore) => sc.judgmentSheetId === s.id);
 
     let currentStatus = s.status;
-    const isPublished = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt && r.publishedStatus);
+    const isPublished = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt && (r.publishedStatus === true || (r as any).isPublished === true));
 
-    if (s.publishedToResults && isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
+    if (isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
       currentStatus = JudgmentSheetStatus.LOCKED;
     }
 
     return {
       ...s,
       status: currentStatus,
-      publishedToResults: isPublished || s.publishedToResults,
+      publishedToResults: isPublished,
       competitionName: competition?.name || 'Unknown',
       categoryName: category?.name || 'Unknown',
       participationType: competition?.participationType || 'unknown',
@@ -5086,8 +5115,8 @@ apiRouter.get('/judgment-sheets/stats', authenticate, async (req, res) => {
   const statusCounts = { pending: 0, inProgress: 0, completed: 0, locked: 0 };
   for (const s of sheets) {
     let currentStatus = s.status;
-    const isPublished = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt && r.publishedStatus);
-    if (s.publishedToResults && isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
+    const isPublished = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt && (r.publishedStatus === true || (r as any).isPublished === true));
+    if (isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
       currentStatus = JudgmentSheetStatus.LOCKED;
     }
     if (currentStatus === JudgmentSheetStatus.PENDING) statusCounts.pending++;
@@ -5369,8 +5398,8 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
   }
 
   let currentStatus = sheet.status;
-  const isPublished = (db.results || []).some(r => r.competitionId === sheet.competitionId && !r.deletedAt && r.publishedStatus);
-  if (sheet.publishedToResults && isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
+  const isPublished = (db.results || []).some(r => r.competitionId === sheet.competitionId && !r.deletedAt && (r.publishedStatus === true || (r as any).isPublished === true));
+  if (isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
     currentStatus = JudgmentSheetStatus.LOCKED;
   }
 
@@ -5378,6 +5407,7 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
     sheet: {
       ...sheet,
       status: currentStatus,
+      publishedToResults: isPublished,
       competitionName: competition?.name || 'Unknown',
       categoryName: category?.name || 'Unknown',
       participationType: competition?.participationType,
@@ -5503,10 +5533,12 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
   const hasAnyScores = allScores.some(s => s.judgeScores.length > 0 || s.status !== JudgeScoreStatus.PARTICIPATED);
   const allComplete = allScores.every(s => s.judgeScores.length >= sheet.numJudges || s.status !== JudgeScoreStatus.PARTICIPATED);
 
-  if (allComplete && allScores.length > 0) {
-    sheet.status = JudgmentSheetStatus.COMPLETED;
-  } else if (hasAnyScores) {
-    sheet.status = JudgmentSheetStatus.IN_PROGRESS;
+  if (sheet.status !== JudgmentSheetStatus.LOCKED) {
+    if (allComplete && allScores.length > 0) {
+      sheet.status = JudgmentSheetStatus.COMPLETED;
+    } else if (hasAnyScores) {
+      sheet.status = JudgmentSheetStatus.IN_PROGRESS;
+    }
   }
 
   // Calculate ranks for participated entries using Dense Ranking (1, 1, 2, 2, 3, 3)
@@ -5773,6 +5805,8 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
   }
 
   sheet.publishedToResults = true;
+  sheet.status = JudgmentSheetStatus.LOCKED;
+  sheet.updatedAt = new Date().toISOString();
 
   await dbClient.logAudit(user.id, user.username, user.role, `Publish ${resultsPublished} Results from Judgment Sheet`, 'JudgmentSheet', sheetId);
   await dbClient.save();
@@ -6437,7 +6471,7 @@ apiRouter.get('/public/competitions', async (req, res) => {
 apiRouter.get('/public/results', async (req, res) => {
   const db = dbClient.get();
   const enrichedResults = (db.results || [])
-    .filter((r: any) => !r.deletedAt && (r.publishedStatus || (r.rank !== undefined && r.rank > 0)))
+    .filter((r: any) => !r.deletedAt && (r.publishedStatus === true || r.isPublished === true))
     .map((r: any) => {
       const comp = (db.competitions || []).find((c: any) => c.id === r.competitionId);
       const cat = (db.categories || []).find((c: any) => c.id === r.categoryId);

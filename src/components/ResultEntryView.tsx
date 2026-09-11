@@ -69,7 +69,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
   const [overrideRank, setOverrideRank] = useState<number | ''>('');
   const [manualRankOverride, setManualRankOverride] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
-  const [publishing, setPublishing] = useState(true);
+  const [publishing, setPublishing] = useState(false);
 
   const [savingResult, setSavingResult] = useState(false);
 
@@ -486,7 +486,7 @@ export default function ResultEntryView({ user, token, eventSettings }: ResultEn
       setManualRankOverride(false);
       setOverrideRank('');
       setOverrideReason('');
-      setPublishing(true);
+      setPublishing(false);
     }
   };
 

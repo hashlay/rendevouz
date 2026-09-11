@@ -282,10 +282,6 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
 
   const handlePublishResults = async () => {
     if (!currentSheet || actionLoading) return;
-    if (currentSheet.status !== JudgmentSheetStatus.LOCKED) {
-      alert('You must lock the sheet before publishing results.');
-      return;
-    }
 
     setActionLoading('publishing');
     try {

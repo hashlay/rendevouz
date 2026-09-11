@@ -754,11 +754,13 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
   }, []);
 
   // Sort competitions by announcement order (earliest result updatedAt first)
+  const isResultPublished = (r: any) => !r.deletedAt && (r.publishedStatus === true || r.isPublished === true) && r.rank;
+
   const availableComps = competitions.filter(c => {
-    return results.some(r => r.competitionId === c.id && r.rank);
+    return results.some(r => r.competitionId === c.id && isResultPublished(r));
   }).sort((a, b) => {
-    const datesA = results.filter(r => r.competitionId === a.id && r.rank).map(r => r.updatedAt ? new Date(r.updatedAt).getTime() : 0).filter(t => !isNaN(t) && t > 0);
-    const datesB = results.filter(r => r.competitionId === b.id && r.rank).map(r => r.updatedAt ? new Date(r.updatedAt).getTime() : 0).filter(t => !isNaN(t) && t > 0);
+    const datesA = results.filter(r => r.competitionId === a.id && isResultPublished(r)).map(r => r.updatedAt ? new Date(r.updatedAt).getTime() : 0).filter(t => !isNaN(t) && t > 0);
+    const datesB = results.filter(r => r.competitionId === b.id && isResultPublished(r)).map(r => r.updatedAt ? new Date(r.updatedAt).getTime() : 0).filter(t => !isNaN(t) && t > 0);
     const latestResultA = datesA.length > 0 ? Math.max(...datesA) : 0;
     const latestResultB = datesB.length > 0 ? Math.max(...datesB) : 0;
     return latestResultA - latestResultB; // Earlier announced first = Result #001
@@ -800,7 +802,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
   const activeComp = competitions.find(c => c.id === selectedCompId);
   const activeCategory = activeComp ? categories.find(cat => cat.id === activeComp.categoryId) : null;
   const compResults = results
-    .filter(r => r.competitionId === selectedCompId && r.rank && r.rank <= 3)
+    .filter(r => r.competitionId === selectedCompId && isResultPublished(r) && r.rank && r.rank <= 3)
     .sort((a, b) => (a.rank || 0) - (b.rank || 0));
 
   const renderCanvas = () => {

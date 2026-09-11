@@ -122,7 +122,7 @@ export const CalculationService = {
       const individualResults = db.results.filter(r => {
         if (r.deletedAt) return false;
         if (r.participantId !== participant.id) return false;
-        const isPub = (r as any).publishedStatus || (r as any).isPublished || (r.rank !== undefined && r.rank > 0);
+        const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
         if (!isPub) return false;
         const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
         return statusOk;
@@ -135,7 +135,7 @@ export const CalculationService = {
       const groupResults = db.results.filter(r => {
         if (r.deletedAt) return false;
         if (!r.teamId || !teamIds.includes(r.teamId)) return false;
-        const isPub = (r as any).publishedStatus || (r as any).isPublished || (r.rank !== undefined && r.rank > 0);
+        const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
         if (!isPub) return false;
         const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
         return statusOk;
@@ -262,7 +262,7 @@ export const CalculationService = {
       // Individual results for this unit's participants or directly assigned unit
       const individualResults = db.results.filter(r => {
         if (r.deletedAt) return false;
-        const isPub = (r as any).publishedStatus || (r as any).isPublished || (r.rank !== undefined && r.rank > 0);
+        const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
         if (!isPub) return false;
         const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
         if (!statusOk) return false;
@@ -281,7 +281,7 @@ export const CalculationService = {
       
       const groupResults = db.results.filter(r => {
         if (r.deletedAt) return false;
-        const isPub = (r as any).publishedStatus || (r as any).isPublished || (r.rank !== undefined && r.rank > 0);
+        const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
         if (!isPub) return false;
         const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
         if (!statusOk) return false;
