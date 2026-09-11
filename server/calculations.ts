@@ -7,7 +7,7 @@ import {
 /**
  * Helper to normalize mark out of 100 if two judges gave marks.
  */
-const getNormalizedMark = (r: Result): number => {
+export const getNormalizedMark = (r: Result): number => {
   if (r.status === ResultStatus.ABSENT || (r as any).status === 'absent') return 0;
   if (r.averageMark !== undefined && !isNaN(r.averageMark)) {
     return r.averageMark;
@@ -17,6 +17,77 @@ const getNormalizedMark = (r: Result): number => {
   const j2 = Number(r.judge2Mark) || 0;
   const activeJudges = (j1 > 0 ? 1 : 0) + (j2 > 0 ? 1 : 0) || 1;
   return Math.round(((j1 + j2) / activeJudges) * 100) / 100;
+};
+
+/**
+ * Official Grade calculation:
+ * 90 - 100: A+
+ * 70 - 89: A
+ * 60 - 69: B
+ * 50 - 59: C
+ * Below 50: D
+ */
+export const calculateGrade = (mark: number): string => {
+  const m = Math.round(Number(mark) || 0);
+  if (m >= 90) return 'A+';
+  if (m >= 70) return 'A';
+  if (m >= 60) return 'B';
+  if (m >= 50) return 'C';
+  return 'D';
+};
+
+/**
+ * Grade Pointing System (Festival Points Distribution):
+ * If gradeSystemEnabled !== false (Enabled by default):
+ * Individual: A+ = 6, A = 5, B = 3, C = 1, D = 0
+ * Group: A+ = 12, A = 10, B = 7, C = 5, D = 0
+ *
+ * Fallback (when Grade Pointing System is disabled):
+ * Rank-based points (1st: 20, 2nd: 14, 3rd: 7, etc.)
+ */
+export const calculateResultPoints = (r: Result, comp?: Competition, eventSettings?: any): number => {
+  const db = dbClient.get();
+  const settings = eventSettings || db.eventSettings;
+  const gradeSystemEnabled = settings?.gradeSystemEnabled !== false;
+
+  if (gradeSystemEnabled) {
+    const mark = getNormalizedMark(r);
+    const grade = calculateGrade(mark);
+    const isGroup = !!r.teamId || comp?.participationType === ParticipationType.GROUP || (comp as any)?.isGroup === true;
+
+    if (isGroup) {
+      if (grade === 'A+') return 12;
+      if (grade === 'A') return 10;
+      if (grade === 'B') return 7;
+      if (grade === 'C') return 5;
+      return 0;
+    } else {
+      if (grade === 'A+') return 6;
+      if (grade === 'A') return 5;
+      if (grade === 'B') return 3;
+      if (grade === 'C') return 1;
+      return 0;
+    }
+  }
+
+  // Fallback: Rank-based points from Category or globalPointsRank
+  if (!r.rank || r.rank > 10) return 0;
+  const cat = db.categories.find(c => c.id === r.categoryId);
+  if (cat) {
+    const key = `pointsRank${r.rank}` as keyof typeof cat;
+    if (cat[key] !== undefined && cat[key] !== null) {
+      const val = Number(cat[key]);
+      if (!isNaN(val)) return val;
+    }
+  }
+  const settingsKey = `globalPointsRank${r.rank}`;
+  const settingsVal = (settings as any)?.[settingsKey];
+  if (settingsVal !== undefined && settingsVal !== null) {
+    const val = Number(settingsVal);
+    if (!isNaN(val)) return val;
+  }
+  const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
+  return defaultMap[r.rank] || 0;
 };
 
 export function toTitleCase(str: string): string {
@@ -337,32 +408,14 @@ export const CalculationService = {
       countPlacements(individualResults);
       countPlacements(groupResults);
       
-      // Helper to compute points for ranks 1 through 10 dynamically from Category configuration
-      const getRankPoints = (r: Result) => {
-        if (!r.rank || r.rank > 10) return 0;
-        const cat = db.categories.find(c => c.id === r.categoryId);
-        if (cat) {
-          const key = `pointsRank${r.rank}` as keyof typeof cat;
-          if (cat[key] !== undefined && cat[key] !== null) {
-            const val = Number(cat[key]);
-            if (!isNaN(val)) return val;
-          }
-        }
-        
-        // Fallback to global points from eventSettings
-        const settingsKey = `globalPointsRank${r.rank}`;
-        const settingsVal = (db.eventSettings as any)?.[settingsKey];
-        if (settingsVal !== undefined && settingsVal !== null) {
-          const val = Number(settingsVal);
-          if (!isNaN(val)) return val;
-        }
-        
-        const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
-        return defaultMap[r.rank] || 0;
+      // Helper to compute points dynamically from Grade Pointing System (or Category rank configuration)
+      const getPoints = (r: Result) => {
+        const comp = db.competitions.find(c => c.id === r.competitionId);
+        return calculateResultPoints(r, comp, db.eventSettings);
       };
 
-      // Compute total unit points dynamically for all 1st to 10th place ranks
-      const overallPoints = [...individualResults, ...groupResults].reduce((sum, r) => sum + getRankPoints(r), 0);
+      // Compute total unit points dynamically
+      const overallPoints = [...individualResults, ...groupResults].reduce((sum, r) => sum + getPoints(r), 0);
 
       // Compute Category Breakdown
       const categoryBreakdown = db.categories.map(cat => {
@@ -375,7 +428,7 @@ export const CalculationService = {
         
         let points = 0;
         catResults.forEach(r => {
-          points += getRankPoints(r);
+          points += getPoints(r);
         });
         
         return {

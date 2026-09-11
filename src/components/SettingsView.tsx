@@ -124,7 +124,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [certTheme2Url, setCertTheme2Url] = useState('');
   const [certTheme3Url, setCertTheme3Url] = useState('');
   const [registrationOpen, setRegistrationOpen] = useState(true);
-  const [gradeSystemEnabled, setGradeSystemEnabled] = useState(false);
+  const [gradeSystemEnabled, setGradeSystemEnabled] = useState(true);
   const [maxIndividualEvents, setMaxIndividualEvents] = useState(3);
   const [maxGroupEvents, setMaxGroupEvents] = useState(2);
   const [hasOnStageLimit, setHasOnStageLimit] = useState(false);
@@ -284,7 +284,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       setCertTheme2Url(data.certTheme2Url || '');
       setCertTheme3Url(data.certTheme3Url || '');
       setRegistrationOpen(data.registrationOpen ?? true);
-      setGradeSystemEnabled(data.gradeSystemEnabled ?? false);
+      setGradeSystemEnabled(data.gradeSystemEnabled ?? true);
       setMaxIndividualEvents(data.maxIndividualEvents || 10);
       setMaxGroupEvents(data.maxGroupEvents || 10);
       setHasOnStageLimit(data.maxOnStageEvents !== null && data.maxOnStageEvents !== undefined);
@@ -771,24 +771,83 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
             </label>
           </div>
 
-          {/* Grade Awarding System Toggle */}
-          <div className="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div>
-              <h4 className="font-semibold text-indigo-950 text-xs">Grade Awarding System (A+, A, B+, B, C)</h4>
-              <p className="text-[11px] text-indigo-800 mt-0.5">Enable or disable automatic performance grade badges on result certificates and score sheets.</p>
+          {/* Grade Pointing System Toggle & Distribution Table */}
+          <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-200 space-y-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h4 className="font-bold text-indigo-950 text-xs uppercase tracking-wider font-mono flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                  Grade Pointing System (Team Standings Points by Grade)
+                </h4>
+                <p className="text-[11px] text-indigo-900/80 mt-0.5">
+                  When <strong>ENABLED</strong>, team championship points are awarded strictly based on participant/team <strong>grades</strong>. When <strong>DISABLED</strong>, system falls back to the rank-based points (1st, 2nd, 3rd...) below.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                <input
+                  type="checkbox"
+                  checked={gradeSystemEnabled}
+                  onChange={(e) => setGradeSystemEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                <span className={`ml-2.5 text-xs font-extrabold font-mono uppercase ${gradeSystemEnabled ? 'text-indigo-700' : 'text-slate-500'}`}>
+                  {gradeSystemEnabled ? 'ENABLED' : 'DISABLED'}
+                </span>
+              </label>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={gradeSystemEnabled}
-                onChange={(e) => setGradeSystemEnabled(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-              <span className="ml-2.5 text-xs font-bold font-mono uppercase text-indigo-900">
-                {gradeSystemEnabled ? 'ENABLED' : 'DISABLED'}
-              </span>
-            </label>
+
+            {/* Active Grade Distribution Matrix */}
+            <div className="mt-2 pt-2.5 border-t border-indigo-200/70">
+              <div className="text-[10px] font-bold text-indigo-900 uppercase tracking-wider font-mono mb-2 flex items-center justify-between">
+                <span>Current Festival Grade & Points Distribution Matrix</span>
+                <span className="text-[9px] font-normal text-indigo-700">Applied automatically across all categories</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-center text-xs font-mono border-collapse bg-white/90 rounded-xl overflow-hidden shadow-xs border border-indigo-100">
+                  <thead>
+                    <tr className="bg-indigo-100/70 text-indigo-950 font-bold border-b border-indigo-200 text-[11px]">
+                      <th className="py-2 px-3 text-left">Grade</th>
+                      <th className="py-2 px-3">Mark Range</th>
+                      <th className="py-2 px-3 text-emerald-700 bg-emerald-50/50">Individual Points</th>
+                      <th className="py-2 px-3 text-purple-700 bg-purple-50/50">Group Points</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-indigo-50 text-[11px]">
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1.5 px-3 text-left font-extrabold text-emerald-700">A+</td>
+                      <td className="py-1.5 px-3 text-slate-700 font-medium">90 – 100</td>
+                      <td className="py-1.5 px-3 font-bold text-emerald-700 bg-emerald-50/30">6 pts</td>
+                      <td className="py-1.5 px-3 font-bold text-purple-700 bg-purple-50/30">12 pts</td>
+                    </tr>
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1.5 px-3 text-left font-extrabold text-blue-700">A</td>
+                      <td className="py-1.5 px-3 text-slate-700 font-medium">70 – 89</td>
+                      <td className="py-1.5 px-3 font-bold text-blue-700 bg-emerald-50/30">5 pts</td>
+                      <td className="py-1.5 px-3 font-bold text-purple-700 bg-purple-50/30">10 pts</td>
+                    </tr>
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1.5 px-3 text-left font-extrabold text-amber-700">B</td>
+                      <td className="py-1.5 px-3 text-slate-700 font-medium">60 – 69</td>
+                      <td className="py-1.5 px-3 font-bold text-amber-700 bg-emerald-50/30">3 pts</td>
+                      <td className="py-1.5 px-3 font-bold text-purple-700 bg-purple-50/30">7 pts</td>
+                    </tr>
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1.5 px-3 text-left font-extrabold text-orange-700">C</td>
+                      <td className="py-1.5 px-3 text-slate-700 font-medium">50 – 59</td>
+                      <td className="py-1.5 px-3 font-bold text-orange-700 bg-emerald-50/30">1 pt</td>
+                      <td className="py-1.5 px-3 font-bold text-purple-700 bg-purple-50/30">5 pts</td>
+                    </tr>
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1.5 px-3 text-left font-bold text-slate-500">D</td>
+                      <td className="py-1.5 px-3 text-slate-500">Below 50</td>
+                      <td className="py-1.5 px-3 font-medium text-slate-500 bg-emerald-50/30">0 pts</td>
+                      <td className="py-1.5 px-3 font-medium text-slate-500 bg-purple-50/30">0 pts</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           {/* Global Points System */}

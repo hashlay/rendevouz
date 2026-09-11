@@ -241,7 +241,7 @@ function ensureDbExists() {
     markDecimalPrecision: 2,
     autoRankingEnabled: true,
     entityMode: 'team',
-    gradeSystemEnabled: false,
+    gradeSystemEnabled: true,
     participantLoginCriteria: 'class',
     globalPointsRank1: 20,
     globalPointsRank2: 14,

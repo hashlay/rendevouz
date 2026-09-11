@@ -6,7 +6,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { dbClient, getCollection, getDb } from './db.js';
-import { CalculationService } from './calculations.js';
+import { CalculationService, calculateGrade, calculateResultPoints, getNormalizedMark } from './calculations.js';
 import {
   UserRole, User, Session, LoginAudit, AuditLog,
   Unit, Category, Competition, Participant, Team,
@@ -6178,40 +6178,10 @@ apiRouter.get('/public/results', async (req, res) => {
         }
       }
 
-      // Calculate points dynamically based on rank, category points, and eventSettings
-      let points = 0;
-      if (r.rank && r.rank <= 10) {
-        if (cat) {
-          const key = `pointsRank${r.rank}` as keyof typeof cat;
-          if (cat[key] !== undefined && cat[key] !== null) {
-            const val = Number(cat[key]);
-            if (!isNaN(val)) points = val;
-          }
-        }
-        if (points === 0) {
-          const settingsKey = `globalPointsRank${r.rank}`;
-          const settingsVal = (db.eventSettings as any)?.[settingsKey];
-          if (settingsVal !== undefined && settingsVal !== null) {
-            const val = Number(settingsVal);
-            if (!isNaN(val)) points = val;
-          }
-        }
-        if (points === 0) {
-          const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1, 9: 1, 10: 1 };
-          points = defaultMap[r.rank] || 0;
-        }
-      }
-
-      let grade = 'D';
-      const m = r.totalMark || 0;
-      if (m >= 90) grade = 'A+';
-      else if (m >= 80) grade = 'A';
-      else if (m >= 70) grade = 'B+';
-      else if (m >= 60) grade = 'B';
-      else if (m >= 50) grade = 'C+';
-      else if (m >= 40) grade = 'C';
-      else if (m >= 30) grade = 'D+';
-      else grade = 'D';
+      // Calculate grade and points dynamically using official Grade Pointing System
+      const normalizedMark = getNormalizedMark(r);
+      const grade = calculateGrade(normalizedMark);
+      const points = calculateResultPoints(r, comp, db.eventSettings);
 
       const compCat = comp ? db.categories.find(c => c.id === comp.categoryId) : null;
       const isGenComp = compCat && (compCat.id === 'cat_general' || compCat.name.toLowerCase() === 'general');
