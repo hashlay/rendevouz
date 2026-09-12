@@ -225,7 +225,7 @@ function ensureDbExists() {
     cutoffDate: '2026-09-01',
     eventDate: '2026-09-23',
     venue: 'Imam Rabbani Campus',
-    contactInfo: 'contacthashlay@gmail.com',
+    contactInfo: 'zenith.theorganizer@gmail.com',
     maxIndividualEvents: 10,
     maxGroupEvents: 10,
     maxOnStageEvents: null,
@@ -341,7 +341,7 @@ async function _syncMongoNow(targetCollections?: string[]) {
         ? allCollectionKeys.filter(k => targetCollections.includes(k))
         : allCollectionKeys;
 
-      const shouldSyncSettings = !targetCollections || targetCollections.length === 0 || 
+      const shouldSyncSettings = !targetCollections || targetCollections.length === 0 ||
         targetCollections.some(t => ['settings', 'eventSettings', 'cmsSettings', 'posterTemplateConfig', 'certificateTemplateConfig'].includes(t));
 
       const tasks: Promise<any>[] = [];

@@ -56,7 +56,7 @@ export const Logo: React.FC<LogoProps> = ({
       {variant !== 'icon' && (
         <div className="flex flex-col justify-center items-start text-left">
           <div className="flex flex-col leading-none tracking-tight items-start">
-            <span className={`font-black uppercase tracking-tight text-white ${textSize} font-sans`}>
+            <span className={`font-black uppercase text-white ${textSize} ${title.toUpperCase().includes('RENDEZVOUS') ? 'font-hochland text-[1.15em] tracking-wider' : 'font-sans tracking-tight'}`}>
               {title}
             </span>
             <span className={`font-semibold tracking-wide text-zinc-300 ${textSize} opacity-90`}>

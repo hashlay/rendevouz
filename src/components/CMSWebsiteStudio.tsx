@@ -19,15 +19,15 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
     heroTitle: '', heroSubtitle: '', heroDate: '', heroLocation: '',
     headerLogoTitle: 'RENDEZVOUS',
     headerLogoSubtitle: '26',
-    heroLogoTitle: 'RENDEZVOUS 26',
-    heroLogoSubtitle: 'Decoding Phytolore',
-    heroLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
-    heroDesktopImages: ['/rendezvous_hero_desktop.jpg', '/hero1.jpg', '/hero2.jpg'],
+    herheroDesktopImages: ['/rendezvous_hero_desktop.jpg', '/hero1.jpg', '/hero2.jpg'],
     heroDesktopLoopEnabled: true,
     heroDesktopLoopInterval: 5,
     heroMobileImages: ['/rendezvous_hero_mobile.jpg', '/hero1_mobile.jpg', '/hero2_mobile.jpg'],
     heroMobileLoopEnabled: true,
-    heroMobileLoopInterval: 5,
+    heroMobileLoopInterval: 5, oLogoTitle: 'RENDEZVOUS 26',
+    heroLogoSubtitle: 'Decoding Phytolore',
+    heroLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
+
   });
 
   const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1cQNek6Q2EiThqdFrUDb1I8cfsmQneP1J';
@@ -166,7 +166,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           footerLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
           footerDescription: 'Rendezvous 26 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Imam Rabbani Life Festival, bringing students together through meaningful learning, healthy competition, and shared values.',
           footerLocation: 'Imam Rabbani Campus',
-          footerEmail: 'contacthashlay@gmail.com',
+          footerEmail: 'zenith.theorganizer@gmail.com',
           footerPhone: '+91 74831 38340',
           footerInstagram: 'https://instagram.com',
           footerYoutube: 'https://youtube.com',
@@ -845,7 +845,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
-                    <input type="email" value={settings.footerEmail} onChange={(e) => setSettings({ ...settings, footerEmail: e.target.value })} placeholder="contacthashlay@gmail.com" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="email" value={settings.footerEmail} onChange={(e) => setSettings({ ...settings, footerEmail: e.target.value })} placeholder="zenith.theorganizer@gmail.com" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Phone</label>
