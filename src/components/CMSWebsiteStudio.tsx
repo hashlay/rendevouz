@@ -22,6 +22,12 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
     heroLogoTitle: 'RENDEZVOUS 26',
     heroLogoSubtitle: 'Decoding Phytolore',
     heroLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
+    heroDesktopImages: ['/rendezvous_hero_desktop.jpg', '/hero1.jpg', '/hero2.jpg'],
+    heroDesktopLoopEnabled: true,
+    heroDesktopLoopInterval: 5,
+    heroMobileImages: ['/rendezvous_hero_mobile.jpg', '/hero1_mobile.jpg', '/hero2_mobile.jpg'],
+    heroMobileLoopEnabled: true,
+    heroMobileLoopInterval: 5,
   });
 
   const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1cQNek6Q2EiThqdFrUDb1I8cfsmQneP1J';
@@ -170,6 +176,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           heroDesktopImages: ['/rendezvous_hero_desktop.jpg', '/hero1.jpg', '/hero2.jpg'],
           heroDesktopLoopEnabled: true,
           heroDesktopLoopInterval: 5,
+          heroMobileImages: ['/rendezvous_hero_mobile.jpg', '/hero1_mobile.jpg', '/hero2_mobile.jpg'],
           heroMobileLoopEnabled: true,
           heroMobileLoopInterval: 5
         };
@@ -180,6 +187,12 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
             finalSettings[key] = mergedSettings[key];
           }
         });
+        if (!finalSettings.heroMobileImages || finalSettings.heroMobileImages.length === 0) {
+          finalSettings.heroMobileImages = ['/rendezvous_hero_mobile.jpg', '/hero1_mobile.jpg', '/hero2_mobile.jpg'];
+        }
+        if (!finalSettings.heroDesktopImages || finalSettings.heroDesktopImages.length === 0) {
+          finalSettings.heroDesktopImages = ['/rendezvous_hero_desktop.jpg', '/hero1.jpg', '/hero2.jpg'];
+        }
         setSettings(finalSettings);
         if (mergedSettings.colorTheme) {
           setColorTheme({ ...DEFAULT_COLOR_THEME, ...mergedSettings.colorTheme });
