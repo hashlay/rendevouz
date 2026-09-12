@@ -251,44 +251,87 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
     setCompLoading(true);
 
     try {
-      // In a real database, we could run specialized aggregates. Let's lookup via endpoint or simulate
-      // We can query registrations or teams matching this competitionId
-      const [regRes, resultsRes] = await Promise.all([
-        fetch(`/api/participants`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`/api/results?competitionId=${comp.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+      const ts = Date.now();
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      const [regRes, teamsRes, resultsRes, sheetsRes, partRes] = await Promise.all([
+        fetch(`/api/registrations?t=${ts}`, { headers }),
+        fetch(`/api/teams?competitionId=${comp.id}&t=${ts}`, { headers }),
+        fetch(`/api/results?competitionId=${comp.id}&t=${ts}`, { headers }),
+        fetch(`/api/judgment-sheets?t=${ts}`, { credentials: 'include', headers }),
+        fetch(`/api/participants?t=${ts}`, { headers })
       ]);
 
-      const [regData, resultsData] = await Promise.all([regRes.json(), resultsRes.json()]);
+      const [regData, teamsData, resultsData, sheetsData, partData] = await Promise.all([
+        regRes.ok ? regRes.json() : [],
+        teamsRes.ok ? teamsRes.json() : [],
+        resultsRes.ok ? resultsRes.json() : [],
+        sheetsRes.ok ? sheetsRes.json() : [],
+        partRes.ok ? partRes.json() : []
+      ]);
 
-      // Filter based on participation type
+      // Calculate REAL registered candidates/teams
       let registeredCount = 0;
+      let registeredList: any[] = [];
+
       if (comp.participationType === ParticipationType.INDIVIDUAL) {
-        // Since participants store selected categories, let's look at scoreboard placements which maps individual events
-        const sbRes = await fetch(`/api/scoreboard`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const matchingRegs = (regData || []).filter((r: any) => 
+          !r.deletedAt && (
+            (Array.isArray(r.selectedIndividualCompetitionIds) && r.selectedIndividualCompetitionIds.includes(comp.id)) ||
+            (Array.isArray(r.competitionIds) && r.competitionIds.includes(comp.id))
+          )
+        );
+        registeredCount = matchingRegs.length;
+
+        const partMap = new Map((partData || []).map((p: any) => [p.id, p]));
+        registeredList = matchingRegs.map((r: any) => {
+          const p = partMap.get(r.participantId);
+          return {
+            id: r.participantId,
+            name: p?.fullName || r.participantName || 'Candidate',
+            chestNumber: p?.chestNumber || p?.profilePhoto || r.chestNumber || ''
+          };
         });
-        const sbData = await sbRes.json();
-        // Count how many participants have placement records containing this compId
-        registeredCount = sbData.filter((entry: any) => 
-          entry.placements.some((pl: any) => pl.compId === comp.id)
-        ).length;
       } else {
-        // Count group teams registered for this competition
-        const teamRes = await fetch(`/api/teams?competitionId=${comp.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const teamData = await teamRes.json();
-        registeredCount = teamData.length;
+        const activeTeams = (teamsData || []).filter((t: any) => !t.deletedAt && t.competitionId === comp.id);
+        registeredCount = activeTeams.length;
+        registeredList = activeTeams.map((t: any) => ({
+          id: t.id,
+          name: t.name || t.teamName || 'Group Team',
+          chestNumber: t.teamNumber || ''
+        }));
+      }
+
+      // Check Judgment Sheet & Result Status
+      const sheet = (sheetsData || []).find((s: any) => !s.deletedAt && s.competitionId === comp.id);
+      const activeResults = (resultsData || []).filter((r: any) => !r.deletedAt);
+      const isPublished = activeResults.some((r: any) => r.publishedStatus) || sheet?.publishedToResults;
+
+      let resultStatusLabel = 'Pending Entry';
+      let resultStatusColor = 'text-amber-600 font-bold';
+
+      if (isPublished) {
+        resultStatusLabel = 'Published';
+        resultStatusColor = 'text-emerald-700 font-bold';
+      } else if (sheet?.status === 'completed' || sheet?.status === 'locked' || activeResults.length > 0) {
+        resultStatusLabel = 'Evaluation Completed';
+        resultStatusColor = 'text-blue-600 font-bold';
+      } else if (sheet?.status === 'in_progress') {
+        resultStatusLabel = 'In Progress';
+        resultStatusColor = 'text-purple-600 font-bold';
+      } else {
+        resultStatusLabel = 'Pending Entry';
+        resultStatusColor = 'text-amber-600 font-bold';
       }
 
       setCompDetails({
         registeredCount,
-        resultsPublished: resultsData.length > 0,
-        results: resultsData
+        registeredList,
+        resultsPublished: isPublished,
+        resultStatusLabel,
+        resultStatusColor,
+        results: activeResults,
+        sheet
       });
     } catch (e) {
       console.error(e);
@@ -778,22 +821,46 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
               <div className="space-y-4 text-xs font-sans">
                 
                 {/* Visual aggregates summary cards */}
-                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border">
+                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                   <div>
                     <span className="text-[9px] font-bold text-slate-400 block uppercase font-mono">Registered Count</span>
                     <span className="text-lg font-extrabold text-slate-800 mt-1 block">
-                      {compDetails?.registeredCount} {selectedComp.participationType === ParticipationType.INDIVIDUAL ? 'Candidates' : 'Teams'}
+                      {compDetails?.registeredCount ?? 0} {selectedComp.participationType === ParticipationType.INDIVIDUAL ? 'Candidates' : 'Teams'}
                     </span>
                   </div>
-                  <div className="border-l pl-3">
+                  <div className="border-l pl-3 border-slate-200">
                     <span className="text-[9px] font-bold text-slate-400 block uppercase font-mono">Results status</span>
-                    <span className={`text-xs font-extrabold mt-1.5 block uppercase ${
-                      compDetails?.resultsPublished ? 'text-emerald-700 font-bold' : 'text-amber-600'
-                    }`}>
-                      {compDetails?.resultsPublished ? '● Published' : '○ Pending Entry'}
+                    <span className={`text-xs mt-1.5 block uppercase ${compDetails?.resultStatusColor || 'text-amber-600 font-bold'}`}>
+                      {compDetails?.resultsPublished ? '● ' : '○ '}{compDetails?.resultStatusLabel || 'Pending Entry'}
                     </span>
                   </div>
                 </div>
+
+                {/* Candidate / Team List Preview */}
+                {compDetails?.registeredList && compDetails.registeredList.length > 0 && (
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <h4 className="font-display font-bold text-slate-700 text-xs uppercase tracking-wider font-mono">
+                        Registered {selectedComp.participationType === ParticipationType.INDIVIDUAL ? 'Candidates' : 'Teams'}
+                      </h4>
+                      <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        {compDetails.registeredList.length} total
+                      </span>
+                    </div>
+                    <ul className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      {compDetails.registeredList.map((entry: any) => (
+                        <li key={entry.id} className="bg-slate-50 border border-slate-200/80 px-3 py-2 rounded-xl flex justify-between items-center text-xs">
+                          <span className="font-medium text-slate-800 truncate">{entry.name}</span>
+                          {entry.chestNumber && (
+                            <span className="font-mono text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
+                              #{entry.chestNumber}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Print Placement details list */}
                 {compDetails?.resultsPublished && (

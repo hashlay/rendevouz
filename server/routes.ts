@@ -177,7 +177,7 @@ apiRouter.use(async (req, res, next) => {
         if (db.competitions) {
           const catCounterMap: Record<string, number> = {};
           db.competitions.forEach((c: any) => {
-            if (c.name) c.name = toTitleCase(c.name);
+            if (!c.name) c.name = 'Untitled Competition';
             if (!c.code || !c.code.trim()) {
               const catId = c.categoryId || 'cat_general';
               catCounterMap[catId] = (catCounterMap[catId] || 0) + 1;
@@ -1388,8 +1388,7 @@ function generateCompCode(db: any, categoryId: string, name: string, requestedCo
 
 apiRouter.get('/competitions', async (req, res) => {
   const db = dbClient.get();
-  const comps = db.competitions.map(c => ({ ...c, name: toTitleCase(c.name) }));
-  res.json(comps);
+  res.json(db.competitions || []);
 });
 
 apiRouter.post('/competitions', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
@@ -1423,7 +1422,7 @@ apiRouter.post('/competitions', authenticate, requireRole([UserRole.SUPER_ADMIN]
   res.json({ message: 'Competition created successfully', competition: newComp });
 });
 
-apiRouter.put('/competitions/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
+apiRouter.put('/competitions/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
   const compIndex = db.competitions.findIndex(c => c.id === req.params.id);
 
@@ -1434,22 +1433,70 @@ apiRouter.put('/competitions/:id', authenticate, requireRole([UserRole.SUPER_ADM
   const oldComp = { ...db.competitions[compIndex] };
   const catId = req.body.categoryId || oldComp.categoryId;
   const assignedCode = req.body.code ? req.body.code.trim().toUpperCase() : (oldComp.code || generateCompCode(db, catId, req.body.name || oldComp.name));
+  const newName = req.body.name && req.body.name.trim() ? req.body.name.trim() : oldComp.name;
 
-  db.competitions[compIndex] = {
+  const updatedComp: Competition = {
     ...db.competitions[compIndex],
     ...req.body,
-    name: req.body.name ? toTitleCase(req.body.name) : oldComp.name,
+    name: newName,
     code: assignedCode,
-    // ensure casting
     teamSize: req.body.participationType === ParticipationType.INDIVIDUAL ? 1 : Number(req.body.teamSize || oldComp.teamSize),
     duration: req.body.duration !== undefined ? Number(req.body.duration) : oldComp.duration,
     displayOrder: req.body.displayOrder !== undefined ? Number(req.body.displayOrder) : oldComp.displayOrder,
   };
 
-  await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Update Competition', 'Competition', req.params.id, undefined, oldComp, db.competitions[compIndex]);
-  await dbClient.save();
+  db.competitions[compIndex] = updatedComp;
 
-  res.json({ message: 'Competition updated successfully', competition: db.competitions[compIndex] });
+  // Cascade name change to any results, teams, or judgment sheets referencing this competition
+  if (oldComp.name !== newName) {
+    (db.results || []).forEach((r: any) => {
+      if (r.competitionId === req.params.id) {
+        r.competitionName = newName;
+      }
+    });
+    (db.teams || []).forEach((t: any) => {
+      if (t.competitionId === req.params.id) {
+        t.competitionName = newName;
+      }
+    });
+    (db.judgmentSheets || []).forEach((js: any) => {
+      if (js.competitionId === req.params.id) {
+        js.competitionName = newName;
+      }
+    });
+  }
+
+  await dbClient.logAudit((req as any).user.id, (req as any).user.username, (req as any).user.role, 'Update Competition', 'Competition', req.params.id, undefined, oldComp, updatedComp);
+
+  // Direct MongoDB Atlas write to guarantee instant persistence on Vercel
+  const mongoDb = getDb();
+  if (mongoDb) {
+    const { _id, ...cleanComp } = updatedComp as any;
+    await Promise.all([
+      mongoDb.collection('competitions').updateOne(
+        { $or: [{ id: req.params.id }, { _id: req.params.id as any }] },
+        { $set: cleanComp },
+        { upsert: true }
+      ),
+      oldComp.name !== newName ? mongoDb.collection('results').updateMany(
+        { competitionId: req.params.id },
+        { $set: { competitionName: newName } }
+      ) : Promise.resolve(),
+      oldComp.name !== newName ? mongoDb.collection('teams').updateMany(
+        { competitionId: req.params.id },
+        { $set: { competitionName: newName } }
+      ) : Promise.resolve(),
+      oldComp.name !== newName ? mongoDb.collection('judgmentSheets').updateMany(
+        { competitionId: req.params.id },
+        { $set: { competitionName: newName } }
+      ) : Promise.resolve()
+    ]).catch(err => console.error('MongoDB Atlas direct write error on competition update:', err));
+  }
+
+  await dbClient.save(['competitions', 'results', 'teams', 'judgmentSheets']);
+  bustPublicCache();
+
+  res.json({ message: 'Competition updated successfully', competition: updatedComp });
 });
 
 apiRouter.delete('/competitions/:id', authenticate, requireRole([UserRole.SUPER_ADMIN]), async (req, res) => {
