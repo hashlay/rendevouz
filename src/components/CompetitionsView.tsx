@@ -283,9 +283,9 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
         );
         registeredCount = matchingRegs.length;
 
-        const partMap = new Map((partData || []).map((p: any) => [p.id, p]));
+        const partMap = new Map<string, any>((partData || []).map((p: any) => [p.id, p]));
         registeredList = matchingRegs.map((r: any) => {
-          const p = partMap.get(r.participantId);
+          const p: any = partMap.get(r.participantId);
           return {
             id: r.participantId,
             name: p?.fullName || r.participantName || 'Candidate',

@@ -29,6 +29,7 @@
     "multer": "^2.2.0",
     "multer-storage-cloudinary": "^4.0.0",
     "qrcode.react": "^4.2.0",
+    "qrcode-generator": "^2.0.4",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "vite": "^6.2.3"

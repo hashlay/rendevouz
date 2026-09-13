@@ -15,19 +15,19 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
   const [heroMedia, setHeroMedia] = useState<HeroMedia[]>([]);
   const [settings, setSettings] = useState<CMSSettings>({
     aboutTitle: '', aboutSubtitle: '', aboutDescription: '', aboutImage: '', footerText: '',
-    themeTitle: '', themeDescription: '',
-    heroTitle: '', heroSubtitle: '', heroDate: '', heroLocation: '',
+    themeTitle: 'Decoding Phytolore', themeDescription: '',
+    heroTitle: 'RENDEZVOUS 26', heroSubtitle: 'Decoding Phytolore', heroDate: '2026 September 23, 24', heroLocation: 'Imam Rabbani Campus',
     headerLogoTitle: 'RENDEZVOUS',
     headerLogoSubtitle: '26',
-    herheroDesktopImages: ['/rendezvous_hero_desktop.jpg', '/hero1.jpg', '/hero2.jpg'],
-    heroDesktopLoopEnabled: true,
-    heroDesktopLoopInterval: 5,
-    heroMobileImages: ['/rendezvous_hero_mobile.jpg', '/hero1_mobile.jpg', '/hero2_mobile.jpg'],
-    heroMobileLoopEnabled: true,
-    heroMobileLoopInterval: 5, oLogoTitle: 'RENDEZVOUS 26',
+    heroLogoTitle: 'RENDEZVOUS 26',
     heroLogoSubtitle: 'Decoding Phytolore',
     heroLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
-
+    heroDesktopImages: ['/rendezvous_hero_desktop.jpg', '/hero1.jpg', '/hero2.jpg'],
+    heroDesktopLoopEnabled: true,
+    heroDesktopLoopInterval: 5,
+    heroMobileImages: ['/rendezvous_hero_mobile.jpg', '/hero1_mobile_crop_center.jpg', '/hero2_mobile_crop_center.jpg'],
+    heroMobileLoopEnabled: true,
+    heroMobileLoopInterval: 5,
   });
 
   const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1cQNek6Q2EiThqdFrUDb1I8cfsmQneP1J';
@@ -136,7 +136,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           heroLogoSubtitle: 'Decoding Phytolore',
           heroLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
           heroHideLogo: true,
-          heroTitle: 'RENDEZVOUS<br /><span class="text-[#18BA46]">26</span>',
+          heroTitle: 'RENDEZVOUS 26',
           heroSubtitle: 'Decoding Phytolore',
           heroInstitutionLeft: 'Imam Rabbani',
           heroInstitutionRight: 'Life Festival',
@@ -635,8 +635,8 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                     <input type="text" value={settings.heroLogoBadge !== undefined ? settings.heroLogoBadge : 'IMAM RABBANI LIFE FESTIVAL'} onChange={(e) => setSettings({ ...settings, heroLogoBadge: e.target.value })} placeholder="IMAM RABBANI LIFE FESTIVAL" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Main Title (HTML Allowed)</label>
-                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} placeholder='RENDEZVOUS<br /><span class="text-[#18BA46]">26</span>' className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Main Title</label>
+                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} placeholder="RENDEZVOUS 26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Subtitle</label>
@@ -652,11 +652,11 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Date string</label>
-                    <input type="text" value={settings.heroDate} onChange={(e) => setSettings({ ...settings, heroDate: e.target.value })} placeholder="September 23 – 24, 2025" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroDate} onChange={(e) => setSettings({ ...settings, heroDate: e.target.value })} placeholder="2026 September 23, 24" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-600 mb-1">Location string</label>
-                    <input type="text" value={settings.heroLocation} onChange={(e) => setSettings({ ...settings, heroLocation: e.target.value })} placeholder="Main Campus Grounds, Poonoor, Kozhikode" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroLocation} onChange={(e) => setSettings({ ...settings, heroLocation: e.target.value })} placeholder="Imam Rabbani Campus" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
               </div>

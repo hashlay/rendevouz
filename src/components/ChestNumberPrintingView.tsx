@@ -4,7 +4,9 @@ import {
   Layers, Upload, Move, Save, CheckCircle2, LayoutGrid, Eye,
   Hash, QrCode, User as UserIcon, Shield, Sparkles, Filter, Edit3, X, Image as ImageIcon
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { StyledQRCode } from './StyledQRCode';
+// @ts-ignore
+import qrcode from 'qrcode-generator';
 import { User } from '../types';
 
 interface ChestNumberPrintingViewProps {
@@ -38,6 +40,9 @@ const ChestCardSvg: React.FC<{
   // Hide solid header bar by default when custom template image exists unless explicitly toggled on
   const showCatBg = cardConf.showCategoryBg === true || (!bgImg && cardConf.showCategoryBg !== false);
 
+  const isCentered = (cardConf.textAlign || 'center') === 'center';
+  const textAnchor: 'start' | 'middle' = isCentered ? 'middle' : 'start';
+
   const catX = cardConf.catX ?? 400;
   const catY = cardConf.catY ?? 45;
   const chestX = cardConf.chestX ?? 400;
@@ -62,7 +67,7 @@ const ChestCardSvg: React.FC<{
     fallbackWeight: string,
     fontVal: string,
     upper: boolean = true,
-    anchor: 'start' | 'middle' = 'start'
+    anchor: 'start' | 'middle' = textAnchor
   ) => {
     const { fontStyle, fontWeight, fontFamily } = parseFontForSvg(fontVal, fallbackWeight);
     const textStr = upper ? (rawText || '').toUpperCase() : (rawText || '');
@@ -140,7 +145,9 @@ const ChestCardSvg: React.FC<{
           cardConf.catColor || '#ffffff',
           cardConf.catSize || 24,
           '800',
-          cardConf.catFont || cardConf.fontFamily || 'Inter, sans-serif'
+          cardConf.catFont || cardConf.fontFamily || 'Inter, sans-serif',
+          true,
+          textAnchor
         )
       }
 
@@ -153,7 +160,8 @@ const ChestCardSvg: React.FC<{
         cardConf.chestSize || 84,
         cardConf.chestWeight || '800',
         cardConf.chestFont || cardConf.fontFamily || 'Inter, sans-serif',
-        false
+        false,
+        textAnchor
       )}
 
       {/* Participant Name Text */}
@@ -165,7 +173,9 @@ const ChestCardSvg: React.FC<{
           cardConf.nameColor || '#1e293b',
           cardConf.nameSize || 36,
           cardConf.nameWeight || '700',
-          cardConf.nameFont || cardConf.fontFamily || 'Inter, sans-serif'
+          cardConf.nameFont || cardConf.fontFamily || 'Inter, sans-serif',
+          true,
+          textAnchor
         )
       }
 
@@ -178,11 +188,13 @@ const ChestCardSvg: React.FC<{
           cardConf.unitColor || '#64748b',
           cardConf.unitSize || 26,
           '700',
-          cardConf.unitFont || cardConf.fontFamily || 'Inter, sans-serif'
+          cardConf.unitFont || cardConf.fontFamily || 'Inter, sans-serif',
+          true,
+          textAnchor
         )
       }
 
-      {/* HD Vector QR Code */}
+      {/* HD Styled Artistic Vector QR Code */}
       {cardConf.showQr !== false && (
         <foreignObject x={qrX} y={qrY} width={qrSize} height={qrSize}>
           <div
@@ -199,13 +211,12 @@ const ChestCardSvg: React.FC<{
               justifyContent: 'center'
             }}
           >
-            <QRCodeSVG
+            <StyledQRCode
               value={qrUrl}
               size={cardConf.qrTransparentBg ? qrSize : Math.max(16, qrSize - 8)}
-              level="M"
-              boostLevel={true}
-              bgColor={cardConf.qrTransparentBg ? 'transparent' : (cardConf.qrBgColor || '#ffffff')}
-              fgColor={cardConf.qrColor || '#000000'}
+              fgColor={cardConf.qrColor || '#ffffff'}
+              bgColor={cardConf.qrBgColor || '#ffffff'}
+              isTransparent={cardConf.qrTransparentBg !== false}
               style={{ width: '100%', height: '100%' }}
             />
           </div>
@@ -292,13 +303,16 @@ export default function ChestNumberPrintingView({
     unitSize: 26,
     unitColor: '#64748b',
 
+    // Global Text Alignment: 'center' | 'left' (Default is 'center' for Rendezvous 26)
+    textAlign: 'center',
+
     // QR Code Position & Styling
     qrX: 660,
     qrY: 380,
     qrSize: 100, // px
-    qrColor: '#000000',
+    qrColor: '#ffffff',
     qrBgColor: '#ffffff',
-    qrTransparentBg: false,
+    qrTransparentBg: true,
 
     // Category Color Mapping
     categoryColors: {
@@ -564,33 +578,41 @@ export default function ChestNumberPrintingView({
         ctx.fillRect(0, 0, W, 80);
       }
 
+      const isCentered = (cardConf.textAlign || 'center') === 'center';
+      const textAlignment: CanvasTextAlign = isCentered ? 'center' : 'left';
+
       ctx.fillStyle = cardConf.catColor || '#ffffff';
       ctx.font = parseFontForCanvas(cardConf.catFont || cardConf.fontFamily, cardConf.catSize || 24, '800');
-      ctx.textAlign = 'left';
+      ctx.textAlign = textAlignment;
       const catText = (cnData.categoryName || 'SENIOR CATEGORY').toUpperCase();
       const catMetrics = ctx.measureText(catText);
       const catX = cardConf.catX ?? 400;
       const catY = cardConf.catY ?? 45;
       ctx.fillText(catText, catX, catY);
-      addRegion('cat', catX - 5, catY - (cardConf.catSize || 24), catMetrics.width + 10, (cardConf.catSize || 24) + 10);
+      const catLeft = isCentered ? catX - catMetrics.width / 2 : catX;
+      addRegion('cat', catLeft - 5, catY - (cardConf.catSize || 24), catMetrics.width + 10, (cardConf.catSize || 24) + 10);
     }
 
     // Chest Number
+    const isCentered = (cardConf.textAlign || 'center') === 'center';
+    const textAlignment: CanvasTextAlign = isCentered ? 'center' : 'left';
+
     ctx.fillStyle = cardConf.chestColor || '#0f172a';
     ctx.font = parseFontForCanvas(cardConf.chestFont || cardConf.fontFamily, cardConf.chestSize || 84, cardConf.chestWeight || '800');
-    ctx.textAlign = 'left';
+    ctx.textAlign = textAlignment;
     const chestText = cardConf.chestNumberOverride || cnData.chestNumberOverride || cnData.chestNumber?.toString() || '1042';
     const chestMetrics = ctx.measureText(chestText);
     const chestX = cardConf.chestX ?? 400;
     const chestY = cardConf.chestY ?? 210;
     ctx.fillText(chestText, chestX, chestY);
-    addRegion('chest', chestX - 5, chestY - (cardConf.chestSize || 84), chestMetrics.width + 10, (cardConf.chestSize || 84) + 10);
+    const chestLeft = isCentered ? chestX - chestMetrics.width / 2 : chestX;
+    addRegion('chest', chestLeft - 5, chestY - (cardConf.chestSize || 84), chestMetrics.width + 10, (cardConf.chestSize || 84) + 10);
 
     // Participant Name
     if (cardConf.showName !== false) {
       ctx.fillStyle = cardConf.nameColor || '#1e293b';
       ctx.font = parseFontForCanvas(cardConf.nameFont || cardConf.fontFamily, cardConf.nameSize || 36, cardConf.nameWeight || '700');
-      ctx.textAlign = 'left';
+      ctx.textAlign = textAlignment;
       const nameText = (cardConf.participantNameOverride || cnData.participantNameOverride || cnData.participantName || 'MUHAMMED RASHID AHMAD').toUpperCase();
       const nameLines = nameText.split('\n').filter(Boolean);
       const nameGap = (cardConf.nameSize || 36) * 1.15;
@@ -602,14 +624,15 @@ export default function ChestNumberPrintingView({
         const w = ctx.measureText(line).width;
         if (w > maxW) maxW = w;
       });
-      addRegion('name', nameX - 5, nameY - (cardConf.nameSize || 36), maxW + 10, (nameLines.length * nameGap) + 10);
+      const nameLeft = isCentered ? nameX - maxW / 2 : nameX;
+      addRegion('name', nameLeft - 5, nameY - (cardConf.nameSize || 36), maxW + 10, (nameLines.length * nameGap) + 10);
     }
 
     // Unit Name
     if (cardConf.showUnit !== false) {
       ctx.fillStyle = cardConf.unitColor || '#64748b';
       ctx.font = parseFontForCanvas(cardConf.unitFont || cardConf.fontFamily, cardConf.unitSize || 26, '700');
-      ctx.textAlign = 'left';
+      ctx.textAlign = textAlignment;
       const unitText = (cardConf.unitNameOverride || cnData.unitNameOverride || cnData.unitName || 'NINTHIKAL UNIT').toUpperCase();
       const unitLines = unitText.split('\n').filter(Boolean);
       const unitGap = (cardConf.unitSize || 26) * 1.15;
@@ -621,16 +644,17 @@ export default function ChestNumberPrintingView({
         const w = ctx.measureText(line).width;
         if (w > maxUnitW) maxUnitW = w;
       });
-      addRegion('unit', unitX - 5, unitY - (cardConf.unitSize || 26), maxUnitW + 10, (unitLines.length * unitGap) + 10);
+      const unitLeft = isCentered ? unitX - maxUnitW / 2 : unitX;
+      addRegion('unit', unitLeft - 5, unitY - (cardConf.unitSize || 26), maxUnitW + 10, (unitLines.length * unitGap) + 10);
     }
 
-    // QR Code Box / Icon
+    // QR Code Box / Icon (Styled modern QR code matching Image 3)
     if (cardConf.showQr !== false) {
       const qSize = cardConf.qrSize || 100;
       const qX = cardConf.qrX ?? 660;
       const qY = cardConf.qrY ?? 380;
-      const isTransparent = cardConf.qrTransparentBg === true;
-      const qrColor = cardConf.qrColor || '#000000';
+      const isTransparent = cardConf.qrTransparentBg !== false;
+      const qrColor = cardConf.qrColor || '#ffffff';
       const qrBg = cardConf.qrBgColor || '#ffffff';
 
       if (!isTransparent) {
@@ -641,46 +665,74 @@ export default function ChestNumberPrintingView({
         ctx.strokeRect(qX, qY, qSize, qSize);
       }
 
-      // Draw stylized realistic QR icon with 3 corner finder patterns in qrColor
-      const p = Math.max(3, Math.round(qSize * 0.06));
-      const innerSize = qSize - p * 2;
-      const finderSize = Math.max(10, Math.round(innerSize * 0.28));
-      const borderW = Math.max(2, Math.round(finderSize * 0.22));
+      try {
+        const qr = qrcode(0, 'M');
+        const displayChestNo = cardConf.chestNumberOverride || cnData.chestNumberOverride || cnData.chestNumber || '1042';
+        const portalBase = cardConf.publicPortalUrl ? cardConf.publicPortalUrl.replace(/\/+$/, '') : originUrl;
+        const qrUrl = `${portalBase}/?chestNo=${displayChestNo}`;
+        qr.addData(qrUrl);
+        qr.make();
+        const count = qr.getModuleCount();
+        const margin = 1.5;
+        const total = count + margin * 2;
+        const mod = qSize / total;
+        const rx = mod * 0.38;
 
-      const drawFinder = (fx: number, fy: number) => {
-        // Outer square
+        const drawRoundRect = (rxPos: number, ryPos: number, rw: number, rh: number, rRadius: number) => {
+          if (typeof (ctx as any).roundRect === 'function') {
+            ctx.beginPath();
+            (ctx as any).roundRect(rxPos, ryPos, rw, rh, rRadius);
+            ctx.fill();
+          } else {
+            ctx.fillRect(rxPos, ryPos, rw, rh);
+          }
+        };
+
+        const drawStyledFinderCanvas = (startX: number, startY: number) => {
+          const fx = qX + (startX + margin) * mod;
+          const fy = qY + (startY + margin) * mod;
+          const fSize = 7 * mod;
+          const innerSize = 5 * mod;
+          const coreSize = 3 * mod;
+
+          // Outer rounded ring
+          ctx.fillStyle = qrColor;
+          drawRoundRect(fx, fy, fSize, fSize, mod * 1.4);
+
+          // Inner cutout
+          ctx.save();
+          ctx.globalCompositeOperation = isTransparent ? 'destination-out' : 'source-over';
+          ctx.fillStyle = isTransparent ? '#000000' : qrBg;
+          drawRoundRect(fx + mod, fy + mod, innerSize, innerSize, mod * 1.0);
+          ctx.restore();
+
+          // Center solid core
+          ctx.fillStyle = qrColor;
+          drawRoundRect(fx + 2 * mod, fy + 2 * mod, coreSize, coreSize, mod * 0.8);
+        };
+
+        // Draw 3 position finders
+        drawStyledFinderCanvas(0, 0);
+        drawStyledFinderCanvas(count - 7, 0);
+        drawStyledFinderCanvas(0, count - 7);
+
+        // Draw data modules
         ctx.fillStyle = qrColor;
-        ctx.fillRect(fx, fy, finderSize, finderSize);
-        // Inner cutout
-        ctx.fillStyle = isTransparent ? (cardConf.cardBgColor || '#ffffff') : qrBg;
-        ctx.fillRect(fx + borderW, fy + borderW, finderSize - borderW * 2, finderSize - borderW * 2);
-        // Center core
-        ctx.fillStyle = qrColor;
-        const coreSize = finderSize - borderW * 4;
-        if (coreSize > 0) {
-          ctx.fillRect(fx + borderW * 2, fy + borderW * 2, coreSize, coreSize);
-        }
-      };
-
-      // 3 Finders (top-left, top-right, bottom-left)
-      drawFinder(qX + p, qY + p);
-      drawFinder(qX + qSize - p - finderSize, qY + p);
-      drawFinder(qX + p, qY + qSize - p - finderSize);
-
-      // Stylized module dots
-      ctx.fillStyle = qrColor;
-      const dotStep = Math.max(3, Math.round(innerSize / 8));
-      for (let x = qX + p; x <= qX + qSize - p - dotStep; x += dotStep) {
-        for (let y = qY + p; y <= qY + qSize - p - dotStep; y += dotStep) {
-          // Avoid the 3 finders
-          const inTL = (x < qX + p + finderSize + 2 && y < qY + p + finderSize + 2);
-          const inTR = (x > qX + qSize - p - finderSize - 2 && y < qY + p + finderSize + 2);
-          const inBL = (x < qX + p + finderSize + 2 && y > qY + qSize - p - finderSize - 2);
-          if (inTL || inTR || inBL) continue;
-          if (Math.sin(x * 12.3 + y * 7.7) > 0.1) {
-            ctx.fillRect(x, y, dotStep * 0.75, dotStep * 0.75);
+        for (let r = 0; r < count; r++) {
+          for (let c = 0; c < count; c++) {
+            if (qr.isDark(r, c)) {
+              const inTL = r < 7 && c < 7;
+              const inTR = r < 7 && c >= count - 7;
+              const inBL = r >= count - 7 && c < 7;
+              if (inTL || inTR || inBL) continue;
+              const mx = qX + (c + margin) * mod;
+              const my = qY + (r + margin) * mod;
+              drawRoundRect(mx, my, mod * 0.92, mod * 0.92, rx);
+            }
           }
         }
+      } catch (err) {
+        console.warn('Canvas QR render fallback:', err);
       }
 
       addRegion('qr', qX, qY, qSize, qSize);
@@ -1540,6 +1592,41 @@ export default function ChestNumberPrintingView({
 
               <div className="pt-3 border-t space-y-3">
                 <label className="block font-bold text-slate-700">Typography & Font Styles</label>
+
+                {/* Global Text Alignment Selector */}
+                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                    <span>Card Text Alignment (All Elements)</span>
+                    <span className="text-[10px] font-mono font-normal text-emerald-600">
+                      {(config.textAlign || 'center') === 'center' ? 'Center Aligned' : 'Left Aligned'}
+                    </span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfig({ ...config, textAlign: 'left' })}
+                      className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                        (config.textAlign || 'center') === 'left'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      Start from Left
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfig({ ...config, textAlign: 'center' })}
+                      className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                        (config.textAlign || 'center') === 'center'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      Center (Default)
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">Chest Number Font</label>
@@ -1922,6 +2009,47 @@ export default function ChestNumberPrintingView({
                       </button>
                     </div>
                   </div>
+
+                  {/* Individual Text Alignment */}
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                      <span>Card Text Alignment (All Elements)</span>
+                      <span className="text-[10px] font-mono font-normal text-emerald-600">
+                        {(individualConfig.textAlign || 'center') === 'center' ? 'Center Aligned' : 'Left Aligned'}
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIndividualConfig({ ...individualConfig, textAlign: 'left' });
+                          if (editingCn) setEditingCn({ ...editingCn, textAlign: 'left' });
+                        }}
+                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                          (individualConfig.textAlign || 'center') === 'left'
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        Start from Left
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIndividualConfig({ ...individualConfig, textAlign: 'center' });
+                          if (editingCn) setEditingCn({ ...editingCn, textAlign: 'center' });
+                        }}
+                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                          (individualConfig.textAlign || 'center') === 'center'
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        Center (Default)
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Participant Name Controls */}
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                     <span className="font-bold text-slate-800 block">Participant Name Position & Size</span>
