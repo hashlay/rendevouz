@@ -1605,22 +1605,20 @@ export default function ChestNumberPrintingView({
                     <button
                       type="button"
                       onClick={() => setConfig({ ...config, textAlign: 'left' })}
-                      className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                        (config.textAlign || 'center') === 'left'
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
+                      className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${(config.textAlign || 'center') === 'left'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
                     >
                       Start from Left
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfig({ ...config, textAlign: 'center' })}
-                      className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                        (config.textAlign || 'center') === 'center'
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
+                      className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${(config.textAlign || 'center') === 'center'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
                     >
                       Center (Default)
                     </button>
@@ -1694,7 +1692,7 @@ export default function ChestNumberPrintingView({
                   </div>
                   <div>
                     <input
-                      type="range" min="24" max="500"
+                      type="range" min="1" max="500"
                       value={config.chestSize || 84}
                       onChange={(e) => setConfig({ ...config, chestSize: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
@@ -1724,7 +1722,7 @@ export default function ChestNumberPrintingView({
                   </div>
                   <div>
                     <input
-                      type="range" min="14" max="500"
+                      type="range" min="1" max="500"
                       value={config.nameSize || 36}
                       onChange={(e) => setConfig({ ...config, nameSize: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
@@ -1754,7 +1752,7 @@ export default function ChestNumberPrintingView({
                   </div>
                   <div>
                     <input
-                      type="range" min="12" max="200"
+                      type="range" min="1" max="200"
                       value={config.catSize || 24}
                       onChange={(e) => setConfig({ ...config, catSize: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
@@ -1784,7 +1782,7 @@ export default function ChestNumberPrintingView({
                   </div>
                   <div>
                     <input
-                      type="range" min="12" max="200"
+                      type="range" min="1" max="200"
                       value={config.unitSize || 26}
                       onChange={(e) => setConfig({ ...config, unitSize: Number(e.target.value) })}
                       className="w-full accent-emerald-600"
@@ -2025,11 +2023,10 @@ export default function ChestNumberPrintingView({
                           setIndividualConfig({ ...individualConfig, textAlign: 'left' });
                           if (editingCn) setEditingCn({ ...editingCn, textAlign: 'left' });
                         }}
-                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                          (individualConfig.textAlign || 'center') === 'left'
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                        }`}
+                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${(individualConfig.textAlign || 'center') === 'left'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
                       >
                         Start from Left
                       </button>
@@ -2039,11 +2036,10 @@ export default function ChestNumberPrintingView({
                           setIndividualConfig({ ...individualConfig, textAlign: 'center' });
                           if (editingCn) setEditingCn({ ...editingCn, textAlign: 'center' });
                         }}
-                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                          (individualConfig.textAlign || 'center') === 'center'
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                        }`}
+                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${(individualConfig.textAlign || 'center') === 'center'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
                       >
                         Center (Default)
                       </button>

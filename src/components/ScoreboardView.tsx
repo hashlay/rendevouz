@@ -253,7 +253,7 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
       {/* --- SCORE BREAKDOWN DRAWERS MODAL --- */}
       {selectedRow && (
         <div className="fixed inset-0 bg-slate-900/60  z-50 flex items-center justify-center p-4 no-print">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-md w-full p-6  space-y-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-lg max-w-lg w-full p-6 space-y-4">
             
             <div className="flex justify-between items-center border-b pb-3">
               <div>
@@ -262,22 +262,26 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
                   {selectedRow.chestNumber} • {selectedRow.unitName} • {selectedRow.categoryName}
                 </span>
               </div>
-              <button onClick={() => setSelectedRow(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600">
+              <button onClick={() => setSelectedRow(null)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer">
                 <ChevronDown className="h-5 w-5" />
               </button>
             </div>
 
             <div className="space-y-4 text-xs font-sans">
               
-              {/* Individual vs Group contributions card */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border">
-                <div className="text-center">
-                  <span className="text-[9px] font-bold text-slate-400 block uppercase font-mono">Individual Contribution</span>
-                  <span className="text-lg font-extrabold text-slate-800 mt-1 block">{selectedRow.individualMarks} marks</span>
+              {/* Individual vs Group vs General contributions card */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-slate-50 p-3.5 sm:p-4 rounded-2xl border text-center">
+                <div>
+                  <span className="text-[9px] font-bold text-slate-400 block uppercase font-mono truncate" title="Individual Contribution">Individual</span>
+                  <span className="text-base sm:text-lg font-extrabold text-slate-800 mt-1 block">{selectedRow.individualMarks || 0} marks</span>
                 </div>
-                <div className="text-center border-l">
-                  <span className="text-[9px] font-bold text-slate-400 block uppercase font-mono">Group Contribution</span>
-                  <span className="text-lg font-extrabold text-slate-800 mt-1 block">{selectedRow.groupMarks} marks</span>
+                <div className="border-l border-slate-200 pl-1 sm:pl-2">
+                  <span className="text-[9px] font-bold text-slate-400 block uppercase font-mono truncate" title="Group Contribution">Group</span>
+                  <span className="text-base sm:text-lg font-extrabold text-slate-800 mt-1 block">{selectedRow.groupMarks || 0} marks</span>
+                </div>
+                <div className="border-l border-slate-200 pl-1 sm:pl-2">
+                  <span className="text-[9px] font-bold text-slate-400 block uppercase font-mono truncate" title="General Contribution">General</span>
+                  <span className="text-base sm:text-lg font-extrabold text-emerald-700 mt-1 block">{selectedRow.generalMarks || 0} marks</span>
                 </div>
               </div>
 

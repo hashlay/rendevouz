@@ -227,18 +227,42 @@ export const CalculationService = {
         });
       }
       
+      // Helper to identify General Category competitions
+      const isGeneralComp = (r: Result) => {
+        const comp = db.competitions.find(c => c.id === r.competitionId);
+        if (comp) {
+          if (comp.categoryId === 'cat_general') return true;
+          const cat = db.categories.find(c => c.id === comp.categoryId);
+          if (cat && cat.name.toLowerCase().includes('general')) return true;
+        }
+        if (r.categoryId === 'cat_general') return true;
+        if ((r as any).categoryName && (r as any).categoryName.toLowerCase().includes('general')) return true;
+        return false;
+      };
+
+      // Separate into primary category vs general category results
+      const primaryIndividualResults = filteredIndividualResults.filter(r => !isGeneralComp(r));
+      const generalIndividualResults = filteredIndividualResults.filter(r => isGeneralComp(r));
+
+      const primaryGroupResults = filteredGroupResults.filter(r => !isGeneralComp(r));
+      const generalGroupResults = filteredGroupResults.filter(r => isGeneralComp(r));
+
       // Calculate sums
-      const individualMarks = filteredIndividualResults.reduce((sum, r) => sum + getNormalizedMark(r), 0);
-      const groupMarks = filteredGroupResults.reduce((sum, r) => sum + getNormalizedMark(r), 0);
-      const overallMarks = individualMarks; // Modified: Only include individual marks for Individual Scoreboard
-      const totalEvents = filteredIndividualResults.length; // Modified: Only count individual events
+      // Individual Marks: strictly from primary category individual competitions
+      const individualMarks = primaryIndividualResults.reduce((sum, r) => sum + getNormalizedMark(r), 0);
+      const groupMarks = primaryGroupResults.reduce((sum, r) => sum + getNormalizedMark(r), 0);
+      const generalMarks = [...generalIndividualResults, ...generalGroupResults].reduce((sum, r) => sum + getNormalizedMark(r), 0);
+      
+      // Individual Scoreboard strictly counts only their primary category individual competitions
+      const overallMarks = individualMarks;
+      const totalEvents = primaryIndividualResults.length;
       
       const unit = db.units.find(u => u.id === participant.unitId);
       const category = db.categories.find(c => c.id === participant.selectedCategoryId);
       
-      // Find rankings in individual & group events
+      // Find rankings in individual, group, & general events
       const rankPlacements = [
-        ...filteredIndividualResults.map(r => {
+        ...primaryIndividualResults.map(r => {
           const comp = db.competitions.find(c => c.id === r.competitionId);
           return {
             compId: r.competitionId,
@@ -248,7 +272,7 @@ export const CalculationService = {
             type: 'Individual'
           };
         }),
-        ...filteredGroupResults.map(r => {
+        ...primaryGroupResults.map(r => {
           const comp = db.competitions.find(c => c.id === r.competitionId);
           return {
             compId: r.competitionId,
@@ -256,6 +280,16 @@ export const CalculationService = {
             rank: r.rank,
             marks: getNormalizedMark(r),
             type: 'Group'
+          };
+        }),
+        ...[...generalIndividualResults, ...generalGroupResults].map(r => {
+          const comp = db.competitions.find(c => c.id === r.competitionId);
+          return {
+            compId: r.competitionId,
+            compName: comp ? toTitleCase(comp.name) : 'Competition',
+            rank: r.rank,
+            marks: getNormalizedMark(r),
+            type: 'General'
           };
         })
       ];
@@ -270,6 +304,7 @@ export const CalculationService = {
         totalEvents,
         individualMarks,
         groupMarks,
+        generalMarks,
         overallMarks,
         placements: rankPlacements,
         chestNumber: participant.profilePhoto || 'N/A'
