@@ -20,6 +20,40 @@ import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas, parseFontForSvg } from '../
 
 const FONT_OPTIONS = UNIVERSAL_FONT_OPTIONS;
 
+/**
+ * Automatically balances participant name into two lines according to word count and word lengths:
+ * - 2 words: Line 1 = Word 1, Line 2 = Word 2
+ * - 4 words: Line 1 = Word 1 + Word 2, Line 2 = Word 3 + Word 4
+ * - 3 words:
+ *    - If Word 3 is longer than Word 1: Line 1 = Word 1 + Word 2, Line 2 = Word 3
+ *    - If Word 1 or Word 2 is longer/equal: Line 1 = Word 1, Line 2 = Word 2 + Word 3
+ * - 5+ words: Balanced split (ceil(words.length / 2))
+ * - 1 word: single line
+ */
+export function formatNameInTwoLines(name: string): string {
+  if (!name) return '';
+  if (name.includes('\n')) return name; // Preserve manual enter key overrides
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= 1) return name.trim();
+  if (words.length === 2) {
+    return `${words[0]}\n${words[1]}`;
+  }
+  if (words.length === 3) {
+    const [w1, w2, w3] = words;
+    if (w3.length > w1.length) {
+      return `${w1} ${w2}\n${w3}`;
+    } else {
+      return `${w1}\n${w2} ${w3}`;
+    }
+  }
+  if (words.length === 4) {
+    return `${words[0]} ${words[1]}\n${words[2]} ${words[3]}`;
+  }
+  // 5 or more words: balanced split
+  const mid = Math.ceil(words.length / 2);
+  return `${words.slice(0, mid).join(' ')}\n${words.slice(mid).join(' ')}`;
+}
+
 // Unified Scalable Chest Card SVG Component (Preserves dynamic aspect ratio & 1:1 canvas coordinates)
 const ChestCardSvg: React.FC<{
   cn: any;
@@ -55,7 +89,9 @@ const ChestCardSvg: React.FC<{
   const qrY = cardConf.qrY ?? 380;
   const qrSize = cardConf.qrSize || 100;
 
-  const displayName = cardConf.participantNameOverride || cn.participantNameOverride || cn.participantName || 'PARTICIPANT NAME';
+  const rawDisplayName = cardConf.participantNameOverride || cn.participantNameOverride || cn.participantName || 'PARTICIPANT NAME';
+  const shouldSplitName = cardConf.nameInTwoLines === true || cn.nameInTwoLines === true;
+  const displayName = shouldSplitName ? formatNameInTwoLines(rawDisplayName) : rawDisplayName;
   const displayUnit = cardConf.unitNameOverride || cn.unitNameOverride || cn.unitName || 'UNIT NAME';
 
   const renderSvgLines = (
@@ -290,6 +326,7 @@ export default function ChestNumberPrintingView({
     nameColor: '#1e293b',
     nameWeight: '700',
     nameMaxLines: 2,
+    nameInTwoLines: false,
 
     // Category Name Position & Styling
     catX: 400,
@@ -397,7 +434,8 @@ export default function ChestNumberPrintingView({
         participantNameOverride: override.participantNameOverride,
         unitNameOverride: override.unitNameOverride,
         categoryNameOverride: override.categoryNameOverride,
-        chestNumberOverride: override.chestNumberOverride
+        chestNumberOverride: override.chestNumberOverride,
+        nameInTwoLines: override.nameInTwoLines
       };
     }
     return { ...config, ...override };
@@ -613,19 +651,23 @@ export default function ChestNumberPrintingView({
       ctx.fillStyle = cardConf.nameColor || '#1e293b';
       ctx.font = parseFontForCanvas(cardConf.nameFont || cardConf.fontFamily, cardConf.nameSize || 36, cardConf.nameWeight || '700');
       ctx.textAlign = textAlignment;
-      const nameText = (cardConf.participantNameOverride || cnData.participantNameOverride || cnData.participantName || 'MUHAMMED RASHID AHMAD').toUpperCase();
+      const rawName = cardConf.participantNameOverride || cnData.participantNameOverride || cnData.participantName || 'MUHAMMED RASHID AHMAD';
+      const shouldSplitName = cardConf.nameInTwoLines === true || cnData.nameInTwoLines === true;
+      const formattedName = shouldSplitName ? formatNameInTwoLines(rawName) : rawName;
+      const nameText = formattedName.toUpperCase();
       const nameLines = nameText.split('\n').filter(Boolean);
       const nameGap = (cardConf.nameSize || 36) * 1.15;
       const nameX = cardConf.nameX ?? 400;
       const nameY = cardConf.nameY ?? 340;
+      const startY = nameLines.length > 1 ? nameY - ((nameLines.length - 1) * nameGap) / 2 : nameY;
       let maxW = 0;
       nameLines.forEach((line, i) => {
-        ctx.fillText(line, nameX, nameY + i * nameGap);
+        ctx.fillText(line, nameX, startY + i * nameGap);
         const w = ctx.measureText(line).width;
         if (w > maxW) maxW = w;
       });
       const nameLeft = isCentered ? nameX - maxW / 2 : nameX;
-      addRegion('name', nameLeft - 5, nameY - (cardConf.nameSize || 36), maxW + 10, (nameLines.length * nameGap) + 10);
+      addRegion('name', nameLeft - 5, startY - (cardConf.nameSize || 36), maxW + 10, (nameLines.length * nameGap) + 10);
     }
 
     // Unit Name
@@ -1728,6 +1770,20 @@ export default function ChestNumberPrintingView({
                       className="w-full accent-emerald-600"
                     />
                   </div>
+                  <div className="pt-2 border-t border-slate-200">
+                    <label className="flex items-center gap-2 font-bold text-slate-800 text-xs cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={config.nameInTwoLines === true}
+                        onChange={(e) => setConfig({ ...config, nameInTwoLines: e.target.checked })}
+                        className="h-4 w-4 rounded accent-emerald-600 cursor-pointer"
+                      />
+                      <span>Name in 2 Lines</span>
+                    </label>
+                    <p className="text-[10px] text-slate-500 mt-0.5 ml-6">
+                      Automatically balances 2-word, 3-word, and 4-word names into two lines.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Category Position & Size */}
@@ -1948,6 +2004,20 @@ export default function ChestNumberPrintingView({
                         className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
                         placeholder="Type name... Press Enter for 2-line name"
                       />
+                      <div className="mt-1.5">
+                        <label className="flex items-center gap-2 font-bold text-slate-800 text-xs cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={individualConfig.nameInTwoLines ?? config.nameInTwoLines ?? false}
+                            onChange={(e) => {
+                              setIndividualConfig({ ...individualConfig, nameInTwoLines: e.target.checked });
+                              setEditingCn({ ...editingCn, nameInTwoLines: e.target.checked });
+                            }}
+                            className="h-4 w-4 rounded accent-emerald-600 cursor-pointer"
+                          />
+                          <span>Name in 2 Lines</span>
+                        </label>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1">Unit / Team Name Override (Enter key for 2 lines)</label>
@@ -1983,7 +2053,8 @@ export default function ChestNumberPrintingView({
                             ...config,
                             participantNameOverride: individualConfig.participantNameOverride,
                             unitNameOverride: individualConfig.unitNameOverride,
-                            chestNumberOverride: individualConfig.chestNumberOverride
+                            chestNumberOverride: individualConfig.chestNumberOverride,
+                            nameInTwoLines: individualConfig.nameInTwoLines
                           });
                         }}
                         className="w-full py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold text-[11px] rounded-lg border border-emerald-300 transition"
@@ -1998,7 +2069,8 @@ export default function ChestNumberPrintingView({
                             ...editingCn,
                             participantNameOverride: undefined,
                             unitNameOverride: undefined,
-                            chestNumberOverride: undefined
+                            chestNumberOverride: undefined,
+                            nameInTwoLines: undefined
                           });
                         }}
                         className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-300 transition"
