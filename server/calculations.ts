@@ -99,7 +99,7 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
     const m = Math.round(Number(mark) || 0);
     if (m <= 0) return 0;
 
-    const isGroup = !!r.teamId || comp?.participationType === ParticipationType.GROUP || (comp as any)?.isGroup === true || comp?.participationType === 'group';
+    const isGroup = !!r.teamId || comp?.participationType === ParticipationType.GROUP || (comp as any)?.isGroup === true || String(comp?.participationType).toLowerCase() === 'group';
 
     if (isGroup) {
       if (m >= 95) return 20;

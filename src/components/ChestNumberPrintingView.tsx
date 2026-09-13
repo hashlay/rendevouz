@@ -74,7 +74,7 @@ const ChestCardSvg: React.FC<{
   // Hide solid header bar by default when custom template image exists unless explicitly toggled on
   const showCatBg = cardConf.showCategoryBg === true || (!bgImg && cardConf.showCategoryBg !== false);
 
-  const isCentered = (cardConf.textAlign || 'center') === 'center';
+  const isCentered = (cardConf.textAlign || 'left') === 'center';
   const textAnchor: 'start' | 'middle' = isCentered ? 'middle' : 'start';
 
   const catX = cardConf.catX ?? 400;
@@ -90,7 +90,7 @@ const ChestCardSvg: React.FC<{
   const qrSize = cardConf.qrSize || 100;
 
   const rawDisplayName = cardConf.participantNameOverride || cn.participantNameOverride || cn.participantName || 'PARTICIPANT NAME';
-  const shouldSplitName = cardConf.nameInTwoLines === true || cn.nameInTwoLines === true;
+  const shouldSplitName = cardConf.nameInTwoLines !== false && cn.nameInTwoLines !== false;
   const displayName = shouldSplitName ? formatNameInTwoLines(rawDisplayName) : rawDisplayName;
   const displayUnit = cardConf.unitNameOverride || cn.unitNameOverride || cn.unitName || 'UNIT NAME';
 
@@ -326,13 +326,14 @@ export default function ChestNumberPrintingView({
     nameColor: '#1e293b',
     nameWeight: '700',
     nameMaxLines: 2,
-    nameInTwoLines: false,
+    nameInTwoLines: true,
 
     // Category Name Position & Styling
     catX: 400,
     catY: 45,
     catSize: 24,
     catColor: '#ffffff',
+    catWeight: '700',
 
     // Unit/Team Name Position & Styling
     unitX: 400,
@@ -340,8 +341,8 @@ export default function ChestNumberPrintingView({
     unitSize: 26,
     unitColor: '#64748b',
 
-    // Global Text Alignment: 'center' | 'left' (Default is 'center' for Rendezvous 26)
-    textAlign: 'center',
+    // Global Text Alignment: 'center' | 'left' (Default is 'left')
+    textAlign: 'left',
 
     // QR Code Position & Styling
     qrX: 660,
@@ -616,7 +617,7 @@ export default function ChestNumberPrintingView({
         ctx.fillRect(0, 0, W, 80);
       }
 
-      const isCentered = (cardConf.textAlign || 'center') === 'center';
+      const isCentered = (cardConf.textAlign || 'left') === 'center';
       const textAlignment: CanvasTextAlign = isCentered ? 'center' : 'left';
 
       ctx.fillStyle = cardConf.catColor || '#ffffff';
@@ -632,7 +633,7 @@ export default function ChestNumberPrintingView({
     }
 
     // Chest Number
-    const isCentered = (cardConf.textAlign || 'center') === 'center';
+    const isCentered = (cardConf.textAlign || 'left') === 'center';
     const textAlignment: CanvasTextAlign = isCentered ? 'center' : 'left';
 
     ctx.fillStyle = cardConf.chestColor || '#0f172a';
@@ -652,7 +653,7 @@ export default function ChestNumberPrintingView({
       ctx.font = parseFontForCanvas(cardConf.nameFont || cardConf.fontFamily, cardConf.nameSize || 36, cardConf.nameWeight || '700');
       ctx.textAlign = textAlignment;
       const rawName = cardConf.participantNameOverride || cnData.participantNameOverride || cnData.participantName || 'MUHAMMED RASHID AHMAD';
-      const shouldSplitName = cardConf.nameInTwoLines === true || cnData.nameInTwoLines === true;
+      const shouldSplitName = cardConf.nameInTwoLines !== false && cnData.nameInTwoLines !== false;
       const formattedName = shouldSplitName ? formatNameInTwoLines(rawName) : rawName;
       const nameText = formattedName.toUpperCase();
       const nameLines = nameText.split('\n').filter(Boolean);
@@ -1640,29 +1641,29 @@ export default function ChestNumberPrintingView({
                   <label className="block text-[11px] font-bold text-slate-700 mb-1.5 flex items-center justify-between">
                     <span>Card Text Alignment (All Elements)</span>
                     <span className="text-[10px] font-mono font-normal text-emerald-600">
-                      {(config.textAlign || 'center') === 'center' ? 'Center Aligned' : 'Left Aligned'}
+                      {(config.textAlign || 'left') === 'center' ? 'Center Aligned' : 'Left Aligned (Default)'}
                     </span>
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setConfig({ ...config, textAlign: 'left' })}
-                      className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${(config.textAlign || 'center') === 'left'
+                      className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${(config.textAlign || 'left') === 'left'
                         ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                     >
-                      Start from Left
+                      Start from Left (Default)
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfig({ ...config, textAlign: 'center' })}
-                      className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${(config.textAlign || 'center') === 'center'
+                      className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${config.textAlign === 'center'
                         ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                     >
-                      Center (Default)
+                      Center
                     </button>
                   </div>
                 </div>
@@ -1774,11 +1775,11 @@ export default function ChestNumberPrintingView({
                     <label className="flex items-center gap-2 font-bold text-slate-800 text-xs cursor-pointer select-none">
                       <input
                         type="checkbox"
-                        checked={config.nameInTwoLines === true}
+                        checked={config.nameInTwoLines !== false}
                         onChange={(e) => setConfig({ ...config, nameInTwoLines: e.target.checked })}
                         className="h-4 w-4 rounded accent-emerald-600 cursor-pointer"
                       />
-                      <span>Name in 2 Lines</span>
+                      <span>Name in 2 Lines (Default)</span>
                     </label>
                     <p className="text-[10px] text-slate-500 mt-0.5 ml-6">
                       Automatically balances 2-word, 3-word, and 4-word names into two lines.
@@ -2008,7 +2009,7 @@ export default function ChestNumberPrintingView({
                         <label className="flex items-center gap-2 font-bold text-slate-800 text-xs cursor-pointer select-none">
                           <input
                             type="checkbox"
-                            checked={individualConfig.nameInTwoLines ?? config.nameInTwoLines ?? false}
+                            checked={individualConfig.nameInTwoLines !== undefined ? individualConfig.nameInTwoLines : (config.nameInTwoLines !== false)}
                             onChange={(e) => {
                               setIndividualConfig({ ...individualConfig, nameInTwoLines: e.target.checked });
                               setEditingCn({ ...editingCn, nameInTwoLines: e.target.checked });
@@ -2085,7 +2086,7 @@ export default function ChestNumberPrintingView({
                     <label className="block text-[11px] font-bold text-slate-700 mb-1.5 flex items-center justify-between">
                       <span>Card Text Alignment (All Elements)</span>
                       <span className="text-[10px] font-mono font-normal text-emerald-600">
-                        {(individualConfig.textAlign || 'center') === 'center' ? 'Center Aligned' : 'Left Aligned'}
+                        {(individualConfig.textAlign || 'left') === 'center' ? 'Center Aligned' : 'Left Aligned (Default)'}
                       </span>
                     </label>
                     <div className="grid grid-cols-2 gap-2">
@@ -2095,12 +2096,12 @@ export default function ChestNumberPrintingView({
                           setIndividualConfig({ ...individualConfig, textAlign: 'left' });
                           if (editingCn) setEditingCn({ ...editingCn, textAlign: 'left' });
                         }}
-                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${(individualConfig.textAlign || 'center') === 'left'
+                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${(individualConfig.textAlign || 'left') === 'left'
                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                           }`}
                       >
-                        Start from Left
+                        Start from Left (Default)
                       </button>
                       <button
                         type="button"
@@ -2108,12 +2109,12 @@ export default function ChestNumberPrintingView({
                           setIndividualConfig({ ...individualConfig, textAlign: 'center' });
                           if (editingCn) setEditingCn({ ...editingCn, textAlign: 'center' });
                         }}
-                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${(individualConfig.textAlign || 'center') === 'center'
+                        className={`py-1.5 px-3 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${individualConfig.textAlign === 'center'
                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                           }`}
                       >
-                        Center (Default)
+                        Center
                       </button>
                     </div>
                   </div>
