@@ -358,6 +358,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
       indCompIds.forEach(cId => {
         const comp = competitions.find(c => c.id === cId);
+        if (comp && comp.participationType === 'group') return;
         const res = resultsData.find((r: any) => r.competitionId === cId && r.participantId === p.id && r.publishedStatus && !r.deletedAt);
         breakdowns.push({
           id: `ind_${cId}`,
@@ -419,7 +420,11 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
       const userReg = Array.isArray(regs) ? regs.find((r: any) => r.participantId === p.id) : null;
       if (userReg) {
-        setEditComps(userReg.selectedIndividualCompetitionIds || []);
+        const validIndComps = (userReg.selectedIndividualCompetitionIds || []).filter((id: string) => {
+          const comp = competitions.find(c => c.id === id);
+          return comp ? comp.participationType === 'individual' : true;
+        });
+        setEditComps(validIndComps);
         if (!p.candidateClass && userReg.candidateClass) {
           const regClass = userReg.candidateClass.startsWith('Class ')
             ? userReg.candidateClass
