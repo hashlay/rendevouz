@@ -807,42 +807,97 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                 <table className="w-full text-center text-xs font-mono border-collapse bg-white/90 rounded-xl overflow-hidden shadow-xs border border-indigo-100">
                   <thead>
                     <tr className="bg-indigo-100/70 text-indigo-950 font-bold border-b border-indigo-200 text-[11px]">
-                      <th className="py-2 px-3 text-left">Grade</th>
-                      <th className="py-2 px-3">Mark Range</th>
-                      <th className="py-2 px-3 text-emerald-700 bg-emerald-50/50">Individual Points</th>
-                      <th className="py-2 px-3 text-purple-700 bg-purple-50/50">Group Points</th>
+                      <th className="py-2 px-3 text-left">Mark Range</th>
+                      <th className="py-2 px-2 text-emerald-800 bg-emerald-50/70">Ind Grade</th>
+                      <th className="py-2 px-2.5 text-emerald-700 bg-emerald-50/50">Individual Points</th>
+                      <th className="py-2 px-2 text-purple-800 bg-purple-50/70">Group Grade</th>
+                      <th className="py-2 px-2.5 text-purple-700 bg-purple-50/50">Group Points</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-indigo-50 text-[11px]">
                     <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1.5 px-3 text-left font-extrabold text-emerald-700">A+</td>
-                      <td className="py-1.5 px-3 text-slate-700 font-medium">90 – 100</td>
-                      <td className="py-1.5 px-3 font-bold text-emerald-700 bg-emerald-50/30">6 pts</td>
-                      <td className="py-1.5 px-3 font-bold text-purple-700 bg-purple-50/30">12 pts</td>
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">95 – 100</td>
+                      <td className="py-1 px-2 font-extrabold text-emerald-700 bg-emerald-50/40">A+</td>
+                      <td className="py-1 px-2.5 font-bold text-emerald-700 bg-emerald-50/20">10 pts</td>
+                      <td className="py-1 px-2 font-extrabold text-purple-700 bg-purple-50/40">A+</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">20 pts</td>
                     </tr>
                     <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1.5 px-3 text-left font-extrabold text-blue-700">A</td>
-                      <td className="py-1.5 px-3 text-slate-700 font-medium">70 – 89</td>
-                      <td className="py-1.5 px-3 font-bold text-blue-700 bg-emerald-50/30">5 pts</td>
-                      <td className="py-1.5 px-3 font-bold text-purple-700 bg-purple-50/30">10 pts</td>
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">90 – 95</td>
+                      <td className="py-1 px-2 font-extrabold text-blue-700 bg-emerald-50/40">A</td>
+                      <td className="py-1 px-2.5 font-bold text-blue-700 bg-emerald-50/20">9 pts</td>
+                      <td className="py-1 px-2 font-extrabold text-blue-700 bg-purple-50/40">A</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">19 pts</td>
                     </tr>
                     <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1.5 px-3 text-left font-extrabold text-amber-700">B</td>
-                      <td className="py-1.5 px-3 text-slate-700 font-medium">60 – 69</td>
-                      <td className="py-1.5 px-3 font-bold text-amber-700 bg-emerald-50/30">3 pts</td>
-                      <td className="py-1.5 px-3 font-bold text-purple-700 bg-purple-50/30">7 pts</td>
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">85 – 90</td>
+                      <td className="py-1 px-2 font-extrabold text-blue-700 bg-emerald-50/40">A</td>
+                      <td className="py-1 px-2.5 font-bold text-blue-700 bg-emerald-50/20">8 pts</td>
+                      <td className="py-1 px-2 font-extrabold text-blue-700 bg-purple-50/40">A</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">18 pts</td>
                     </tr>
                     <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1.5 px-3 text-left font-extrabold text-orange-700">C</td>
-                      <td className="py-1.5 px-3 text-slate-700 font-medium">50 – 59</td>
-                      <td className="py-1.5 px-3 font-bold text-orange-700 bg-emerald-50/30">1 pt</td>
-                      <td className="py-1.5 px-3 font-bold text-purple-700 bg-purple-50/30">5 pts</td>
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">80 – 85</td>
+                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-emerald-50/40">B</td>
+                      <td className="py-1 px-2.5 font-bold text-amber-700 bg-emerald-50/20">7 pts</td>
+                      <td className="py-1 px-2 font-extrabold text-blue-700 bg-purple-50/40">A</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">17 pts</td>
                     </tr>
                     <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1.5 px-3 text-left font-bold text-slate-500">D</td>
-                      <td className="py-1.5 px-3 text-slate-500">Below 50</td>
-                      <td className="py-1.5 px-3 font-medium text-slate-500 bg-emerald-50/30">0 pts</td>
-                      <td className="py-1.5 px-3 font-medium text-slate-500 bg-purple-50/30">0 pts</td>
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">75 – 80</td>
+                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-emerald-50/40">B</td>
+                      <td className="py-1 px-2.5 font-bold text-amber-700 bg-emerald-50/20">6 pts</td>
+                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-purple-50/40">B</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">16 pts</td>
+                    </tr>
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">70 – 75</td>
+                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-emerald-50/40">B</td>
+                      <td className="py-1 px-2.5 font-bold text-amber-700 bg-emerald-50/20">5 pts</td>
+                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-purple-50/40">B</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">15 pts</td>
+                    </tr>
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">65 – 70</td>
+                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-emerald-50/40">C</td>
+                      <td className="py-1 px-2.5 font-bold text-orange-700 bg-emerald-50/20">4 pts</td>
+                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-purple-50/40">B</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">14 pts</td>
+                    </tr>
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">55 – 65</td>
+                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-emerald-50/40">C</td>
+                      <td className="py-1 px-2.5 font-bold text-orange-700 bg-emerald-50/20">3 pts</td>
+                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-purple-50/40">B</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">13 pts</td>
+                    </tr>
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">50 – 55</td>
+                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-emerald-50/40">C</td>
+                      <td className="py-1 px-2.5 font-bold text-orange-700 bg-emerald-50/20">2 pts</td>
+                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-purple-50/40">C</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">12 pts</td>
+                    </tr>
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">40 – 50</td>
+                      <td className="py-1 px-2 font-medium text-slate-400 bg-emerald-50/40">–</td>
+                      <td className="py-1 px-2.5 font-bold text-slate-700 bg-emerald-50/20">1 pt</td>
+                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-purple-50/40">C</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">11 pts</td>
+                    </tr>
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">30 – 40</td>
+                      <td className="py-1 px-2 font-medium text-slate-400 bg-emerald-50/40">–</td>
+                      <td className="py-1 px-2.5 font-medium text-slate-400 bg-emerald-50/20">0 pts</td>
+                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-purple-50/40">C</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">10 pts</td>
+                    </tr>
+                    <tr className="hover:bg-indigo-50/40">
+                      <td className="py-1 px-3 text-left font-semibold text-slate-800">Below 30</td>
+                      <td className="py-1 px-2 font-medium text-slate-400 bg-emerald-50/40">–</td>
+                      <td className="py-1 px-2.5 font-medium text-slate-400 bg-emerald-50/20">0 pts</td>
+                      <td className="py-1 px-2 font-medium text-slate-400 bg-purple-50/40">–</td>
+                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">5 pts</td>
                     </tr>
                   </tbody>
                 </table>

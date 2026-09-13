@@ -6227,7 +6227,8 @@ apiRouter.get('/public/results', async (req, res) => {
 
       // Calculate grade and points dynamically using official Grade Pointing System
       const normalizedMark = getNormalizedMark(r);
-      const grade = calculateGrade(normalizedMark);
+      const isGroup = participationType === 'Group' || !!r.teamId || comp?.participationType === 'group';
+      const grade = calculateGrade(normalizedMark, isGroup);
       const points = calculateResultPoints(r, comp, db.eventSettings);
 
       const compCat = comp ? db.categories.find(c => c.id === comp.categoryId) : null;

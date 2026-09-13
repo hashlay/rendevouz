@@ -21,26 +21,69 @@ export const getNormalizedMark = (r: Result): number => {
 
 /**
  * Official Grade calculation:
- * 90 - 100: A+
- * 70 - 89: A
- * 60 - 69: B
- * 50 - 59: C
- * Below 50: D
+ * Individual:
+ *  95 - 100: A+
+ *  85 - 94: A  (90-95: A, 85-90: A)
+ *  70 - 84: B  (80-85: B, 75-80: B, 70-75: B)
+ *  50 - 69: C  (65-70: C, 55-65: C, 50-55: C)
+ *  Below 50: No grade (40-50: No grade with 1 point, Below 40: No grade with 0 points)
+ *
+ * Group:
+ *  95 - 100: A+
+ *  80 - 94: A  (90-95: A, 85-90: A, 80-85: A)
+ *  55 - 79: B  (75-80: B, 70-75: B, 65-70: B, 55-65: B)
+ *  30 - 54: C  (50-55: C, 40-50: C, 30-40: C)
+ *  Below 30: No grade (with 5 points for mark > 0)
  */
-export const calculateGrade = (mark: number): string => {
+export const calculateGrade = (mark: number, isGroup: boolean = false): string => {
   const m = Math.round(Number(mark) || 0);
-  if (m >= 90) return 'A+';
-  if (m >= 70) return 'A';
-  if (m >= 60) return 'B';
-  if (m >= 50) return 'C';
-  return 'D';
+  if (m <= 0) return '';
+
+  if (isGroup) {
+    if (m >= 95) return 'A+';
+    if (m >= 80) return 'A';
+    if (m >= 55) return 'B';
+    if (m >= 30) return 'C';
+    return '';
+  } else {
+    if (m >= 95) return 'A+';
+    if (m >= 85) return 'A';
+    if (m >= 70) return 'B';
+    if (m >= 50) return 'C';
+    return '';
+  }
 };
 
 /**
  * Grade Pointing System (Festival Points Distribution):
  * If gradeSystemEnabled !== false (Enabled by default):
- * Individual: A+ = 6, A = 5, B = 3, C = 1, D = 0
- * Group: A+ = 12, A = 10, B = 7, C = 5, D = 0
+ *
+ * Individual Competitions:
+ *  100 - 95: 10 pts (A+)
+ *   95 - 90:  9 pts (A)
+ *   90 - 85:  8 pts (A)
+ *   85 - 80:  7 pts (B)
+ *   80 - 75:  6 pts (B)
+ *   75 - 70:  5 pts (B)
+ *   70 - 65:  4 pts (C)
+ *   65 - 55:  3 pts (C)
+ *   55 - 50:  2 pts (C)
+ *   50 - 40:  1 pt  (No grade)
+ *   Below 40: 0 pts (No grade)
+ *
+ * Group Competitions:
+ *  100 - 95: 20 pts (A+)
+ *   95 - 90: 19 pts (A)
+ *   90 - 85: 18 pts (A)
+ *   85 - 80: 17 pts (A)
+ *   80 - 75: 16 pts (B)
+ *   75 - 70: 15 pts (B)
+ *   70 - 65: 14 pts (B)
+ *   65 - 55: 13 pts (B)
+ *   55 - 50: 12 pts (C)
+ *   50 - 40: 11 pts (C)
+ *   40 - 30: 10 pts (C)
+ *   Below 30: 5 pts (No grade for m > 0; 0 pts if m <= 0 or absent)
  *
  * Fallback (when Grade Pointing System is disabled):
  * Rank-based points (1st: 20, 2nd: 14, 3rd: 7, etc.)
@@ -51,22 +94,38 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
   const gradeSystemEnabled = settings?.gradeSystemEnabled !== false;
 
   if (gradeSystemEnabled) {
+    if (r.status === ResultStatus.ABSENT || (r as any).status === 'absent') return 0;
     const mark = getNormalizedMark(r);
-    const grade = calculateGrade(mark);
-    const isGroup = !!r.teamId || comp?.participationType === ParticipationType.GROUP || (comp as any)?.isGroup === true;
+    const m = Math.round(Number(mark) || 0);
+    if (m <= 0) return 0;
+
+    const isGroup = !!r.teamId || comp?.participationType === ParticipationType.GROUP || (comp as any)?.isGroup === true || comp?.participationType === 'group';
 
     if (isGroup) {
-      if (grade === 'A+') return 12;
-      if (grade === 'A') return 10;
-      if (grade === 'B') return 7;
-      if (grade === 'C') return 5;
-      return 0;
+      if (m >= 95) return 20;
+      if (m >= 90) return 19;
+      if (m >= 85) return 18;
+      if (m >= 80) return 17;
+      if (m >= 75) return 16;
+      if (m >= 70) return 15;
+      if (m >= 65) return 14;
+      if (m >= 55) return 13;
+      if (m >= 50) return 12;
+      if (m >= 40) return 11;
+      if (m >= 30) return 10;
+      return 5; // Below 30 (for active participation with marks > 0)
     } else {
-      if (grade === 'A+') return 6;
-      if (grade === 'A') return 5;
-      if (grade === 'B') return 3;
-      if (grade === 'C') return 1;
-      return 0;
+      if (m >= 95) return 10;
+      if (m >= 90) return 9;
+      if (m >= 85) return 8;
+      if (m >= 80) return 7;
+      if (m >= 75) return 6;
+      if (m >= 70) return 5;
+      if (m >= 65) return 4;
+      if (m >= 55) return 3;
+      if (m >= 50) return 2;
+      if (m >= 40) return 1;
+      return 0; // Below 40
     }
   }
 
