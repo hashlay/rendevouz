@@ -171,8 +171,10 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
               </h2>
               <div className="flex gap-4 mt-4 font-mono text-xs">
                 <div>
-                  <span className="text-emerald-400">Total Marks:</span>
-                  <span className="text-white font-bold ml-1">{stats.leadingUnit ? stats.leadingUnit.overallMarks : 0}</span>
+                  <span className="text-emerald-400">Total Points:</span>
+                  <span className="text-white font-bold ml-1">
+                    {stats.leadingUnit ? (stats.leadingUnit.overallPoints !== undefined ? stats.leadingUnit.overallPoints : stats.leadingUnit.overallMarks) : 0} pts
+                  </span>
                 </div>
                 <div>
                   <span className="text-emerald-400">R1 Placements:</span>
@@ -182,7 +184,7 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
             </div>
           </div>
           <div className="mt-8 pt-4 border-t border-emerald-800/50 flex justify-between items-center text-xs text-emerald-300 font-semibold">
-            <span>Standings reflect raw judges' totals</span>
+            <span>Standings reflect official points</span>
             <TrendingUp className="h-4 w-4 text-emerald-400" />
           </div>
         </div>
