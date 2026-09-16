@@ -5533,26 +5533,33 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
     if (!isJudge) {
       const gr = (db.greenRoomAssignments || []).find((a: GreenRoomAssignment) => a.id === s.greenRoomAssignmentId);
 
-      // If result is published, overlay the actual published marks onto this view safely
-      const publishedResult = db.results.find(r =>
+      // Overlay actual entered marks onto this view safely (both draft and published results)
+      const matchedResult = (db.results || []).find(r =>
         r.competitionId === sheet.competitionId &&
         !r.deletedAt &&
-        r.publishedStatus &&
         ((gr?.participantId && r.participantId === gr.participantId) || (gr?.teamId && r.teamId === gr.teamId))
       );
 
-      if (publishedResult) {
-        if (typeof publishedResult.totalMark === 'number' && publishedResult.totalMark > 0) {
-          base.totalMark = publishedResult.totalMark;
-        }
-        const j1Val = Number(publishedResult.judge1Mark) || 0;
-        const j2Val = Number(publishedResult.judge2Mark) || 0;
+      if (matchedResult) {
+        const j1Val = Number(matchedResult.judge1Mark) || 0;
+        const j2Val = Number(matchedResult.judge2Mark) || 0;
         const activeCount = (j1Val > 0 ? 1 : 0) + (j2Val > 0 ? 1 : 0) || 1;
-        if (publishedResult.averageMark !== undefined && publishedResult.averageMark > 0) {
-          base.averageMark = publishedResult.averageMark;
+        const calculatedAvg = (j1Val > 0 || j2Val > 0) ? Math.round(((j1Val + j2Val) / activeCount) * 100) / 100 : 0;
+        const resultAvg = (matchedResult.averageMark !== undefined && matchedResult.averageMark > 0)
+          ? matchedResult.averageMark
+          : (matchedResult.totalMark && matchedResult.totalMark > 0 ? Math.round((matchedResult.totalMark / activeCount) * 100) / 100 : calculatedAvg);
+
+        if (typeof matchedResult.totalMark === 'number' && matchedResult.totalMark > 0) {
+          base.totalMark = matchedResult.totalMark;
+        } else if (j1Val > 0 || j2Val > 0) {
+          base.totalMark = j1Val + j2Val;
         }
-        if (publishedResult.rank) {
-          base.rank = publishedResult.rank;
+
+        if (resultAvg > 0) {
+          base.averageMark = resultAvg;
+        }
+        if (matchedResult.rank) {
+          base.rank = matchedResult.rank;
         }
 
         // Reconstruct judge scores for display if non-zero
@@ -5569,6 +5576,14 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
           base.judgeScores.push({ judgeNumber: 2, mark: j2Val });
         } else if (j2 && j2Val > 0) {
           j2.mark = j2Val;
+        }
+
+        // Keep s in db.judgeScores synchronized in memory as well if it lacked marks
+        if ((!s.judgeScores || s.judgeScores.length === 0) && (j1Val > 0 || j2Val > 0)) {
+          s.judgeScores = [...base.judgeScores];
+          s.totalMark = base.totalMark;
+          s.averageMark = base.averageMark;
+          if (matchedResult.rank) s.rank = matchedResult.rank;
         }
       }
 
@@ -5812,7 +5827,7 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
   const hasAnyScores = allScores.some(s => s.judgeScores.length > 0 || s.status !== JudgeScoreStatus.PARTICIPATED);
   const allComplete = allScores.every(s => s.judgeScores.length >= sheet.numJudges || s.status !== JudgeScoreStatus.PARTICIPATED);
 
-  if (sheet.status !== JudgmentSheetStatus.LOCKED) {
+  if ((sheet.status as any) !== JudgmentSheetStatus.LOCKED) {
     if (allComplete && allScores.length > 0) {
       sheet.status = JudgmentSheetStatus.COMPLETED;
     } else if (hasAnyScores) {
@@ -5854,11 +5869,17 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
     );
 
     if (existingResult) {
-      existingResult.judge1Mark = j1Mark;
-      existingResult.judge2Mark = j2Mark;
-      existingResult.totalMark = score.totalMark;
-      existingResult.averageMark = score.averageMark;
-      if (!existingResult.manualRankOverride) {
+      if (j1Mark > 0 || score.judgeScores.some(j => j.judgeNumber === 1)) {
+        existingResult.judge1Mark = j1Mark;
+      }
+      if (j2Mark > 0 || score.judgeScores.some(j => j.judgeNumber === 2)) {
+        existingResult.judge2Mark = j2Mark;
+      }
+      if (score.totalMark > 0 || score.judgeScores.length > 0) {
+        existingResult.totalMark = score.totalMark;
+        existingResult.averageMark = score.averageMark;
+      }
+      if (!existingResult.manualRankOverride && score.rank) {
         existingResult.rank = score.rank;
       }
       existingResult.status = resultStatus;
@@ -6251,8 +6272,8 @@ apiRouter.get('/public/results', async (req, res) => {
         rank: r.rank || 0,
         grade,
         points,
-        totalMark: m,
-        marks: m,
+        totalMark: normalizedMark,
+        marks: normalizedMark,
         certificatePublished: r.certificatePublished || false,
         // Also send raw data for Poster Studio
         raw: {

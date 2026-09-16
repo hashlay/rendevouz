@@ -167,6 +167,7 @@ export interface Participant {
   active: boolean;
   registrationStatus?: string;
   registeredAt?: string;
+  registeredEvents?: string[];
   
   // Soft delete fields
   deletedAt?: string;
