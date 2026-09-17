@@ -25,6 +25,70 @@ const STATUS_LABELS: Record<string, string> = {
   locked: 'Locked'
 };
 
+const computeGrade = (mark: number, isGroup: boolean): string => {
+  const m = Math.round(Number(mark) || 0);
+  if (m <= 0) return '';
+  if (isGroup) {
+    if (m >= 95) return 'A+';
+    if (m >= 80) return 'A';
+    if (m >= 55) return 'B';
+    if (m >= 30) return 'C';
+    return '';
+  } else {
+    if (m >= 95) return 'A+';
+    if (m >= 85) return 'A';
+    if (m >= 70) return 'B';
+    if (m >= 50) return 'C';
+    return '';
+  }
+};
+
+const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank?: number): number => {
+  const gradeSystemEnabled = eventSettings?.gradeSystemEnabled !== false;
+  const m = Math.round(Number(mark) || 0);
+
+  if (gradeSystemEnabled) {
+    if (m <= 0) return 0;
+    if (isGroup) {
+      if (m >= 95) return 20;
+      if (m >= 90) return 19;
+      if (m >= 85) return 18;
+      if (m >= 80) return 17;
+      if (m >= 75) return 16;
+      if (m >= 70) return 15;
+      if (m >= 65) return 14;
+      if (m >= 55) return 13;
+      if (m >= 50) return 12;
+      if (m >= 40) return 11;
+      if (m >= 30) return 10;
+      return 5; // Below 30 (for active participation with marks > 0)
+    } else {
+      if (m >= 95) return 10;
+      if (m >= 90) return 9;
+      if (m >= 85) return 8;
+      if (m >= 80) return 7;
+      if (m >= 75) return 6;
+      if (m >= 70) return 5;
+      if (m >= 65) return 4;
+      if (m >= 55) return 3;
+      if (m >= 50) return 2;
+      if (m >= 40) return 1;
+      return 0; // Below 40
+    }
+  }
+
+  // Fallback: Rank-based points (when Grade Pointing System is disabled)
+  if (!rank || rank > 10) return 0;
+  const settingsKey = `globalPointsRank${rank}`;
+  const settingsVal = eventSettings?.[settingsKey];
+  if (settingsVal !== undefined && settingsVal !== null) {
+    const val = Number(settingsVal);
+    if (!isNaN(val)) return val;
+  }
+  const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
+  return defaultMap[rank] || 0;
+};
+
 export default function JudgmentSheetsView({ user, token, eventSettings }: JudgmentSheetsViewProps) {
   const [sheets, setSheets] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -896,18 +960,32 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                     )}
 
                     {!isJudge && (
-                      <th className="text-center px-3 py-3 font-semibold text-slate-600 w-16">Rank</th>
+                      <>
+                        <th className="text-center px-2 py-3 font-semibold text-slate-600 w-20">Grade</th>
+                        <th className="text-center px-2 py-3 font-semibold text-slate-600 w-24">Points</th>
+                        <th className="text-center px-3 py-3 font-semibold text-slate-600 w-16">Rank</th>
+                      </>
                     )}
                   </tr>
                 </thead>
                 <tbody>
                   {currentScores.map((s: any, sIdx: number) => {
-                    const isParticipated = s.status === JudgeScoreStatus.PARTICIPATED;
+                    const isParticipated = s.status === JudgeScoreStatus.PARTICIPATED || s.status === 'participated';
                     const isLocked = currentSheet.status === JudgmentSheetStatus.LOCKED;
+                    const isGroupCompetition = String(currentSheet?.participationType).toLowerCase() === 'group' || (currentSheet as any)?.isGroup === true;
 
                     // Judge slot entry (dynamic based on activeJudgeNumber selection)
                     const judgeSlotNum = activeJudgeNumber;
                     const activeJudgeEntry = s.judgeScores.find((x: any) => x.judgeNumber === judgeSlotNum);
+
+                    const nonZeroMarks = (s.judgeScores || []).filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
+                    const sumMarks = (s.judgeScores || []).reduce((sum: number, jm: any) => sum + (typeof jm.mark === 'number' && !Number.isNaN(jm.mark) ? jm.mark : 0), 0);
+                    const activeJudgesCount = nonZeroMarks.length > 0 ? nonZeroMarks.length : 1;
+                    const calculatedAvg = Math.round((sumMarks / activeJudgesCount) * 100) / 100;
+                    const displayAvg = (s.averageMark && s.averageMark > 0) ? s.averageMark : (sumMarks > 0 ? calculatedAvg : (s.averageMark ?? 0));
+
+                    const displayGrade = isParticipated && displayAvg > 0 ? computeGrade(displayAvg, isGroupCompetition) : (s.grade || '');
+                    const displayPoints = isParticipated && displayAvg > 0 ? computePoints(displayAvg, isGroupCompetition, eventSettings, s.rank) : (s.points ?? 0);
 
                     return (
                       <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
@@ -1035,25 +1113,48 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                                   <span className="text-xs font-bold text-rose-600">Disqualified</span>
                                 ) : !isParticipated ? (
                                   '—'
-                                ) : (() => {
-                                  const nonZeroMarks = (s.judgeScores || []).filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
-                                  const sumMarks = (s.judgeScores || []).reduce((sum: number, jm: any) => sum + (typeof jm.mark === 'number' && !Number.isNaN(jm.mark) ? jm.mark : 0), 0);
-                                  const activeJudgesCount = nonZeroMarks.length > 0 ? nonZeroMarks.length : 1;
-                                  const calculatedAvg = Math.round((sumMarks / activeJudgesCount) * 100) / 100;
-                                  const displayAvg = (s.averageMark && s.averageMark > 0) ? s.averageMark : (sumMarks > 0 ? calculatedAvg : (s.averageMark ?? 0));
-                                  return displayAvg;
-                                })()}
+                                ) : (
+                                  displayAvg
+                                )}
                               </div>
                             </td>
                           </>
                         )}
 
                         {!isJudge && (
-                          <td className="px-3 py-2 text-center">
-                            <div className={`font-bold text-lg ${s.rank === 1 ? 'text-amber-500' : s.rank === 2 ? 'text-slate-400' : s.rank === 3 ? 'text-amber-700' : 'text-slate-600'}`}>
-                              {s.rank || '-'}
-                            </div>
-                          </td>
+                          <>
+                            <td className="px-2 py-2 text-center">
+                              {isParticipated && displayAvg > 0 && displayGrade ? (
+                                <span className={`inline-flex items-center justify-center min-w-[32px] px-2 py-0.5 rounded-md border text-xs font-mono font-bold shadow-xs ${
+                                  displayGrade === 'A+' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
+                                  displayGrade === 'A' ? 'bg-blue-50 text-blue-700 border-blue-300' :
+                                  displayGrade === 'B' ? 'bg-amber-50 text-amber-700 border-amber-300' :
+                                  displayGrade === 'C' ? 'bg-purple-50 text-purple-700 border-purple-300' :
+                                  'bg-slate-50 text-slate-600 border-slate-200'
+                                }`}>
+                                  {displayGrade}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 font-mono text-xs">—</span>
+                              )}
+                            </td>
+
+                            <td className="px-2 py-2 text-center">
+                              {isParticipated && displayAvg > 0 && displayPoints > 0 ? (
+                                <span className="font-mono font-bold text-xs text-indigo-900 bg-indigo-50/80 border border-indigo-200/80 px-2 py-0.5 rounded-md shadow-xs">
+                                  {displayPoints} pts
+                                </span>
+                              ) : (
+                                <span className="font-mono text-xs text-slate-400">0 pts</span>
+                              )}
+                            </td>
+
+                            <td className="px-3 py-2 text-center">
+                              <div className={`font-bold text-lg ${s.rank === 1 ? 'text-amber-500' : s.rank === 2 ? 'text-slate-400' : s.rank === 3 ? 'text-amber-700' : 'text-slate-600'}`}>
+                                {s.rank || '-'}
+                              </div>
+                            </td>
+                          </>
                         )}
                       </tr>
                     );

@@ -5638,6 +5638,29 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
     }
   }
 
+  // Dynamically calculate grade and points for each score using official Grade Pointing System
+  const isGroupCompetition = competition?.participationType === 'group' || (sheet as any).participationType === 'group' || (competition as any)?.isGroup === true;
+  for (const item of enrichedScores) {
+    const isPart = item.status === JudgeScoreStatus.PARTICIPATED || item.status === 'participated';
+    const avg = Number(item.averageMark) || 0;
+    if (!isPart || avg <= 0) {
+      item.grade = '';
+      item.points = 0;
+    } else {
+      item.grade = calculateGrade(avg, isGroupCompetition);
+      const dummyResult: any = {
+        averageMark: avg,
+        totalMark: item.totalMark || avg,
+        rank: item.rank,
+        status: ResultStatus.PARTICIPATED,
+        teamId: isGroupCompetition ? 'team_group' : undefined,
+        categoryId: sheet.categoryId,
+        competitionId: sheet.competitionId
+      };
+      item.points = calculateResultPoints(dummyResult, competition, db.eventSettings);
+    }
+  }
+
   // Sort by code letter
   enrichedScores.sort((a: any, b: any) => a.codeLetter.localeCompare(b.codeLetter));
 
