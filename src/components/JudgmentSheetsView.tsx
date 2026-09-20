@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Scale, RefreshCw, Printer, Search, ChevronDown,
-  CheckCircle, Clock, AlertTriangle, FileText, Check, Save, Lock, Plus
+  CheckCircle, Clock, AlertTriangle, FileText, Check, Save, Lock, Plus,
+  Trophy, X
 } from 'lucide-react';
 import { User, UserRole, JudgmentSheetStatus, JudgeScoreStatus } from '../types';
 
@@ -61,7 +62,7 @@ const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank
       if (m >= 50) return 12;
       if (m >= 40) return 11;
       if (m >= 30) return 10;
-      return 5; // Below 30 (for active participation with marks > 0)
+      return 5;
     } else {
       if (m >= 95) return 10;
       if (m >= 90) return 9;
@@ -73,7 +74,7 @@ const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank
       if (m >= 55) return 3;
       if (m >= 50) return 2;
       if (m >= 40) return 1;
-      return 0; // Below 40
+      return 0;
     }
   }
 
@@ -96,15 +97,58 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
   const [competitions, setCompetitions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Workflow state
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedCompetitionId, setSelectedCompetitionId] = useState('');
   const [currentSheet, setCurrentSheet] = useState<any>(null);
   const [currentScores, setCurrentScores] = useState<any[]>([]);
-  const [viewMode, setViewMode] = useState<'dashboard' | 'generate' | 'enter' | 'print'>('dashboard');
+  const [viewMode, setViewMode] = useState<'dashboard' | 'generate' | 'enter' | 'print' | 'print-winners'>('dashboard');
   const [printType, setPrintType] = useState<'blank' | 'filled'>('blank');
+
+  // Preview Champions state
+  const [showChampionsModal, setShowChampionsModal] = useState(false);
+  const [championsData, setChampionsData] = useState<any[]>([]);
+  const [championsLoading, setChampionsLoading] = useState(false);
+
+  // Print Winners state
+  const [winnersData, setWinnersData] = useState<any[]>([]);
+  const [winnersLoading, setWinnersLoading] = useState(false);
+
+  const fetchChampionsPreview = async () => {
+    setChampionsLoading(true);
+    setShowChampionsModal(true);
+    try {
+      const res = await fetch(`/api/judgment-sheets/preview-champions?t=${Date.now()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to calculate champion preview');
+      setChampionsData(data);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setChampionsLoading(false);
+    }
+  };
+
+  const openWinnersPrint = async () => {
+    setWinnersLoading(true);
+    try {
+      const res = await fetch(`/api/judgment-sheets/winners-list?t=${Date.now()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch locked winners list');
+      setWinnersData(data);
+      setViewMode('print-winners');
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setWinnersLoading(false);
+    }
+  };
 
   // Active Judge slot toggle (for judge users evaluating as Judge 1 or Judge 2)
   const [activeJudgeNumber, setActiveJudgeNumber] = useState<number>(1);
@@ -549,6 +593,134 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
     );
   }
 
+  if (viewMode === 'print-winners') {
+    return (
+      <div className="bg-white min-h-screen p-4 sm:p-8 max-w-[210mm] mx-auto text-black font-sans">
+        {/* Print Controls (Hidden when printing) */}
+        <div className="mb-6 flex justify-between items-center print:hidden no-print border-b pb-4">
+          <button
+            onClick={() => setViewMode('dashboard')}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition"
+          >
+            ← Back to Judgment Sheets
+          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => window.print()}
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow flex items-center gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              Print Master Winners Sheet
+            </button>
+          </div>
+        </div>
+
+        {/* Master Print Document */}
+        <div id="master-winners-print">
+          {/* Header */}
+          <div className="border-b-2 border-black pb-4 mb-4 text-center">
+            <h1 className="text-xl font-black uppercase tracking-wider">
+              {eventSettings?.festivalName || 'RENDEZVOUS 26'}
+            </h1>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-0.5">
+              {eventSettings?.campusName || eventSettings?.sectorName || 'Imam Rabbani Life Festival'}
+            </p>
+            <div className="mt-2 inline-block bg-black text-white text-[11px] font-bold px-3 py-0.5 uppercase tracking-widest rounded">
+              Official Stage Announcement Winners Sheet
+            </div>
+            <p className="text-[10px] text-slate-500 mt-1 font-mono">
+              Printed: {new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} • Total Competitions: {winnersData.length}
+            </p>
+          </div>
+
+          {/* Table of Winners */}
+          <div className="space-y-4">
+            {winnersData.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 font-mono text-xs">
+                No evaluated or locked competitions found with 1st, 2nd, or 3rd place winners.
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse text-xs border border-slate-300">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-300 font-mono text-[10px] uppercase font-bold text-slate-700">
+                    <th className="p-2 border-r border-slate-300 w-10 text-center">#</th>
+                    <th className="p-2 border-r border-slate-300 w-44">Competition</th>
+                    <th className="p-2 border-r border-slate-300">1st Place 🥇</th>
+                    <th className="p-2 border-r border-slate-300">2nd Place 🥈</th>
+                    <th className="p-2">3rd Place 🥉</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {winnersData.map((item: any, idx: number) => {
+                    const r1 = item.winners.filter((w: any) => w.rank === 1);
+                    const r2 = item.winners.filter((w: any) => w.rank === 2);
+                    const r3 = item.winners.filter((w: any) => w.rank === 3);
+
+                    const renderWinnerCell = (winners: any[]) => {
+                      if (!winners || winners.length === 0) {
+                        return <span className="text-slate-300 font-mono text-[10px]">—</span>;
+                      }
+                      return (
+                        <div className="space-y-1">
+                          {winners.map((w: any, wIdx: number) => (
+                            <div key={wIdx} className="leading-tight">
+                              <div className="font-bold text-slate-900 text-xs">
+                                {w.name} {w.chestNumber && w.chestNumber !== '—' && <span className="font-mono text-slate-500 text-[10px]">({w.chestNumber})</span>}
+                              </div>
+                              <div className="text-[10px] text-slate-600 font-medium">
+                                <span className="font-semibold text-slate-800">{w.unitName}</span> • <span className="font-mono">{w.mark} mks</span> {w.grade && w.grade !== '—' && <span className="font-bold">({w.grade})</span>} {w.points != null && <span className="text-slate-500">[{w.points} pts]</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <tr key={item.competitionId} className="break-inside-avoid hover:bg-slate-50/50">
+                        <td className="p-2 border-r border-slate-200 text-center font-mono font-bold text-slate-500 text-[10px]">
+                          {idx + 1}
+                        </td>
+                        <td className="p-2 border-r border-slate-200 align-top">
+                          <div className="font-bold text-slate-900 text-xs">{item.competitionName}</div>
+                          <div className="text-[9px] font-mono text-slate-500 uppercase mt-0.5">
+                            {item.categoryName} • {(item.stageType || 'on_stage').replace('_', ' ')}
+                          </div>
+                          <div className="mt-0.5">
+                            <span className={`text-[8px] font-mono font-bold px-1.5 py-0.2 rounded uppercase ${
+                              item.isPublished ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {item.isPublished ? 'Announced' : 'Locked'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-2 border-r border-slate-200 align-top bg-amber-50/20">
+                          {renderWinnerCell(r1)}
+                        </td>
+                        <td className="p-2 border-r border-slate-200 align-top bg-slate-50/30">
+                          {renderWinnerCell(r2)}
+                        </td>
+                        <td className="p-2 align-top bg-orange-50/20">
+                          {renderWinnerCell(r3)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Footer for Announcers */}
+          <div className="mt-8 pt-4 border-t border-slate-300 text-[10px] text-slate-500 flex justify-between items-center font-mono">
+            <div>Verified by Festival Controller / Scoring Committee</div>
+            <div>Stage Announcer Signature: __________________</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 min-w-0 w-full overflow-x-hidden">
       {/* Header */}
@@ -560,14 +732,37 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
           </h1>
           <p className="text-sm text-slate-500 mt-1">Anonymous evaluation and scoring</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {viewMode !== 'dashboard' && (
             <button onClick={() => setViewMode('dashboard')} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition">
               ← Back to Dashboard
             </button>
           )}
+          {!isJudge && viewMode === 'dashboard' && (
+            <>
+              <button
+                onClick={fetchChampionsPreview}
+                disabled={championsLoading}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-sm shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                title="View Internal Live House Points & Champions Preview"
+              >
+                <Trophy className="h-4 w-4 text-slate-950" />
+                <span>{championsLoading ? 'Loading...' : 'Preview Champions'}</span>
+              </button>
+
+              <button
+                onClick={openWinnersPrint}
+                disabled={winnersLoading}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg text-sm shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Print 1st, 2nd, and 3rd rank winners across all locked competitions"
+              >
+                <Printer className="h-4 w-4 text-slate-200" />
+                <span>{winnersLoading ? 'Loading...' : 'Print Winners'}</span>
+              </button>
+            </>
+          )}
           {canGenerate && viewMode === 'dashboard' && (
-            <button onClick={() => setViewMode('generate')} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">
+            <button onClick={() => setViewMode('generate')} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition cursor-pointer">
               Generate New Sheet
             </button>
           )}
@@ -1161,6 +1356,138 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                   })}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- PREVIEW CHAMPIONS MODAL --- */}
+      {showChampionsModal && (
+        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 font-sans no-print">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
+            
+            {/* Header */}
+            <div className="flex justify-between items-center border-b pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-amber-100 rounded-xl">
+                  <Trophy className="h-5 w-5 text-amber-700" />
+                </div>
+                <div>
+                  <h3 className="font-display font-extrabold text-slate-800 text-base flex items-center gap-2">
+                    <span>Preview Champions</span>
+                    <span className="text-[10px] font-mono bg-amber-100 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-full font-bold uppercase">
+                      Internal Tally
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Includes all locked & published results (strictly confidential & not visible to public)
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowChampionsModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            {championsLoading ? (
+              <div className="py-12 flex flex-col items-center justify-center">
+                <RefreshCw className="h-8 w-8 text-amber-500 animate-spin mb-3" />
+                <span className="text-slate-500 text-xs font-mono">Calculating live champion standings...</span>
+              </div>
+            ) : championsData.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 font-mono text-xs">
+                No standings data available yet.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* 1st Place Champion Spotlight */}
+                {championsData[0] && (
+                  <div className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 text-slate-950 p-4 rounded-2xl shadow-md flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-slate-950 text-amber-400 flex items-center justify-center font-extrabold text-xl shadow-inner">
+                        👑 1
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase tracking-widest font-mono font-bold text-amber-950 block">Current Leading Champion</span>
+                        <h2 className="text-xl font-black uppercase tracking-wide">{championsData[0].unitName}</h2>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-3xl font-black">{championsData[0].overallPoints}</span>
+                      <span className="text-[10px] font-mono font-bold block uppercase tracking-wider text-amber-950">Total Points</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Full Standings Table */}
+                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-50 font-mono text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-3 text-center w-12">Rank</th>
+                        <th className="py-2.5 px-3 text-left">House / Unit</th>
+                        <th className="py-2.5 px-3 text-center">Indiv Pts</th>
+                        <th className="py-2.5 px-3 text-center">Group Pts</th>
+                        <th className="py-2.5 px-3 text-right">Total Points</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {championsData.map((st: any) => {
+                        const isTop = st.rank === 1;
+                        return (
+                          <tr key={st.unitId} className={`hover:bg-slate-50/60 ${isTop ? 'bg-amber-50/30 font-bold' : ''}`}>
+                            <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                              <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full font-bold text-xs ${
+                                st.rank === 1 ? 'bg-amber-400 text-slate-950 shadow-sm' :
+                                st.rank === 2 ? 'bg-slate-200 text-slate-800' :
+                                st.rank === 3 ? 'bg-orange-200 text-orange-950' : 'bg-slate-100 text-slate-500'
+                              }`}>
+                                {st.rank}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 font-semibold text-slate-800 whitespace-nowrap">
+                              {st.unitName}
+                              <span className="text-[10px] text-slate-400 font-mono ml-2">({st.completedResultsCount} events)</span>
+                            </td>
+                            <td className="py-2.5 px-3 text-center font-mono text-slate-600 whitespace-nowrap">
+                              {st.individualPoints || 0}
+                            </td>
+                            <td className="py-2.5 px-3 text-center font-mono text-slate-600 whitespace-nowrap">
+                              {st.groupPoints || 0}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-extrabold text-sm text-emerald-700 whitespace-nowrap">
+                              {st.overallPoints}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="p-3 bg-slate-50 border rounded-xl text-[11px] text-slate-500 flex justify-between items-center">
+                  <span>💡 Note: Includes all locked & published results. Public site remains strictly showing announced results only.</span>
+                  <button
+                    onClick={() => { setShowChampionsModal(false); openWinnersPrint(); }}
+                    className="font-bold text-indigo-600 hover:text-indigo-800 underline ml-2 cursor-pointer"
+                  >
+                    View Winner List →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => setShowChampionsModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Close Preview
+              </button>
             </div>
           </div>
         </div>

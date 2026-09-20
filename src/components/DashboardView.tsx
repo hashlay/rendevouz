@@ -204,13 +204,19 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
               <p className="text-xs text-slate-400 font-mono mt-1 uppercase">
                 {stats.topIndividual ? `${stats.topIndividual.unitName} • ${stats.topIndividual.categoryName}` : '-'}
               </p>
-              <div className="flex gap-4 mt-4 font-mono text-xs">
+              <div className="flex flex-wrap gap-4 mt-4 font-mono text-xs">
                 <div>
-                  <span className="text-slate-400">Overall Score:</span>
-                  <span className="text-amber-400 font-bold ml-1">{stats.topIndividual ? stats.topIndividual.overallMarks : 0}</span>
+                  <span className="text-slate-400">Overall Points:</span>
+                  <span className="text-amber-400 font-bold ml-1">
+                    {stats.topIndividual ? (stats.topIndividual.individualPoints ?? stats.topIndividual.overallPoints ?? 0) : 0} pts
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400">Events Completed:</span>
+                  <span className="text-slate-400">Marks:</span>
+                  <span className="text-slate-200 font-bold ml-1">{stats.topIndividual ? stats.topIndividual.overallMarks : 0}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Events:</span>
                   <span className="text-white font-bold ml-1">{stats.topIndividual ? stats.topIndividual.totalEvents : 0}</span>
                 </div>
               </div>
@@ -277,13 +283,19 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
               <p className="text-xs text-indigo-200/70 font-mono mt-1 uppercase">
                 {stats.topIndividualOnStage ? `${stats.topIndividualOnStage.unitName} • ${stats.topIndividualOnStage.categoryName}` : '-'}
               </p>
-              <div className="flex gap-4 mt-4 font-mono text-xs">
+              <div className="flex flex-wrap gap-4 mt-4 font-mono text-xs">
                 <div>
-                  <span className="text-indigo-300">On-Stage Score:</span>
-                  <span className="text-amber-400 font-bold ml-1">{stats.topIndividualOnStage ? stats.topIndividualOnStage.overallMarks : 0}</span>
+                  <span className="text-indigo-300">On-Stage Points:</span>
+                  <span className="text-amber-400 font-bold ml-1">
+                    {stats.topIndividualOnStage ? (stats.topIndividualOnStage.individualPoints ?? stats.topIndividualOnStage.overallPoints ?? 0) : 0} pts
+                  </span>
                 </div>
                 <div>
-                  <span className="text-indigo-300">Events Completed:</span>
+                  <span className="text-indigo-300">Marks:</span>
+                  <span className="text-indigo-100 font-bold ml-1">{stats.topIndividualOnStage ? stats.topIndividualOnStage.overallMarks : 0}</span>
+                </div>
+                <div>
+                  <span className="text-indigo-300">Events:</span>
                   <span className="text-white font-bold ml-1">{stats.topIndividualOnStage ? stats.topIndividualOnStage.totalEvents : 0}</span>
                 </div>
               </div>
@@ -312,13 +324,19 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
               <p className="text-xs text-teal-200/70 font-mono mt-1 uppercase">
                 {stats.topIndividualOffStage ? `${stats.topIndividualOffStage.unitName} • ${stats.topIndividualOffStage.categoryName}` : '-'}
               </p>
-              <div className="flex gap-4 mt-4 font-mono text-xs">
+              <div className="flex flex-wrap gap-4 mt-4 font-mono text-xs">
                 <div>
-                  <span className="text-teal-300">Off-Stage Score:</span>
-                  <span className="text-amber-400 font-bold ml-1">{stats.topIndividualOffStage ? stats.topIndividualOffStage.overallMarks : 0}</span>
+                  <span className="text-teal-300">Off-Stage Points:</span>
+                  <span className="text-amber-400 font-bold ml-1">
+                    {stats.topIndividualOffStage ? (stats.topIndividualOffStage.individualPoints ?? stats.topIndividualOffStage.overallPoints ?? 0) : 0} pts
+                  </span>
                 </div>
                 <div>
-                  <span className="text-teal-300">Events Completed:</span>
+                  <span className="text-teal-300">Marks:</span>
+                  <span className="text-teal-100 font-bold ml-1">{stats.topIndividualOffStage ? stats.topIndividualOffStage.overallMarks : 0}</span>
+                </div>
+                <div>
+                  <span className="text-teal-300">Events:</span>
                   <span className="text-white font-bold ml-1">{stats.topIndividualOffStage ? stats.topIndividualOffStage.totalEvents : 0}</span>
                 </div>
               </div>

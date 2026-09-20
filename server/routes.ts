@@ -3989,12 +3989,14 @@ apiRouter.get('/scoreboard', authenticate, async (req, res) => {
   const unitId = req.query.unitId ? String(req.query.unitId) : undefined;
   const stageType = req.query.stageType ? (String(req.query.stageType) as StageType) : undefined;
   const search = req.query.search ? String(req.query.search) : undefined;
+  const includeLocked = req.query.includeLocked !== 'false'; // Enabled by default as requested!
 
   const scoreboard = CalculationService.getIndividualScoreboard({
     categoryId,
     unitId,
     stageType,
-    search
+    search,
+    includeLocked
   });
 
   res.json(scoreboard);
@@ -5408,6 +5410,29 @@ apiRouter.get('/judgment-sheets/stats', authenticate, async (req, res) => {
     totalSheets: sheets.length,
     ...statusCounts
   });
+});
+
+// Preview Champions: Real-time internal house/unit points tally including locked sheets (Admin only)
+apiRouter.get('/judgment-sheets/preview-champions', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.RESULT_MANAGER]), async (req, res) => {
+  try {
+    await dbClient.waitForSync();
+    const categoryId = req.query.categoryId ? String(req.query.categoryId) : undefined;
+    const standings = CalculationService.getUnitStandings({ categoryId, includeLocked: true });
+    res.json(standings);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to calculate champion preview', details: err?.message });
+  }
+});
+
+// Master Winners List: 1st, 2nd, and 3rd place winners across all locked competitions for stage announcements (Admin only)
+apiRouter.get('/judgment-sheets/winners-list', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM, UserRole.RESULT_MANAGER]), async (req, res) => {
+  try {
+    await dbClient.waitForSync();
+    const winners = CalculationService.getLockedWinnersList();
+    res.json(winners);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to fetch locked winners list', details: err?.message });
+  }
 });
 
 // Generate judgment sheet for a competition

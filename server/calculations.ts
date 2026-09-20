@@ -1,7 +1,7 @@
 import { dbClient } from './db.js';
 import { 
   Participant, Result, Team, Unit, Competition, StageType, 
-  ResultStatus, ParticipationType 
+  ResultStatus, ParticipationType, JudgmentSheetStatus 
 } from '../src/types.js';
 
 /**
@@ -227,9 +227,29 @@ export const CalculationService = {
     unitId?: string;
     stageType?: StageType;
     search?: string;
+    includeLocked?: boolean;
   } = {}) => {
     const db = dbClient.get();
+    const includeLocked = filters.includeLocked !== false; // Enabled by default as requested!
     
+    const lockedCompIds = new Set(
+      (db.judgmentSheets || [])
+        .filter(js => !js.deletedAt && (js.status === JudgmentSheetStatus.LOCKED || js.publishedToResults))
+        .map(js => js.competitionId)
+    );
+
+    const isResultEligible = (r: Result) => {
+      if (r.deletedAt) return false;
+      const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
+      if (!statusOk) return false;
+      const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
+      if (isPub) return true;
+      if (includeLocked) {
+        if (lockedCompIds.has(r.competitionId)) return true;
+      }
+      return false;
+    };
+
     // Get all active, non-deleted participants
     let participants = db.participants.filter(p => !p.deletedAt);
     
@@ -247,29 +267,38 @@ export const CalculationService = {
     
     // Map participants to their scores
     const scoreboardEntries = participants.map(participant => {
-      // Find all results for this participant
-      // Individual results:
-      const individualResults = db.results.filter(r => {
-        if (r.deletedAt) return false;
+      // Find all eligible individual results for this participant:
+      const rawIndResults = db.results.filter(r => {
         if (r.participantId !== participant.id) return false;
-        const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
-        if (!isPub) return false;
-        const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
-        return statusOk;
+        return isResultEligible(r);
       });
+
+      // Strict Deduplication per competitionId: Never count any competition twice!
+      const uniqueIndMap = new Map<string, Result>();
+      rawIndResults.forEach(r => {
+        if (!uniqueIndMap.has(r.competitionId)) {
+          uniqueIndMap.set(r.competitionId, r);
+        }
+      });
+      const individualResults = Array.from(uniqueIndMap.values());
       
       // Group results: find teams where this participant is a member
       const teams = db.teams.filter(t => t.memberIds.includes(participant.id) && !t.deletedAt);
       const teamIds = teams.map(t => t.id);
       
-      const groupResults = db.results.filter(r => {
-        if (r.deletedAt) return false;
+      const rawGroupResults = db.results.filter(r => {
         if (!r.teamId || !teamIds.includes(r.teamId)) return false;
-        const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
-        if (!isPub) return false;
-        const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
-        return statusOk;
+        return isResultEligible(r);
       });
+
+      // Strict Deduplication per group competitionId:
+      const uniqueGrpMap = new Map<string, Result>();
+      rawGroupResults.forEach(r => {
+        if (!uniqueGrpMap.has(r.competitionId)) {
+          uniqueGrpMap.set(r.competitionId, r);
+        }
+      });
+      const groupResults = Array.from(uniqueGrpMap.values());
       
       // Fetch competition metadata for filtering by On-Stage / Off-Stage
       let filteredIndividualResults = individualResults;
@@ -308,16 +337,25 @@ export const CalculationService = {
 
       // Calculate sums
       // Individual Marks: strictly from primary category individual competitions
-      const individualMarks = primaryIndividualResults.reduce((sum, r) => sum + getNormalizedMark(r), 0);
-      const groupMarks = primaryGroupResults.reduce((sum, r) => sum + getNormalizedMark(r), 0);
-      const generalMarks = [...generalIndividualResults, ...generalGroupResults].reduce((sum, r) => sum + getNormalizedMark(r), 0);
+      const individualMarks = Math.round(primaryIndividualResults.reduce((sum, r) => sum + getNormalizedMark(r), 0) * 100) / 100;
+      const groupMarks = Math.round(primaryGroupResults.reduce((sum, r) => sum + getNormalizedMark(r), 0) * 100) / 100;
+      const generalMarks = Math.round([...generalIndividualResults, ...generalGroupResults].reduce((sum, r) => sum + getNormalizedMark(r), 0) * 100) / 100;
       
+      // Calculate points dynamically from grade pointing system
+      const individualPoints = primaryIndividualResults.reduce((sum, r) => {
+        const comp = db.competitions.find(c => c.id === r.competitionId);
+        return sum + calculateResultPoints(r, comp, db.eventSettings);
+      }, 0);
+
       // Individual Scoreboard strictly counts only their primary category individual competitions
       const overallMarks = individualMarks;
       const totalEvents = primaryIndividualResults.length;
       
       const unit = db.units.find(u => u.id === participant.unitId);
       const category = db.categories.find(c => c.id === participant.selectedCategoryId);
+
+      const cnRecord = (db.chestNumbers || []).find((c: any) => !c.deletedAt && (c.participantId === participant.id || c.entityId === participant.id));
+      const chestNumber = cnRecord?.chestNumber?.toString() || (participant as any).chestNumber?.toString() || participant.profilePhoto || '—';
       
       // Find rankings in individual, group, & general events
       const rankPlacements = [
@@ -328,7 +366,10 @@ export const CalculationService = {
             compName: comp ? toTitleCase(comp.name) : 'Competition',
             rank: r.rank,
             marks: getNormalizedMark(r),
-            type: 'Individual'
+            points: calculateResultPoints(r, comp, db.eventSettings),
+            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), false),
+            type: 'Individual',
+            isLocked: !((r as any).publishedStatus || (r as any).isPublished)
           };
         }),
         ...primaryGroupResults.map(r => {
@@ -338,7 +379,10 @@ export const CalculationService = {
             compName: comp ? toTitleCase(comp.name) : 'Competition',
             rank: r.rank,
             marks: getNormalizedMark(r),
-            type: 'Group'
+            points: calculateResultPoints(r, comp, db.eventSettings),
+            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), true),
+            type: 'Group',
+            isLocked: !((r as any).publishedStatus || (r as any).isPublished)
           };
         }),
         ...[...generalIndividualResults, ...generalGroupResults].map(r => {
@@ -348,7 +392,10 @@ export const CalculationService = {
             compName: comp ? toTitleCase(comp.name) : 'Competition',
             rank: r.rank,
             marks: getNormalizedMark(r),
-            type: 'General'
+            points: calculateResultPoints(r, comp, db.eventSettings),
+            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), comp?.participationType === 'group'),
+            type: 'General',
+            isLocked: !((r as any).publishedStatus || (r as any).isPublished)
           };
         })
       ];
@@ -362,31 +409,43 @@ export const CalculationService = {
         categoryName: category ? category.name : 'Unknown',
         totalEvents,
         individualMarks,
+        individualPoints,
+        overallPoints: individualPoints,
         groupMarks,
         generalMarks,
         overallMarks,
         placements: rankPlacements,
-        chestNumber: participant.profilePhoto || 'N/A'
+        chestNumber
       };
     });
     
-    // Sort by overall marks descending, then by name
+    // Sort primarily by points descending, then by overall marks descending, then by name
     scoreboardEntries.sort((a, b) => {
+      const bPts = b.individualPoints ?? 0;
+      const aPts = a.individualPoints ?? 0;
+      if (bPts !== aPts) {
+        return bPts - aPts;
+      }
       if (b.overallMarks !== a.overallMarks) {
         return b.overallMarks - a.overallMarks;
       }
       return a.name.localeCompare(b.name);
     });
     
-    // Assign ranks (Dense Ranking)
+    // Assign ranks (Dense Ranking based on points then marks)
     let currentRank = 1;
     const finalScoreboard = scoreboardEntries.map((entry, index) => {
-      if (index > 0 && scoreboardEntries[index].overallMarks < scoreboardEntries[index - 1].overallMarks) {
-        currentRank++;
+      if (index > 0) {
+        const prev = scoreboardEntries[index - 1];
+        const entryPts = entry.individualPoints ?? 0;
+        const prevPts = prev.individualPoints ?? 0;
+        if (entryPts < prevPts || (entryPts === prevPts && entry.overallMarks < prev.overallMarks)) {
+          currentRank++;
+        }
       }
       return {
         ...entry,
-        rank: entry.overallMarks > 0 ? currentRank : 'N/A'
+        rank: ((entry.individualPoints ?? 0) > 0 || entry.overallMarks > 0) ? currentRank : 'N/A'
       };
     });
     
@@ -399,8 +458,28 @@ export const CalculationService = {
    */
   getUnitStandings: (filters: {
     categoryId?: string;
+    includeLocked?: boolean;
   } = {}) => {
     const db = dbClient.get();
+    const includeLocked = Boolean(filters.includeLocked);
+
+    const lockedCompIds = new Set(
+      (db.judgmentSheets || [])
+        .filter(js => !js.deletedAt && (js.status === JudgmentSheetStatus.LOCKED || js.publishedToResults))
+        .map(js => js.competitionId)
+    );
+
+    const isResultEligible = (r: Result) => {
+      if (r.deletedAt) return false;
+      const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
+      if (!statusOk) return false;
+      const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
+      if (isPub) return true;
+      if (includeLocked) {
+        if (lockedCompIds.has(r.competitionId)) return true;
+      }
+      return false;
+    };
     
     // Sum scores for all 6 units
     const unitStandings = db.units.map(unit => {
@@ -425,17 +504,22 @@ export const CalculationService = {
       const participantIds = participants.map(p => p.id);
       
       // Individual results for this unit's participants or directly assigned unit
-      const individualResults = db.results.filter(r => {
-        if (r.deletedAt) return false;
-        const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
-        if (!isPub) return false;
-        const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
-        if (!statusOk) return false;
-        
+      const rawIndResults = db.results.filter(r => {
+        if (!isResultEligible(r)) return false;
         if (r.participantId && participantIds.includes(r.participantId)) return true;
         if (!r.teamId && (isUnitMatch((r as any).unitId, (r as any).unitName || (r as any).department))) return true;
         return false;
       });
+
+      // Strict Deduplication per (competitionId, participantId)
+      const uniqueIndMap = new Map<string, Result>();
+      rawIndResults.forEach(r => {
+        const key = `${r.competitionId}_${r.participantId || r.id}`;
+        if (!uniqueIndMap.has(key)) {
+          uniqueIndMap.set(key, r);
+        }
+      });
+      const individualResults = Array.from(uniqueIndMap.values());
       
       // Group results for this unit's teams
       let teams = db.teams.filter(t => (isUnitMatch(t.unitId) || t.unitId === unit.id) && !t.deletedAt);
@@ -444,17 +528,22 @@ export const CalculationService = {
       }
       const teamIds = teams.map(t => t.id);
       
-      const groupResults = db.results.filter(r => {
-        if (r.deletedAt) return false;
-        const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
-        if (!isPub) return false;
-        const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
-        if (!statusOk) return false;
-        
+      const rawGroupResults = db.results.filter(r => {
+        if (!isResultEligible(r)) return false;
         if (r.teamId && teamIds.includes(r.teamId)) return true;
         if (r.teamId && isUnitMatch((r as any).unitId, (r as any).unitName || (r as any).department)) return true;
         return false;
       });
+
+      // Strict Deduplication per (competitionId, teamId)
+      const uniqueGrpMap = new Map<string, Result>();
+      rawGroupResults.forEach(r => {
+        const key = `${r.competitionId}_${r.teamId || r.id}`;
+        if (!uniqueGrpMap.has(key)) {
+          uniqueGrpMap.set(key, r);
+        }
+      });
+      const groupResults = Array.from(uniqueGrpMap.values());
       
       // On-stage subtotals
       const onStageIndividual = individualResults.filter(r => {
@@ -508,8 +597,12 @@ export const CalculationService = {
         return calculateResultPoints(r, comp, db.eventSettings);
       };
 
+      // Compute individual & group points separately for transparency
+      const individualPoints = individualResults.reduce((sum, r) => sum + getPoints(r), 0);
+      const groupPoints = groupResults.reduce((sum, r) => sum + getPoints(r), 0);
+
       // Compute total unit points dynamically
-      const overallPoints = [...individualResults, ...groupResults].reduce((sum, r) => sum + getPoints(r), 0);
+      const overallPoints = individualPoints + groupPoints;
 
       // Compute Category Breakdown
       const categoryBreakdown = db.categories.map(cat => {
@@ -533,13 +626,15 @@ export const CalculationService = {
           points
         };
       }).filter(b => b.count > 0 || b.marks > 0);
-      
+
       return {
         unitId: unit.id,
         unitName: unit.name,
         unitCode: unit.code,
         totalParticipants: participants.length,
         completedResultsCount,
+        individualPoints,
+        groupPoints,
         onStageMarks,
         offStageMarks,
         overallMarks,
@@ -572,5 +667,130 @@ export const CalculationService = {
     });
     
     return finalStandings;
+  },
+
+  /**
+   * Fetches 1st, 2nd, and 3rd rank winners across all locked and evaluated competitions
+   * Formatted specifically for stage announcements and official master printing
+   */
+  getLockedWinnersList: () => {
+    const db = dbClient.get();
+    
+    // Find all judgment sheets that are LOCKED or COMPLETED or publishedToResults
+    const sheetMap = new Map<string, any>();
+    (db.judgmentSheets || []).forEach(js => {
+      if (!js.deletedAt) {
+        sheetMap.set(js.competitionId, js);
+      }
+    });
+
+    const evaluatedCompIds = new Set(
+      Array.from(sheetMap.values())
+        .filter(js => js.status === JudgmentSheetStatus.LOCKED || js.publishedToResults)
+        .map(js => js.competitionId)
+    );
+
+    const winnersByComp: any[] = [];
+
+    db.competitions.forEach(comp => {
+      const sheet = sheetMap.get(comp.id);
+      // Must have locked judgment sheet or published results
+      const isLockedSheet = evaluatedCompIds.has(comp.id);
+      const isPublishedComp = (db.results || []).some(r => !r.deletedAt && r.competitionId === comp.id && ((r as any).publishedStatus === true || (r as any).isPublished === true));
+
+      if (!isLockedSheet && !isPublishedComp) return;
+
+      const compResults = (db.results || []).filter(r => 
+        !r.deletedAt && 
+        r.competitionId === comp.id && 
+        r.rank && r.rank <= 3 &&
+        (r.status === ResultStatus.PARTICIPATED || !r.status || String(r.status).toLowerCase() === 'participated')
+      );
+
+      if (compResults.length === 0) return;
+
+      // Deduplicate by participantId or teamId
+      const seenEntries = new Set<string>();
+      const validResults: Result[] = [];
+      for (const r of compResults) {
+        const key = r.participantId || r.teamId || r.id;
+        if (!seenEntries.has(key)) {
+          seenEntries.add(key);
+          validResults.push(r);
+        }
+      }
+
+      validResults.sort((a, b) => (a.rank || 0) - (b.rank || 0));
+
+      const category = db.categories.find(c => c.id === comp.categoryId);
+
+      const winners = validResults.map(r => {
+        let name = '';
+        let chestNumber = '';
+        let unitName = '';
+        let unitId = '';
+
+        if (r.participantId) {
+          const p = db.participants.find(part => part.id === r.participantId);
+          if (p) {
+            name = p.fullName;
+            unitId = p.unitId;
+            const u = db.units.find(unit => unit.id === p.unitId);
+            unitName = u ? u.name : '';
+          }
+          const cn = (db.chestNumbers || []).find((c: any) => !c.deletedAt && (c.participantId === r.participantId || c.entityId === r.participantId));
+          chestNumber = cn?.chestNumber?.toString() || (p as any)?.chestNumber?.toString() || '';
+        } else if (r.teamId) {
+          const t = db.teams.find(team => team.id === r.teamId);
+          if (t) {
+            name = t.teamName || (t as any).name || 'Team';
+            unitId = t.unitId;
+            const u = db.units.find(unit => unit.id === t.unitId);
+            unitName = u ? u.name : '';
+          }
+          const cn = (db.chestNumbers || []).find((c: any) => !c.deletedAt && (c.teamId === r.teamId || c.entityId === r.teamId));
+          chestNumber = cn?.chestNumber?.toString() || '';
+        }
+
+        if (!unitName && (r as any).unitId) {
+          const u = db.units.find(unit => unit.id === (r as any).unitId);
+          if (u) unitName = u.name;
+        }
+
+        const mark = getNormalizedMark(r);
+        const grade = (r as any).grade || calculateGrade(mark, comp.participationType === 'group');
+        const points = calculateResultPoints(r, comp, db.eventSettings);
+
+        return {
+          rank: r.rank,
+          name: toTitleCase(name),
+          chestNumber: chestNumber || '—',
+          unitId,
+          unitName: unitName || '—',
+          mark,
+          grade: grade || '—',
+          points,
+          status: r.status
+        };
+      });
+
+      winnersByComp.push({
+        competitionId: comp.id,
+        competitionName: comp.name,
+        competitionCode: comp.code || comp.id,
+        categoryId: comp.categoryId,
+        categoryName: category ? category.name : 'Unknown',
+        stageType: comp.stageType || 'on_stage',
+        participationType: comp.participationType || 'individual',
+        sheetStatus: sheet?.status || 'locked',
+        isPublished: Boolean(sheet?.publishedToResults || compResults.some(r => (r as any).publishedStatus)),
+        winners
+      });
+    });
+
+    // Sort by category name, then competition name
+    winnersByComp.sort((a, b) => a.categoryName.localeCompare(b.categoryName) || a.competitionName.localeCompare(b.competitionName));
+
+    return winnersByComp;
   }
 };

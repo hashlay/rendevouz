@@ -23,6 +23,7 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
   const [selectedUnitId, setSelectedUnitId] = useState(user.role === UserRole.UNIT_TEAM_LEADER ? (user.assignedUnitId || '') : '');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedStageType, setSelectedStageType] = useState('');
+  const [includeLocked, setIncludeLocked] = useState(true); // Enabled by default as requested!
 
   // Selected participant breakdown modal
   const [selectedRow, setSelectedRow] = useState<any>(null);
@@ -31,7 +32,7 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
     setLoading(true);
     try {
       const [sbRes, cRes, uRes] = await Promise.all([
-        fetch(`/api/scoreboard?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}&search=${search}&stageType=${selectedStageType}`, {
+        fetch(`/api/scoreboard?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}&search=${search}&stageType=${selectedStageType}&includeLocked=${includeLocked}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('/api/categories'),
@@ -57,7 +58,7 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
 
   useEffect(() => {
     fetchScoreboard();
-  }, [selectedUnitId, selectedCategoryId, search, selectedStageType]);
+  }, [selectedUnitId, selectedCategoryId, search, selectedStageType, includeLocked]);
 
   if (loading) {
     return (
@@ -86,7 +87,21 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
           />
         </div>
 
-        <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
+        <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end items-center">
+          {/* Include Locked Switch */}
+          <label className="flex items-center gap-2 px-3 py-2 bg-amber-50/80 border border-amber-200/80 rounded-xl cursor-pointer select-none text-xs font-bold text-amber-900 shadow-sm hover:bg-amber-100/70 transition-colors">
+            <input
+              type="checkbox"
+              checked={includeLocked}
+              onChange={(e) => setIncludeLocked(e.target.checked)}
+              className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+            />
+            <span className="flex items-center gap-1.5">
+              <span>Include Locked Results</span>
+              <span className="text-[9px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-mono uppercase font-extrabold">Internal</span>
+            </span>
+          </label>
+
           {user.role !== UserRole.UNIT_TEAM_LEADER && (
             <select
               value={selectedUnitId}
@@ -147,9 +162,15 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
                         <span className="text-[10px] text-slate-400 font-mono">Chest: {row.chestNumber}</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-base font-extrabold text-emerald-700 block">{row.overallMarks}</span>
-                      <span className="text-[9px] font-mono font-bold text-slate-400 uppercase">Marks</span>
+                    <div className="text-right flex items-baseline gap-2.5">
+                      <div>
+                        <span className="text-base font-extrabold text-amber-600 block">{row.individualPoints ?? row.overallPoints ?? 0}</span>
+                        <span className="text-[9px] font-mono font-bold text-slate-400 uppercase">Points</span>
+                      </div>
+                      <div className="border-l border-slate-200 pl-2.5">
+                        <span className="text-base font-extrabold text-emerald-700 block">{row.overallMarks}</span>
+                        <span className="text-[9px] font-mono font-bold text-slate-400 uppercase">Marks</span>
+                      </div>
                     </div>
                   </div>
 
@@ -188,14 +209,15 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50 font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-4 text-left">Standing</th>
-                  <th className="px-6 py-4 text-left">Chest No</th>
-                  <th className="px-6 py-4 text-left">Candidate Name</th>
-                  <th className="px-6 py-4 text-left">{entityLabel}</th>
-                  <th className="px-6 py-4 text-left">Category</th>
-                  <th className="px-6 py-4 text-center">Event count</th>
-                  <th className="px-6 py-4 text-right">Overall Marks</th>
-                  <th className="px-6 py-4 text-center">Action</th>
+                  <th className="px-5 py-4 text-left">Standing</th>
+                  <th className="px-5 py-4 text-left">Chest No</th>
+                  <th className="px-5 py-4 text-left">Candidate Name</th>
+                  <th className="px-5 py-4 text-left">{entityLabel}</th>
+                  <th className="px-5 py-4 text-left">Category</th>
+                  <th className="px-5 py-4 text-center">Event count</th>
+                  <th className="px-5 py-4 text-right">Overall Points</th>
+                  <th className="px-5 py-4 text-right">Overall Marks</th>
+                  <th className="px-5 py-4 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-100 text-sm">
@@ -204,7 +226,7 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
                     const isTopThree = row.rank <= 3;
                     return (
                       <tr key={row.participantId} className={`hover:bg-slate-50/40 transition-colors ${isTopThree ? 'bg-amber-50/10' : ''}`}>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-5 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold text-xs ${
                               row.rank === 1 ? 'bg-amber-400 text-amber-950 shadow-md ring-2 ring-amber-100' :
@@ -215,17 +237,21 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 font-mono font-bold text-slate-500 whitespace-nowrap">{row.chestNumber}</td>
-                        <td className="px-6 py-4 whitespace-nowrap font-semibold text-slate-800">{row.name}</td>
-                        <td className="px-6 py-4 font-semibold text-slate-600 whitespace-nowrap">{row.unitName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-5 py-4 font-mono font-bold text-slate-500 whitespace-nowrap">{row.chestNumber}</td>
+                        <td className="px-5 py-4 whitespace-nowrap font-semibold text-slate-800">{row.name}</td>
+                        <td className="px-5 py-4 font-semibold text-slate-600 whitespace-nowrap">{row.unitName}</td>
+                        <td className="px-5 py-4 whitespace-nowrap">
                           <span className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-xl">
                             {row.categoryName}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center font-semibold text-slate-600">{row.totalEvents}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-base font-extrabold text-emerald-700">{row.overallMarks}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <td className="px-5 py-4 whitespace-nowrap text-center font-semibold text-slate-600">{row.totalEvents}</td>
+                        <td className="px-5 py-4 whitespace-nowrap text-right text-base font-extrabold text-amber-600">
+                          {row.individualPoints ?? row.overallPoints ?? 0}
+                          <span className="text-[10px] font-mono font-bold text-slate-400 ml-1">pts</span>
+                        </td>
+                        <td className="px-5 py-4 whitespace-nowrap text-right text-base font-extrabold text-emerald-700">{row.overallMarks}</td>
+                        <td className="px-5 py-4 whitespace-nowrap text-center">
                           <button
                             onClick={() => setSelectedRow(row)}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-slate-50 border border-slate-200/50"
@@ -239,7 +265,7 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
                   })
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-slate-400 font-mono text-xs">
+                    <td colSpan={9} className="px-6 py-12 text-center text-slate-400 font-mono text-xs">
                       No scores entered yet
                     </td>
                   </tr>
@@ -269,6 +295,23 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
 
             <div className="space-y-4 text-xs font-sans">
               
+              {/* Overall Championship Points & Marks Summary */}
+              <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-emerald-500/10 p-3.5 rounded-2xl border border-amber-200/70 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider font-mono font-bold text-amber-900 block">Overall Championship Points</span>
+                  <span className="text-2xl font-black text-amber-600">
+                    {selectedRow.individualPoints ?? selectedRow.overallPoints ?? 0}
+                    <span className="text-xs font-mono font-bold text-slate-500 ml-1">pts</span>
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase tracking-wider font-mono font-bold text-slate-500 block">Overall Marks</span>
+                  <span className="text-xl font-extrabold text-emerald-700">
+                    {selectedRow.overallMarks || 0}
+                  </span>
+                </div>
+              </div>
+
               {/* Individual vs Group vs General contributions card */}
               <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-slate-50 p-3.5 sm:p-4 rounded-2xl border text-center">
                 <div>
@@ -292,8 +335,17 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
                   {selectedRow.placements.map((pl: any, idx: number) => (
                     <li key={idx} className="bg-slate-50 border p-2.5 rounded-xl flex justify-between items-center">
                       <div>
-                        <span className="font-semibold text-slate-800 block">{pl.compName}</span>
-                        <span className="text-[9px] font-mono text-slate-400 mt-0.5 block">{pl.type} • Rank {pl.rank || 'N/A'}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-slate-800 block">{pl.compName}</span>
+                          {pl.isLocked ? (
+                            <span className="text-[8px] font-mono font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">Locked</span>
+                          ) : (
+                            <span className="text-[8px] font-mono font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">Announced</span>
+                          )}
+                        </div>
+                        <span className="text-[9px] font-mono text-slate-400 mt-0.5 block">
+                          {pl.type} • Rank {pl.rank || 'TBD'} {pl.grade ? `• Grade ${pl.grade}` : ''} {pl.points != null ? `• ${pl.points} pts` : ''}
+                        </span>
                       </div>
                       <span className="font-bold text-emerald-600">{pl.marks} marks</span>
                     </li>
