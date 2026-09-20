@@ -16,46 +16,40 @@ interface PosterSettingsViewProps {
 }
 
 /**
- * Fixed team font colors for Posters Section:
- * - Ash-shukr: Dark Blue (#2b2bc3)
- * - As-sabr: Dark Green (#1b5e20)
- * Applies across all themes by default.
+ * Team font colors for Posters Section:
+ * - If useTeamColors is false: returns the theme's configured unitColor.
+ * - If useTeamColors is true: returns custom unitColor from config or falls back to theme color.
  */
-export const getPosterTeamColor = (unitOrTeamName?: string, defaultColor: string = '#34d399'): string => {
+export const getPosterTeamColor = (unitOrTeamName?: string, defaultColor: string = '#34d399', config?: any): string => {
   if (!unitOrTeamName) return defaultColor;
-  const str = unitOrTeamName.toString().trim().toLowerCase();
-  // Strip Arabic diacritics / tashkeel (\u064B-\u065F\u0670) and alif wasla (\u0671) so matching is 100% reliable
-  const cleanStr = str.replace(/[\u064B-\u065F\u0670\u0671]/g, '').replace(/ٱ/g, 'ا');
-  const normalized = cleanStr.replace(/[\s\-_]/g, '');
-
-  // Ash-shukr: Dark Blue #2b2bc3
-  if (
-    normalized.includes('shukr') ||
-    normalized.includes('shukur') ||
-    normalized.includes('shukoor') ||
-    normalized.includes('ശുക്') ||
-    normalized.includes('ശുക്കൂർ') ||
-    normalized.includes('شكر') ||
-    normalized.includes('الشكر') ||
-    normalized === 'shk' ||
-    str === 'shk'
-  ) {
-    return '#2b2bc3';
+  // If team colors are explicitly disabled, always use default/theme unitColor
+  if (config && config.useTeamColors === false) {
+    return defaultColor;
   }
 
-  // As-sabr: Dark Green #1b5e20
-  if (
-    normalized.includes('sabr') ||
-    normalized.includes('sabar') ||
-    normalized.includes('സ്വബ്') ||
-    normalized.includes('സബ്ർ') ||
-    normalized.includes('സ്വബർ') ||
-    normalized.includes('صبر') ||
-    normalized.includes('الصبر') ||
-    normalized === 'sbr' ||
-    str === 'sbr'
-  ) {
-    return '#1b5e20';
+  const raw = unitOrTeamName.toString().trim();
+  const cleanStr = raw.replace(/[\u064B-\u065F\u0670\u0671]/g, '').replace(/ٱ/g, 'ا');
+  const normalized = cleanStr.toLowerCase().replace(/[\s\-_]/g, '');
+
+  // Check custom per-unit colors saved in config
+  if (config?.unitColors) {
+    if (config.unitColors[raw]) return config.unitColors[raw];
+    if (config.unitColors[cleanStr]) return config.unitColors[cleanStr];
+    for (const [k, v] of Object.entries(config.unitColors)) {
+      const kNorm = k.replace(/[\u064B-\u065F\u0670\u0671]/g, '').replace(/ٱ/g, 'ا').toLowerCase().replace(/[\s\-_]/g, '');
+      if (kNorm === normalized) return v as string;
+    }
+  }
+
+  // Built-in palettes if useTeamColors is active
+  if (config?.useTeamColors === true) {
+    if (normalized.includes('sirafi') || normalized.includes('seafarer') || normalized.includes('سيرافي')) return '#0284c7';
+    if (normalized.includes('tabrizi') || normalized.includes('taraz') || normalized.includes('تبريزي')) return '#d97706';
+    if (normalized.includes('zanzibari') || normalized.includes('souq') || normalized.includes('زنجباري')) return '#16a34a';
+
+    // Legacy support
+    if (normalized.includes('shukr') || normalized.includes('شكر')) return '#2b2bc3';
+    if (normalized.includes('sabr') || normalized.includes('صبر')) return '#1b5e20';
   }
 
   return defaultColor;
@@ -83,32 +77,23 @@ export const getPosterDisplayUnitName = (
   if (customMap[raw]) return customMap[raw];
   if (customMap[cleanRaw]) return customMap[cleanRaw];
 
-  // Match Ash-Shukr variants
-  if (
-    normalized.includes('shukr') ||
-    normalized.includes('shukur') ||
-    normalized.includes('shukoor') ||
-    normalized.includes('ശുക്') ||
-    normalized.includes('ശുക്കൂർ') ||
-    normalized.includes('شكر') ||
-    normalized === 'shk' ||
-    raw === 'shk'
-  ) {
-    return customMap['Ash-Shukr'] || customMap['ash-shukr'] || 'ٱلشُّكْر';
+  // Match Rendezvous Silver Edition teams
+  if (normalized.includes('sirafi') || normalized.includes('seafarer') || normalized === 'sir') {
+    return customMap['Sirafi Seafarers'] || customMap['sirafi'] || 'TEAM السِّيرَافِي';
+  }
+  if (normalized.includes('tabrizi') || normalized.includes('taraz') || normalized === 'tab') {
+    return customMap['Tabrizi Taraz'] || customMap['tabrizi'] || 'TEAM التَّبْرِيزِي';
+  }
+  if (normalized.includes('zanzibari') || normalized.includes('souq') || normalized === 'zan') {
+    return customMap['Zanzibari Souqs'] || customMap['zanzibari'] || 'TEAM الزَّنْجَبَارِي';
   }
 
-  // Match As-Sabr variants
-  if (
-    normalized.includes('sabr') ||
-    normalized.includes('sabar') ||
-    normalized.includes('സ്വബ്') ||
-    normalized.includes('സബ്ർ') ||
-    normalized.includes('സ്വബർ') ||
-    normalized.includes('صبر') ||
-    normalized === 'sbr' ||
-    raw === 'sbr'
-  ) {
-    return customMap['As-Sabr'] || customMap['as-sabr'] || 'ٱلصَّبْر';
+  // Legacy Ash-Shukr / As-Sabr
+  if (normalized.includes('shukr') || normalized.includes('شكر') || normalized === 'shk') {
+    return customMap['Ash-Shukr'] || customMap['ash-shukr'] || 'TEAM الشُّكْر';
+  }
+  if (normalized.includes('sabr') || normalized.includes('صبر') || normalized === 'sbr') {
+    return customMap['As-Sabr'] || customMap['as-sabr'] || 'TEAM الصَّبْر';
   }
 
   // Fuzzy lookup in keys
@@ -230,10 +215,13 @@ function getDefaultThemeConfig(): any {
     unitUppercase: true,
 
     // Team / Unit Language & Custom Arabic Spellings (Poster Only)
-    unitLanguage: 'en', // 'en' | 'ar'
+    useTeamColors: false,
+    unitColors: {} as Record<string, string>,
+    unitLanguage: 'ar', // 'en' | 'ar'
     unitArabicNames: {
-      'Ash-Shukr': 'ٱلشُّكْر',
-      'As-Sabr': 'ٱلصَّبْر'
+      'Sirafi Seafarers': 'TEAM السِّيرَافِي',
+      'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
+      'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
     } as Record<string, string>,
   };
 }
@@ -393,6 +381,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   const [themeConfigs, setThemeConfigs] = useState<any>(initialConfigs);
   const [selectedThemeIndex, setSelectedThemeIndex] = useState<number>(0);
   const [categories, setCategories] = useState<any[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
 
   const isInitialSyncRef = useRef(true);
 
@@ -434,7 +423,22 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
         }
       })
       .catch(err => console.error('Failed to load categories in PosterSettingsView:', err));
+
+    fetch('/api/units')
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setUnits(data);
+        }
+      })
+      .catch(err => console.error('Failed to load units in PosterSettingsView:', err));
   }, []);
+
+  const activeUnits: Unit[] = units.length > 0 ? units : [
+    { id: 'unit_sirafi', name: 'Sirafi Seafarers', code: 'SIR', active: true },
+    { id: 'unit_tabrizi', name: 'Tabrizi Taraz', code: 'TAB', active: true },
+    { id: 'unit_zanzibari', name: 'Zanzibari Souqs', code: 'ZAN', active: true }
+  ];
 
   // Get current theme's config (with defaults)
   const getThemeConfig = (idx: number) => {
@@ -826,9 +830,9 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
     // Draw each rank separately
     const rankData = [
-      { rank: 1, badgeXKey: 'rank1BadgeX', badgeYKey: 'rank1BadgeY', nameXKey: 'rank1NameX', nameYKey: 'rank1NameY', unitXKey: 'rank1UnitX', unitYKey: 'rank1UnitY', color: c.rank1Color, text: c.rank1Text, badgeId: 'rank1Badge', nameId: 'rank1Name', unitId: 'rank1Unit', sampleUnit: 'Ash-Shukr' },
-      { rank: 2, badgeXKey: 'rank2BadgeX', badgeYKey: 'rank2BadgeY', nameXKey: 'rank2NameX', nameYKey: 'rank2NameY', unitXKey: 'rank2UnitX', unitYKey: 'rank2UnitY', color: c.rank2Color, text: c.rank2Text, badgeId: 'rank2Badge', nameId: 'rank2Name', unitId: 'rank2Unit', sampleUnit: 'As-Sabr' },
-      { rank: 3, badgeXKey: 'rank3BadgeX', badgeYKey: 'rank3BadgeY', nameXKey: 'rank3NameX', nameYKey: 'rank3NameY', unitXKey: 'rank3UnitX', unitYKey: 'rank3UnitY', color: c.rank3Color, text: c.rank3Text, badgeId: 'rank3Badge', nameId: 'rank3Name', unitId: 'rank3Unit', sampleUnit: 'Ash-Shukr' },
+      { rank: 1, badgeXKey: 'rank1BadgeX', badgeYKey: 'rank1BadgeY', nameXKey: 'rank1NameX', nameYKey: 'rank1NameY', unitXKey: 'rank1UnitX', unitYKey: 'rank1UnitY', color: c.rank1Color, text: c.rank1Text, badgeId: 'rank1Badge', nameId: 'rank1Name', unitId: 'rank1Unit', sampleUnit: activeUnits[0]?.name || 'Sirafi Seafarers' },
+      { rank: 2, badgeXKey: 'rank2BadgeX', badgeYKey: 'rank2BadgeY', nameXKey: 'rank2NameX', nameYKey: 'rank2NameY', unitXKey: 'rank2UnitX', unitYKey: 'rank2UnitY', color: c.rank2Color, text: c.rank2Text, badgeId: 'rank2Badge', nameId: 'rank2Name', unitId: 'rank2Unit', sampleUnit: activeUnits[1]?.name || 'Tabrizi Taraz' },
+      { rank: 3, badgeXKey: 'rank3BadgeX', badgeYKey: 'rank3BadgeY', nameXKey: 'rank3NameX', nameYKey: 'rank3NameY', unitXKey: 'rank3UnitX', unitYKey: 'rank3UnitY', color: c.rank3Color, text: c.rank3Text, badgeId: 'rank3Badge', nameId: 'rank3Name', unitId: 'rank3Unit', sampleUnit: activeUnits[2]?.name || 'Zanzibari Souqs' },
     ];
 
     rankData.forEach(rd => {
@@ -890,9 +894,9 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       const isArabic = c.unitLanguage === 'ar';
       const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : "'Cairo', 'Amiri', sans-serif";
       ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), c.unitSize, '700');
-      const sampleUnitName = rd.sampleUnit || 'Ash-Shukr';
+      const sampleUnitName = rd.sampleUnit;
       const unitText = getPosterDisplayUnitName(sampleUnitName, c);
-      ctx.fillStyle = getPosterTeamColor(sampleUnitName, c.unitColor);
+      ctx.fillStyle = getPosterTeamColor(sampleUnitName, c.unitColor, c);
       ctx.fillText(unitText, ux, uy);
       const unitMetrics = ctx.measureText(unitText);
       addRegion(rd.unitId, ux - 5, uy - c.unitSize - 5, unitMetrics.width + 10, c.unitSize + 15);
@@ -1327,14 +1331,29 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                   <input type="color" value={conf.winnerColor} onChange={e => updateConf('winnerColor', e.target.value)} className="w-full h-8 rounded border" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1" title="Ash-Shukr is automatically #2b2bc3 (Dark Blue) and As-Sabr is #1b5e20 (Dark Green)">
-                    Unit Name Fallback Color
+                  <label className="block text-[10px] font-bold text-slate-400 mb-1">
+                    Unit / Team Name Color
                   </label>
-                  <input type="color" value={conf.unitColor} onChange={e => updateConf('unitColor', e.target.value)} className="w-full h-8 rounded border" />
+                  <input type="color" value={conf.unitColor || '#1e293b'} onChange={e => updateConf('unitColor', e.target.value)} className="w-full h-8 rounded border" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Rank Text Color</label>
                   <input type="color" value={conf.rankTextColor} onChange={e => updateConf('rankTextColor', e.target.value)} className="w-full h-8 rounded border" />
+                </div>
+                <div className="col-span-2 sm:col-span-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-slate-700 block">Use Distinct Team Colors</span>
+                    <span className="text-[10px] text-slate-400 block">When disabled, all teams use the unified Theme Unit Color above</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={conf.useTeamColors === true}
+                      onChange={e => updateConf('useTeamColors', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                  </label>
                 </div>
               </div>
             )}
@@ -1497,55 +1516,57 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                       }`}
                     >
-                      Arabic (ٱلشُّكْر / ٱلصَّبْر)
+                      Arabic (العربية)
                     </button>
                   </div>
 
                   {conf.unitLanguage === 'ar' && (
-                    <div className="pt-2 border-t border-emerald-200/60 space-y-2 text-xs">
+                    <div className="pt-2 border-t border-emerald-200/60 space-y-2.5 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-emerald-950 uppercase">
-                          Custom Arabic Spellings (Editable)
+                          Custom Arabic Team Names & Spellings (Editable)
                         </span>
-                        <span className="text-[9px] text-slate-500">Edit spelling directly to avoid mistakes</span>
+                        <span className="text-[9px] text-slate-500">Edit Arabic poster display name for each team</span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
-                          <label className="block text-[11px] font-bold text-blue-800 mb-1 flex items-center justify-between">
-                            <span>Ash-Shukr (Blue #2b2bc3)</span>
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#2b2bc3]" />
-                          </label>
-                          <input
-                            type="text"
-                            dir="rtl"
-                            value={conf.unitArabicNames?.['Ash-Shukr'] ?? 'ٱلشُّكْر'}
-                            onChange={(e) => {
-                              const updated = { ...(conf.unitArabicNames || {}), 'Ash-Shukr': e.target.value };
-                              updateConf('unitArabicNames', updated);
-                            }}
-                            className="w-full px-2.5 py-1 text-sm font-bold border border-slate-200 rounded-lg text-right"
-                            placeholder="ٱلشُّكْر"
-                          />
-                        </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        {activeUnits.map((u, idx) => {
+                          const defaultAr = idx === 0 ? 'TEAM السِّيرَافِي' : idx === 1 ? 'TEAM التَّبْرِيزِي' : idx === 2 ? 'TEAM الزَّنْجَبَارِي' : u.name;
+                          const arValue = conf.unitArabicNames?.[u.name] ?? defaultAr;
+                          const defaultColor = idx === 0 ? '#0284c7' : idx === 1 ? '#d97706' : '#16a34a';
+                          const unitColorVal = conf.unitColors?.[u.name] || defaultColor;
 
-                        <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
-                          <label className="block text-[11px] font-bold text-green-800 mb-1 flex items-center justify-between">
-                            <span>As-Sabr (Green #1b5e20)</span>
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#1b5e20]" />
-                          </label>
-                          <input
-                            type="text"
-                            dir="rtl"
-                            value={conf.unitArabicNames?.['As-Sabr'] ?? 'ٱلصَّبْر'}
-                            onChange={(e) => {
-                              const updated = { ...(conf.unitArabicNames || {}), 'As-Sabr': e.target.value };
-                              updateConf('unitArabicNames', updated);
-                            }}
-                            className="w-full px-2.5 py-1 text-sm font-bold border border-slate-200 rounded-lg text-right"
-                            placeholder="ٱلصَّبْر"
-                          />
-                        </div>
+                          return (
+                            <div key={u.id || u.name} className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-bold text-slate-800 truncate" title={u.name}>{u.name}</span>
+                                {conf.useTeamColors && (
+                                  <input
+                                    type="color"
+                                    value={unitColorVal}
+                                    onChange={(e) => {
+                                      const updated = { ...(conf.unitColors || {}), [u.name]: e.target.value };
+                                      updateConf('unitColors', updated);
+                                    }}
+                                    title={`${u.name} Color`}
+                                    className="w-5 h-5 rounded cursor-pointer border border-slate-200"
+                                  />
+                                )}
+                              </div>
+                              <input
+                                type="text"
+                                dir="rtl"
+                                value={arValue}
+                                onChange={(e) => {
+                                  const updated = { ...(conf.unitArabicNames || {}), [u.name]: e.target.value };
+                                  updateConf('unitArabicNames', updated);
+                                }}
+                                className="w-full px-2.5 py-1 text-sm font-bold border border-slate-200 rounded-lg text-right"
+                                placeholder={defaultAr}
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
