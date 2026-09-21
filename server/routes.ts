@@ -905,7 +905,7 @@ function ensureTheme4(cfg: any) {
   if (!cfg || typeof cfg !== 'object') return;
   if (!Array.isArray(cfg.customThemes)) {
     cfg.customThemes = [
-      '/themes/theme_blue.jpg',
+      '/themes/theme_phytolore_green.jpg',
       '/themes/theme_brown.jpg',
       '/themes/theme_green.jpg',
       '/themes/theme_purple.jpg'

@@ -4,6 +4,10 @@ export interface FontOption {
 }
 
 export const UNIVERSAL_FONT_OPTIONS: FontOption[] = [
+  // --- FRACTUL ALT FAMILY ---
+  { label: 'Fractul Alt (Display Bold)', value: 'bold "Fractul Alt", sans-serif' },
+  { label: 'Fractul Alt (Regular 400)', value: '400 "Fractul Alt", sans-serif' },
+
   // --- POPPINS FAMILY ---
   { label: 'Poppins (Thin 200)', value: 'thin "Poppins", sans-serif' },
   { label: 'Poppins (Regular 400)', value: '400 "Poppins", sans-serif' },
