@@ -901,34 +901,26 @@ apiRouter.delete('/gallery/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
 
 const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1cQNek6Q2EiThqdFrUDb1I8cfsmQneP1J';
 
-function ensureTheme4(cfg: any) {
+function ensureTwoThemes(cfg: any) {
   if (!cfg || typeof cfg !== 'object') return;
-  if (!Array.isArray(cfg.customThemes)) {
-    cfg.customThemes = [
-      '/themes/theme_phytolore_green.jpg',
-      '/themes/theme_brown.jpg',
-      '/themes/theme_green.jpg',
-      '/themes/theme_purple.jpg'
-    ];
-  } else {
-    if (cfg.customThemes.length === 3) {
-      cfg.customThemes.push('/themes/theme_purple.jpg');
-    } else if (cfg.customThemes.length >= 4 && (!cfg.customThemes[3] || cfg.customThemes[3].startsWith('data:image/svg'))) {
-      cfg.customThemes[3] = '/themes/theme_purple.jpg';
-    }
-  }
+  const defaultThemes = [
+    '/themes/theme_phytolore_green.jpg',
+    '/themes/theme_phytolore_dark_green.jpg'
+  ];
+  cfg.customThemes = [
+    (Array.isArray(cfg.customThemes) && cfg.customThemes[0]) ? cfg.customThemes[0] : defaultThemes[0],
+    defaultThemes[1]
+  ];
   if (!cfg.themeConfigs) cfg.themeConfigs = {};
-  const ref = cfg.themeConfigs[0] || cfg.themeConfigs[1] || cfg.themeConfigs[2] || {};
-  if (!cfg.themeConfigs[3]) {
-    cfg.themeConfigs[3] = { ...ref };
-  }
+  delete cfg.themeConfigs[2];
+  delete cfg.themeConfigs[3];
 }
 
 apiRouter.get('/settings', async (req, res) => {
   const db = dbClient.get();
   const rawSettings: any = db.eventSettings || {};
   const ptc = (db as any).posterTemplateConfig || rawSettings.posterTemplateConfig;
-  ensureTheme4(ptc);
+  ensureTwoThemes(ptc);
   const settings: any = {
     ...rawSettings,
     posterTemplateConfig: ptc,

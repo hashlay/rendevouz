@@ -4,9 +4,23 @@ export interface FontOption {
 }
 
 export const UNIVERSAL_FONT_OPTIONS: FontOption[] = [
+  // --- THUNDER FAMILY ---
+  { label: 'Thunder ExtraLight LC', value: '200 "Thunder ExtraLight LC", "Thunder", sans-serif' },
+
+  // --- SORA FAMILY (Google Fonts) ---
+  { label: 'Sora (Extra Light 200)', value: '200 "Sora", sans-serif' },
+  { label: 'Sora (Light 300)', value: '300 "Sora", sans-serif' },
+  { label: 'Sora (Regular 400)', value: '400 "Sora", sans-serif' },
+  { label: 'Sora (Medium 500)', value: '500 "Sora", sans-serif' },
+  { label: 'Sora (Semi Bold 600)', value: '600 "Sora", sans-serif' },
+  { label: 'Sora (Bold 700)', value: 'bold "Sora", sans-serif' },
+  { label: 'Sora (Extra Bold 800)', value: '800 "Sora", sans-serif' },
+
   // --- FRACTUL ALT FAMILY ---
-  { label: 'Fractul Alt (Display Bold)', value: 'bold "Fractul Alt", sans-serif' },
-  { label: 'Fractul Alt (Regular 400)', value: '400 "Fractul Alt", sans-serif' },
+  { label: 'Fractul Alt (Clean Regular 400)', value: '400 "Fractul Alt", sans-serif' },
+  { label: 'Fractul Alt (Light / Hairline 200)', value: '200 "Fractul Alt", sans-serif' },
+  { label: 'Fractul Alt (Medium 500)', value: '500 "Fractul Alt", sans-serif' },
+  { label: 'Fractul Alt (Display Bold 700)', value: '700 "Fractul Alt", sans-serif' },
 
   // --- POPPINS FAMILY ---
   { label: 'Poppins (Thin 200)', value: 'thin "Poppins", sans-serif' },
@@ -16,24 +30,6 @@ export const UNIVERSAL_FONT_OPTIONS: FontOption[] = [
   { label: 'Poppins (Bold 700)', value: 'bold "Poppins", sans-serif' },
   { label: 'Poppins (Italic)', value: 'italic 400 "Poppins", sans-serif' },
   { label: 'Poppins (Italic Bold)', value: 'italic bold "Poppins", sans-serif' },
-
-  // --- GOTHAM FAMILY ---
-  { label: 'Gotham (Thin 200)', value: 'thin "Gotham", "Montserrat", sans-serif' },
-  { label: 'Gotham (Regular 400)', value: '400 "Gotham", "Montserrat", sans-serif' },
-  { label: 'Gotham (Medium 500)', value: 'medium "Gotham", "Montserrat", sans-serif' },
-  { label: 'Gotham (Semi Bold 600)', value: 'semibold "Gotham", "Montserrat", sans-serif' },
-  { label: 'Gotham (Bold 700)', value: 'bold "Gotham", "Montserrat", sans-serif' },
-  { label: 'Gotham (Italic)', value: 'italic 400 "Gotham", "Montserrat", sans-serif' },
-  { label: 'Gotham (Italic Bold)', value: 'italic bold "Gotham", "Montserrat", sans-serif' },
-
-  // --- HELVETICA FAMILY ---
-  { label: 'Helvetica (Thin 200)', value: 'thin "Helvetica Neue", Helvetica, Arial, sans-serif' },
-  { label: 'Helvetica (Regular 400)', value: '400 "Helvetica Neue", Helvetica, Arial, sans-serif' },
-  { label: 'Helvetica (Medium 500)', value: 'medium "Helvetica Neue", Helvetica, Arial, sans-serif' },
-  { label: 'Helvetica (Semi Bold 600)', value: 'semibold "Helvetica Neue", Helvetica, Arial, sans-serif' },
-  { label: 'Helvetica (Bold 700)', value: 'bold "Helvetica Neue", Helvetica, Arial, sans-serif' },
-  { label: 'Helvetica (Italic)', value: 'italic 400 "Helvetica Neue", Helvetica, Arial, sans-serif' },
-  { label: 'Helvetica (Italic Bold)', value: 'italic bold "Helvetica Neue", Helvetica, Arial, sans-serif' },
 
   // --- MONTSERRAT FAMILY ---
   { label: 'Montserrat (Thin 200)', value: 'thin "Montserrat", sans-serif' },
@@ -48,10 +44,6 @@ export const UNIVERSAL_FONT_OPTIONS: FontOption[] = [
   { label: 'Inter (Sans)', value: 'Inter, sans-serif' },
   { label: 'Outfit (Geometric Sans)', value: 'Outfit, sans-serif' },
   { label: 'Roboto (Sans)', value: 'Roboto, sans-serif' },
-  { label: 'Sora (Regular 400)', value: '400 "Sora", sans-serif' },
-  { label: 'Sora (Semi Bold 600)', value: 'semibold "Sora", sans-serif' },
-  { label: 'Sora (Bold 700)', value: 'bold "Sora", sans-serif' },
-  { label: 'Sora (Extra Bold 800)', value: '800 "Sora", sans-serif' },
   { label: 'Hochland (Rendezvous Display)', value: 'bold "Hochland", sans-serif' },
   { label: 'Playfair Display (Luxury Serif)', value: '"Playfair Display", serif' },
   { label: 'Cinzel (Classical Elegant Serif)', value: 'Cinzel, serif' },
@@ -87,13 +79,15 @@ export function parseFontForCanvas(
   }
 
   // Detect weight keywords / numbers
-  const weightMatch = family.match(/\b(100|200|300|400|500|600|700|800|900|bold|normal|thin|medium|semibold)\b/i);
+  const weightMatch = family.match(/\b(100|200|300|400|500|600|700|800|900|bold|normal|thin|extralight|light|medium|semibold|extrabold)\b/i);
   if (weightMatch) {
     const w = weightMatch[1].toLowerCase();
-    if (w === 'thin') weight = '200';
+    if (w === 'thin' || w === 'extralight') weight = '200';
+    else if (w === 'light') weight = '300';
     else if (w === 'medium') weight = '500';
     else if (w === 'semibold') weight = '600';
     else if (w === 'bold') weight = '700';
+    else if (w === 'extrabold') weight = '800';
     else if (w === 'normal') weight = '400';
     else weight = w;
     family = family.replace(weightMatch[0], '').trim();
@@ -125,13 +119,15 @@ export function parseFontForSvg(
     family = family.replace(/\bitalic\b/gi, '').trim();
   }
 
-  const weightMatch = family.match(/\b(100|200|300|400|500|600|700|800|900|bold|normal|thin|medium|semibold)\b/i);
+  const weightMatch = family.match(/\b(100|200|300|400|500|600|700|800|900|bold|normal|thin|extralight|light|medium|semibold|extrabold)\b/i);
   if (weightMatch) {
     const w = weightMatch[1].toLowerCase();
-    if (w === 'thin') fontWeight = '200';
+    if (w === 'thin' || w === 'extralight') fontWeight = '200';
+    else if (w === 'light') fontWeight = '300';
     else if (w === 'medium') fontWeight = '500';
     else if (w === 'semibold') fontWeight = '600';
     else if (w === 'bold') fontWeight = '700';
+    else if (w === 'extrabold') fontWeight = '800';
     else if (w === 'normal') fontWeight = '400';
     else fontWeight = w;
     family = family.replace(weightMatch[0], '').trim();

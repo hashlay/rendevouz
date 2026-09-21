@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Cairo:wght@600;700;800;900&family=Amiri:wght@700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800&family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800&family=Outfit:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700&family=Cinzel:wght@500;700;800;900&family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,700&family=Oswald:wght@500;600;700&family=Great+Vibes&family=Alex+Brush&family=Pinyon+Script&family=Sora:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Cairo:wght@600;700;800;900&family=Amiri:wght@700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800&family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800&family=Outfit:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,700&family=Cinzel:wght@500;700;800;900&family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,700&family=Oswald:wght@500;600;700&family=Great+Vibes&family=Alex+Brush&family=Pinyon+Script&family=Sora:wght@200;300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @font-face {
@@ -11,8 +11,8 @@
 
 @font-face {
   font-family: 'Fractul Alt';
-  src: url('/fonts/FractulAlt.ttf') format('truetype');
-  font-weight: normal;
+  src: url('/fonts/FractulAlt-Hairline.ttf') format('truetype');
+  font-weight: 100 500;
   font-style: normal;
   font-display: swap;
 }
@@ -20,7 +20,23 @@
 @font-face {
   font-family: 'Fractul Alt';
   src: url('/fonts/FractulAlt.ttf') format('truetype');
-  font-weight: bold;
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Thunder ExtraLight LC';
+  src: url('/fonts/Thunder-ExtraLightLC.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Thunder';
+  src: url('/fonts/Thunder-ExtraLightLC.otf') format('opentype');
+  font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
@@ -34,12 +50,22 @@
   font-family: 'Fractul Alt', sans-serif;
 }
 
+.font-sora {
+  font-family: 'Sora', sans-serif;
+}
+
+.font-thunder {
+  font-family: 'Thunder ExtraLight LC', 'Thunder', sans-serif;
+}
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-display: "Space Grotesk", sans-serif;
   --font-hochland: "Hochland", sans-serif;
   --font-fractul: "Fractul Alt", sans-serif;
+  --font-sora: "Sora", sans-serif;
+  --font-thunder: "Thunder ExtraLight LC", "Thunder", sans-serif;
 }
 
 /* === GLOBAL LAYOUT CONSTRAINTS === */

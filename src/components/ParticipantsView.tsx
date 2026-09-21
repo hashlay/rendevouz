@@ -359,7 +359,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       indCompIds.forEach(cId => {
         const comp = competitions.find(c => c.id === cId);
         if (comp && comp.participationType === 'group') return;
-        const res = resultsData.find((r: any) => r.competitionId === cId && r.participantId === p.id && r.publishedStatus && !r.deletedAt);
+        const res = resultsData.find((r: any) => r.competitionId === cId && r.participantId === p.id && !r.deletedAt);
         breakdowns.push({
           id: `ind_${cId}`,
           compName: comp ? comp.name : 'Individual Competition',
@@ -371,7 +371,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
 
       joinedTeams.forEach(t => {
         const comp = competitions.find(c => c.id === t.competitionId);
-        const res = resultsData.find((r: any) => r.competitionId === t.competitionId && r.teamId === t.id && r.publishedStatus && !r.deletedAt);
+        const res = resultsData.find((r: any) => r.competitionId === t.competitionId && r.teamId === t.id && !r.deletedAt);
         breakdowns.push({
           id: `grp_${t.id}`,
           compName: comp ? comp.name : (t.teamName || 'Group Event'),
@@ -1218,18 +1218,35 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                             </div>
                             <div className="text-right">
                               {item.result ? (
-                                <>
-                                  {item.result.status === 'absent' || item.result.status === 'ABSENT' ? (
-                                    <span className="font-bold text-rose-600 block text-xs font-mono">Absent</span>
-                                  ) : (
-                                    <span className="font-bold text-emerald-600 block">{item.result.averageMark !== undefined ? item.result.averageMark : (item.result.totalMark || 0)} marks</span>
-                                  )}
-                                  <span className="text-[9px] font-mono bg-emerald-50 text-emerald-700 border px-1.5 py-0.5 rounded uppercase font-bold">
-                                    Rank {item.result.rank || 'TBD'}
-                                  </span>
-                                </>
+                                item.result.status === 'absent' || item.result.status === 'ABSENT' ? (
+                                  <span className="font-bold text-rose-600 block text-xs font-mono">Absent</span>
+                                ) : (
+                                  <>
+                                    <div className="flex items-center justify-end gap-1.5 mb-1">
+                                      {item.result.publishedStatus ? (
+                                        <span className="text-[9px] font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                                          Published
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] font-mono bg-blue-100 text-blue-800 border border-blue-300 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                                          Completed
+                                        </span>
+                                      )}
+                                      <span className="font-bold text-slate-800 text-xs">
+                                        {item.result.averageMark !== undefined ? item.result.averageMark : (item.result.totalMark || 0)} marks
+                                      </span>
+                                    </div>
+                                    <span className={`text-[9px] font-mono border px-1.5 py-0.5 rounded uppercase font-bold ${
+                                      item.result.publishedStatus
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                                    }`}>
+                                      Rank {item.result.rank || 'TBD'}
+                                    </span>
+                                  </>
+                                )
                               ) : (
-                                <span className="text-[10px] font-mono font-bold text-amber-500 uppercase bg-amber-50/50 px-2 py-1 rounded">Pending</span>
+                                <span className="text-[10px] font-mono font-bold text-amber-600 uppercase bg-amber-50 border border-amber-200 px-2 py-1 rounded">Pending</span>
                               )}
                             </div>
                           </li>

@@ -242,12 +242,7 @@ export const CalculationService = {
       if (r.deletedAt) return false;
       const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
       if (!statusOk) return false;
-      const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
-      if (isPub) return true;
-      if (includeLocked) {
-        if (lockedCompIds.has(r.competitionId)) return true;
-      }
-      return false;
+      return true;
     };
 
     // Get all active, non-deleted participants
