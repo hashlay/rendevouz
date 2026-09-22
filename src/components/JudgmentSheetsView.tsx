@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Scale, RefreshCw, Printer, Search, ChevronDown,
   CheckCircle, Clock, AlertTriangle, FileText, Check, Save, Lock, Plus,
-  Trophy, X
+  Trophy, X, Globe
 } from 'lucide-react';
 import { User, UserRole, JudgmentSheetStatus, JudgeScoreStatus } from '../types';
 
@@ -115,6 +115,11 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
   // Print Winners state
   const [winnersData, setWinnersData] = useState<any[]>([]);
   const [winnersLoading, setWinnersLoading] = useState(false);
+
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'in_progress' | 'completed' | 'locked' | 'published'>('all');
+  const [filterCategoryId, setFilterCategoryId] = useState('');
 
   const fetchChampionsPreview = async () => {
     setChampionsLoading(true);
@@ -721,6 +726,31 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
     );
   }
 
+  const filteredSheets = sheets.filter(s => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchComp = (s.competitionName || '').toLowerCase().includes(q);
+      const matchCat = (s.categoryName || '').toLowerCase().includes(q);
+      if (!matchComp && !matchCat) return false;
+    }
+    if (filterCategoryId && s.categoryId !== filterCategoryId) {
+      return false;
+    }
+    if (statusFilter === 'published') {
+      return Boolean(s.publishedToResults);
+    }
+    if (statusFilter === 'in_progress') {
+      return s.status === JudgmentSheetStatus.IN_PROGRESS;
+    }
+    if (statusFilter === 'completed') {
+      return s.status === JudgmentSheetStatus.COMPLETED;
+    }
+    if (statusFilter === 'locked') {
+      return s.status === JudgmentSheetStatus.LOCKED;
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-6 min-w-0 w-full overflow-x-hidden">
       {/* Header */}
@@ -780,8 +810,11 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         <>
           {/* Stats */}
           {!isJudge && stats && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div
+                onClick={() => setStatusFilter('all')}
+                className={`bg-white rounded-xl border p-4 shadow-sm cursor-pointer transition hover:shadow-md ${statusFilter === 'all' ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200'}`}
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-indigo-100 rounded-lg"><FileText className="h-5 w-5 text-indigo-600" /></div>
                   <div>
@@ -790,7 +823,10 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div
+                onClick={() => setStatusFilter(prev => prev === 'in_progress' ? 'all' : 'in_progress')}
+                className={`bg-white rounded-xl border p-4 shadow-sm cursor-pointer transition hover:shadow-md ${statusFilter === 'in_progress' ? 'border-amber-500 ring-2 ring-amber-200' : 'border-slate-200'}`}
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-amber-100 rounded-lg"><Clock className="h-5 w-5 text-amber-600" /></div>
                   <div>
@@ -799,7 +835,10 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div
+                onClick={() => setStatusFilter(prev => prev === 'completed' ? 'all' : 'completed')}
+                className={`bg-white rounded-xl border p-4 shadow-sm cursor-pointer transition hover:shadow-md ${statusFilter === 'completed' ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-slate-200'}`}
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-emerald-100 rounded-lg"><CheckCircle className="h-5 w-5 text-emerald-600" /></div>
                   <div>
@@ -808,7 +847,10 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div
+                onClick={() => setStatusFilter(prev => prev === 'locked' ? 'all' : 'locked')}
+                className={`bg-white rounded-xl border p-4 shadow-sm cursor-pointer transition hover:shadow-md ${statusFilter === 'locked' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'}`}
+              >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-100 rounded-lg"><Lock className="h-5 w-5 text-blue-600" /></div>
                   <div>
@@ -817,13 +859,55 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                   </div>
                 </div>
               </div>
+              <div
+                onClick={() => setStatusFilter(prev => prev === 'published' ? 'all' : 'published')}
+                className={`bg-white rounded-xl border p-4 shadow-sm cursor-pointer transition hover:shadow-md ${statusFilter === 'published' ? 'border-purple-500 ring-2 ring-purple-200' : 'border-slate-200'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-100 rounded-lg"><Globe className="h-5 w-5 text-purple-600" /></div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-800">{stats.published || 0}</p>
+                    <p className="text-xs text-slate-500">Published</p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Sheets List */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
-              <h3 className="text-sm font-semibold text-slate-700">Active Judgment Sheets</h3>
+            <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <h3 className="text-sm font-semibold text-slate-700">Active Judgment Sheets</h3>
+                {statusFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                    Filtered: <span className="capitalize">{statusFilter.replace('_', ' ')}</span>
+                    <button onClick={() => setStatusFilter('all')} className="hover:text-red-500 ml-1 font-bold">×</button>
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search sheets..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-48"
+                  />
+                </div>
+                <select
+                  value={filterCategoryId}
+                  onChange={e => setFilterCategoryId(e.target.value)}
+                  className="px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -838,10 +922,10 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                   </tr>
                 </thead>
                 <tbody>
-                  {sheets.length === 0 ? (
+                  {filteredSheets.length === 0 ? (
                     <tr><td colSpan={6} className="text-center py-8 text-slate-400">No judgment sheets found</td></tr>
                   ) : (
-                    sheets.map((s: any) => (
+                    filteredSheets.map((s: any) => (
                       <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
                         <td className="px-4 py-3 font-medium text-slate-800">{s.competitionName}</td>
                         <td className="px-4 py-3 text-slate-600">{s.categoryName}</td>

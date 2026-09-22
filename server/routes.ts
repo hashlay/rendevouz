@@ -5385,11 +5385,15 @@ apiRouter.get('/judgment-sheets/stats', authenticate, async (req, res) => {
   const db = dbClient.get();
   const sheets = (db.judgmentSheets || []).filter((s: JudgmentSheet) => !s.deletedAt);
 
-  const statusCounts = { pending: 0, inProgress: 0, completed: 0, locked: 0 };
+  const statusCounts = { pending: 0, inProgress: 0, completed: 0, locked: 0, published: 0 };
   for (const s of sheets) {
     let currentStatus = s.status;
-    const isPublished = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt && (r.publishedStatus === true || (r as any).isPublished === true));
-    if (isPublished && currentStatus !== JudgmentSheetStatus.LOCKED) {
+    const isAnnounced = (db.results || []).some(r => r.competitionId === s.competitionId && !r.deletedAt && (r.publishedStatus === true || (r as any).isPublished === true));
+    const isPublished = Boolean(s.publishedToResults || isAnnounced);
+    if (isPublished) {
+      statusCounts.published++;
+    }
+    if (isAnnounced && currentStatus !== JudgmentSheetStatus.LOCKED) {
       currentStatus = JudgmentSheetStatus.LOCKED;
     }
     if (currentStatus === JudgmentSheetStatus.PENDING) statusCounts.pending++;
