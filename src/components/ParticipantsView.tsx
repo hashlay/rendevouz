@@ -12,6 +12,52 @@ interface ParticipantsViewProps {
   eventSettings?: any;
 }
 
+const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank?: number): number => {
+  const gradeSystemEnabled = eventSettings?.gradeSystemEnabled !== false;
+  const m = Math.round(Number(mark) || 0);
+
+  if (gradeSystemEnabled) {
+    if (m <= 0) return 0;
+    if (isGroup) {
+      if (m >= 95) return 20;
+      if (m >= 90) return 19;
+      if (m >= 85) return 18;
+      if (m >= 80) return 17;
+      if (m >= 75) return 16;
+      if (m >= 70) return 15;
+      if (m >= 65) return 14;
+      if (m >= 55) return 13;
+      if (m >= 50) return 12;
+      if (m >= 40) return 11;
+      if (m >= 30) return 10;
+      return 5;
+    } else {
+      if (m >= 95) return 10;
+      if (m >= 90) return 9;
+      if (m >= 85) return 8;
+      if (m >= 80) return 7;
+      if (m >= 75) return 6;
+      if (m >= 70) return 5;
+      if (m >= 65) return 4;
+      if (m >= 55) return 3;
+      if (m >= 50) return 2;
+      if (m >= 40) return 1;
+      return 0;
+    }
+  }
+
+  // Fallback: Rank-based points
+  if (!rank || rank > 10) return 0;
+  const settingsKey = `globalPointsRank${rank}`;
+  const settingsVal = eventSettings?.[settingsKey];
+  if (settingsVal !== undefined && settingsVal !== null) {
+    const val = Number(settingsVal);
+    if (!isNaN(val)) return val;
+  }
+  const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
+  return defaultMap[rank] || 0;
+};
+
 export default function ParticipantsView({ user, token, eventSettings }: ParticipantsViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
   const entityLabelPlural = eventSettings?.entityMode === 'house' ? 'Houses' : eventSettings?.entityMode === 'team' ? 'Teams' : 'Units';
@@ -360,33 +406,57 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         const comp = competitions.find(c => c.id === cId);
         if (comp && comp.participationType === 'group') return;
         const res = resultsData.find((r: any) => r.competitionId === cId && r.participantId === p.id && !r.deletedAt);
+        const placement = (profile?.placements || []).find((pl: any) => pl.compId === cId);
+        const markVal = res ? (res.averageMark !== undefined ? res.averageMark : (res.totalMark || 0)) : 0;
+        const calculatedPoints = placement?.points ?? (res ? computePoints(markVal, false, eventSettings, res.rank) : 0);
         breakdowns.push({
           id: `ind_${cId}`,
           compName: comp ? comp.name : 'Individual Competition',
           type: 'Individual Event',
           stageType: comp ? comp.stageType : 'on_stage',
-          result: res
+          result: res,
+          points: calculatedPoints,
+          grade: placement?.grade
         });
       });
 
       joinedTeams.forEach(t => {
         const comp = competitions.find(c => c.id === t.competitionId);
         const res = resultsData.find((r: any) => r.competitionId === t.competitionId && r.teamId === t.id && !r.deletedAt);
+        const placement = (profile?.placements || []).find((pl: any) => pl.compId === t.competitionId);
+        const markVal = res ? (res.averageMark !== undefined ? res.averageMark : (res.totalMark || 0)) : 0;
+        const calculatedPoints = placement?.points ?? (res ? computePoints(markVal, true, eventSettings, res.rank) : 0);
         breakdowns.push({
           id: `grp_${t.id}`,
           compName: comp ? comp.name : (t.teamName || 'Group Event'),
           type: 'Group Event',
           stageType: comp ? comp.stageType : 'on_stage',
-          result: res
+          result: res,
+          points: calculatedPoints,
+          grade: placement?.grade
         });
       });
 
+      const totalCalculatedPoints = profile?.individualPoints ?? profile?.overallPoints ?? breakdowns.reduce((sum, b) => sum + (b.points || 0), 0);
+      const totalCalculatedMarks = profile?.overallMarks ?? Math.round(breakdowns.reduce((sum, b) => sum + (b.result ? Number(b.result.averageMark ?? b.result.totalMark ?? 0) : 0), 0) * 100) / 100;
+
       setPartProfile({
-        scoreboard: profile || { totalEvents: 0, overallMarks: 0, individualMarks: 0, groupMarks: 0, rank: 'N/A', placements: [] },
+        scoreboard: profile || { 
+          totalEvents: eventsCount, 
+          overallPoints: totalCalculatedPoints,
+          individualPoints: totalCalculatedPoints,
+          overallMarks: totalCalculatedMarks, 
+          individualMarks: totalCalculatedMarks, 
+          groupMarks: 0, 
+          rank: 'N/A', 
+          placements: [] 
+        },
         results: participantResults,
         teams: joinedTeams,
         eventsCount,
-        breakdowns
+        breakdowns,
+        totalPoints: totalCalculatedPoints,
+        totalMarks: totalCalculatedMarks
       });
     } catch (e) {
       console.error(e);
@@ -1190,14 +1260,21 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                     <div className="text-center">
                       <span className="text-[10px] font-bold text-slate-400 block uppercase font-mono">Rank Spot</span>
                       <span className="text-base font-extrabold text-emerald-700 mt-1 block">
-                        {partProfile?.scoreboard?.overallMarks > 0 && partProfile?.scoreboard?.rank && partProfile.scoreboard.rank !== 'N/A'
+                        {(Number(partProfile?.totalPoints ?? partProfile?.scoreboard?.individualPoints ?? partProfile?.scoreboard?.overallPoints ?? partProfile?.scoreboard?.overallMarks ?? 0) > 0) && partProfile?.scoreboard?.rank && partProfile.scoreboard.rank !== 'N/A'
                           ? `#${partProfile.scoreboard.rank}`
                           : '—'}
                       </span>
                     </div>
                     <div className="text-center border-x border-slate-200">
-                      <span className="text-[10px] font-bold text-slate-400 block uppercase font-mono">Total Score</span>
-                      <span className="text-base font-extrabold text-slate-800 mt-1 block">{partProfile?.scoreboard?.overallMarks || 0}</span>
+                      <span className="text-[10px] font-bold text-slate-400 block uppercase font-mono">Total Points</span>
+                      <span className="text-base font-extrabold text-slate-800 mt-1 block">
+                        {partProfile?.totalPoints ?? partProfile?.scoreboard?.individualPoints ?? partProfile?.scoreboard?.overallPoints ?? 0}
+                      </span>
+                      {partProfile?.totalMarks !== undefined && partProfile?.totalMarks > 0 && (
+                        <span className="text-[10px] font-mono text-slate-400 block mt-0.5">
+                          ({partProfile.totalMarks} marks)
+                        </span>
+                      )}
                     </div>
                     <div className="text-center">
                       <span className="text-[10px] font-bold text-slate-400 block uppercase font-mono">Events count</span>
@@ -1233,6 +1310,9 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                                         </span>
                                       )}
                                       <span className="font-bold text-slate-800 text-xs">
+                                        {item.points !== undefined && item.points > 0 && (
+                                          <span className="text-amber-700 font-mono font-extrabold mr-1.5">{item.points} pts •</span>
+                                        )}
                                         {item.result.averageMark !== undefined ? item.result.averageMark : (item.result.totalMark || 0)} marks
                                       </span>
                                     </div>
@@ -1241,7 +1321,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                         : 'bg-blue-50 text-blue-700 border-blue-200'
                                     }`}>
-                                      Rank {item.result.rank || 'TBD'}
+                                      Rank {item.result.rank || 'TBD'} {item.grade ? `(${item.grade})` : ''}
                                     </span>
                                   </>
                                 )
