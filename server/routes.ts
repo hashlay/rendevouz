@@ -901,20 +901,20 @@ apiRouter.delete('/gallery/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
 
 const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1PyLeWulSJqRPGFAk5Nb7copC1ZN7BRbL';
 
-function ensureTwoThemes(cfg: any) {
+function ensureFestivalThemes(cfg: any) {
   if (!cfg || typeof cfg !== 'object') return;
   const defaultThemes = [
     '/themes/theme_phytolore_green.jpg',
-    '/themes/theme_phytolore_dark_green.jpg'
+    '/themes/theme_phytolore_dark_green.jpg',
+    '/themes/theme_white_brown.jpg',
+    '/themes/theme_yellow_scroll.jpg',
+    '/themes/theme_phytolore_green_theme5.jpg'
   ];
-  cfg.customThemes = [
-    (Array.isArray(cfg.customThemes) && cfg.customThemes[0]) ? cfg.customThemes[0] : defaultThemes[0],
-    defaultThemes[1]
-  ];
+  const existing = Array.isArray(cfg.customThemes) ? cfg.customThemes : [];
+  cfg.customThemes = defaultThemes.map((dt, idx) => existing[idx] || dt);
   if (!cfg.themeConfigs) cfg.themeConfigs = {};
-  delete cfg.themeConfigs[2];
-  delete cfg.themeConfigs[3];
 }
+const ensureTwoThemes = ensureFestivalThemes;
 
 apiRouter.get('/settings', async (req, res) => {
   const db = dbClient.get();
