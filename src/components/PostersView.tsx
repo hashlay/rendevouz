@@ -520,9 +520,105 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
     };
   }
 
-  // Theme 5 (Index 4) - Exact copy of Theme 1 (phytolore green)
+  // Theme 5 (Index 4) - Dark Phytolore Modern (Thunder ExtraLight 01, Sora & Fractul Alt, Pink accents)
   if (themeIdx === 4) {
-    return getDefaultThemeConfig(0);
+    return {
+      titleColor: '#ef066a',
+      winnerColor: '#ffffff',
+      unitColor: '#ef066a',
+      titleSize: 36,
+      resultLabelText: '',
+      resultLabelX: -9999,
+      resultLabelY: -9999,
+      resultLabelSize: 0,
+      resultLabelColor: '#ffffff',
+      resultNumX: 138,
+      resultNumY: 408,
+      resultNumSize: 105,
+      resultNumColor: '#ef066a',
+      resultNumFont: '200 "Thunder ExtraLight LC", "Thunder", sans-serif',
+      categorySize: 28,
+      categoryColor: '#ffffff',
+      categoryX: 240,
+      categoryY: 340,
+      categoryFont: '500 "Sora", sans-serif',
+      compNameX: 240,
+      compNameY: 405,
+      compNameSize: 68,
+      compNameColor: '#ef066a',
+      compNameFont: '600 "Sora", sans-serif',
+      campusNameX: 540,
+      campusNameY: 70,
+      campusNameSize: 28,
+      campusNameColor: '#ffffff',
+      campusNameFont: 'sans-serif',
+      showCampusName: false,
+      festNameX: 540,
+      festNameY: 120,
+      festNameSize: 36,
+      festNameColor: '#fbbf24',
+      festNameFont: 'sans-serif',
+      showFestName: false,
+      winnerSize: 34,
+      unitSize: 22,
+      rankSize: 30,
+      titleX: 540,
+      titleY: 110,
+      rank1BadgeX: 210,
+      rank1BadgeY: 498,
+      rank1NameX: 240,
+      rank1NameY: 498,
+      rank1UnitX: 240,
+      rank1UnitY: 524,
+      rank2BadgeX: 210,
+      rank2BadgeY: 578,
+      rank2NameX: 240,
+      rank2NameY: 578,
+      rank2UnitX: 240,
+      rank2UnitY: 604,
+      rank3BadgeX: 210,
+      rank3BadgeY: 663,
+      rank3NameX: 240,
+      rank3NameY: 663,
+      rank3UnitX: 240,
+      rank3UnitY: 689,
+      titleFont: '500 "Fractul Alt", sans-serif',
+      resultLabelFont: '500 "Fractul Alt", sans-serif',
+      winnerFont: '500 "Fractul Alt", sans-serif',
+      unitFont: '500 "Fractul Alt", sans-serif',
+      rankFont: '500 "Fractul Alt", sans-serif',
+      fontFamily: '500 "Fractul Alt", sans-serif',
+      uppercaseNames: false,
+      rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
+      rankBadgeShapeSize: 20,
+      rank1Color: '#ffffff',
+      rank2Color: '#ffffff',
+      rank3Color: '#ffffff',
+      rankTextColor: '#ffffff',
+      rank1Text: 'I',
+      rank2Text: 'II',
+      rank3Text: 'III',
+      showFooter: false,
+      showFooterBg: false,
+      footerLine1: '',
+      footerLine2: '',
+      campusNameUppercase: true,
+      festNameUppercase: true,
+      resultLabelUppercase: true,
+      resultNumUppercase: false,
+      categoryUppercase: false,
+      compNameUppercase: false,
+      winnerUppercase: false,
+      unitUppercase: false,
+      useTeamColors: false,
+      unitColors: {} as Record<string, string>,
+      unitLanguage: 'en',
+      unitArabicNames: {
+        'Sirafi Seafarers': 'TEAM السِّيرَافِي',
+        'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
+        'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
+      } as Record<string, string>,
+    };
   }
 
   return {
@@ -747,6 +843,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
   const [localThemeConfigs, setLocalThemeConfigs] = useState<any>({});
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [savingThisPoster, setSavingThisPoster] = useState(false);
 
   useEffect(() => {
     if (selectedCompId) {
@@ -758,11 +855,10 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
       const compOverride = (eventSettings?.posterOverrides && aComp?.name && eventSettings.posterOverrides[aComp.name]) ||
                            (eventSettings?.posterOverrides && selectedCompId && eventSettings.posterOverrides[selectedCompId]);
 
-      const baseTheme = { ...getDefaultThemeConfig(), ...(themeConfigs[themeIdx] || {}) };
+      const baseTheme = { ...getDefaultThemeConfig(themeIdx), ...(themeConfigs[themeIdx] || {}) };
       const mergedTheme = { ...baseTheme, ...(compOverride || {}) };
 
       setLocalThemeConfigs((prev: any) => ({
-        ...(themeConfigs || {}),
         ...prev,
         [themeIdx]: mergedTheme
       }));
@@ -885,7 +981,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
   const handleSaveThisPosterOnly = async () => {
     if (!selectedCompId) return;
-    setSavingTemplate(true);
+    setSavingThisPoster(true);
     try {
       const aComp = competitions.find(c => c.id === selectedCompId);
       const aCat = aComp ? categories.find(cat => cat.id === aComp.categoryId) : null;
@@ -905,6 +1001,9 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         [selectedCompId]: individualConfig,
         [aComp?.name || '']: individualConfig
       };
+      if (aComp?.name && aComp.name.trim() !== aComp.name) {
+        updatedOverrides[aComp.name.trim()] = individualConfig;
+      }
 
       const res = await fetch('/api/settings', {
         method: 'PUT',
@@ -912,12 +1011,18 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         body: JSON.stringify({ posterOverrides: updatedOverrides })
       });
       if (!res.ok) throw new Error('Failed to save');
+
+      // Update in-memory eventSettings so UI does not lose overrides
+      if (eventSettings) {
+        (eventSettings as any).posterOverrides = updatedOverrides;
+      }
+
       alert(`Saved custom layout positions & text overrides specifically for poster "${aComp?.name}"!`);
       if (onSettingsUpdated) onSettingsUpdated();
     } catch (e) {
       alert('Failed to save poster override');
     } finally {
-      setSavingTemplate(false);
+      setSavingThisPoster(false);
     }
   };
 
@@ -1914,11 +2019,32 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
                           <button
                             type="button"
                             onClick={() => {
-                              if (confirm('Reset poster layout and overrides to theme defaults?')) {
-                                const def = getDefaultThemeConfig();
+                              if (confirm('Reset this poster layout and text overrides to theme defaults?')) {
+                                const compIdx = getAnnouncementIndex(selectedCompId);
+                                const aComp = competitions.find(c => c.id === selectedCompId);
+                                const aCat = aComp ? categories.find(cat => cat.id === aComp.categoryId) : null;
+                                const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
+                                const baseTheme = {
+                                  ...getDefaultThemeConfig(themeIdx),
+                                  ...(themeConfigs[themeIdx] || {})
+                                };
+                                delete (baseTheme as any).compNameOverride;
+                                delete (baseTheme as any).rank1NameOverride;
+                                delete (baseTheme as any).rank1UnitOverride;
+                                delete (baseTheme as any).rank2NameOverride;
+                                delete (baseTheme as any).rank2UnitOverride;
+                                delete (baseTheme as any).rank3NameOverride;
+                                delete (baseTheme as any).rank3UnitOverride;
+                                delete (baseTheme as any).rank1_2_NameOverride;
+                                delete (baseTheme as any).rank1_2_UnitOverride;
+                                delete (baseTheme as any).rank2_2_NameOverride;
+                                delete (baseTheme as any).rank2_2_UnitOverride;
+                                delete (baseTheme as any).rank3_2_NameOverride;
+                                delete (baseTheme as any).rank3_2_UnitOverride;
+
                                 setLocalThemeConfigs(prev => ({
                                   ...prev,
-                                  [0]: def
+                                  [themeIdx]: baseTheme
                                 }));
                               }
                             }}
@@ -1996,6 +2122,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
                           <RangeControl label="Result Label Y" value={c.resultLabelY ?? 180} onChange={v => updateLocalConf('resultLabelY', v)} min={30} max={500} />
                           <RangeControl label="Result Number X" value={c.resultNumX ?? 600} onChange={v => updateLocalConf('resultNumX', v)} min={0} max={1080} />
                           <RangeControl label="Result Number Y" value={c.resultNumY ?? 180} onChange={v => updateLocalConf('resultNumY', v)} min={30} max={500} />
+                          <RangeControl label="Result Number Size" value={c.resultNumSize || 28} onChange={v => updateLocalConf('resultNumSize', v)} min={14} max={180} />
                           <RangeControl label="Category X" value={c.categoryX ?? 540} onChange={v => updateLocalConf('categoryX', v)} min={0} max={1080} />
                           <RangeControl label="Category Y" value={c.categoryY ?? 260} onChange={v => updateLocalConf('categoryY', v)} min={50} max={600} />
                           <RangeControl label="Competition X" value={c.compNameX ?? 540} onChange={v => updateLocalConf('compNameX', v)} min={0} max={1080} />
@@ -2067,15 +2194,15 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
                         <>
                           <button
                             onClick={handleSaveThisPosterOnly}
-                            disabled={savingTemplate}
+                            disabled={savingThisPoster || savingTemplate}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-sm"
                           >
                             <Save className="w-4 h-4" />
-                            {savingTemplate ? 'Saving...' : 'Save for THIS Poster Only'}
+                            {savingThisPoster ? 'Saving...' : 'Save for THIS Poster Only'}
                           </button>
                           <button
                             onClick={handleSaveTemplate}
-                            disabled={savingTemplate}
+                            disabled={savingThisPoster || savingTemplate}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
                           >
                             <Save className="w-4 h-4" />

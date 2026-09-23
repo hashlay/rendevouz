@@ -418,6 +418,15 @@ async function _syncMongoNow(targetCollections?: string[]) {
             { upsert: true }
           ).catch(() => { }));
         }
+
+        const overrides = (db as any).posterOverrides || (db.eventSettings as any)?.posterOverrides;
+        if (overrides) {
+          tasks.push(mongoDb.collection('settings').replaceOne(
+            { _id: 'posterOverrides' as any },
+            { _id: 'posterOverrides', ...overrides },
+            { upsert: true }
+          ).catch(() => { }));
+        }
       }
 
       await Promise.all(tasks);
@@ -582,6 +591,13 @@ async function syncStateFromMongo(force: boolean = false) {
         if (doc._id === 'certificateTemplateConfig') {
           db.certificateTemplateConfig = { ...rest };
           if (db.eventSettings) db.eventSettings.certificateTemplateConfig = { ...rest };
+        }
+        if (doc._id === 'posterOverrides') {
+          const loadedOverrides = rest.overrides || rest;
+          (db as any).posterOverrides = { ...((db as any).posterOverrides || {}), ...loadedOverrides };
+          if (db.eventSettings) {
+            (db.eventSettings as any).posterOverrides = { ...((db.eventSettings as any).posterOverrides || {}), ...loadedOverrides };
+          }
         }
       }
     });

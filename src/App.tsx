@@ -210,7 +210,7 @@ export default function App() {
       case 'certificate-studio':
         return <CertificateSettingsView user={user} token={token} eventSettings={eventSettings} onSettingsUpdated={fetchEventConfig} />;
       case 'posters':
-        return <PostersView user={user} token={token} eventSettings={eventSettings} />;
+        return <PostersView user={user} token={token} eventSettings={eventSettings} onSettingsUpdated={fetchEventConfig} />;
       case 'poster-studio':
         return <PosterSettingsView user={user} token={token} eventSettings={eventSettings} onSettingsUpdated={fetchEventConfig} />;
       case 'highlights':
