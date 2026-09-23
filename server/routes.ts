@@ -41,7 +41,7 @@ export function bustPublicCache() {
       'Content-Type': 'application/json',
       'x-internal-secret': secret
     }
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 // In-memory cache for dashboard analytics with 10s TTL
@@ -483,7 +483,7 @@ apiRouter.post('/auth/login', async (req, res) => {
     timestamp: new Date().toISOString()
   };
   db.loginAudits.unshift(audit);
-  dbClient.save().catch(() => {});
+  dbClient.save().catch(() => { });
 
   // Set secure HTTP-only cookie
   res.cookie(COOKIE_NAME, token, {
@@ -899,7 +899,7 @@ apiRouter.delete('/gallery/:id', authenticate, requireRole([UserRole.SUPER_ADMIN
 
 // 2. SETTINGS & EVENT MANAGE
 
-const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1cQNek6Q2EiThqdFrUDb1I8cfsmQneP1J';
+const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1PyLeWulSJqRPGFAk5Nb7copC1ZN7BRbL';
 
 function ensureTwoThemes(cfg: any) {
   if (!cfg || typeof cfg !== 'object') return;
@@ -1962,20 +1962,15 @@ apiRouter.post('/participants/bulk-assign-competitions', authenticate, requireRo
           );
         }
 
-        // C. Look across all active competitions
-        if (!comp) {
-          comp = (db.competitions || []).find((c: any) =>
-            !c.deletedAt &&
-            normalizeStr(c.name) === normTarget
-          );
-        }
-
+        // Strictly match within participant's category or open General category
+        // NEVER search across other categories to prevent cross-category corruption
         if (comp) {
           if (!matchedComps.some(mc => mc.id === comp!.id)) {
             matchedComps.push(comp);
           }
         } else {
-          unmatchedNames.push(cleanComp);
+          const partCatName = (db.categories || []).find((c: any) => c.id === participant!.selectedCategoryId)?.name || participant!.selectedCategoryId;
+          unmatchedNames.push(`${cleanComp} (not found in ${partCatName} or General)`);
         }
       }
 
@@ -2079,7 +2074,7 @@ apiRouter.post('/participants/bulk-assign-competitions', authenticate, requireRo
         }
       }));
       if (partOps.length > 0) {
-        await mongoDb.collection('participants').bulkWrite(partOps, { ordered: false }).catch(() => {});
+        await mongoDb.collection('participants').bulkWrite(partOps, { ordered: false }).catch(() => { });
       }
 
       const regOps = ((db as any).registrations || []).map((r: any) => ({
@@ -2090,7 +2085,7 @@ apiRouter.post('/participants/bulk-assign-competitions', authenticate, requireRo
         }
       }));
       if (regOps.length > 0) {
-        await mongoDb.collection('registrations').bulkWrite(regOps, { ordered: false }).catch(() => {});
+        await mongoDb.collection('registrations').bulkWrite(regOps, { ordered: false }).catch(() => { });
       }
 
       const teamOps = (db.teams || []).map((t: any) => ({
@@ -2101,7 +2096,7 @@ apiRouter.post('/participants/bulk-assign-competitions', authenticate, requireRo
         }
       }));
       if (teamOps.length > 0) {
-        await mongoDb.collection('teams').bulkWrite(teamOps, { ordered: false }).catch(() => {});
+        await mongoDb.collection('teams').bulkWrite(teamOps, { ordered: false }).catch(() => { });
       }
     }
   } catch (mongoErr) {
@@ -2500,6 +2495,9 @@ apiRouter.put('/participants/:id', authenticate, async (req, res) => {
     reg.selectedGroupTeamIds = groupCompetitions.map(c => c.id);
     reg.updatedAt = new Date().toISOString();
 
+    // Keep participant.registeredEvents in 100% two-way lockstep with registration
+    existingPart.registeredEvents = [...individualCompetitions.map(c => c.id), ...groupCompetitions.map(c => c.id)];
+
     // Sync group team memberships in db.teams
     const groupCompIds = groupCompetitions.map(c => c.id);
     if (db.teams) {
@@ -2771,7 +2769,7 @@ apiRouter.post('/teams', authenticate, async (req, res) => {
     const targetCatId = categoryId || comp.categoryId;
     const catObj = (db.categories || []).find((c: any) => c.id === targetCatId || c.name === targetCatId);
     const pCatId = p.selectedCategoryId || (p as any).categoryId;
-    const isCategoryMatch = 
+    const isCategoryMatch =
       isGeneralTeamComp ||
       pCatId === targetCatId ||
       (catObj && (pCatId === catObj.id || pCatId === catObj.name)) ||
@@ -2819,6 +2817,48 @@ apiRouter.post('/teams', authenticate, async (req, res) => {
 
   db.teams.push(newTeam);
 
+  // Synchronize member registrations for the newly created team
+  const mongoDb = getDb();
+  for (const mid of memberIds) {
+    const p = db.participants.find(part => part.id === mid);
+    if (p) {
+      if (!Array.isArray(p.registeredEvents)) p.registeredEvents = [];
+      if (!p.registeredEvents.includes(competitionId)) {
+        p.registeredEvents.push(competitionId);
+      }
+    }
+    if ((db as any).registrations) {
+      (db as any).registrations.forEach((reg: any) => {
+        if (reg.participantId === mid) {
+          if (!Array.isArray(reg.selectedGroupCompetitionIds)) reg.selectedGroupCompetitionIds = [];
+          if (!reg.selectedGroupCompetitionIds.includes(competitionId)) {
+            reg.selectedGroupCompetitionIds.push(competitionId);
+          }
+          if (!Array.isArray(reg.selectedGroupTeamIds)) reg.selectedGroupTeamIds = [];
+          if (!reg.selectedGroupTeamIds.includes(newTeam.id)) {
+            reg.selectedGroupTeamIds.push(newTeam.id);
+          }
+        }
+      });
+    }
+    if (mongoDb) {
+      try {
+        await Promise.all([
+          mongoDb.collection('participants').updateOne(
+            { id: mid },
+            { $addToSet: { registeredEvents: competitionId } }
+          ),
+          mongoDb.collection('registrations').updateMany(
+            { participantId: mid },
+            { $addToSet: { selectedGroupCompetitionIds: competitionId, selectedGroupTeamIds: newTeam.id } }
+          )
+        ]);
+      } catch (err) {
+        console.error('Error syncing participant on team create:', err);
+      }
+    }
+  }
+
   // Log Audit
   await dbClient.logAudit(user.id, user.username, user.role, 'Create Group Team', 'Team', newTeam.id, finalUnitId, undefined, newTeam);
   await dbClient.save();
@@ -2864,6 +2904,7 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
     }
 
     // Verify member qualifications
+    const isGeneralTeamComp = comp.categoryId === 'cat_general' || comp.section === 'general';
     for (const mid of memberIds) {
       const p = db.participants.find(part => part.id === mid && !part.deletedAt);
       if (!p) {
@@ -2875,11 +2916,12 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
       if (!isUnitMatch) {
         return res.status(400).json({ error: `Member ${p.fullName} belongs to a different unit.` });
       }
-      // Category match
+      // Category match (General competitions allow members from any category)
       const targetCatId = team.categoryId || comp.categoryId;
       const catObj = (db.categories || []).find((c: any) => c.id === targetCatId || c.name === targetCatId);
       const pCatId = p.selectedCategoryId || (p as any).categoryId;
-      const isCategoryMatch = 
+      const isCategoryMatch =
+        isGeneralTeamComp ||
         pCatId === targetCatId ||
         (catObj && (pCatId === catObj.id || pCatId === catObj.name)) ||
         (p.selectedCategoryId && (p.selectedCategoryId === comp.categoryId || p.selectedCategoryId === targetCatId)) ||
@@ -2894,6 +2936,102 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
       );
       if (currentMemberTeams.length >= db.eventSettings.maxGroupEvents) {
         return res.status(400).json({ error: `Member ${p.fullName} already registered for maximum ${db.eventSettings.maxGroupEvents} group events.` });
+      }
+    }
+
+    const oldMemberIds = Array.isArray(oldTeam.memberIds) ? [...oldTeam.memberIds] : [];
+    const newMemberIds = [...memberIds];
+    const removedMemberIds = oldMemberIds.filter(id => !newMemberIds.includes(id));
+    const addedMemberIds = newMemberIds.filter(id => !oldMemberIds.includes(id));
+
+    const mongoDb = getDb();
+
+    // 1. Handle Removed Members: Remove competitionId from participant.registeredEvents and registrations
+    for (const remId of removedMemberIds) {
+      const inOtherTeamForComp = db.teams.some(t =>
+        !t.deletedAt &&
+        t.id !== teamId &&
+        t.competitionId === team.competitionId &&
+        Array.isArray(t.memberIds) &&
+        t.memberIds.includes(remId)
+      );
+
+      if (!inOtherTeamForComp) {
+        const pRem = db.participants.find(p => p.id === remId);
+        if (pRem && Array.isArray(pRem.registeredEvents)) {
+          pRem.registeredEvents = pRem.registeredEvents.filter(cid => cid !== team.competitionId);
+        }
+        if ((db as any).registrations) {
+          (db as any).registrations.forEach((reg: any) => {
+            if (reg.participantId === remId) {
+              if (Array.isArray(reg.selectedGroupCompetitionIds)) {
+                reg.selectedGroupCompetitionIds = reg.selectedGroupCompetitionIds.filter((cid: string) => cid !== team.competitionId);
+              }
+              if (Array.isArray(reg.selectedGroupTeamIds)) {
+                reg.selectedGroupTeamIds = reg.selectedGroupTeamIds.filter((tid: string) => tid !== teamId);
+              }
+            }
+          });
+        }
+
+        if (mongoDb) {
+          try {
+            await Promise.all([
+              mongoDb.collection('participants').updateOne(
+                { id: remId },
+                { $pull: { registeredEvents: team.competitionId } }
+              ),
+              mongoDb.collection('registrations').updateMany(
+                { participantId: remId },
+                { $pull: { selectedGroupCompetitionIds: team.competitionId, selectedGroupTeamIds: teamId } }
+              )
+            ]);
+          } catch (mErr) {
+            console.error('Error removing participant events on team edit:', mErr);
+          }
+        }
+      }
+    }
+
+    // 2. Handle Added Members: Add competitionId to participant.registeredEvents and registrations
+    for (const addId of addedMemberIds) {
+      const pAdd = db.participants.find(p => p.id === addId);
+      if (pAdd) {
+        if (!Array.isArray(pAdd.registeredEvents)) pAdd.registeredEvents = [];
+        if (!pAdd.registeredEvents.includes(team.competitionId)) {
+          pAdd.registeredEvents.push(team.competitionId);
+        }
+      }
+      if ((db as any).registrations) {
+        (db as any).registrations.forEach((reg: any) => {
+          if (reg.participantId === addId) {
+            if (!Array.isArray(reg.selectedGroupCompetitionIds)) reg.selectedGroupCompetitionIds = [];
+            if (!reg.selectedGroupCompetitionIds.includes(team.competitionId)) {
+              reg.selectedGroupCompetitionIds.push(team.competitionId);
+            }
+            if (!Array.isArray(reg.selectedGroupTeamIds)) reg.selectedGroupTeamIds = [];
+            if (!reg.selectedGroupTeamIds.includes(teamId)) {
+              reg.selectedGroupTeamIds.push(teamId);
+            }
+          }
+        });
+      }
+
+      if (mongoDb) {
+        try {
+          await Promise.all([
+            mongoDb.collection('participants').updateOne(
+              { id: addId },
+              { $addToSet: { registeredEvents: team.competitionId } }
+            ),
+            mongoDb.collection('registrations').updateMany(
+              { participantId: addId },
+              { $addToSet: { selectedGroupCompetitionIds: team.competitionId, selectedGroupTeamIds: teamId } }
+            )
+          ]);
+        } catch (mErr) {
+          console.error('Error adding participant events on team edit:', mErr);
+        }
       }
     }
 
@@ -2968,6 +3106,10 @@ const handleDeleteTeamPermanent = async (req: any, res: any) => {
       );
 
       if (!inOtherTeamForComp) {
+        const pRem = db.participants.find(p => p.id === memberId);
+        if (pRem && Array.isArray(pRem.registeredEvents)) {
+          pRem.registeredEvents = pRem.registeredEvents.filter(cid => cid !== compId);
+        }
         (db as any).registrations.forEach((reg: any) => {
           if (reg.participantId === memberId) {
             if (Array.isArray(reg.selectedGroupCompetitionIds)) {
@@ -2978,6 +3120,22 @@ const handleDeleteTeamPermanent = async (req: any, res: any) => {
             }
           }
         });
+        if (mongoDb) {
+          try {
+            await Promise.all([
+              mongoDb.collection('participants').updateOne(
+                { id: memberId },
+                { $pull: { registeredEvents: compId } }
+              ),
+              mongoDb.collection('registrations').updateMany(
+                { participantId: memberId },
+                { $pull: { selectedGroupCompetitionIds: compId, selectedGroupTeamIds: teamId } }
+              )
+            ]);
+          } catch (mErr) {
+            console.error('Error removing participant events on team delete:', mErr);
+          }
+        }
       }
     }
   }
@@ -3486,7 +3644,7 @@ apiRouter.put('/results/:id', authenticate, requireRole([UserRole.SUPER_ADMIN, U
   const user = (req as any).user as User;
   let resIndex = db.results.findIndex(r => r.id === resId && !r.deletedAt);
   if (resIndex === -1 && (req.body.participantId || req.body.teamId) && req.body.competitionId) {
-    resIndex = db.results.findIndex(r => 
+    resIndex = db.results.findIndex(r =>
       r.competitionId === req.body.competitionId &&
       !r.deletedAt &&
       ((req.body.participantId && r.participantId === req.body.participantId) || (req.body.teamId && r.teamId === req.body.teamId))
@@ -3793,7 +3951,7 @@ apiRouter.get('/results', authenticate, async (req, res) => {
 
     if (materializedAny) {
       CalculationService.calculateCompetitionRanks(compId);
-      dbClient.save().catch(() => {});
+      dbClient.save().catch(() => { });
     }
   }
 
@@ -3879,14 +4037,14 @@ apiRouter.post('/results/announce', authenticate, requireRole([UserRole.SUPER_AD
     if (!pId && !tId) continue;
 
     let existingRes = db.results.find(r => r.competitionId === competitionId && !r.deletedAt && ((pId && r.participantId === pId) || (tId && r.teamId === tId)));
-    
+
     const j1 = score.judgeScores?.find((j: any) => j.judgeNumber === 1);
     const j2 = score.judgeScores?.find((j: any) => j.judgeNumber === 2);
     const j1Mark = j1?.mark || 0;
     const j2Mark = j2?.mark || 0;
     const nonZeroCount = (j1Mark > 0 ? 1 : 0) + (j2Mark > 0 ? 1 : 0) || 1;
     const calculatedAvg = score.averageMark !== undefined ? score.averageMark : Math.round((score.totalMark / nonZeroCount) * 100) / 100;
-    
+
     let resStatus = ResultStatus.PARTICIPATED;
     if (score.status === 'absent') resStatus = ResultStatus.ABSENT;
     else if (score.status === 'disqualified') resStatus = ResultStatus.DISQUALIFIED;
@@ -3952,14 +4110,14 @@ apiRouter.post('/results/announce', authenticate, requireRole([UserRole.SUPER_AD
         }
       }));
       if (resOps.length > 0) {
-        await mongoDb.collection('results').bulkWrite(resOps, { ordered: false }).catch(() => {});
+        await mongoDb.collection('results').bulkWrite(resOps, { ordered: false }).catch(() => { });
       }
       if (sheet) {
         await mongoDb.collection('judgmentSheets').replaceOne(
           { $or: [{ id: sheet.id }, { _id: sheet.id as any }] },
           { id: sheet.id, ...sheet },
           { upsert: true }
-        ).catch(() => {});
+        ).catch(() => { });
       }
     }
   } catch (mongoErr) {
@@ -4285,6 +4443,12 @@ apiRouter.get('/dashboard-stats', authenticate, async (req, res) => {
   const activeTeamCompsWithReg = new Set<string>();
   teams.forEach(t => {
     if (t.competitionId) activeTeamCompsWithReg.add(t.competitionId);
+  });
+  ((db as any).registrations || []).forEach((r: any) => {
+    if (activeParticipantIds.has(r.participantId)) {
+      const gCompIds = r.selectedGroupCompetitionIds || r.selectedGroupTeamIds || [];
+      gCompIds.forEach((cId: string) => activeTeamCompsWithReg.add(cId));
+    }
   });
 
   const enteredCompIds = new Set<string>();
@@ -4752,9 +4916,9 @@ const handleChestNumberUpdate = async (req: Request, res: Response) => {
   const partB = otherChest
     ? db.participants.find(p => p.id === (otherChest.participantId || otherChest.entityId) && !p.deletedAt)
     : db.participants.find(p => p.id !== partA.id && !p.deletedAt && (
-        String(p.profilePhoto || '').trim().toLowerCase() === newChestStr ||
-        String(p.chestNumber || '').trim().toLowerCase() === newChestStr
-      ));
+      String(p.profilePhoto || '').trim().toLowerCase() === newChestStr ||
+      String(p.chestNumber || '').trim().toLowerCase() === newChestStr
+    ));
 
   let isSwapped = false;
 
@@ -5967,7 +6131,7 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
         }
       }));
       if (ops.length > 0) {
-        await mongoDb.collection('judgeScores').bulkWrite(ops, { ordered: false }).catch(() => {});
+        await mongoDb.collection('judgeScores').bulkWrite(ops, { ordered: false }).catch(() => { });
       }
 
       const compResults = (db.results || []).filter((r: Result) => r.competitionId === sheet.competitionId);
@@ -5979,14 +6143,14 @@ apiRouter.post('/judgment-sheets/:id/scores', authenticate, requireRole([UserRol
         }
       }));
       if (resOps.length > 0) {
-        await mongoDb.collection('results').bulkWrite(resOps, { ordered: false }).catch(() => {});
+        await mongoDb.collection('results').bulkWrite(resOps, { ordered: false }).catch(() => { });
       }
 
       await mongoDb.collection('judgmentSheets').replaceOne(
         { $or: [{ id: sheet.id }, { _id: sheet.id as any }] },
         { id: sheet.id, ...sheet },
         { upsert: true }
-      ).catch(() => {});
+      ).catch(() => { });
     }
   } catch (err) {
     console.error('Mongo scores save error:', err);
@@ -6050,11 +6214,11 @@ apiRouter.post('/judgment-sheets/:id/unlock', authenticate, requireRole([UserRol
       await mongoDb.collection('judgmentSheets').updateOne(
         { $or: [{ id: sheetId }, { _id: sheetId as any }] },
         { $set: { status: JudgmentSheetStatus.IN_PROGRESS, publishedToResults: false } }
-      ).catch(() => {});
+      ).catch(() => { });
       await mongoDb.collection('results').updateMany(
         { competitionId: sheet.competitionId },
         { $set: { publishedStatus: false } }
-      ).catch(() => {});
+      ).catch(() => { });
     }
   } catch (err) {
     console.error('Failed to sync unlock to Mongo:', err);
@@ -6167,13 +6331,13 @@ apiRouter.post('/judgment-sheets/:id/calculate', authenticate, requireRole([User
         }
       }));
       if (resOps.length > 0) {
-        await mongoDb.collection('results').bulkWrite(resOps, { ordered: false }).catch(() => {});
+        await mongoDb.collection('results').bulkWrite(resOps, { ordered: false }).catch(() => { });
       }
       await mongoDb.collection('judgmentSheets').replaceOne(
         { $or: [{ id: sheet.id }, { _id: sheet.id as any }] },
         { id: sheet.id, ...sheet },
         { upsert: true }
-      ).catch(() => {});
+      ).catch(() => { });
     }
   } catch (err) {
     console.error('Mongo calculate results save error:', err);
@@ -6217,7 +6381,7 @@ apiRouter.post('/results/:id/publish-certificate', authenticate, requireRole([Us
 apiRouter.get('/public/settings', async (req, res) => {
   const db = dbClient.get();
   const ptc = db.posterTemplateConfig || db.eventSettings?.posterTemplateConfig;
-  ensureTheme4(ptc);
+  ensureTwoThemes(ptc);
   res.json({
     ...(db.eventSettings || {}),
     ...(db.cmsSettings || {}),

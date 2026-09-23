@@ -131,19 +131,19 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       resultLabelColor: '#ffffff',
       resultNumX: 350,
       resultNumY: 414,
-      resultNumSize: 96,
+      resultNumSize: 76,
       resultNumColor: '#7FBFC8',
-      resultNumFont: '200 "Thunder ExtraLight LC", "Thunder", sans-serif',
+      resultNumFont: '600 "Sora", sans-serif',
       categorySize: 26,
       categoryColor: '#ffffff',
       categoryX: 450,
       categoryY: 348,
-      categoryFont: '200 "Sora", sans-serif',
+      categoryFont: '300 "Sora", sans-serif',
       compNameX: 450,
       compNameY: 414,
-      compNameSize: 64,
+      compNameSize: 52,
       compNameColor: '#7FBFC8',
-      compNameFont: '500 "Sora", sans-serif',
+      compNameFont: '600 "Sora", sans-serif',
       campusNameX: 540,
       campusNameY: 70,
       campusNameSize: 28,
@@ -156,9 +156,9 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       festNameColor: '#fbbf24',
       festNameFont: 'sans-serif',
       showFestName: false,
-      winnerSize: 32,
-      unitSize: 20,
-      rankSize: 24,
+      winnerSize: 34,
+      unitSize: 22,
+      rankSize: 32,
       titleX: 540,
       titleY: 110,
       rank1BadgeX: 416,
@@ -179,12 +179,12 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       rank3NameY: 680,
       rank3UnitX: 450,
       rank3UnitY: 708,
-      titleFont: '400 "Fractul Alt", sans-serif',
-      resultLabelFont: '400 "Fractul Alt", sans-serif',
-      winnerFont: '400 "Fractul Alt", sans-serif',
-      unitFont: '400 "Fractul Alt", sans-serif',
-      rankFont: '400 "Fractul Alt", sans-serif',
-      fontFamily: '400 "Fractul Alt", sans-serif',
+      titleFont: '500 "Fractul Alt", sans-serif',
+      resultLabelFont: '500 "Fractul Alt", sans-serif',
+      winnerFont: '500 "Fractul Alt", sans-serif',
+      unitFont: '500 "Fractul Alt", sans-serif',
+      rankFont: '500 "Fractul Alt", sans-serif',
+      fontFamily: '500 "Fractul Alt", sans-serif',
       uppercaseNames: false,
       rankBadgeShape: 'none',
       rankBadgeShapeSize: 20,
@@ -231,19 +231,19 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       resultLabelColor: '#ffffff',
       resultNumX: 135,
       resultNumY: 375,
-      resultNumSize: 96,
+      resultNumSize: 76,
       resultNumColor: '#E6007E',
-      resultNumFont: '200 "Thunder ExtraLight LC", "Thunder", sans-serif',
+      resultNumFont: '600 "Sora", sans-serif',
       categorySize: 26,
       categoryColor: '#ffffff',
       categoryX: 235,
       categoryY: 315,
-      categoryFont: '200 "Sora", sans-serif',
+      categoryFont: '300 "Sora", sans-serif',
       compNameX: 235,
       compNameY: 375,
-      compNameSize: 64,
+      compNameSize: 52,
       compNameColor: '#E6007E',
-      compNameFont: '500 "Sora", sans-serif',
+      compNameFont: '600 "Sora", sans-serif',
       campusNameX: 540,
       campusNameY: 70,
       campusNameSize: 28,
@@ -256,9 +256,9 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       festNameColor: '#fbbf24',
       festNameFont: 'sans-serif',
       showFestName: false,
-      winnerSize: 32,
-      unitSize: 20,
-      rankSize: 24,
+      winnerSize: 34,
+      unitSize: 22,
+      rankSize: 32,
       titleX: 540,
       titleY: 110,
       rank1BadgeX: 205,
@@ -279,12 +279,12 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       rank3NameY: 645,
       rank3UnitX: 235,
       rank3UnitY: 675,
-      titleFont: '400 "Fractul Alt", sans-serif',
-      resultLabelFont: '400 "Fractul Alt", sans-serif',
-      winnerFont: '400 "Fractul Alt", sans-serif',
-      unitFont: '400 "Fractul Alt", sans-serif',
-      rankFont: '400 "Fractul Alt", sans-serif',
-      fontFamily: '400 "Fractul Alt", sans-serif',
+      titleFont: '500 "Fractul Alt", sans-serif',
+      resultLabelFont: '500 "Fractul Alt", sans-serif',
+      winnerFont: '500 "Fractul Alt", sans-serif',
+      unitFont: '500 "Fractul Alt", sans-serif',
+      rankFont: '500 "Fractul Alt", sans-serif',
+      fontFamily: '500 "Fractul Alt", sans-serif',
       uppercaseNames: false,
       rankBadgeShape: 'none',
       rankBadgeShapeSize: 20,
@@ -588,7 +588,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         userConf.rank2Color = defaultConf.rank2Color;
         userConf.rank3Color = defaultConf.rank3Color;
       }
-      if (!userConf.resultNumFont || userConf.resultNumFont.includes('bold "Fractul Alt"')) {
+      if (!userConf.resultNumFont || userConf.resultNumFont.includes('bold "Fractul Alt"') || userConf.resultNumFont.includes('Thunder')) {
         userConf.resultNumFont = defaultConf.resultNumFont;
       }
       if (!userConf.categoryFont || userConf.categoryFont.includes('bold "Fractul Alt"')) {
@@ -1311,21 +1311,45 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
           ctx.fill();
         }
 
-        ctx.fillStyle = c.rankTextColor || '#000000';
+        const rankFill = c.rankTextColor || '#ffffff';
+        ctx.fillStyle = rankFill;
         ctx.textAlign = 'center';
-        ctx.fillText(rankText, bx, by);
+        const isRankFractul = (c.rankFont || c.fontFamily || '').includes('Fractul Alt');
+        if (isRankFractul) {
+          ctx.save();
+          ctx.strokeStyle = rankFill;
+          ctx.lineWidth = 0.9;
+          ctx.lineJoin = 'round';
+          ctx.strokeText(rankText, bx, by);
+          ctx.fillText(rankText, bx, by);
+          ctx.restore();
+        } else {
+          ctx.fillText(rankText, bx, by);
+        }
         addRegion(badgeRegionId, bx - badgeW / 2 - 5, badgeCenterY - badgeH / 2 - 5, badgeW + 10, badgeH + 10);
 
         // Winner name (Supports 2-line text with \n)
         ctx.textAlign = 'left';
-        ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, c.winnerSize, '800');
-        ctx.fillStyle = c.winnerColor;
+        ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, c.winnerSize || 34, '500');
+        const winnerFill = c.winnerColor || '#ffffff';
+        ctx.fillStyle = winnerFill;
 
         const nameLines = winnerName.split('\n').filter(Boolean);
         const nameGap = (c.winnerSize ?? 44) * 1.15;
         let maxNameW = 0;
+        const isWinnerFractul = (c.winnerFont || c.fontFamily || '').includes('Fractul Alt');
         nameLines.forEach((line: string, i: number) => {
-          ctx.fillText(line, nx, ny + i * nameGap);
+          if (isWinnerFractul) {
+            ctx.save();
+            ctx.strokeStyle = winnerFill;
+            ctx.lineWidth = 0.9;
+            ctx.lineJoin = 'round';
+            ctx.strokeText(line, nx, ny + i * nameGap);
+            ctx.fillText(line, nx, ny + i * nameGap);
+            ctx.restore();
+          } else {
+            ctx.fillText(line, nx, ny + i * nameGap);
+          }
           const w = ctx.measureText(line).width;
           if (w > maxNameW) maxNameW = w;
         });
@@ -1334,8 +1358,9 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         // Unit name (Supports 2-line text with \n)
         const isArabic = c.unitLanguage === 'ar';
         const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : "'Cairo', 'Amiri', sans-serif";
-        ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), c.unitSize, '700');
-        ctx.fillStyle = getPosterTeamColor(winnerUnit, c.unitColor, c);
+        ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), c.unitSize || 22, '500');
+        const unitFill = getPosterTeamColor(winnerUnit, c.unitColor, c);
+        ctx.fillStyle = unitFill;
         const displayUnitName = getPosterDisplayUnitName(winnerUnit, c);
         const unitText = isArabic ? displayUnitName : (c.unitUppercase !== false ? displayUnitName.toUpperCase() : displayUnitName);
         const unitLines = unitText.split('\n').filter(Boolean);
@@ -1343,8 +1368,19 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         const calcUx = nx; 
         const calcUy = ny + (nameLines.length * nameGap) + 5;
         let maxUnitW = 0;
+        const isUnitFractul = (c.unitFont || c.fontFamily || '').includes('Fractul Alt');
         unitLines.forEach((line: string, i: number) => {
-          ctx.fillText(line, ux ?? calcUx, (uy ?? calcUy) + i * unitGap);
+          if (isUnitFractul) {
+            ctx.save();
+            ctx.strokeStyle = unitFill;
+            ctx.lineWidth = 0.65;
+            ctx.lineJoin = 'round';
+            ctx.strokeText(line, ux ?? calcUx, (uy ?? calcUy) + i * unitGap);
+            ctx.fillText(line, ux ?? calcUx, (uy ?? calcUy) + i * unitGap);
+            ctx.restore();
+          } else {
+            ctx.fillText(line, ux ?? calcUx, (uy ?? calcUy) + i * unitGap);
+          }
           const w = ctx.measureText(line).width;
           if (w > maxUnitW) maxUnitW = w;
         });

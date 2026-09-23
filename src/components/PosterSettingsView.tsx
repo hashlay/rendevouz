@@ -122,19 +122,19 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       resultLabelColor: '#ffffff',
       resultNumX: 350,
       resultNumY: 414,
-      resultNumSize: 96,
+      resultNumSize: 76,
       resultNumColor: '#7FBFC8',
-      resultNumFont: '200 "Thunder ExtraLight LC", "Thunder", sans-serif',
+      resultNumFont: '600 "Sora", sans-serif',
       categorySize: 26,
       categoryColor: '#ffffff',
       categoryX: 450,
       categoryY: 348,
-      categoryFont: '200 "Sora", sans-serif',
+      categoryFont: '300 "Sora", sans-serif',
       compNameX: 450,
       compNameY: 414,
-      compNameSize: 64,
+      compNameSize: 52,
       compNameColor: '#7FBFC8',
-      compNameFont: '500 "Sora", sans-serif',
+      compNameFont: '600 "Sora", sans-serif',
       campusNameX: 540,
       campusNameY: 70,
       campusNameSize: 28,
@@ -147,9 +147,9 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       festNameColor: '#fbbf24',
       festNameFont: 'sans-serif',
       showFestName: false,
-      winnerSize: 32,
-      unitSize: 20,
-      rankSize: 24,
+      winnerSize: 34,
+      unitSize: 22,
+      rankSize: 32,
       titleX: 540,
       titleY: 110,
       rank1BadgeX: 416,
@@ -170,12 +170,12 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       rank3NameY: 680,
       rank3UnitX: 450,
       rank3UnitY: 708,
-      titleFont: '400 "Fractul Alt", sans-serif',
-      resultLabelFont: '400 "Fractul Alt", sans-serif',
-      winnerFont: '400 "Fractul Alt", sans-serif',
-      unitFont: '400 "Fractul Alt", sans-serif',
-      rankFont: '400 "Fractul Alt", sans-serif',
-      fontFamily: '400 "Fractul Alt", sans-serif',
+      titleFont: '500 "Fractul Alt", sans-serif',
+      resultLabelFont: '500 "Fractul Alt", sans-serif',
+      winnerFont: '500 "Fractul Alt", sans-serif',
+      unitFont: '500 "Fractul Alt", sans-serif',
+      rankFont: '500 "Fractul Alt", sans-serif',
+      fontFamily: '500 "Fractul Alt", sans-serif',
       uppercaseNames: false,
       rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
       rankBadgeShapeSize: 20,
@@ -222,19 +222,19 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       resultLabelColor: '#ffffff',
       resultNumX: 135,
       resultNumY: 375,
-      resultNumSize: 96,
+      resultNumSize: 76,
       resultNumColor: '#E6007E',
-      resultNumFont: '200 "Thunder ExtraLight LC", "Thunder", sans-serif',
+      resultNumFont: '600 "Sora", sans-serif',
       categorySize: 26,
       categoryColor: '#ffffff',
       categoryX: 235,
       categoryY: 315,
-      categoryFont: '200 "Sora", sans-serif',
+      categoryFont: '300 "Sora", sans-serif',
       compNameX: 235,
       compNameY: 375,
-      compNameSize: 64,
+      compNameSize: 52,
       compNameColor: '#E6007E',
-      compNameFont: '500 "Sora", sans-serif',
+      compNameFont: '600 "Sora", sans-serif',
       campusNameX: 540,
       campusNameY: 70,
       campusNameSize: 28,
@@ -247,9 +247,9 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       festNameColor: '#fbbf24',
       festNameFont: 'sans-serif',
       showFestName: false,
-      winnerSize: 32,
-      unitSize: 20,
-      rankSize: 24,
+      winnerSize: 34,
+      unitSize: 22,
+      rankSize: 32,
       titleX: 540,
       titleY: 110,
       rank1BadgeX: 205,
@@ -270,12 +270,12 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       rank3NameY: 645,
       rank3UnitX: 235,
       rank3UnitY: 675,
-      titleFont: '400 "Fractul Alt", sans-serif',
-      resultLabelFont: '400 "Fractul Alt", sans-serif',
-      winnerFont: '400 "Fractul Alt", sans-serif',
-      unitFont: '400 "Fractul Alt", sans-serif',
-      rankFont: '400 "Fractul Alt", sans-serif',
-      fontFamily: '400 "Fractul Alt", sans-serif',
+      titleFont: '500 "Fractul Alt", sans-serif',
+      resultLabelFont: '500 "Fractul Alt", sans-serif',
+      winnerFont: '500 "Fractul Alt", sans-serif',
+      unitFont: '500 "Fractul Alt", sans-serif',
+      rankFont: '500 "Fractul Alt", sans-serif',
+      fontFamily: '500 "Fractul Alt", sans-serif',
       uppercaseNames: false,
       rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
       rankBadgeShapeSize: 20,
@@ -649,7 +649,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
         userConf.rank2Color = defaultConf.rank2Color;
         userConf.rank3Color = defaultConf.rank3Color;
       }
-      if (!userConf.resultNumFont || userConf.resultNumFont.includes('bold "Fractul Alt"')) {
+      if (!userConf.resultNumFont || userConf.resultNumFont.includes('bold "Fractul Alt"') || userConf.resultNumFont.includes('Thunder')) {
         userConf.resultNumFont = defaultConf.resultNumFont;
       }
       if (!userConf.categoryFont || userConf.categoryFont.includes('bold "Fractul Alt"')) {
@@ -1052,30 +1052,30 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     ctx.fillText(rLblText, c.resultLabelX, c.resultLabelY);
     addRegion('resultLabel', c.resultLabelX - 10, c.resultLabelY - (c.resultLabelSize || 28) - 5, rLblMetrics.width + 20, (c.resultLabelSize || 28) + 20);
 
-    // Result Number (Number: e.g. "00")
+    // Result Number (Number: e.g. "01")
     ctx.textAlign = 'left';
-    ctx.font = parseFontForCanvas(c.resultNumFont || c.fontFamily, c.resultNumSize || 28, '800');
+    ctx.font = parseFontForCanvas(c.resultNumFont || c.fontFamily, c.resultNumSize || 76, '600');
     ctx.fillStyle = c.resultNumColor || '#ffffff';
-    const rNumText = '00';
+    const rNumText = '01';
     const rNumMetrics = ctx.measureText(rNumText);
     ctx.fillText(rNumText, c.resultNumX, c.resultNumY);
-    addRegion('resultNum', c.resultNumX - 10, c.resultNumY - (c.resultNumSize || 28) - 5, rNumMetrics.width + 20, (c.resultNumSize || 28) + 20);
+    addRegion('resultNum', c.resultNumX - 10, c.resultNumY - (c.resultNumSize || 76) - 5, rNumMetrics.width + 20, (c.resultNumSize || 76) + 20);
 
     // Category
     ctx.textAlign = 'left';
-    ctx.font = parseFontForCanvas(c.categoryFont || c.fontFamily, c.categorySize ?? 32, '800');
+    ctx.font = parseFontForCanvas(c.categoryFont || c.fontFamily, c.categorySize ?? 26, '400');
     ctx.fillStyle = c.categoryColor || 'rgba(255, 255, 255, 0.7)';
-    const rawCat = 'CATEGORY';
-    const catText = c.categoryUppercase !== false ? rawCat.toUpperCase() : rawCat;
+    const rawCat = 'Premier';
+    const catText = c.categoryUppercase ? rawCat.toUpperCase() : rawCat;
     const catMetrics = ctx.measureText(catText);
     ctx.fillText(catText, c.categoryX ?? 540, c.categoryY ?? 260);
-    addRegion('category', (c.categoryX ?? 540) - 10, (c.categoryY ?? 260) - (c.categorySize ?? 32) - 5, catMetrics.width + 20, (c.categorySize ?? 32) + 20);
+    addRegion('category', (c.categoryX ?? 540) - 10, (c.categoryY ?? 260) - (c.categorySize ?? 26) - 5, catMetrics.width + 20, (c.categorySize ?? 26) + 20);
 
     // Competition Name
     ctx.textAlign = 'left';
-    ctx.font = parseFontForCanvas(c.compNameFont || c.fontFamily, c.compNameSize ?? 52, '900');
+    ctx.font = parseFontForCanvas(c.compNameFont || c.fontFamily, c.compNameSize ?? 52, '600');
     ctx.fillStyle = c.compNameColor || '#ffffff';
-    const rawComp = 'Competition Name';
+    const rawComp = 'Sudoku';
     const compText = c.compNameUppercase ? rawComp.toUpperCase() : rawComp;
     const compMetrics = ctx.measureText(compText);
     ctx.fillText(compText, c.compNameX ?? 540, c.compNameY ?? 330);
@@ -1083,9 +1083,9 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
     // Draw each rank separately
     const rankData = [
-      { rank: 1, badgeXKey: 'rank1BadgeX', badgeYKey: 'rank1BadgeY', nameXKey: 'rank1NameX', nameYKey: 'rank1NameY', unitXKey: 'rank1UnitX', unitYKey: 'rank1UnitY', color: c.rank1Color, text: c.rank1Text, badgeId: 'rank1Badge', nameId: 'rank1Name', unitId: 'rank1Unit', sampleUnit: activeUnits[0]?.name || 'Sirafi Seafarers' },
-      { rank: 2, badgeXKey: 'rank2BadgeX', badgeYKey: 'rank2BadgeY', nameXKey: 'rank2NameX', nameYKey: 'rank2NameY', unitXKey: 'rank2UnitX', unitYKey: 'rank2UnitY', color: c.rank2Color, text: c.rank2Text, badgeId: 'rank2Badge', nameId: 'rank2Name', unitId: 'rank2Unit', sampleUnit: activeUnits[1]?.name || 'Tabrizi Taraz' },
-      { rank: 3, badgeXKey: 'rank3BadgeX', badgeYKey: 'rank3BadgeY', nameXKey: 'rank3NameX', nameYKey: 'rank3NameY', unitXKey: 'rank3UnitX', unitYKey: 'rank3UnitY', color: c.rank3Color, text: c.rank3Text, badgeId: 'rank3Badge', nameId: 'rank3Name', unitId: 'rank3Unit', sampleUnit: activeUnits[2]?.name || 'Zanzibari Souqs' },
+      { rank: 1, badgeXKey: 'rank1BadgeX', badgeYKey: 'rank1BadgeY', nameXKey: 'rank1NameX', nameYKey: 'rank1NameY', unitXKey: 'rank1UnitX', unitYKey: 'rank1UnitY', color: c.rank1Color, text: c.rank1Text, badgeId: 'rank1Badge', nameId: 'rank1Name', unitId: 'rank1Unit', sampleName: 'Ameer favas', sampleUnit: 'zanzibari Souqs' },
+      { rank: 2, badgeXKey: 'rank2BadgeX', badgeYKey: 'rank2BadgeY', nameXKey: 'rank2NameX', nameYKey: 'rank2NameY', unitXKey: 'rank2UnitX', unitYKey: 'rank2UnitY', color: c.rank2Color, text: c.rank2Text, badgeId: 'rank2Badge', nameId: 'rank2Name', unitId: 'rank2Unit', sampleName: 'Swadiq Jafar', sampleUnit: 'zanzibari Souqs' },
+      { rank: 3, badgeXKey: 'rank3BadgeX', badgeYKey: 'rank3BadgeY', nameXKey: 'rank3NameX', nameYKey: 'rank3NameY', unitXKey: 'rank3UnitX', unitYKey: 'rank3UnitY', color: c.rank3Color, text: c.rank3Text, badgeId: 'rank3Badge', nameId: 'rank3Name', unitId: 'rank3Unit', sampleName: 'Midlaj Musthafa', sampleUnit: 'zanzibari Souqs' },
     ];
 
     rankData.forEach(rd => {
@@ -1098,8 +1098,8 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
       // Rank badge
       const rankText = rd.text;
-      const rankFontSize = c.rankSize || 38;
-      ctx.font = parseFontForCanvas(c.rankFont || c.fontFamily, rankFontSize, '900');
+      const rankFontSize = c.rankSize || 32;
+      ctx.font = parseFontForCanvas(c.rankFont || c.fontFamily, rankFontSize, '500');
       const rankTextWidth = ctx.measureText(rankText).width;
       const badgeShapeSize = c.rankBadgeShapeSize ?? 40;
       const badgeCenterY = by - (rankFontSize * 0.32);
@@ -1129,30 +1129,68 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
         ctx.fill();
       }
 
-      ctx.fillStyle = c.rankTextColor || '#000000';
+      const rankFill = c.rankTextColor || '#ffffff';
+      ctx.fillStyle = rankFill;
       ctx.textAlign = 'center';
-      ctx.fillText(rankText, bx, by);
+      const isRankFractul = (c.rankFont || c.fontFamily || '').includes('Fractul Alt');
+      if (isRankFractul) {
+        ctx.save();
+        ctx.strokeStyle = rankFill;
+        ctx.lineWidth = 0.9;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(rankText, bx, by);
+        ctx.fillText(rankText, bx, by);
+        ctx.restore();
+      } else {
+        ctx.fillText(rankText, bx, by);
+      }
       addRegion(rd.badgeId, bx - badgeW / 2 - 5, badgeCenterY - badgeH / 2 - 5, badgeW + 10, badgeH + 10);
 
       // Participant name
       ctx.textAlign = 'left';
-      ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, c.winnerSize, '800');
-      ctx.fillStyle = c.winnerColor;
-      const nameText = 'Participant Name';
-      ctx.fillText(nameText, nx, ny);
+      ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, c.winnerSize || 34, '500');
+      const winnerFill = c.winnerColor || '#ffffff';
+      ctx.fillStyle = winnerFill;
+      const rawNameText = rd.sampleName || 'Participant Name';
+      const nameText = (c.winnerUppercase || c.uppercaseNames) ? rawNameText.toUpperCase() : rawNameText;
+      const isWinnerFractul = (c.winnerFont || c.fontFamily || '').includes('Fractul Alt');
+      if (isWinnerFractul) {
+        ctx.save();
+        ctx.strokeStyle = winnerFill;
+        ctx.lineWidth = 0.9;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(nameText, nx, ny);
+        ctx.fillText(nameText, nx, ny);
+        ctx.restore();
+      } else {
+        ctx.fillText(nameText, nx, ny);
+      }
       const nameMetrics = ctx.measureText(nameText);
-      addRegion(rd.nameId, nx - 5, ny - c.winnerSize - 5, nameMetrics.width + 10, c.winnerSize + 15);
+      addRegion(rd.nameId, nx - 5, ny - (c.winnerSize || 34) - 5, nameMetrics.width + 10, (c.winnerSize || 34) + 15);
 
       // Unit/Team name
       const isArabic = c.unitLanguage === 'ar';
       const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : "'Cairo', 'Amiri', sans-serif";
-      ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), c.unitSize, '700');
+      ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), c.unitSize || 22, '500');
       const sampleUnitName = rd.sampleUnit;
-      const unitText = getPosterDisplayUnitName(sampleUnitName, c);
-      ctx.fillStyle = getPosterTeamColor(sampleUnitName, c.unitColor, c);
-      ctx.fillText(unitText, ux, uy);
+      const displayUnitName = getPosterDisplayUnitName(sampleUnitName, c);
+      const unitText = isArabic ? displayUnitName : (c.unitUppercase ? displayUnitName.toUpperCase() : displayUnitName);
+      const unitFill = getPosterTeamColor(sampleUnitName, c.unitColor, c);
+      ctx.fillStyle = unitFill;
+      const isUnitFractul = (c.unitFont || c.fontFamily || '').includes('Fractul Alt');
+      if (isUnitFractul) {
+        ctx.save();
+        ctx.strokeStyle = unitFill;
+        ctx.lineWidth = 0.65;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(unitText, ux, uy);
+        ctx.fillText(unitText, ux, uy);
+        ctx.restore();
+      } else {
+        ctx.fillText(unitText, ux, uy);
+      }
       const unitMetrics = ctx.measureText(unitText);
-      addRegion(rd.unitId, ux - 5, uy - c.unitSize - 5, unitMetrics.width + 10, c.unitSize + 15);
+      addRegion(rd.unitId, ux - 5, uy - (c.unitSize || 22) - 5, unitMetrics.width + 10, (c.unitSize || 22) + 15);
     });
 
     // Footer

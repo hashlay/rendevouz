@@ -125,12 +125,12 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [certTheme3Url, setCertTheme3Url] = useState('');
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const [gradeSystemEnabled, setGradeSystemEnabled] = useState(true);
-  const [maxIndividualEvents, setMaxIndividualEvents] = useState(3);
-  const [maxGroupEvents, setMaxGroupEvents] = useState(2);
+  const [maxIndividualEvents, setMaxIndividualEvents] = useState(10);
+  const [maxGroupEvents, setMaxGroupEvents] = useState(10);
   const [hasOnStageLimit, setHasOnStageLimit] = useState(false);
-  const [maxOnStageEvents, setMaxOnStageEvents] = useState(3);
+  const [maxOnStageEvents, setMaxOnStageEvents] = useState(10);
   const [hasOffStageLimit, setHasOffStageLimit] = useState(false);
-  const [maxOffStageEvents, setMaxOffStageEvents] = useState(5);
+  const [maxOffStageEvents, setMaxOffStageEvents] = useState(10);
   const [globalPoints1, setGlobalPoints1] = useState(20);
   const [globalPoints2, setGlobalPoints2] = useState(14);
   const [globalPoints3, setGlobalPoints3] = useState(7);

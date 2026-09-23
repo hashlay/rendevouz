@@ -132,8 +132,8 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
       const individualCount = selectedModels.filter(c => c.participationType === ParticipationType.INDIVIDUAL).length;
       const groupCount = selectedModels.filter(c => c.participationType === ParticipationType.GROUP).length;
 
-      const maxInd = eventSettings?.maxIndividualEvents || 3;
-      const maxGrp = eventSettings?.maxGroupEvents || 2;
+      const maxInd = eventSettings?.maxIndividualEvents ?? 10;
+      const maxGrp = eventSettings?.maxGroupEvents ?? 10;
 
       if (comp.participationType === ParticipationType.INDIVIDUAL) {
         if (individualCount >= maxInd) {
@@ -479,10 +479,10 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
               </h3>
               <div className="flex items-center gap-2 font-mono text-[11px] font-bold">
                 <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg">
-                  Individual: {competitions.filter(c => selectedComps.includes(c.id) && c.participationType === ParticipationType.INDIVIDUAL).length} / {eventSettings?.maxIndividualEvents || 3}
+                  Individual: {competitions.filter(c => selectedComps.includes(c.id) && c.participationType === ParticipationType.INDIVIDUAL).length} / {eventSettings?.maxIndividualEvents ?? 10}
                 </span>
                 <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-lg">
-                  Group: {competitions.filter(c => selectedComps.includes(c.id) && c.participationType === ParticipationType.GROUP).length} / {eventSettings?.maxGroupEvents || 2}
+                  Group: {competitions.filter(c => selectedComps.includes(c.id) && c.participationType === ParticipationType.GROUP).length} / {eventSettings?.maxGroupEvents ?? 10}
                 </span>
               </div>
             </div>

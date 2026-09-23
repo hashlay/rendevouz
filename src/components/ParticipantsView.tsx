@@ -489,20 +489,21 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       const teamsList = await teamsRes.json();
 
       const userReg = Array.isArray(regs) ? regs.find((r: any) => r.participantId === p.id) : null;
-      if (userReg) {
-        const validIndComps = (userReg.selectedIndividualCompetitionIds || []).filter((id: string) => {
-          const comp = competitions.find(c => c.id === id);
-          return comp ? comp.participationType === 'individual' : true;
-        });
-        setEditComps(validIndComps);
-        if (!p.candidateClass && userReg.candidateClass) {
-          const regClass = userReg.candidateClass.startsWith('Class ')
-            ? userReg.candidateClass
-            : (availableClasses.find(c => c === `Class ${userReg.candidateClass}`) || userReg.candidateClass);
-          setEditCandidateClass(regClass);
-        }
-      } else {
-        setEditComps([]);
+      // Merge competitions from BOTH registration and participant.registeredEvents so no event is ever dropped
+      const combinedIndIds = Array.from(new Set([
+        ...(userReg?.selectedIndividualCompetitionIds || []),
+        ...(p.registeredEvents || [])
+      ]));
+      const validIndComps = combinedIndIds.filter((id: string) => {
+        const comp = competitions.find(c => c.id === id);
+        return comp ? comp.participationType === 'individual' : true;
+      });
+      setEditComps(validIndComps);
+      if (userReg && !p.candidateClass && userReg.candidateClass) {
+        const regClass = userReg.candidateClass.startsWith('Class ')
+          ? userReg.candidateClass
+          : (availableClasses.find(c => c === `Class ${userReg.candidateClass}`) || userReg.candidateClass);
+        setEditCandidateClass(regClass);
       }
 
       // Group competitions from teams & registrations
@@ -1590,8 +1591,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                                 const offStageCount = allComps.filter(c => c!.stageType === 'off_stage').length;
                                 const maxOn = (eventSettings as any)?.maxOnStageEvents;
                                 const maxOff = (eventSettings as any)?.maxOffStageEvents;
-                                const maxInd = (eventSettings as any)?.maxIndividualEvents;
-                                const maxGrp = (eventSettings as any)?.maxGroupEvents;
+                                const maxInd = (eventSettings as any)?.maxIndividualEvents ?? 10;
+                                const maxGrp = (eventSettings as any)?.maxGroupEvents ?? 10;
 
                                 if (isGroup) {
                                   if (maxGrp != null && editGroupComps.length >= maxGrp) {

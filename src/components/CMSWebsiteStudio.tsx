@@ -30,7 +30,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
     heroMobileLoopInterval: 5,
   });
 
-  const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1cQNek6Q2EiThqdFrUDb1I8cfsmQneP1J';
+  const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1PyLeWulSJqRPGFAk5Nb7copC1ZN7BRbL';
 
   const [stage1LiveLink, setStage1LiveLink] = useState('');
   const [stage2LiveLink, setStage2LiveLink] = useState('');

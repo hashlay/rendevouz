@@ -4,23 +4,25 @@ export interface FontOption {
 }
 
 export const UNIVERSAL_FONT_OPTIONS: FontOption[] = [
-  // --- THUNDER FAMILY ---
-  { label: 'Thunder ExtraLight LC', value: '200 "Thunder ExtraLight LC", "Thunder", sans-serif' },
-
-  // --- SORA FAMILY (Google Fonts) ---
-  { label: 'Sora (Extra Light 200)', value: '200 "Sora", sans-serif' },
-  { label: 'Sora (Light 300)', value: '300 "Sora", sans-serif' },
+  // --- SORA FAMILY (Google Fonts - Standard for Competition & Result No.) ---
+  { label: 'Sora (Semi Bold 600 - Standard Result No. & Comp Name)', value: '600 "Sora", sans-serif' },
+  { label: 'Sora (Light 300 - Standard Category)', value: '300 "Sora", sans-serif' },
   { label: 'Sora (Regular 400)', value: '400 "Sora", sans-serif' },
   { label: 'Sora (Medium 500)', value: '500 "Sora", sans-serif' },
-  { label: 'Sora (Semi Bold 600)', value: '600 "Sora", sans-serif' },
   { label: 'Sora (Bold 700)', value: 'bold "Sora", sans-serif' },
   { label: 'Sora (Extra Bold 800)', value: '800 "Sora", sans-serif' },
+  { label: 'Sora (Extra Light 200)', value: '200 "Sora", sans-serif' },
 
-  // --- FRACTUL ALT FAMILY ---
-  { label: 'Fractul Alt (Clean Regular 400)', value: '400 "Fractul Alt", sans-serif' },
+  // --- FRACTUL ALT FAMILY (Standard for Winners, Units & Ranks) ---
+  { label: 'Fractul Alt (Medium 500 - Official Poster Winners & Teams)', value: '500 "Fractul Alt", sans-serif' },
+  { label: 'Fractul Alt (Semi Bold 600 - Prominent Title/Winner)', value: '600 "Fractul Alt", sans-serif' },
+  { label: 'Fractul Alt (Regular 400 - Clean & Crisp)', value: '400 "Fractul Alt", sans-serif' },
+  { label: 'Fractul Alt (Bold 700 - Strong Display)', value: '700 "Fractul Alt", sans-serif' },
+  { label: 'Fractul Alt (Extra Bold 800 - Heavy Block)', value: '800 "Fractul Alt", sans-serif' },
   { label: 'Fractul Alt (Light / Hairline 200)', value: '200 "Fractul Alt", sans-serif' },
-  { label: 'Fractul Alt (Medium 500)', value: '500 "Fractul Alt", sans-serif' },
-  { label: 'Fractul Alt (Display Bold 700)', value: '700 "Fractul Alt", sans-serif' },
+
+  // --- THUNDER FAMILY ---
+  { label: 'Thunder ExtraLight LC', value: '200 "Thunder ExtraLight LC", "Thunder", sans-serif' },
 
   // --- POPPINS FAMILY ---
   { label: 'Poppins (Thin 200)', value: 'thin "Poppins", sans-serif' },

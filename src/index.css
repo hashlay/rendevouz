@@ -12,7 +12,39 @@
 @font-face {
   font-family: 'Fractul Alt';
   src: url('/fonts/FractulAlt-Hairline.ttf') format('truetype');
-  font-weight: 100 500;
+  font-weight: 100 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Fractul Alt';
+  src: url('/fonts/FractulAlt-Regular.ttf') format('truetype');
+  font-weight: 300 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Fractul Alt';
+  src: url('/fonts/FractulAlt-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Fractul Alt';
+  src: url('/fonts/FractulAlt-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Fractul Alt';
+  src: url('/fonts/FractulAlt-Bold.ttf') format('truetype');
+  font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
@@ -20,7 +52,7 @@
 @font-face {
   font-family: 'Fractul Alt';
   src: url('/fonts/FractulAlt.ttf') format('truetype');
-  font-weight: 600 900;
+  font-weight: 800 900;
   font-style: normal;
   font-display: swap;
 }
