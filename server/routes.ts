@@ -2904,7 +2904,7 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
     }
 
     // Verify member qualifications
-    const isGeneralTeamComp = comp.categoryId === 'cat_general' || comp.section === 'general';
+    const isGeneralTeamComp = comp.categoryId === 'cat_general' || (comp as any).section === 'general';
     for (const mid of memberIds) {
       const p = db.participants.find(part => part.id === mid && !part.deletedAt);
       if (!p) {
@@ -2979,11 +2979,11 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
             await Promise.all([
               mongoDb.collection('participants').updateOne(
                 { id: remId },
-                { $pull: { registeredEvents: team.competitionId } }
+                { $pull: { registeredEvents: team.competitionId } } as any
               ),
               mongoDb.collection('registrations').updateMany(
                 { participantId: remId },
-                { $pull: { selectedGroupCompetitionIds: team.competitionId, selectedGroupTeamIds: teamId } }
+                { $pull: { selectedGroupCompetitionIds: team.competitionId, selectedGroupTeamIds: teamId } } as any
               )
             ]);
           } catch (mErr) {
@@ -3022,11 +3022,11 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
           await Promise.all([
             mongoDb.collection('participants').updateOne(
               { id: addId },
-              { $addToSet: { registeredEvents: team.competitionId } }
+              { $addToSet: { registeredEvents: team.competitionId } } as any
             ),
             mongoDb.collection('registrations').updateMany(
               { participantId: addId },
-              { $addToSet: { selectedGroupCompetitionIds: team.competitionId, selectedGroupTeamIds: teamId } }
+              { $addToSet: { selectedGroupCompetitionIds: team.competitionId, selectedGroupTeamIds: teamId } } as any
             )
           ]);
         } catch (mErr) {
@@ -3084,6 +3084,7 @@ const handleDeleteTeamPermanent = async (req: any, res: any) => {
 
   const memberIds = Array.isArray(team.memberIds) ? [...team.memberIds] : [];
   const compId = team.competitionId;
+  const mongoDb = getDb();
 
   // 1. Permanently remove the team from db.teams
   db.teams.splice(teamIndex, 1);
@@ -3125,11 +3126,11 @@ const handleDeleteTeamPermanent = async (req: any, res: any) => {
             await Promise.all([
               mongoDb.collection('participants').updateOne(
                 { id: memberId },
-                { $pull: { registeredEvents: compId } }
+                { $pull: { registeredEvents: compId } } as any
               ),
               mongoDb.collection('registrations').updateMany(
                 { participantId: memberId },
-                { $pull: { selectedGroupCompetitionIds: compId, selectedGroupTeamIds: teamId } }
+                { $pull: { selectedGroupCompetitionIds: compId, selectedGroupTeamIds: teamId } } as any
               )
             ]);
           } catch (mErr) {
@@ -3141,7 +3142,6 @@ const handleDeleteTeamPermanent = async (req: any, res: any) => {
   }
 
   // 5. Direct MongoDB Atlas permanent deletion
-  const mongoDb = getDb();
   if (mongoDb) {
     try {
       await Promise.all([
@@ -6954,8 +6954,36 @@ apiRouter.get('/public/competitions', async (req, res) => {
 // Public Published Results
 apiRouter.get('/public/results', async (req, res) => {
   const db = dbClient.get();
-  const enrichedResults = (db.results || [])
-    .filter((r: any) => !r.deletedAt && (r.publishedStatus === true || r.isPublished === true))
+  const publishedResults = (db.results || []).filter((r: any) => !r.deletedAt && (r.publishedStatus === true || r.isPublished === true));
+  const publishedCompIds = Array.from(new Set(publishedResults.map((r: any) => r.competitionId).filter(Boolean)));
+  const judgmentSheets = db.judgmentSheets || [];
+
+  const compTimes = publishedCompIds.map((compId: any) => {
+    const sheet = judgmentSheets.find((s: any) => s.competitionId === compId && s.publishedToResults);
+    const compResults = publishedResults.filter((r: any) => r.competitionId === compId);
+    const dates: number[] = [];
+    if (sheet?.updatedAt) dates.push(new Date(sheet.updatedAt).getTime());
+    if (sheet?.createdAt) dates.push(new Date(sheet.createdAt).getTime());
+    compResults.forEach((r: any) => {
+      if (r.updatedAt) dates.push(new Date(r.updatedAt).getTime());
+      if (r.createdAt) dates.push(new Date(r.createdAt).getTime());
+    });
+    const validDates = dates.filter(d => !isNaN(d) && d > 0);
+    const earliestTime = validDates.length > 0 ? Math.min(...validDates) : 0;
+    const sheetUpdateTime = sheet?.updatedAt ? new Date(sheet.updatedAt).getTime() : 0;
+    return {
+      compId,
+      sortTime: sheetUpdateTime || earliestTime || 0
+    };
+  });
+
+  compTimes.sort((a: any, b: any) => a.sortTime - b.sortTime);
+  const compAnnouncementMap = new Map();
+  compTimes.forEach((c: any, idx: number) => {
+    compAnnouncementMap.set(c.compId, idx + 1);
+  });
+
+  const enrichedResults = publishedResults
     .map((r: any) => {
       const comp = (db.competitions || []).find((c: any) => c.id === r.competitionId);
       const cat = (db.categories || []).find((c: any) => c.id === r.categoryId);
@@ -6984,9 +7012,14 @@ apiRouter.get('/public/results', async (req, res) => {
       }
 
       let grade = r.grade || 'A';
+      const announcementNumber = compAnnouncementMap.get(r.competitionId) || 1;
+      const updatedAt = r.updatedAt || r.createdAt || new Date().toISOString();
       return {
         id: r.id,
         competitionId: r.competitionId,
+        announcementNumber,
+        announcementOrder: announcementNumber,
+        updatedAt,
         eventName: comp ? comp.name : (r.eventName || r.program || 'Competition'),
         category: cat ? cat.name : (r.category || 'General'),
         participationType,
@@ -6996,7 +7029,12 @@ apiRouter.get('/public/results', async (req, res) => {
         rank: r.rank || 0,
         grade,
         points,
-        raw: r
+        raw: {
+          ...r,
+          announcementNumber,
+          announcementOrder: announcementNumber,
+          updatedAt
+        }
       };
     });
   res.json(enrichedResults);

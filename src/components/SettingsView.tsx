@@ -364,7 +364,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
           participantLoginCriteria,
           classRangeStart,
           classRangeEnd,
-          availableClasses: Array.from({ length: Math.max(1, classRangeEnd - classRangeStart + 1) }, (_, i) => `Class ${classRangeStart + i}`)
+          availableClasses: ['+1', '+2', 'BS1', 'BS2', 'BS3']
         })
       });
       const responseText = await res.text();
@@ -1061,30 +1061,17 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                 {participantLoginCriteria === 'class' && (
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono mb-1.5">
-                      Available Class Range
+                      Available Classes (+1 to BS3)
                     </label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-600 font-mono">Class</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={20}
-                        value={classRangeStart}
-                        onChange={(e) => setClassRangeStart(Number(e.target.value))}
-                        className="w-16 px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800 text-center"
-                      />
-                      <span className="text-xs font-bold text-slate-600 font-mono">to Class</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={25}
-                        value={classRangeEnd}
-                        onChange={(e) => setClassRangeEnd(Number(e.target.value))}
-                        className="w-16 px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800 text-center"
-                      />
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {['+1', '+2', 'BS1', 'BS2', 'BS3'].map((cls) => (
+                        <span key={cls} className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl font-mono text-xs font-bold shadow-2xs">
+                          {cls}
+                        </span>
+                      ))}
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1 font-mono">
-                      Generated options: Class {classRangeStart} to Class {classRangeEnd}
+                    <p className="text-[10px] text-slate-400 mt-1.5 font-mono">
+                      Institutional Classes: +1, +2, BS1, BS2, BS3 (used across Participant Portals & Registrations)
                     </p>
                   </div>
                 )}

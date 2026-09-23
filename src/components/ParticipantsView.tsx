@@ -117,11 +117,11 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const [savingEdit, setSavingEdit] = useState(false);
 
   const criteriaMode = eventSettings?.participantLoginCriteria || 'class';
-  const classRangeStart = Number(eventSettings?.classRangeStart) || 1;
-  const classRangeEnd = Number(eventSettings?.classRangeEnd) || 12;
-  const availableClasses: string[] = (eventSettings?.availableClasses && eventSettings.availableClasses.length > 0)
+  const rawClasses: string[] = (Array.isArray(eventSettings?.availableClasses) && eventSettings.availableClasses.length > 0)
     ? eventSettings.availableClasses
-    : Array.from({ length: classRangeEnd - classRangeStart + 1 }, (_, i) => `Class ${classRangeStart + i}`);
+    : ['+1', '+2', 'BS1', 'BS2', 'BS3'];
+  const availableClasses: string[] = Array.from(new Set(rawClasses.map(c => c.replace(/^Class\s*/i, '').trim()))).filter(Boolean);
+  if (availableClasses.length === 0) availableClasses.push('+1', '+2', 'BS1', 'BS2', 'BS3');
 
   // Deletion confirm
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -471,7 +471,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     setEditName(p.fullName);
     setEditDob(p.dob || '');
     const initialClass = p.candidateClass
-      ? (p.candidateClass.startsWith('Class ') ? p.candidateClass : (availableClasses.find(c => c === `Class ${p.candidateClass}`) || p.candidateClass))
+      ? p.candidateClass.replace(/^Class\s*/i, '').trim()
       : '';
     setEditCandidateClass(initialClass);
     setEditCategoryId(p.selectedCategoryId || '');
@@ -500,9 +500,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
       });
       setEditComps(validIndComps);
       if (userReg && !p.candidateClass && userReg.candidateClass) {
-        const regClass = userReg.candidateClass.startsWith('Class ')
-          ? userReg.candidateClass
-          : (availableClasses.find(c => c === `Class ${userReg.candidateClass}`) || userReg.candidateClass);
+        const regClass = userReg.candidateClass.replace(/^Class\s*/i, '').trim();
         setEditCandidateClass(regClass);
       }
 
@@ -1139,7 +1137,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                         </td>
                         <td className="px-6 py-4 font-mono text-xs text-slate-500 whitespace-nowrap">
                           {criteriaMode === 'class'
-                            ? (p.candidateClass ? (p.candidateClass.toLowerCase().startsWith('class') ? p.candidateClass : `Class ${p.candidateClass}`) : '—')
+                            ? (p.candidateClass ? p.candidateClass.replace(/^Class\s*/i, '').trim() : '—')
                             : (p.dob || '—')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center print:hidden">

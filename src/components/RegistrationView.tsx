@@ -44,9 +44,11 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
   const [candidateClass, setCandidateClass] = useState('');
 
   const criteriaMode = eventSettings?.participantLoginCriteria || 'class';
-  const classStart = eventSettings?.classRangeStart ?? 1;
-  const classEnd = eventSettings?.classRangeEnd ?? 10;
-  const availableClasses: string[] = eventSettings?.availableClasses || Array.from({ length: Math.max(1, classEnd - classStart + 1) }, (_, i) => `Class ${classStart + i}`);
+  const rawClasses: string[] = (Array.isArray(eventSettings?.availableClasses) && eventSettings.availableClasses.length > 0)
+    ? eventSettings.availableClasses
+    : ['+1', '+2', 'BS1', 'BS2', 'BS3'];
+  const availableClasses: string[] = Array.from(new Set(rawClasses.map(c => c.replace(/^Class\s*/i, '').trim()))).filter(Boolean);
+  if (availableClasses.length === 0) availableClasses.push('+1', '+2', 'BS1', 'BS2', 'BS3');
 
   const updateCombinedDob = (d: string, m: string, y: string) => {
     if (d && m && y && y.length === 4) {
