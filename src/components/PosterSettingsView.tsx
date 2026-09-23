@@ -1065,7 +1065,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     const { canvasX, canvasY, clientX, clientY } = coords;
 
     if (e.cancelable) {
-      try { e.preventDefault(); } catch (_) {}
+      try { e.preventDefault(); } catch (_) { }
     }
 
     // Find the most specific (smallest) hit region
@@ -1108,7 +1108,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       }
 
       if (e.cancelable) {
-        try { e.preventDefault(); } catch (_) {}
+        try { e.preventDefault(); } catch (_) { }
       }
 
       const canvas = canvasRef.current;
@@ -1204,12 +1204,12 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     // Helper to add region with generous touch padding for mobile finger ease
     const addRegion = (id: string, x: number, y: number, w: number, h: number) => {
       const touchPadding = 25;
-      regions.push({ 
-        id, 
-        x: x - touchPadding, 
-        y: y - touchPadding, 
-        w: Math.max(w + touchPadding * 2, 60), 
-        h: Math.max(h + touchPadding * 2, 60) 
+      regions.push({
+        id,
+        x: x - touchPadding,
+        y: y - touchPadding,
+        w: Math.max(w + touchPadding * 2, 60),
+        h: Math.max(h + touchPadding * 2, 60)
       });
 
       // Draw visual highlight border around tight bounds
@@ -1992,11 +1992,10 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                     <button
                       type="button"
                       onClick={() => updateConf('unitLanguage', 'en')}
-                      className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-xs transition border cursor-pointer ${
-                        conf.unitLanguage !== 'ar'
+                      className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-xs transition border cursor-pointer ${conf.unitLanguage !== 'ar'
                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                      }`}
+                        }`}
                     >
                       English
                     </button>
@@ -2008,11 +2007,10 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                           updateConf('unitFont', "'Cairo', sans-serif");
                         }
                       }}
-                      className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-xs transition border cursor-pointer ${
-                        conf.unitLanguage === 'ar'
+                      className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-xs transition border cursor-pointer ${conf.unitLanguage === 'ar'
                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                      }`}
+                        }`}
                     >
                       Arabic (العربية)
                     </button>
@@ -2082,7 +2080,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                   <RangeControl label="Campus Size" value={conf.campusNameSize ?? 28} onChange={v => updateConf('campusNameSize', v)} min={12} max={60} />
                   <RangeControl label="Fest Size" value={conf.festNameSize ?? 36} onChange={v => updateConf('festNameSize', v)} min={16} max={80} />
                   <RangeControl label="Result Label Size" value={conf.resultLabelSize || 28} onChange={v => updateConf('resultLabelSize', v)} min={14} max={80} />
-                  <RangeControl label="Result Number Size" value={conf.resultNumSize || 28} onChange={v => updateConf('resultNumSize', v)} min={14} max={80} />
+                  <RangeControl label="Result Number Size" value={conf.resultNumSize || 28} onChange={v => updateConf('resultNumSize', v)} min={14} max={180} />
                   <RangeControl label="Category Size" value={conf.categorySize} onChange={v => updateConf('categorySize', v)} min={16} max={80} />
                   <RangeControl label="Comp Name Size" value={conf.compNameSize} onChange={v => updateConf('compNameSize', v)} min={20} max={100} />
                   <RangeControl label="Winner Name Size" value={conf.winnerSize} onChange={v => updateConf('winnerSize', v)} min={20} max={80} />
@@ -2108,19 +2106,19 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                   </select>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                  <RangeControl 
-                    label="Badge Shape Size" 
-                    value={conf.rankBadgeShapeSize ?? 40} 
-                    onChange={v => updateConf('rankBadgeShapeSize', v)} 
-                    min={20} 
-                    max={120} 
+                  <RangeControl
+                    label="Badge Shape Size"
+                    value={conf.rankBadgeShapeSize ?? 40}
+                    onChange={v => updateConf('rankBadgeShapeSize', v)}
+                    min={20}
+                    max={120}
                   />
-                  <RangeControl 
-                    label="Rank Text Size" 
-                    value={conf.rankSize ?? 38} 
-                    onChange={v => updateConf('rankSize', v)} 
-                    min={14} 
-                    max={80} 
+                  <RangeControl
+                    label="Rank Text Size"
+                    value={conf.rankSize ?? 38}
+                    onChange={v => updateConf('rankSize', v)}
+                    min={14}
+                    max={80}
                   />
                 </div>
                 <div className="space-y-3">
