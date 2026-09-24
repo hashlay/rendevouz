@@ -4213,7 +4213,7 @@ apiRouter.post('/standings/publish', authenticate, requireRole([UserRole.SUPER_A
   // Persist to MongoDB
   try {
     await getCollection('settings').updateOne(
-      { $or: [{ id: 'app_settings' }, { _id: 'cmsSettings' as any }] },
+      { $or: [{ id: 'app_settings' }, { _id: 'cmsSettings' as any }, { _id: 'eventSettings' as any }] },
       { $set: { publishedTeamStandings: snapshot, updatedAt: new Date().toISOString() } },
       { upsert: true }
     );

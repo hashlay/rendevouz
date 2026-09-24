@@ -856,6 +856,13 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
                            (eventSettings?.posterOverrides && selectedCompId && eventSettings.posterOverrides[selectedCompId]);
 
       const baseTheme = { ...getDefaultThemeConfig(themeIdx), ...(themeConfigs[themeIdx] || {}) };
+      // Strip any accidental name/unit overrides from baseTheme
+      Object.keys(baseTheme).forEach((k) => {
+        if (k.toLowerCase().includes('override') && (k.toLowerCase().includes('name') || k.toLowerCase().includes('unit'))) {
+          delete (baseTheme as any)[k];
+        }
+      });
+      delete (baseTheme as any).compNameOverride;
       const mergedTheme = { ...baseTheme, ...(compOverride || {}) };
 
       setLocalThemeConfigs((prev: any) => ({
@@ -863,7 +870,18 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         [themeIdx]: mergedTheme
       }));
     } else if (isModalOpen) {
-      setLocalThemeConfigs(themeConfigs || {});
+      const sanitized = { ...(themeConfigs || {}) };
+      Object.keys(sanitized).forEach(tKey => {
+        const conf = { ...(sanitized[tKey] || {}) };
+        Object.keys(conf).forEach(k => {
+          if (k.toLowerCase().includes('override') && (k.toLowerCase().includes('name') || k.toLowerCase().includes('unit'))) {
+            delete conf[k];
+          }
+        });
+        delete conf.compNameOverride;
+        sanitized[tKey] = conf;
+      });
+      setLocalThemeConfigs(sanitized);
     }
   }, [isModalOpen, selectedCompId, eventSettings?.posterOverrides]);
 
@@ -938,6 +956,14 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         userConf.rank3UnitY = defaultConf.rank3UnitY;
       }
     }
+    // Theme configs must NEVER supply winner name or unit overrides
+    Object.keys(userConf).forEach(k => {
+      if (k.toLowerCase().includes('override') && (k.toLowerCase().includes('name') || k.toLowerCase().includes('unit'))) {
+        delete userConf[k];
+      }
+    });
+    delete userConf.compNameOverride;
+
     const baseTheme = { ...defaultConf, ...userConf };
     const savedLocal = localThemeConfigs[idx];
     return { ...baseTheme, ...(compOverride || {}), ...(savedLocal || {}) };
@@ -960,10 +986,23 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
   const handleSaveTemplate = async () => {
     setSavingTemplate(true);
     try {
+      // Strip any participant or competition name overrides before saving template
+      const sanitizedThemeConfigs: Record<string, any> = {};
+      Object.keys(localThemeConfigs || {}).forEach((tKey) => {
+        const conf = { ...(localThemeConfigs[tKey] || {}) };
+        Object.keys(conf).forEach((k) => {
+          if (k.toLowerCase().includes('override') && (k.toLowerCase().includes('name') || k.toLowerCase().includes('unit'))) {
+            delete conf[k];
+          }
+        });
+        delete conf.compNameOverride;
+        sanitizedThemeConfigs[tKey] = conf;
+      });
+
       const config = {
         customThemes,
         themeRules,
-        themeConfigs: localThemeConfigs
+        themeConfigs: sanitizedThemeConfigs
       };
       const res = await fetch('/api/settings', {
         method: 'PUT',
@@ -971,7 +1010,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         body: JSON.stringify({ posterTemplateConfig: config })
       });
       if (!res.ok) throw new Error('Failed to save');
-      alert('Poster default template layout saved successfully!');
+      alert('Poster default template layout saved successfully (styles & positions applied to all posters)!');
     } catch (e) {
       alert('Failed to save poster layout');
     } finally {
@@ -1016,6 +1055,21 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
       if (eventSettings) {
         (eventSettings as any).posterOverrides = updatedOverrides;
       }
+
+      // Clean localThemeConfigs of this comp's name overrides so switching to another comp on same theme does not leak them
+      setLocalThemeConfigs((prev: any) => {
+        const cleaned = { ...(prev[themeIdx] || {}) };
+        Object.keys(cleaned).forEach((k) => {
+          if (k.toLowerCase().includes('override') && (k.toLowerCase().includes('name') || k.toLowerCase().includes('unit'))) {
+            delete cleaned[k];
+          }
+        });
+        delete cleaned.compNameOverride;
+        return {
+          ...prev,
+          [themeIdx]: cleaned
+        };
+      });
 
       alert(`Saved custom layout positions & text overrides specifically for poster "${aComp?.name}"!`);
       if (onSettingsUpdated) onSettingsUpdated();
