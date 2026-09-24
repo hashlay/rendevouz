@@ -147,7 +147,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           aboutTitle: 'Kulliyathu Imam Rabbani',
           aboutSubtitle: 'Imam Rabbani Life Festival 2026',
           aboutDescription: 'Kulliyathu Imam Rabbani stands as a premier center of higher Islamic learning and academic excellence, functioning as a key institute dedicated to intellectual and spiritual enlightenment.\n\nThe Imam Rabbani LIFE Festival (Rendezvous 26) is an annual flagship celebration of intellectual, creative, and moral excellence.',
-          aboutImageBadge: 'INAUGURATION SESSION',
+          aboutImageBadge: 'MAIN STAGE',
           aboutImageTitle: 'RENDEZVOUS 26',
           aboutImageSubtitle: 'Distinguished Scholars & Dignitaries at Grand Assembly',
           aboutImageLocation: 'Main Stage Auditorium • Imam Rabbani Campus',
@@ -714,7 +714,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Badge</label>
-                    <input type="text" value={settings.aboutImageBadge} onChange={(e) => setSettings({ ...settings, aboutImageBadge: e.target.value })} placeholder="INAUGURATION SESSION" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutImageBadge} onChange={(e) => setSettings({ ...settings, aboutImageBadge: e.target.value })} placeholder="MAIN STAGE" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Title</label>

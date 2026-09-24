@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Trophy, Award, RefreshCw, BarChart2, Star, Calendar, Medal, ChevronDown 
+  Trophy, Award, RefreshCw, BarChart2, Star, Calendar, Medal, ChevronDown, Globe, CheckCircle2, AlertCircle 
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 
@@ -16,6 +16,9 @@ export default function StandingsView({ user, token, eventSettings }: StandingsV
 
   const [standings, setStandings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [meta, setMeta] = useState<any>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
 
   // Expanded breakdowns state per unit row
   const [selectedUnit, setSelectedUnit] = useState<any>(null);
@@ -23,18 +26,51 @@ export default function StandingsView({ user, token, eventSettings }: StandingsV
   const fetchStandings = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/standings', {
+      const res = await fetch('/api/standings?detailed=true', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to fetch standings');
       }
-      setStandings(data);
+      if (Array.isArray(data)) {
+        setStandings(data);
+      } else if (data.standings) {
+        setStandings(data.standings);
+        if (data.meta) setMeta(data.meta);
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePublishStandings = async () => {
+    setPublishing(true);
+    setPublishSuccess(null);
+    try {
+      const res = await fetch('/api/standings/publish', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to publish standings');
+      }
+      setMeta((prev: any) => ({
+        ...prev,
+        publishedSnapshot: data.publishedTeamStandings
+      }));
+      setPublishSuccess(`Successfully published Team Standings to public website! (Snapshotted with ${data.publishedTeamStandings?.resultsCount || 0} competitions)`);
+      setTimeout(() => setPublishSuccess(null), 6000);
+    } catch (err: any) {
+      alert(err.message || 'Error publishing standings');
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -54,6 +90,79 @@ export default function StandingsView({ user, token, eventSettings }: StandingsV
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       
+      {/* Standings Publishing Control Banner */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                <Globe className="w-4 h-4 text-emerald-600" />
+                Public Website Standings Control
+              </span>
+              {meta?.publishedSnapshot ? (
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  Published after {meta.publishedSnapshot.resultsCount} results
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 text-amber-600" />
+                  Not yet published to public
+                </span>
+              )}
+
+              {/* Status Pill on un-published changes */}
+              {meta?.publishedSnapshot && (meta.totalPublishedCompetitions > (meta.publishedSnapshot.resultsCount || 0)) && (
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  {meta.totalPublishedCompetitions - (meta.publishedSnapshot.resultsCount || 0)} new results ready to publish
+                </span>
+              )}
+            </div>
+            
+            <p className="text-xs text-slate-500">
+              Admin standings below update live in real-time ({meta?.totalPublishedCompetitions || 0} competitions published in admin). 
+              The public website stays frozen at the published snapshot until you click Publish below.
+              {meta?.publishedSnapshot?.publishedAt && (
+                <span className="ml-1 text-slate-400">
+                  (Last published: {new Date(meta.publishedSnapshot.publishedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                </span>
+              )}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handlePublishStandings}
+              disabled={publishing}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer ${
+                publishing
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-emerald-600/20'
+              }`}
+            >
+              {publishing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <Globe className="w-4 h-4" />
+                  Publish Team Standings to Public
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {publishSuccess && (
+          <div className="mt-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-medium flex items-center gap-2 animate-in fade-in duration-300">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            {publishSuccess}
+          </div>
+        )}
+      </div>
+
       {/* 1. Visual Bento Standings Card lists - Centered for 1, 2, or 3+ units */}
       <div className={`gap-4 min-w-0 w-full ${
         standings.length === 1 

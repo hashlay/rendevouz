@@ -4156,7 +4156,82 @@ apiRouter.get('/scoreboard', authenticate, async (req, res) => {
 apiRouter.get('/standings', authenticate, async (req, res) => {
   const categoryId = req.query.categoryId ? String(req.query.categoryId) : undefined;
   const standings = CalculationService.getUnitStandings({ categoryId });
+  const db = dbClient.get();
+
+  const publishedResults = (db.results || []).filter(r => !r.deletedAt && (r.publishedStatus === true || (r as any).isPublished === true));
+  const publishedCompIds = new Set(publishedResults.map(r => r.competitionId).filter(Boolean));
+  const totalPublishedCompetitions = publishedCompIds.size;
+
+  const totalCompletedCompetitions = (db.competitions || []).filter(c => {
+    return (db.results || []).some(r => r.competitionId === c.id && !r.deletedAt);
+  }).length;
+
+  let publishedSnapshot = (db as any).settings?.publishedTeamStandings || (db as any).eventSettings?.publishedTeamStandings || null;
+  if (!publishedSnapshot) {
+    try {
+      const snapDoc = await getCollection('settings').findOne({ _id: 'publishedTeamStandings' as any });
+      if (snapDoc && Array.isArray((snapDoc as any).standings)) {
+        publishedSnapshot = snapDoc;
+      }
+    } catch (_) {}
+  }
+
+  if (req.query.detailed === 'true') {
+    return res.json({
+      standings,
+      meta: {
+        totalPublishedCompetitions,
+        totalCompletedCompetitions,
+        publishedSnapshot
+      }
+    });
+  }
+
   res.json(standings);
+});
+
+// Publish Unit Standings to Public Website (Freeze snapshot)
+apiRouter.post('/standings/publish', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const db = dbClient.get();
+  const liveStandings = CalculationService.getUnitStandings();
+
+  const publishedResults = (db.results || []).filter(r => !r.deletedAt && (r.publishedStatus === true || (r as any).isPublished === true));
+  const publishedCompIds = new Set(publishedResults.map(r => r.competitionId).filter(Boolean));
+  const resultsCount = publishedCompIds.size;
+
+  const snapshot = {
+    publishedAt: new Date().toISOString(),
+    resultsCount,
+    standings: liveStandings
+  };
+
+  if (!(db as any).settings) {
+    (db as any).settings = {};
+  }
+  (db as any).settings.publishedTeamStandings = snapshot; if ((db as any).eventSettings) (db as any).eventSettings.publishedTeamStandings = snapshot;
+
+  // Persist to MongoDB
+  try {
+    await getCollection('settings').updateOne(
+      { $or: [{ id: 'app_settings' }, { _id: 'cmsSettings' as any }] },
+      { $set: { publishedTeamStandings: snapshot, updatedAt: new Date().toISOString() } },
+      { upsert: true }
+    );
+    await getCollection('settings').updateOne(
+      { _id: 'publishedTeamStandings' as any },
+      { $set: snapshot },
+      { upsert: true }
+    );
+  } catch (err) {
+    console.error('Failed to persist publishedTeamStandings to DB:', err);
+  }
+
+  invalidateDashboardStatsCache();
+
+  res.json({
+    success: true,
+    publishedTeamStandings: snapshot
+  });
 });
 // 12. USER MANAGEMENT (SUPER ADMIN ONLY)
 
