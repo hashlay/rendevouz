@@ -1719,21 +1719,64 @@ export default function ChestNumberPrintingView({
                     <span>Chest Number (X, Y & Size)</span>
                     <span className="font-mono text-[11px] text-emerald-700">Size: {config.chestSize || 84}px</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="range" min="50" max="750"
-                      value={config.chestX}
-                      onChange={(e) => setConfig({ ...config, chestX: Number(e.target.value) })}
-                      className="w-full accent-emerald-600"
-                    />
-                    <input
-                      type="range" min="50" max="480"
-                      value={config.chestY}
-                      onChange={(e) => setConfig({ ...config, chestY: Number(e.target.value) })}
-                      className="w-full accent-emerald-600"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Chest X</span>
+                        <input
+                          type="number"
+                          value={config.chestX}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, chestX: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <input
+                        type="range" min="50" max="750"
+                        value={config.chestX}
+                        onChange={(e) => setConfig({ ...config, chestX: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Chest Y</span>
+                        <input
+                          type="number"
+                          value={config.chestY}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, chestY: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <input
+                        type="range" min="50" max="480"
+                        value={config.chestY}
+                        onChange={(e) => setConfig({ ...config, chestY: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
                   </div>
                   <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Chest Size</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={config.chestSize || 84}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, chestSize: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">px</span>
+                      </div>
+                    </div>
                     <input
                       type="range" min="1" max="500"
                       value={config.chestSize || 84}
@@ -1749,21 +1792,64 @@ export default function ChestNumberPrintingView({
                     <span>Participant Name (X, Y & Size)</span>
                     <span className="font-mono text-[11px] text-emerald-700">Size: {config.nameSize || 36}px</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="range" min="50" max="750"
-                      value={config.nameX}
-                      onChange={(e) => setConfig({ ...config, nameX: Number(e.target.value) })}
-                      className="w-full accent-emerald-600"
-                    />
-                    <input
-                      type="range" min="50" max="480"
-                      value={config.nameY}
-                      onChange={(e) => setConfig({ ...config, nameY: Number(e.target.value) })}
-                      className="w-full accent-emerald-600"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Name X</span>
+                        <input
+                          type="number"
+                          value={config.nameX}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, nameX: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <input
+                        type="range" min="50" max="750"
+                        value={config.nameX}
+                        onChange={(e) => setConfig({ ...config, nameX: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Name Y</span>
+                        <input
+                          type="number"
+                          value={config.nameY}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, nameY: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <input
+                        type="range" min="50" max="480"
+                        value={config.nameY}
+                        onChange={(e) => setConfig({ ...config, nameY: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
                   </div>
                   <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Name Size</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={config.nameSize || 36}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, nameSize: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">px</span>
+                      </div>
+                    </div>
                     <input
                       type="range" min="1" max="500"
                       value={config.nameSize || 36}
@@ -1793,21 +1879,64 @@ export default function ChestNumberPrintingView({
                     <span>Category Name (X, Y & Size)</span>
                     <span className="font-mono text-[11px] text-emerald-700">Size: {config.catSize || 24}px</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="range" min="50" max="750"
-                      value={config.catX}
-                      onChange={(e) => setConfig({ ...config, catX: Number(e.target.value) })}
-                      className="w-full accent-emerald-600"
-                    />
-                    <input
-                      type="range" min="10" max="480"
-                      value={config.catY}
-                      onChange={(e) => setConfig({ ...config, catY: Number(e.target.value) })}
-                      className="w-full accent-emerald-600"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Category X</span>
+                        <input
+                          type="number"
+                          value={config.catX}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, catX: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <input
+                        type="range" min="50" max="750"
+                        value={config.catX}
+                        onChange={(e) => setConfig({ ...config, catX: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Category Y</span>
+                        <input
+                          type="number"
+                          value={config.catY}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, catY: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <input
+                        type="range" min="10" max="480"
+                        value={config.catY}
+                        onChange={(e) => setConfig({ ...config, catY: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
                   </div>
                   <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Category Size</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={config.catSize || 24}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, catSize: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">px</span>
+                      </div>
+                    </div>
                     <input
                       type="range" min="1" max="200"
                       value={config.catSize || 24}
@@ -1823,21 +1952,64 @@ export default function ChestNumberPrintingView({
                     <span>Unit / Team Name (X, Y & Size)</span>
                     <span className="font-mono text-[11px] text-emerald-700">Size: {config.unitSize || 26}px</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="range" min="50" max="750"
-                      value={config.unitX}
-                      onChange={(e) => setConfig({ ...config, unitX: Number(e.target.value) })}
-                      className="w-full accent-emerald-600"
-                    />
-                    <input
-                      type="range" min="50" max="480"
-                      value={config.unitY}
-                      onChange={(e) => setConfig({ ...config, unitY: Number(e.target.value) })}
-                      className="w-full accent-emerald-600"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Unit X</span>
+                        <input
+                          type="number"
+                          value={config.unitX}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, unitX: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <input
+                        type="range" min="50" max="750"
+                        value={config.unitX}
+                        onChange={(e) => setConfig({ ...config, unitX: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Unit Y</span>
+                        <input
+                          type="number"
+                          value={config.unitY}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, unitY: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <input
+                        type="range" min="50" max="480"
+                        value={config.unitY}
+                        onChange={(e) => setConfig({ ...config, unitY: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
                   </div>
                   <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Unit Size</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={config.unitSize || 26}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, unitSize: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">px</span>
+                      </div>
+                    </div>
                     <input
                       type="range" min="1" max="200"
                       value={config.unitSize || 26}
@@ -1853,21 +2025,64 @@ export default function ChestNumberPrintingView({
                     <span>QR Code (X, Y & Size)</span>
                     <span className="font-mono text-[11px] text-emerald-700">Size: {config.qrSize || 100}px</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="range" min="50" max="750"
-                      value={config.qrX}
-                      onChange={(e) => setConfig({ ...config, qrX: Number(e.target.value) })}
-                      className="w-full accent-emerald-600"
-                    />
-                    <input
-                      type="range" min="50" max="480"
-                      value={config.qrY}
-                      onChange={(e) => setConfig({ ...config, qrY: Number(e.target.value) })}
-                      className="w-full accent-emerald-600"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">QR X</span>
+                        <input
+                          type="number"
+                          value={config.qrX}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, qrX: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <input
+                        type="range" min="50" max="750"
+                        value={config.qrX}
+                        onChange={(e) => setConfig({ ...config, qrX: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">QR Y</span>
+                        <input
+                          type="number"
+                          value={config.qrY}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, qrY: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <input
+                        type="range" min="50" max="480"
+                        value={config.qrY}
+                        onChange={(e) => setConfig({ ...config, qrY: Number(e.target.value) })}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
                   </div>
                   <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">QR Size</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={config.qrSize || 100}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setConfig({ ...config, qrSize: isNaN(val) ? 0 : val });
+                          }}
+                          className="w-14 px-1 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">px</span>
+                      </div>
+                    </div>
                     <input
                       type="range" min="40" max="500"
                       value={config.qrSize || 100}
@@ -2123,9 +2338,20 @@ export default function ChestNumberPrintingView({
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                     <span className="font-bold text-slate-800 block">Participant Name Position & Size</span>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Name X Position</span>
-                        <span>{individualConfig.nameX ?? 400}</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Name X Position</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.nameX ?? 400}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, nameX: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2137,9 +2363,20 @@ export default function ChestNumberPrintingView({
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Name Y Position</span>
-                        <span>{individualConfig.nameY ?? 340}</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Name Y Position</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.nameY ?? 340}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, nameY: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2151,9 +2388,20 @@ export default function ChestNumberPrintingView({
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Name Font Size</span>
-                        <span>{individualConfig.nameSize ?? 36}px</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Name Font Size</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.nameSize ?? 36}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, nameSize: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          <span className="text-[10px] text-slate-400 font-mono">px</span>
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2170,9 +2418,20 @@ export default function ChestNumberPrintingView({
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                     <span className="font-bold text-slate-800 block">Chest Number Position & Size</span>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Chest Number X</span>
-                        <span>{individualConfig.chestX ?? 400}</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Chest Number X</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.chestX ?? 400}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, chestX: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2184,9 +2443,20 @@ export default function ChestNumberPrintingView({
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Chest Number Y</span>
-                        <span>{individualConfig.chestY ?? 210}</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Chest Number Y</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.chestY ?? 210}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, chestY: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2198,9 +2468,20 @@ export default function ChestNumberPrintingView({
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Chest Number Size</span>
-                        <span>{individualConfig.chestSize ?? 84}px</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Chest Number Size</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.chestSize ?? 84}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, chestSize: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          <span className="text-[10px] text-slate-400 font-mono">px</span>
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2217,9 +2498,20 @@ export default function ChestNumberPrintingView({
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                     <span className="font-bold text-slate-800 block">Category Position & Size</span>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Category X</span>
-                        <span>{individualConfig.catX ?? 400}</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Category X</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.catX ?? 400}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, catX: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2231,9 +2523,20 @@ export default function ChestNumberPrintingView({
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Category Y</span>
-                        <span>{individualConfig.catY ?? 45}</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Category Y</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.catY ?? 45}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, catY: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2245,9 +2548,20 @@ export default function ChestNumberPrintingView({
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Category Size</span>
-                        <span>{individualConfig.catSize ?? 24}px</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Category Size</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.catSize ?? 24}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, catSize: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          <span className="text-[10px] text-slate-400 font-mono">px</span>
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2264,9 +2578,20 @@ export default function ChestNumberPrintingView({
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                     <span className="font-bold text-slate-800 block">Unit/Team Position & Size</span>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Unit X</span>
-                        <span>{individualConfig.unitX ?? 400}</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Unit X</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.unitX ?? 400}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, unitX: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2278,9 +2603,20 @@ export default function ChestNumberPrintingView({
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Unit Y</span>
-                        <span>{individualConfig.unitY ?? 450}</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Unit Y</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.unitY ?? 450}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, unitY: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2292,9 +2628,20 @@ export default function ChestNumberPrintingView({
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>Unit Size</span>
-                        <span>{individualConfig.unitSize ?? 26}px</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">Unit Size</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.unitSize ?? 26}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, unitSize: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          <span className="text-[10px] text-slate-400 font-mono">px</span>
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2311,9 +2658,20 @@ export default function ChestNumberPrintingView({
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                     <span className="font-bold text-slate-800 block">QR Code Position & Styling</span>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>QR Code X</span>
-                        <span>{individualConfig.qrX ?? 660}</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">QR Code X</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.qrX ?? 660}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, qrX: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2325,9 +2683,20 @@ export default function ChestNumberPrintingView({
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>QR Code Y</span>
-                        <span>{individualConfig.qrY ?? 380}</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">QR Code Y</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.qrY ?? 380}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, qrY: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          
+                        </div>
                       </div>
                       <input
                         type="range"
@@ -2339,9 +2708,20 @@ export default function ChestNumberPrintingView({
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between font-semibold text-slate-600 mb-1">
-                        <span>QR Code Size</span>
-                        <span>{individualConfig.qrSize ?? 100}px</span>
+                      <div className="flex justify-between items-center text-slate-600 mb-1">
+                        <span className="font-semibold text-xs">QR Code Size</span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={individualConfig.qrSize ?? 100}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setIndividualConfig({ ...individualConfig, qrSize: isNaN(val) ? 0 : val });
+                            }}
+                            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          <span className="text-[10px] text-slate-400 font-mono">px</span>
+                        </div>
                       </div>
                       <input
                         type="range"

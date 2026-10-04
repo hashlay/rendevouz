@@ -399,15 +399,57 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
                    </div>
                  </div>
                  <div>
-                    <label className="text-xs font-bold text-slate-500 flex justify-between">X Offset (from center) <span>{nameX}</span></label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-500">X Offset (from center)</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={nameX}
+                          onChange={e => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            handleUpdate(selectedRank, 'nameX', isNaN(val) ? 0 : val);
+                          }}
+                          className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">px</span>
+                      </div>
+                    </div>
                     <input type="range" min="-600" max="600" value={nameX} onChange={e => handleUpdate(selectedRank, 'nameX', Number(e.target.value))} className="w-full accent-emerald-500" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-500 flex justify-between">Y Position <span>{nameY}</span></label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-500">Y Position</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={nameY}
+                          onChange={e => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            handleUpdate(selectedRank, 'nameY', isNaN(val) ? 0 : val);
+                          }}
+                          className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">px</span>
+                      </div>
+                    </div>
                     <input type="range" min="100" max="1500" value={nameY} onChange={e => handleUpdate(selectedRank, 'nameY', Number(e.target.value))} className="w-full accent-emerald-500" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-500 flex justify-between">Font Size <span>{nameSize}</span></label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-500">Font Size</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={nameSize}
+                          onChange={e => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            handleUpdate(selectedRank, 'nameSize', isNaN(val) ? 0 : val);
+                          }}
+                          className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">px</span>
+                      </div>
+                    </div>
                     <input type="range" min="12" max="120" value={nameSize} onChange={e => handleUpdate(selectedRank, 'nameSize', Number(e.target.value))} className="w-full accent-emerald-500" />
                   </div>
                   <div>
@@ -458,15 +500,57 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
                    </div>
                  </div>
                  <div>
-                    <label className="text-xs font-bold text-slate-500 flex justify-between">X Offset (from center) <span>{compX}</span></label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-500">X Offset (from center)</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={compX}
+                          onChange={e => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            handleUpdate(selectedRank, 'compX', isNaN(val) ? 0 : val);
+                          }}
+                          className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">px</span>
+                      </div>
+                    </div>
                     <input type="range" min="-600" max="600" value={compX} onChange={e => handleUpdate(selectedRank, 'compX', Number(e.target.value))} className="w-full accent-emerald-500" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-500 flex justify-between">Y Position <span>{compY}</span></label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-500">Y Position</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={compY}
+                          onChange={e => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            handleUpdate(selectedRank, 'compY', isNaN(val) ? 0 : val);
+                          }}
+                          className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">px</span>
+                      </div>
+                    </div>
                     <input type="range" min="100" max="1500" value={compY} onChange={e => handleUpdate(selectedRank, 'compY', Number(e.target.value))} className="w-full accent-emerald-500" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-500 flex justify-between">Font Size <span>{compSize}</span></label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-500">Font Size</label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={compSize}
+                          onChange={e => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            handleUpdate(selectedRank, 'compSize', isNaN(val) ? 0 : val);
+                          }}
+                          className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">px</span>
+                      </div>
+                    </div>
                     <input type="range" min="12" max="120" value={compSize} onChange={e => handleUpdate(selectedRank, 'compSize', Number(e.target.value))} className="w-full accent-emerald-500" />
                   </div>
                  <div>

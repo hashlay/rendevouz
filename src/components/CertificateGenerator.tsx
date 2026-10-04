@@ -600,10 +600,21 @@ export default function CertificateGenerator({
               </div>
 
               <div>
-                <label className="flex justify-between text-xs text-slate-500 mb-1">
-                  <span>Font Size</span>
-                  <span className="font-mono">{nameSize}px</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-slate-500 font-semibold">Font Size</label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={nameSize}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : Number(e.target.value);
+                        setNameSize(isNaN(val) ? 0 : val);
+                      }}
+                      className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <span className="text-[10px] text-slate-400 font-mono">px</span>
+                  </div>
+                </div>
                 <input 
                   type="range" min="16" max="120" value={nameSize} 
                   onChange={(e) => setNameSize(Number(e.target.value))}
@@ -612,10 +623,21 @@ export default function CertificateGenerator({
               </div>
 
               <div>
-                <label className="flex justify-between text-xs text-slate-500 mb-1">
-                  <span>Horizontal Position (X)</span>
-                  <span className="font-mono">{nameX}</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-slate-500 font-semibold">Horizontal Position (X)</label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={nameX}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : Number(e.target.value);
+                        setNameX(isNaN(val) ? 0 : val);
+                      }}
+                      className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <span className="text-[10px] text-slate-400 font-mono">px</span>
+                  </div>
+                </div>
                 <input 
                   type="range" min="-600" max="600" value={nameX} 
                   onChange={(e) => setNameX(Number(e.target.value))}
@@ -624,10 +646,21 @@ export default function CertificateGenerator({
               </div>
 
               <div>
-                <label className="flex justify-between text-xs text-slate-500 mb-1">
-                  <span>Vertical Position (Y)</span>
-                  <span className="font-mono">{nameY}</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-slate-500 font-semibold">Vertical Position (Y)</label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={nameY}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : Number(e.target.value);
+                        setNameY(isNaN(val) ? 0 : val);
+                      }}
+                      className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <span className="text-[10px] text-slate-400 font-mono">px</span>
+                  </div>
+                </div>
                 <input 
                   type="range" min="100" max="1500" value={nameY} 
                   onChange={(e) => setNameY(Number(e.target.value))}
@@ -700,10 +733,21 @@ export default function CertificateGenerator({
               </div>
 
               <div>
-                <label className="flex justify-between text-xs text-slate-500 mb-1">
-                  <span>Font Size</span>
-                  <span className="font-mono">{compSize}px</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-slate-500 font-semibold">Font Size</label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={compSize}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : Number(e.target.value);
+                        setCompSize(isNaN(val) ? 0 : val);
+                      }}
+                      className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <span className="text-[10px] text-slate-400 font-mono">px</span>
+                  </div>
+                </div>
                 <input 
                   type="range" min="16" max="120" value={compSize} 
                   onChange={(e) => setCompSize(Number(e.target.value))}
@@ -712,10 +756,21 @@ export default function CertificateGenerator({
               </div>
 
               <div>
-                <label className="flex justify-between text-xs text-slate-500 mb-1">
-                  <span>Horizontal Position (X)</span>
-                  <span className="font-mono">{compX}</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-slate-500 font-semibold">Horizontal Position (X)</label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={compX}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : Number(e.target.value);
+                        setCompX(isNaN(val) ? 0 : val);
+                      }}
+                      className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <span className="text-[10px] text-slate-400 font-mono">px</span>
+                  </div>
+                </div>
                 <input 
                   type="range" min="-600" max="600" value={compX} 
                   onChange={(e) => setCompX(Number(e.target.value))}
@@ -724,10 +779,21 @@ export default function CertificateGenerator({
               </div>
 
               <div>
-                <label className="flex justify-between text-xs text-slate-500 mb-1">
-                  <span>Vertical Position (Y)</span>
-                  <span className="font-mono">{compY}</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-slate-500 font-semibold">Vertical Position (Y)</label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={compY}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : Number(e.target.value);
+                        setCompY(isNaN(val) ? 0 : val);
+                      }}
+                      className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <span className="text-[10px] text-slate-400 font-mono">px</span>
+                  </div>
+                </div>
                 <input 
                   type="range" min="100" max="1500" value={compY} 
                   onChange={(e) => setCompY(Number(e.target.value))}

@@ -767,41 +767,52 @@ interface RangeControlProps {
   step?: number;
 }
 
-const RangeControl = React.memo(({ label, value, onChange, min, max, step = 1 }: RangeControlProps) => (
-  <div className="space-y-1">
-    <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
-      <span>{label}</span>
-      <div className="flex items-center gap-1 font-mono text-[10px] text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-2xs">
-        <button
-          type="button"
-          onClick={() => onChange(Math.max(min, value - 5))}
-          className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
-          title="Step left (-5)"
-        >
-          -
-        </button>
-        <span className="w-8 text-center font-bold">{value}</span>
-        <button
-          type="button"
-          onClick={() => onChange(Math.min(max, value + 5))}
-          className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
-          title="Step right (+5)"
-        >
-          +
-        </button>
+const RangeControl = React.memo(({ label, value, onChange, min, max, step = 1 }: RangeControlProps) => {
+  const currentVal = value ?? 0;
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
+        <span>{label}</span>
+        <div className="flex items-center gap-1 font-mono text-[10px] text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => onChange(Math.max(min, currentVal - 5))}
+            className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
+            title="Step left (-5)"
+          >
+            -
+          </button>
+          <input
+            type="number"
+            value={currentVal}
+            onChange={(e) => {
+              const val = e.target.value === '' ? 0 : Number(e.target.value);
+              onChange(isNaN(val) ? 0 : val);
+            }}
+            className="w-14 px-1 py-0.5 text-center font-bold text-slate-800 bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded"
+          />
+          <button
+            type="button"
+            onClick={() => onChange(Math.min(max, currentVal + 5))}
+            className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
+            title="Step right (+5)"
+          >
+            +
+          </button>
+        </div>
       </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={currentVal}
+        onChange={e => onChange(Number(e.target.value))}
+        className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer"
+      />
     </div>
-    <input
-      type="range"
-      min={min}
-      max={max}
-      step={step}
-      value={value}
-      onChange={e => onChange(Number(e.target.value))}
-      className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer"
-    />
-  </div>
-));
+  );
+});
 
 export default function PostersView({ user, token, eventSettings, onSettingsUpdated }: PosterGeneratorViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
@@ -897,8 +908,23 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
   const getThemeConfig = (idx: number) => {
     const aComp = competitions.find(c => c.id === selectedCompId);
-    const compOverride = (eventSettings?.posterOverrides && aComp?.name && eventSettings.posterOverrides[aComp.name]) ||
-                         (eventSettings?.posterOverrides && selectedCompId && eventSettings.posterOverrides[selectedCompId]);
+    const overrides = eventSettings?.posterOverrides || {};
+    let compOverride = null;
+    if (selectedCompId && overrides[selectedCompId]) {
+      compOverride = overrides[selectedCompId];
+    } else if (aComp?.name && overrides[aComp.name]) {
+      compOverride = overrides[aComp.name];
+    } else if (aComp?.name && overrides[aComp.name.trim()]) {
+      compOverride = overrides[aComp.name.trim()];
+    } else if (aComp?.name) {
+      const target = aComp.name.trim().toLowerCase();
+      for (const [k, v] of Object.entries(overrides)) {
+        if (k.trim().toLowerCase() === target) {
+          compOverride = v;
+          break;
+        }
+      }
+    }
     const defaultConf = getDefaultThemeConfig(idx);
     const userConf = { ...(themeConfigs[idx] || {}) };
     if (idx === 0) {
@@ -1056,20 +1082,14 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         (eventSettings as any).posterOverrides = updatedOverrides;
       }
 
-      // Clean localThemeConfigs of this comp's name overrides so switching to another comp on same theme does not leak them
-      setLocalThemeConfigs((prev: any) => {
-        const cleaned = { ...(prev[themeIdx] || {}) };
-        Object.keys(cleaned).forEach((k) => {
-          if (k.toLowerCase().includes('override') && (k.toLowerCase().includes('name') || k.toLowerCase().includes('unit'))) {
-            delete cleaned[k];
-          }
-        });
-        delete cleaned.compNameOverride;
-        return {
-          ...prev,
-          [themeIdx]: cleaned
-        };
-      });
+      // Keep individualConfig active in localThemeConfigs so the UI immediately retains the user's modifications
+      setLocalThemeConfigs((prev: any) => ({
+        ...prev,
+        [themeIdx]: {
+          ...(prev[themeIdx] || {}),
+          ...individualConfig
+        }
+      }));
 
       alert(`Saved custom layout positions & text overrides specifically for poster "${aComp?.name}"!`);
       if (onSettingsUpdated) onSettingsUpdated();
@@ -1561,9 +1581,19 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     const compY = c.compNameY ?? 330;
 
     const compLines = compText.split('\n').filter(Boolean);
-    const compLineGap = (c.compNameSize ?? 52) * 1.15;
     ctx.textAlign = 'left';
-    ctx.font = compFont;
+
+    // Auto-fit competition name so long multi-word or 2-line titles scale down cleanly
+    let compNameSize = c.compNameSize ?? 52;
+    const maxCompAllowedWidth = c.compNameMaxWidth || Math.max(W - compX - 60, 420);
+    ctx.font = parseFontForCanvas(c.compNameFont || c.fontFamily, compNameSize, '900');
+    let longestCompLine = compLines.length > 0 ? Math.max(...compLines.map((l: string) => ctx.measureText(l).width)) : 0;
+    while (longestCompLine > maxCompAllowedWidth && compNameSize > 18) {
+      compNameSize -= 1;
+      ctx.font = parseFontForCanvas(c.compNameFont || c.fontFamily, compNameSize, '900');
+      longestCompLine = Math.max(...compLines.map((l: string) => ctx.measureText(l).width));
+    }
+    const compLineGap = compNameSize * 1.15;
     ctx.fillStyle = c.compNameColor || '#ffffff';
 
     let maxCompW = 0;
@@ -1572,7 +1602,12 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
       const w = ctx.measureText(line).width;
       if (w > maxCompW) maxCompW = w;
     });
-    addRegion('compName', compX - 10, compY - (c.compNameSize ?? 52) - 5, maxCompW + 20, (compLines.length * compLineGap) + 15);
+    addRegion('compName', compX - 10, compY - compNameSize - 5, maxCompW + 20, (compLines.length * compLineGap) + 15);
+
+    // Dynamic vertical shift to prevent tied winners from overlapping downstream ranks
+    let cumulativeShiftY = 0;
+    // Generic max width for winner names and unit names to prevent artwork collisions
+    const maxWinnerAllowedWidth = c.winnerMaxWidth || Math.max(Math.min(W - (c.rank1NameX ?? 260) - 60, 520), 380);
 
     // Draw each rank with per-rank positions (supports multiple tied winners per rank)
     [1, 2, 3].forEach((rank) => {
@@ -1582,6 +1617,8 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
       
       const winnerCount = Math.max(rankWinners.length, hasRank2Override ? 2 : hasRank1Override ? 1 : 0);
       if (winnerCount === 0) return;
+
+      const hasTie = winnerCount > 1;
 
       for (let wIdx = 0; wIdx < Math.max(winnerCount, 1); wIdx++) {
         const res = rankWinners[wIdx];
@@ -1626,18 +1663,25 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
           winnerUnit = c[unitOverrideKey];
         }
 
-        const defaultYOffset = isSecond ? 80 : 0;
         const baseBadgeY = c[`rank${rank}BadgeY`] ?? (460 + (rank - 1) * 180);
-        const bx = isSecond ? (c[`rank${rank}_2_BadgeX`] ?? (c[`rank${rank}BadgeX`] ?? 140)) : (c[`rank${rank}BadgeX`] ?? 140);
-        const by = isSecond ? (c[`rank${rank}_2_BadgeY`] ?? (baseBadgeY + defaultYOffset)) : baseBadgeY;
-
         const baseNameY = c[`rank${rank}NameY`] ?? (448 + (rank - 1) * 180);
-        const nx = isSecond ? (c[`rank${rank}_2_NameX`] ?? (c[`rank${rank}NameX`] ?? 260)) : (c[`rank${rank}NameX`] ?? 260);
-        const ny = isSecond ? (c[`rank${rank}_2_NameY`] ?? (baseNameY + defaultYOffset)) : baseNameY;
-
         const baseUnitY = c[`rank${rank}UnitY`] ?? (483 + (rank - 1) * 180);
+
+        const tieOffset = 68;
+        const bx = isSecond ? (c[`rank${rank}_2_BadgeX`] ?? (c[`rank${rank}BadgeX`] ?? 140)) : (c[`rank${rank}BadgeX`] ?? 140);
+        const by = isSecond 
+          ? (c[`rank${rank}_2_BadgeY`] !== undefined ? c[`rank${rank}_2_BadgeY`] : (baseBadgeY + cumulativeShiftY + tieOffset)) 
+          : (baseBadgeY + cumulativeShiftY);
+
+        const nx = isSecond ? (c[`rank${rank}_2_NameX`] ?? (c[`rank${rank}NameX`] ?? 260)) : (c[`rank${rank}NameX`] ?? 260);
+        const ny = isSecond 
+          ? (c[`rank${rank}_2_NameY`] !== undefined ? c[`rank${rank}_2_NameY`] : (baseNameY + cumulativeShiftY + tieOffset)) 
+          : (baseNameY + cumulativeShiftY);
+
         const ux = isSecond ? (c[`rank${rank}_2_UnitX`] ?? (c[`rank${rank}UnitX`] ?? 260)) : (c[`rank${rank}UnitX`] ?? 260);
-        const uy = isSecond ? (c[`rank${rank}_2_UnitY`] ?? (baseUnitY + defaultYOffset)) : baseUnitY;
+        const uy = isSecond 
+          ? (c[`rank${rank}_2_UnitY`] !== undefined ? c[`rank${rank}_2_UnitY`] : (baseUnitY + cumulativeShiftY + tieOffset)) 
+          : (baseUnitY + cumulativeShiftY);
 
         const rColor = rank === 1 ? c.rank1Color : rank === 2 ? c.rank2Color : c.rank3Color;
         const rankText = rank === 1 ? c.rank1Text : rank === 2 ? c.rank2Text : c.rank3Text;
@@ -1695,14 +1739,21 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
         }
         addRegion(badgeRegionId, bx - badgeW / 2 - 5, badgeCenterY - badgeH / 2 - 5, badgeW + 10, badgeH + 10);
 
-        // Winner name (Supports 2-line text with \n)
+        // Winner name (Supports 2-line text with \n and Auto-Fit for long names)
         ctx.textAlign = 'left';
-        ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, c.winnerSize || 34, '500');
+        let winnerFontSize = c.winnerSize || 34;
+        const nameLines = winnerName.split('\n').filter(Boolean);
+        ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, winnerFontSize, '500');
+        let longestNameLine = nameLines.length > 0 ? Math.max(...nameLines.map((l: string) => ctx.measureText(l).width)) : 0;
+        while (longestNameLine > maxWinnerAllowedWidth && winnerFontSize > 14) {
+          winnerFontSize -= 1;
+          ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, winnerFontSize, '500');
+          longestNameLine = Math.max(...nameLines.map((l: string) => ctx.measureText(l).width));
+        }
+
         const winnerFill = c.winnerColor || '#ffffff';
         ctx.fillStyle = winnerFill;
-
-        const nameLines = winnerName.split('\n').filter(Boolean);
-        const nameGap = (c.winnerSize ?? 44) * 1.15;
+        const nameGap = winnerFontSize * 1.15;
         let maxNameW = 0;
         const isWinnerFractul = (c.winnerFont || c.fontFamily || '').includes('Fractul Alt');
         nameLines.forEach((line: string, i: number) => {
@@ -1720,18 +1771,28 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
           const w = ctx.measureText(line).width;
           if (w > maxNameW) maxNameW = w;
         });
-        addRegion(nameRegionId, nx - 5, ny - (c.winnerSize ?? 44) - 5, maxNameW + 10, (nameLines.length * nameGap) + 10);
+        addRegion(nameRegionId, nx - 5, ny - winnerFontSize - 5, maxNameW + 10, (nameLines.length * nameGap) + 10);
 
-        // Unit name (Supports 2-line text with \n)
+        // Unit name (Supports 2-line text with \n and Auto-Fit)
         const isArabic = c.unitLanguage === 'ar';
         const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : "'Cairo', 'Amiri', sans-serif";
-        ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), c.unitSize || 22, '500');
-        const unitFill = getPosterTeamColor(winnerUnit, c.unitColor, c);
-        ctx.fillStyle = unitFill;
+        const unitFontFamily = isArabic ? arabicFont : (c.unitFont || 'monospace');
+        let unitFontSize = c.unitSize || 22;
         const displayUnitName = getPosterDisplayUnitName(winnerUnit, c);
         const unitText = isArabic ? displayUnitName : (c.unitUppercase !== false ? displayUnitName.toUpperCase() : displayUnitName);
         const unitLines = unitText.split('\n').filter(Boolean);
-        const unitGap = (c.unitSize ?? 30) * 1.15;
+
+        ctx.font = parseFontForCanvas(unitFontFamily, unitFontSize, '500');
+        let longestUnitLine = unitLines.length > 0 ? Math.max(...unitLines.map((l: string) => ctx.measureText(l).width)) : 0;
+        while (longestUnitLine > maxWinnerAllowedWidth && unitFontSize > 12) {
+          unitFontSize -= 1;
+          ctx.font = parseFontForCanvas(unitFontFamily, unitFontSize, '500');
+          longestUnitLine = Math.max(...unitLines.map((l: string) => ctx.measureText(l).width));
+        }
+
+        const unitFill = getPosterTeamColor(winnerUnit, c.unitColor, c);
+        ctx.fillStyle = unitFill;
+        const unitGap = unitFontSize * 1.15;
         const calcUx = nx; 
         const calcUy = ny + (nameLines.length * nameGap) + 5;
         let maxUnitW = 0;
@@ -1751,7 +1812,12 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
           const w = ctx.measureText(line).width;
           if (w > maxUnitW) maxUnitW = w;
         });
-        addRegion(unitRegionId, (ux ?? calcUx) - 5, (uy ?? calcUy) - (c.unitSize ?? 30) - 5, maxUnitW + 10, (unitLines.length * unitGap) + 10);
+        addRegion(unitRegionId, (ux ?? calcUx) - 5, (uy ?? calcUy) - unitFontSize - 5, maxUnitW + 10, (unitLines.length * unitGap) + 10);
+      }
+
+      // Smoothly shift down subsequent ranks if there was a tie
+      if (hasTie) {
+        cumulativeShiftY += (c.tiedWinnerRowGap || 72);
       }
     });
 

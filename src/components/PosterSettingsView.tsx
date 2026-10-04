@@ -826,22 +826,37 @@ interface RangeControlProps {
   step?: number;
 }
 
-const RangeControl = React.memo(({ label, value, onChange, min, max, step = 1 }: RangeControlProps) => (
-  <div>
-    <label className="block text-[10px] font-bold text-slate-400 mb-1 flex justify-between">
-      <span>{label}</span> <span className="text-slate-600 font-mono font-bold">{value}</span>
-    </label>
-    <input
-      type="range"
-      min={min}
-      max={max}
-      step={step}
-      value={value}
-      onChange={e => onChange(Number(e.target.value))}
-      className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer"
-    />
-  </div>
-));
+const RangeControl = React.memo(({ label, value, onChange, min, max, step = 1 }: RangeControlProps) => {
+  const currentVal = value ?? 0;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</label>
+        <div className="flex items-center gap-1">
+          <input
+            type="number"
+            value={currentVal}
+            onChange={(e) => {
+              const val = e.target.value === '' ? 0 : Number(e.target.value);
+              onChange(isNaN(val) ? 0 : val);
+            }}
+            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+          <span className="text-[10px] text-slate-400 font-mono">px</span>
+        </div>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={currentVal}
+        onChange={e => onChange(Number(e.target.value))}
+        className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer"
+      />
+    </div>
+  );
+});
 
 export default function PosterSettingsView({ user, token, eventSettings, onSettingsUpdated }: PosterSettingsViewProps) {
   const festivalName = eventSettings?.festivalName || 'Sahityotsav';
@@ -855,14 +870,14 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     '/themes/theme_phytolore_green_theme5.jpg'
   ];
 
-  // Helper to ensure 5 themes
+  // Helper to ensure valid themes & configs
   const normalizeThemesAndConfigs = (themesIn: any, configsIn: any) => {
     const existing = Array.isArray(themesIn) ? themesIn : [];
-    let themes = defaultThemes.map((dt, idx) => existing[idx] || dt);
+    let themes = existing.length > 0 ? existing : defaultThemes;
     const configs = { ...(configsIn || {}) };
-    for (let i = 0; i < 5; i++) {
+    themes.forEach((_, i) => {
       if (!configs[i]) configs[i] = getDefaultThemeConfig(i);
-    }
+    });
     return { themes, configs };
   };
 
@@ -1055,6 +1070,69 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     }));
     setSelectedThemeIndex(newIdx);
     alert(`✓ Duplicated Theme ${sourceIdx + 1} as Theme ${newIdx + 1} with all its layout settings!`);
+  };
+
+  const [replacingThemeIdx, setReplacingThemeIdx] = useState<number | null>(null);
+
+  const handleReplaceThemeImage = async (themeIdx: number, file: File) => {
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Image size exceeds 15MB. Please upload a smaller image.');
+      return;
+    }
+    setReplacingThemeIdx(themeIdx);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'image');
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      if (uploadRes.ok) {
+        const data = await uploadRes.json();
+        const imageUrl = data.url || data.secure_url;
+        if (imageUrl) {
+          setCustomThemes(prev => {
+            const updated = [...prev];
+            updated[themeIdx] = imageUrl;
+            return updated;
+          });
+          alert(`✓ Replaced background image for Theme ${themeIdx + 1}! All coordinates and fonts are preserved.`);
+          return;
+        }
+      }
+      // Base64 fallback
+      const reader = new FileReader();
+      reader.onload = (re) => {
+        const b64 = re.target?.result as string;
+        if (b64) {
+          setCustomThemes(prev => {
+            const updated = [...prev];
+            updated[themeIdx] = b64;
+            return updated;
+          });
+          alert(`✓ Replaced background image for Theme ${themeIdx + 1}! All coordinates and fonts are preserved.`);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      const reader = new FileReader();
+      reader.onload = (re) => {
+        const b64 = re.target?.result as string;
+        if (b64) {
+          setCustomThemes(prev => {
+            const updated = [...prev];
+            updated[themeIdx] = b64;
+            return updated;
+          });
+          alert(`✓ Replaced background image for Theme ${themeIdx + 1}! All coordinates and fonts are preserved.`);
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setReplacingThemeIdx(null);
+    }
   };
 
   const [savingTemplate, setSavingTemplate] = useState(false);
@@ -1449,13 +1527,19 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       }
       addRegion(rd.badgeId, bx - badgeW / 2 - 5, badgeCenterY - badgeH / 2 - 5, badgeW + 10, badgeH + 10);
 
-      // Participant name
+      // Participant name with Auto-fit preview
       ctx.textAlign = 'left';
-      ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, c.winnerSize || 34, '500');
-      const winnerFill = c.winnerColor || '#ffffff';
-      ctx.fillStyle = winnerFill;
+      let winnerFontSize = c.winnerSize || 34;
+      const maxWinnerAllowedWidth = c.winnerMaxWidth || Math.max(Math.min(W - (c.rank1NameX ?? 260) - 60, 520), 380);
       const rawNameText = rd.sampleName || 'Participant Name';
       const nameText = (c.winnerUppercase || c.uppercaseNames) ? rawNameText.toUpperCase() : rawNameText;
+      ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, winnerFontSize, '500');
+      while (ctx.measureText(nameText).width > maxWinnerAllowedWidth && winnerFontSize > 14) {
+        winnerFontSize -= 1;
+        ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, winnerFontSize, '500');
+      }
+      const winnerFill = c.winnerColor || '#ffffff';
+      ctx.fillStyle = winnerFill;
       const isWinnerFractul = (c.winnerFont || c.fontFamily || '').includes('Fractul Alt');
       if (isWinnerFractul) {
         ctx.save();
@@ -1469,7 +1553,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
         ctx.fillText(nameText, nx, ny);
       }
       const nameMetrics = ctx.measureText(nameText);
-      addRegion(rd.nameId, nx - 5, ny - (c.winnerSize || 34) - 5, nameMetrics.width + 10, (c.winnerSize || 34) + 15);
+      addRegion(rd.nameId, nx - 5, ny - winnerFontSize - 5, nameMetrics.width + 10, winnerFontSize + 15);
 
       // Unit/Team name
       const isArabic = c.unitLanguage === 'ar';
@@ -1608,6 +1692,24 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                           )}
                         </div>
                       </button>
+                      <label
+                        title={`Replace Background Image for Theme ${idx + 1}`}
+                        className="absolute bottom-2 right-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-2 py-0.5 text-[9px] font-bold shadow-md cursor-pointer transition-all z-10 flex items-center gap-1 opacity-90 hover:opacity-100"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <RefreshCw className={`w-2.5 h-2.5 ${replacingThemeIdx === idx ? 'animate-spin' : ''}`} />
+                        <span>Replace</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleReplaceThemeImage(idx, file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
                       <button
                         title={`Duplicate Theme ${idx + 1}`}
                         onClick={(e) => {
@@ -1619,7 +1721,14 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                         <Copy className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => {
+                        title={`Delete Theme ${idx + 1}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (customThemes.length <= 1) {
+                            alert('At least one theme must be retained.');
+                            return;
+                          }
+                          if (!confirm(`Are you sure you want to delete Theme ${idx + 1}?`)) return;
                           setCustomThemes(prev => prev.filter((_, i) => i !== idx));
                           setThemeConfigs((prev: any) => {
                             const newConfigs = { ...prev };
@@ -1636,7 +1745,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                           if (selectedThemeIndex === idx) setSelectedThemeIndex(0);
                           else if (selectedThemeIndex > idx) setSelectedThemeIndex(prev => prev - 1);
                         }}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-red-600 shadow-md"
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-red-600 shadow-md cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
