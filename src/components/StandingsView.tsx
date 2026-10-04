@@ -46,6 +46,34 @@ export default function StandingsView({ user, token, eventSettings }: StandingsV
     }
   };
 
+  
+  const handleUnpublishStandings = async () => {
+    if (!confirm('Are you sure you want to unpublish the frozen snapshot? The public site will revert to live calculated standings.')) return;
+    setPublishing(true);
+    setPublishSuccess(null);
+    try {
+      const res = await fetch('/api/standings/unpublish', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to unpublish standings');
+      setMeta((prev) => ({
+        ...prev,
+        publishedSnapshot: null
+      }));
+      setPublishSuccess('Snapshot removed. Public website now reflects live published results.');
+      setTimeout(() => setPublishSuccess(null), 6000);
+    } catch (err) {
+      alert(err.message || 'Error unpublishing standings');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const handlePublishStandings = async () => {
     setPublishing(true);
     setPublishSuccess(null);
@@ -131,6 +159,17 @@ export default function StandingsView({ user, token, eventSettings }: StandingsV
           </div>
 
           <div className="flex items-center gap-3">
+            {meta?.publishedSnapshot && (
+              <button
+                type="button"
+                onClick={handleUnpublishStandings}
+                disabled={publishing}
+                className="px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 active:scale-95 shadow-2xs transition-all cursor-pointer"
+                title="Remove frozen snapshot and revert public view to live results"
+              >
+                Revert to Live Dynamic
+              </button>
+            )}
             <button
               onClick={handlePublishStandings}
               disabled={publishing}

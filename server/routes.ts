@@ -4191,6 +4191,29 @@ apiRouter.get('/standings', authenticate, async (req, res) => {
 });
 
 // Publish Unit Standings to Public Website (Freeze snapshot)
+
+// Unpublish Unit Standings snapshot
+apiRouter.post('/standings/unpublish', authenticate, requireRole([UserRole.SUPER_ADMIN || 'SUPER_ADMIN', UserRole.SECTOR_TEAM || 'SECTOR_TEAM']), async (req, res) => {
+  const db = dbClient.get() as any;
+  if (db.settings) {
+    delete db.settings.publishedTeamStandings;
+  }
+  if (db.eventSettings) {
+    delete db.eventSettings.publishedTeamStandings;
+  }
+  try {
+    await getCollection('settings').deleteOne({ _id: 'publishedTeamStandings' });
+    await getCollection('settings').updateOne(
+      { $or: [{ id: 'app_settings' }, { _id: 'cmsSettings' }, { _id: 'eventSettings' }] },
+      { $unset: { publishedTeamStandings: "" }, $set: { updatedAt: new Date().toISOString() } }
+    );
+  } catch (err) {
+    console.error('Failed to unpublish team standings from DB:', err);
+  }
+  invalidateDashboardStatsCache();
+  res.json({ success: true, message: 'Team standings snapshot removed. Public site will now reflect live published results.' });
+});
+
 apiRouter.post('/standings/publish', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
   const liveStandings = CalculationService.getUnitStandings();
@@ -6483,6 +6506,29 @@ apiRouter.get('/public/competitions', async (req, res) => {
 });
 
 // Public Unit Standings (Calculated by official CalculationService!)
+
+// Standings metadata endpoint
+apiRouter.get('/public/standings/meta', async (req, res) => {
+  const db = dbClient.get() as any;
+  let publishedSnapshot = db.settings?.publishedTeamStandings || db.eventSettings?.publishedTeamStandings || null;
+  if (!publishedSnapshot) {
+    try {
+      const snapDoc = await getCollection('settings').findOne({ _id: 'publishedTeamStandings' });
+      if (snapDoc && Array.isArray(snapDoc.standings)) {
+        publishedSnapshot = snapDoc;
+      }
+    } catch (_) {}
+  }
+  const publishedResults = (db.results || []).filter((r: any) => !r.deletedAt && (r.publishedStatus === true || r.isPublished === true));
+  const publishedCompIds = new Set(publishedResults.map((r) => r.competitionId).filter(Boolean));
+  res.json({
+    resultsCount: publishedSnapshot?.resultsCount ?? publishedCompIds.size,
+    publishedAt: publishedSnapshot?.publishedAt || null,
+    isSnapshot: !!publishedSnapshot,
+    liveResultsCount: publishedCompIds.size
+  });
+});
+
 apiRouter.get('/public/standings', async (req, res) => {
   try {
     const standings = CalculationService.getUnitStandings();
