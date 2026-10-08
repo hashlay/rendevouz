@@ -19,7 +19,7 @@ export const Logo: React.FC<LogoProps> = ({
   variant = 'full',
   title = 'RENDEZVOUS',
   subtitle = '26',
-  badge = 'IMAM RABBANI LIFE FESTIVAL',
+  badge = 'SWALAHUL HUDA ACADEMY',
   showIcon = true,
   customIconUrl = '',
 }) => {
@@ -32,7 +32,7 @@ export const Logo: React.FC<LogoProps> = ({
   
   // Secondary text to display under brand
   const effectiveSubtitle = isSubtitleEdition 
-    ? (rawBadge || (showSubBadge ? 'IMAM RABBANI LIFE FESTIVAL' : ''))
+    ? (rawBadge || (showSubBadge ? 'SWALAHUL HUDA ACADEMY' : ''))
     : (rawSubtitle || (showSubBadge ? rawBadge : ''));
 
   // Dimension scales
@@ -72,7 +72,7 @@ export const Logo: React.FC<LogoProps> = ({
           {isRendezvousBrand ? (
             <div className={`flex items-baseline font-hochland uppercase leading-none tracking-normal transform scale-y-[1.06] origin-left ${brandSize}`}>
               <span className="text-white drop-shadow-sm">RENDEZVOUS</span>
-              <span className="ml-1.5 font-hochland" style={{ color: 'var(--color-primary-accent, #18BA46)' }}>
+              <span className="ml-1.5 font-hochland" style={{ color: 'var(--color-primary-accent, #48205D)' }}>
                 26
               </span>
             </div>
@@ -86,9 +86,9 @@ export const Logo: React.FC<LogoProps> = ({
           {effectiveSubtitle && (
             <div className="flex items-center justify-start gap-1.5 mt-1 w-full">
               {showSubBadge && (
-                <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ backgroundColor: 'var(--color-primary-accent, #18BA46)' }} />
+                <span className="inline-block w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ backgroundColor: 'var(--color-primary-accent, #48205D)' }} />
               )}
-              <span className={`uppercase font-bold tracking-wider ${subTextSize} text-left opacity-90`} style={{ color: showSubBadge ? 'var(--color-primary-accent, #18BA46)' : '#d4d4d8' }}>
+              <span className={`uppercase font-bold tracking-wider ${subTextSize} text-left opacity-90`} style={{ color: showSubBadge ? 'var(--color-primary-accent, #48205D)' : '#d4d4d8' }}>
                 {effectiveSubtitle}
               </span>
             </div>

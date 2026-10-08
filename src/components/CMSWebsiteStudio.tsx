@@ -15,17 +15,17 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
   const [heroMedia, setHeroMedia] = useState<HeroMedia[]>([]);
   const [settings, setSettings] = useState<CMSSettings>({
     aboutTitle: '', aboutSubtitle: '', aboutDescription: '', aboutImage: '', footerText: '',
-    themeTitle: 'Decoding Phytolore', themeDescription: '',
-    heroTitle: 'RENDEZVOUS 26', heroSubtitle: 'Decoding Phytolore', heroDate: '2026 September 23, 24', heroLocation: 'Imam Rabbani Campus',
-    headerLogoTitle: 'RENDEZVOUS',
-    headerLogoSubtitle: '26',
-    heroLogoTitle: 'RENDEZVOUS 26',
-    heroLogoSubtitle: 'Decoding Phytolore',
-    heroLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
-    heroDesktopImages: ['/rendezvous_hero_desktop.jpg', '/hero1.jpg', '/hero2.jpg'],
+    themeTitle: 'Meelad Fest', themeDescription: '',
+    heroTitle: 'FANOUS 2K26', heroSubtitle: 'Meelad Fest', heroDate: 'October 9, 2026', heroLocation: 'Rifayiya Juma Masjid Muchila',
+    headerLogoTitle: 'FANOUS',
+    headerLogoSubtitle: '2K26',
+    heroLogoTitle: 'FANOUS 2K26',
+    heroLogoSubtitle: 'Meelad Fest',
+    heroLogoBadge: 'SWALAHUL HUDA ACADEMY',
+    heroDesktopImages: ['/fanous_hero_desktop.jpg'],
     heroDesktopLoopEnabled: true,
     heroDesktopLoopInterval: 5,
-    heroMobileImages: ['/rendezvous_hero_mobile.jpg', '/hero1_mobile_crop_center.jpg', '/hero2_mobile_crop_center.jpg'],
+    heroMobileImages: ['/fanous_hero_mobile.jpg'],
     heroMobileLoopEnabled: true,
     heroMobileLoopInterval: 5,
   });
@@ -37,27 +37,27 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
   const [photoHubDriveLink, setPhotoHubDriveLink] = useState(DEFAULT_PHOTO_HUB_DRIVE_LINK);
 
   const DEFAULT_COLOR_THEME: Record<string, string> = {
-    primaryAccent: '#18BA46',
-    bodyBg: '#012002',
-    cardBg: '#07380B',
-    cardElevatedBg: '#0B4A12',
-    borderSubtle: '#176523',
-    textPrimary: '#F4F8F4',
-    textSecondary: '#A2D5A4',
-    textMuted: '#7EA681',
+    primaryAccent: '#48205D',
+    bodyBg: '#F7F6F8',
+    cardBg: '#FFFFFF',
+    cardElevatedBg: '#F0EAF3',
+    borderSubtle: '#DED2E5',
+    textPrimary: '#351747',
+    textSecondary: '#684477',
+    textMuted: '#817589',
     goldAccent: '#FFA20A',
     successAccent: '#10B981',
   };
 
   const COLOR_ITEMS = [
-    { key: 'primaryAccent', label: 'Primary Brand Accent', desc: 'Main buttons, active tabs, CTA, hover borders, live badges', default: '#18BA46' },
-    { key: 'bodyBg', label: 'Page Body & Modal Background', desc: 'Main website/portal background', default: '#012002' },
-    { key: 'cardBg', label: 'Card & Section Container Background', desc: 'Result cards, winner posters, gallery containers', default: '#07380B' },
-    { key: 'cardElevatedBg', label: 'Elevated Card & Header Background', desc: 'Headers, inner cards, table headings, video headers', default: '#0B4A12' },
-    { key: 'borderSubtle', label: 'Subtle Border & Divider Lines', desc: 'Card borders, modal boundaries, dividers, inputs', default: '#176523' },
-    { key: 'textPrimary', label: 'Primary Heading & Title Text', desc: 'Participant names, major headings, rank text', default: '#F4F8F4' },
-    { key: 'textSecondary', label: 'Secondary Sub-header Text', desc: 'Subheadings, card titles, chest-number labels', default: '#A2D5A4' },
-    { key: 'textMuted', label: 'Muted Text & Timestamps', desc: 'Categories, timestamps, unit names, secondary metadata', default: '#7EA681' },
+    { key: 'primaryAccent', label: 'Primary Brand Accent', desc: 'Main buttons, active tabs, CTA, hover borders, live badges', default: '#48205D' },
+    { key: 'bodyBg', label: 'Page Body & Modal Background', desc: 'Main website/portal background', default: '#F7F6F8' },
+    { key: 'cardBg', label: 'Card & Section Container Background', desc: 'Result cards, winner posters, gallery containers', default: '#FFFFFF' },
+    { key: 'cardElevatedBg', label: 'Elevated Card & Header Background', desc: 'Headers, inner cards, table headings, video headers', default: '#F0EAF3' },
+    { key: 'borderSubtle', label: 'Subtle Border & Divider Lines', desc: 'Card borders, modal boundaries, dividers, inputs', default: '#DED2E5' },
+    { key: 'textPrimary', label: 'Primary Heading & Title Text', desc: 'Participant names, major headings, rank text', default: '#351747' },
+    { key: 'textSecondary', label: 'Secondary Sub-header Text', desc: 'Subheadings, card titles, chest-number labels', default: '#684477' },
+    { key: 'textMuted', label: 'Muted Text & Timestamps', desc: 'Categories, timestamps, unit names, secondary metadata', default: '#817589' },
     { key: 'goldAccent', label: 'Gold Rank #1 & Distinction Badge', desc: 'Rank #1 Gold medals, A+ grade badges, distinction badges', default: '#FFA20A' },
     { key: 'successAccent', label: 'Success & Verification Green', desc: 'Verified status badges, play buttons, green room indicators', default: '#10B981' },
   ];
@@ -130,53 +130,53 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         setHeroMedia(data.heroMedia || []);
         const mergedSettings = data.cmsSettings || {};
         const DEFAULT_CMS_SETTINGS: any = {
-          headerLogoTitle: 'RENDEZVOUS',
-          headerLogoSubtitle: '26',
-          heroLogoTitle: 'RENDEZVOUS 26',
-          heroLogoSubtitle: 'Decoding Phytolore',
-          heroLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
-          heroHideLogo: true,
-          heroTitle: 'RENDEZVOUS 26',
-          heroSubtitle: 'Decoding Phytolore',
-          heroInstitutionLeft: 'Imam Rabbani',
-          heroInstitutionRight: 'Life Festival',
-          heroDate: '2026 September 23, 24',
-          heroLocation: 'Imam Rabbani Campus',
+          headerLogoTitle: 'FANOUS',
+          headerLogoSubtitle: '2K26',
+          heroLogoTitle: 'FANOUS 2K26',
+          heroLogoSubtitle: 'Meelad Fest',
+          heroLogoBadge: 'SWALAHUL HUDA ACADEMY',
+          heroHideLogo: false,
+          heroTitle: 'FANOUS 2K26',
+          heroSubtitle: 'Meelad Fest',
+          heroInstitutionLeft: 'Swalahul Huda',
+          heroInstitutionRight: 'Academy',
+          heroDate: 'October 9, 2026',
+          heroLocation: 'Rifayiya Juma Masjid Muchila',
           aboutBadge: 'Festival Vision',
-          aboutMainHeading: 'ABOUT THE <span class="text-[#18BA46]">FESTIVAL</span>',
-          aboutTitle: 'Kulliyathu Imam Rabbani',
-          aboutSubtitle: 'Imam Rabbani Life Festival 2026',
-          aboutDescription: 'Kulliyathu Imam Rabbani stands as a premier center of higher Islamic learning and academic excellence, functioning as a key institute dedicated to intellectual and spiritual enlightenment.\n\nThe Imam Rabbani LIFE Festival (Rendezvous 26) is an annual flagship celebration of intellectual, creative, and moral excellence.',
+          aboutMainHeading: 'ABOUT THE <span class="text-[#48205D]">FESTIVAL</span>',
+          aboutTitle: 'Swalahul Huda Academy',
+          aboutSubtitle: 'Fanous 2K26 – Meelad Fest',
+          aboutDescription: 'Swalahul Huda Academy proudly presents FANOUS 2K26, a grand celebration of intellectual, literary, and moral excellence commemorating Meelad Fest.\n\nThe festival creates an inspiring platform where talent meets devotion, promoting healthy competitive spirit, community unity, and high academic standards.',
           aboutImageBadge: 'MAIN STAGE',
-          aboutImageTitle: 'RENDEZVOUS 26',
-          aboutImageSubtitle: 'Distinguished Scholars & Dignitaries at Grand Assembly',
-          aboutImageLocation: 'Main Stage Auditorium • Imam Rabbani Campus',
-          aboutImageFooter: 'Imam Rabbani Life Festival',
-          themeTitle: 'Decoding Phytolore',
-          themeDescription: 'In an era of rapid technological acceleration, "Decoding Phytolore" calls upon the youth to explore the profound wisdom of natural heritage, botanical lore, classical scholarship, and divine creation.',
-          themeButtonText: 'READ PHILOSOPHICAL CONCEPT',
+          aboutImageTitle: 'FANOUS 2K26',
+          aboutImageSubtitle: 'Grand Cultural & Literary Fest',
+          aboutImageLocation: 'Rifayiya Juma Masjid Muchila',
+          aboutImageFooter: 'Swalahul Huda Academy',
+          themeTitle: 'Meelad Fest',
+          themeDescription: 'Celebrating art, literature, and culture in devotion and academic excellence.',
+          themeButtonText: 'READ FESTIVAL CONCEPT',
           conceptModalBadge: 'Theme Concept & Philosophy',
-          conceptModalTitle: 'DECODING PHYTOLORE',
-          conceptModalSubtitle: 'Imam Rabbani Life Festival',
-          conceptModalFooter: 'Rendezvous 26',
-          conceptModalDescription: 'Decoding Phytolore delves into the profound wisdom of natural heritage, botanical lore, and life systems woven into sacred traditions and intellectual history.\n\nRendezvous 26 celebrates the spirit of togetherness, intellectual vitality, artistic expression, and shared scholarship under the banner of the Imam Rabbani Life Festival.\n\nBeyond a festival of talent, Rendezvous 26 creates a dynamic sanctuary for minds to flourish, heritage to be rediscovered, and brotherhood to flourish through meaningful learning and healthy competition.',
-          footerLogo: '/rendezvous_icon.png',
-          footerLogoTitle: 'RENDEZVOUS',
-          footerLogoSubtitle: '26',
-          footerLogoBadge: 'IMAM RABBANI LIFE FESTIVAL',
-          footerDescription: 'Rendezvous 26 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Imam Rabbani Life Festival, bringing students together through meaningful learning, healthy competition, and shared values.',
-          footerLocation: 'Imam Rabbani Campus',
+          conceptModalTitle: 'FANOUS 2K26',
+          conceptModalSubtitle: 'Meelad Fest',
+          conceptModalFooter: 'Fanous 2K26',
+          conceptModalDescription: 'Swalahul Huda Academy proudly presents FANOUS 2K26, a grand celebration of intellectual, literary, and moral excellence commemorating Meelad Fest.\n\nThe festival creates an inspiring platform where talent meets devotion, promoting healthy competitive spirit, community unity, and high academic standards.',
+          footerLogo: '/fanous_logo.jpg',
+          footerLogoTitle: 'FANOUS',
+          footerLogoSubtitle: '2K26',
+          footerLogoBadge: 'SWALAHUL HUDA ACADEMY',
+          footerDescription: 'Fanous 2K26 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Swalahul Huda Academy at Rifayiya Juma Masjid Muchila.',
+          footerLocation: 'Rifayiya Juma Masjid Muchila',
           footerEmail: 'zenith.theorganizer@gmail.com',
-          footerPhone: '+91 74831 38340',
+          footerPhone: '+91 7483138340',
           footerInstagram: 'https://instagram.com',
           footerYoutube: 'https://youtube.com',
           footerFacebook: 'https://facebook.com',
-          footerText: '© 2026 Imam Rabbani Life Festival. All rights reserved. Developed by Zenith.',
-          copyrightText: '© 2026 Imam Rabbani Life Festival. All rights reserved. Developed by Zenith.',
-          heroDesktopImages: ['/rendezvous_hero_desktop.jpg', '/hero1.jpg', '/hero2.jpg'],
+          footerText: '© 2026 Fanous 2K26 – Meelad Fest. Swalahul Huda Academy. All rights reserved. Developed by Zenith.',
+          copyrightText: '© 2026 Fanous 2K26 – Meelad Fest. Swalahul Huda Academy. All rights reserved. Developed by Zenith.',
+          heroDesktopImages: ['/fanous_hero_desktop.jpg'],
           heroDesktopLoopEnabled: true,
           heroDesktopLoopInterval: 5,
-          heroMobileImages: ['/rendezvous_hero_mobile.jpg', '/hero1_mobile.jpg', '/hero2_mobile.jpg'],
+          heroMobileImages: ['/fanous_hero_mobile.jpg'],
           heroMobileLoopEnabled: true,
           heroMobileLoopInterval: 5
         };
@@ -188,10 +188,10 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
           }
         });
         if (!finalSettings.heroMobileImages || finalSettings.heroMobileImages.length === 0) {
-          finalSettings.heroMobileImages = ['/rendezvous_hero_mobile.jpg', '/hero1_mobile.jpg', '/hero2_mobile.jpg'];
+          finalSettings.heroMobileImages = ['/fanous_hero_mobile.jpg'];
         }
         if (!finalSettings.heroDesktopImages || finalSettings.heroDesktopImages.length === 0) {
-          finalSettings.heroDesktopImages = ['/rendezvous_hero_desktop.jpg', '/hero1.jpg', '/hero2.jpg'];
+          finalSettings.heroDesktopImages = ['/fanous_hero_desktop.jpg'];
         }
         setSettings(finalSettings);
         if (mergedSettings.colorTheme) {
@@ -632,7 +632,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Badge</label>
-                    <input type="text" value={settings.heroLogoBadge !== undefined ? settings.heroLogoBadge : 'IMAM RABBANI LIFE FESTIVAL'} onChange={(e) => setSettings({ ...settings, heroLogoBadge: e.target.value })} placeholder="IMAM RABBANI LIFE FESTIVAL" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoBadge !== undefined ? settings.heroLogoBadge : 'IMAM RABBANI LIFE FESTIVAL'} onChange={(e) => setSettings({ ...settings, heroLogoBadge: e.target.value })} placeholder="SWALAHUL HUDA ACADEMY" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Main Title</label>
@@ -640,11 +640,11 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Subtitle</label>
-                    <input type="text" value={settings.heroSubtitle} onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })} placeholder="Decoding Phytolore" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroSubtitle} onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Institution Text (Left)</label>
-                    <input type="text" value={settings.heroInstitutionLeft} onChange={(e) => setSettings({ ...settings, heroInstitutionLeft: e.target.value })} placeholder="Imam Rabbani" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroInstitutionLeft} onChange={(e) => setSettings({ ...settings, heroInstitutionLeft: e.target.value })} placeholder="Swalahul Huda" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Institution Text (Right)</label>
@@ -656,7 +656,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-600 mb-1">Location string</label>
-                    <input type="text" value={settings.heroLocation} onChange={(e) => setSettings({ ...settings, heroLocation: e.target.value })} placeholder="Imam Rabbani Campus" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroLocation} onChange={(e) => setSettings({ ...settings, heroLocation: e.target.value })} placeholder="Rifayiya Juma Masjid Muchila" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
               </div>
@@ -675,7 +675,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Title</label>
-                    <input type="text" value={settings.aboutTitle} onChange={(e) => setSettings({ ...settings, aboutTitle: e.target.value })} placeholder="Kulliyathu Imam Rabbani" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutTitle} onChange={(e) => setSettings({ ...settings, aboutTitle: e.target.value })} placeholder="Swalahul Huda Academy" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Subtitle</label>
@@ -684,7 +684,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Description</label>
-                  <textarea value={settings.aboutDescription} onChange={(e) => setSettings({ ...settings, aboutDescription: e.target.value })} placeholder="Kulliyathu Imam Rabbani stands as a premier center..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-24" />
+                  <textarea value={settings.aboutDescription} onChange={(e) => setSettings({ ...settings, aboutDescription: e.target.value })} placeholder="Swalahul Huda Academy proudly presents FANOUS 2K26..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-24" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">About Image Background</label>
@@ -718,7 +718,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Title</label>
-                    <input type="text" value={settings.aboutImageTitle} onChange={(e) => setSettings({ ...settings, aboutImageTitle: e.target.value })} placeholder="KULLIYATHU IMAM RABBANI" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutImageTitle} onChange={(e) => setSettings({ ...settings, aboutImageTitle: e.target.value })} placeholder="SWALAHUL HUDA ACADEMY" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Subtitle</label>
@@ -768,17 +768,17 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Title</label>
-                    <input type="text" value={settings.conceptModalTitle} onChange={(e) => setSettings({ ...settings, conceptModalTitle: e.target.value })} placeholder="DECODING PHYTOLORE" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalTitle} onChange={(e) => setSettings({ ...settings, conceptModalTitle: e.target.value })} placeholder="FANOUS 2K26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Subtitle</label>
-                    <input type="text" value={settings.conceptModalSubtitle} onChange={(e) => setSettings({ ...settings, conceptModalSubtitle: e.target.value })} placeholder="Imam Rabbani Life Festival" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalSubtitle} onChange={(e) => setSettings({ ...settings, conceptModalSubtitle: e.target.value })} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Modal Description (Paragraphs)</label>
                   <p className="text-[10px] text-slate-400 mb-1">Separate paragraphs with a blank line.</p>
-                  <textarea value={settings.conceptModalDescription} onChange={(e) => setSettings({ ...settings, conceptModalDescription: e.target.value })} placeholder="Decoding Phytolore delves into the profound wisdom of natural heritage, botanical lore, and life systems..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-32" />
+                  <textarea value={settings.conceptModalDescription} onChange={(e) => setSettings({ ...settings, conceptModalDescription: e.target.value })} placeholder="“Fanous – Meelad Fest 2K26”, the grand celebration of faith, knowledge, and creativity..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-32" />
                 </div>
               </div>
 
@@ -829,19 +829,19 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Badge</label>
-                    <input type="text" value={settings.footerLogoBadge} onChange={(e) => setSettings({ ...settings, footerLogoBadge: e.target.value })} placeholder="IMAM RABBANI LIFE FESTIVAL" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLogoBadge} onChange={(e) => setSettings({ ...settings, footerLogoBadge: e.target.value })} placeholder="SWALAHUL HUDA ACADEMY" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Footer Description</label>
-                  <textarea rows={3} value={settings.footerDescription} onChange={(e) => setSettings({ ...settings, footerDescription: e.target.value })} placeholder="Rendezvous 26 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Imam Rabbani Life Festival, bringing students together through meaningful learning, healthy competition, and shared values." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                  <textarea rows={3} value={settings.footerDescription} onChange={(e) => setSettings({ ...settings, footerDescription: e.target.value })} placeholder="Fanous 2K26 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Swalahul Huda Academy at Rifayiya Juma Masjid Muchila." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Location</label>
-                    <input type="text" value={settings.footerLocation} onChange={(e) => setSettings({ ...settings, footerLocation: e.target.value })} placeholder="Imam Rabbani Campus" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLocation} onChange={(e) => setSettings({ ...settings, footerLocation: e.target.value })} placeholder="Rifayiya Juma Masjid Muchila" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
@@ -849,7 +849,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Phone</label>
-                    <input type="text" value={settings.footerPhone} onChange={(e) => setSettings({ ...settings, footerPhone: e.target.value })} placeholder="+91 74831 38340" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerPhone} onChange={(e) => setSettings({ ...settings, footerPhone: e.target.value })} placeholder="+91 7483138340" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Instagram Link</label>
@@ -867,7 +867,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Copyright Text</label>
-                  <input type="text" value={settings.footerText} onChange={(e) => setSettings({ ...settings, footerText: e.target.value })} placeholder="© 2026 Imam Rabbani Life Festival. All rights reserved. Developed by Zenith." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                  <input type="text" value={settings.footerText} onChange={(e) => setSettings({ ...settings, footerText: e.target.value })} placeholder="© 2026 Fanous 2K26 – Meelad Fest. Swalahul Huda Academy. All rights reserved. Developed by Zenith." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                 </div>
               </div>
 

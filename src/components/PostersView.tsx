@@ -834,11 +834,10 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const defaultThemes = [
-    '/themes/theme_phytolore_green.jpg',
-    '/themes/theme_phytolore_dark_green.jpg',
-    '/themes/theme_white_brown.jpg',
-    '/themes/theme_yellow_scroll.jpg',
-    '/themes/theme_phytolore_green_theme5.jpg'
+    '/themes/theme_brown.jpg',
+    '/themes/theme_blue.jpg',
+    '/themes/theme_yellow.jpg',
+    '/themes/theme_purple.jpg'
   ];
 
   const rawTemplateConfig = eventSettings?.posterTemplateConfig || {};
@@ -928,7 +927,7 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
     const defaultConf = getDefaultThemeConfig(idx);
     const userConf = { ...(themeConfigs[idx] || {}) };
     if (idx === 0) {
-      if (userConf.compNameColor === '#18BA46') {
+      if (userConf.compNameColor === '#48205D') {
         userConf.compNameColor = defaultConf.compNameColor;
         userConf.resultNumColor = defaultConf.resultNumColor;
         userConf.unitColor = defaultConf.unitColor;

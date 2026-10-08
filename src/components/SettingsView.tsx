@@ -274,10 +274,10 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
         fetch(`/api/categories?t=${Date.now()}`)
       ]);
       const data = await sRes.json();
-      setSectorName(data.sectorName || 'Imam Rabbani Life Festival');
-      setEventTitle(data.eventTitle || 'Decoding Phytolore');
+      setSectorName(data.sectorName || 'Swalahul Huda Academy');
+      setEventTitle(data.eventTitle || 'Meelad Fest');
       setFestivalName(data.festivalName || 'RENDEZVOUS 26');
-      setCampusName(data.campusName || data.sectorName || 'Imam Rabbani Life Festival');
+      setCampusName(data.campusName || data.sectorName || 'Swalahul Huda Academy');
       setSsfLogoUrl(data.ssfLogoUrl || '/rendezvous_icon.png');
       setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '/rendezvous_logo.png');
       setCertTheme1Url(data.certTheme1Url || '');

@@ -125,7 +125,7 @@ export default function Sidebar({
                   {eventSettings?.festivalName || 'RENDEZVOUS 26'}
                 </span>
                 <span className="text-emerald-300 text-[10px] font-mono tracking-widest uppercase mt-1">
-                  {eventSettings?.campusName || eventSettings?.sectorName || 'Imam Rabbani Life Festival'}
+                  {eventSettings?.campusName || eventSettings?.sectorName || 'Swalahul Huda Academy'}
                 </span>
               </div>
             </div>

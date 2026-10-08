@@ -863,11 +863,10 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   const campusName = eventSettings?.campusName || eventSettings?.sectorName || 'Campus';
 
   const defaultThemes = [
-    '/themes/theme_phytolore_green.jpg',
-    '/themes/theme_phytolore_dark_green.jpg',
-    '/themes/theme_white_brown.jpg',
-    '/themes/theme_yellow_scroll.jpg',
-    '/themes/theme_phytolore_green_theme5.jpg'
+    '/themes/theme_brown.jpg',
+    '/themes/theme_blue.jpg',
+    '/themes/theme_yellow.jpg',
+    '/themes/theme_purple.jpg'
   ];
 
   // Helper to ensure valid themes & configs
@@ -959,7 +958,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     const defaultConf = getDefaultThemeConfig(idx);
     const userConf = { ...(themeConfigs[idx] || {}) };
     if (idx === 0) {
-      if (userConf.compNameColor === '#18BA46') {
+      if (userConf.compNameColor === '#48205D') {
         userConf.compNameColor = defaultConf.compNameColor;
         userConf.resultNumColor = defaultConf.resultNumColor;
         userConf.unitColor = defaultConf.unitColor;

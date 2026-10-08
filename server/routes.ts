@@ -904,11 +904,10 @@ const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1Py
 function ensureFestivalThemes(cfg: any) {
   if (!cfg || typeof cfg !== 'object') return;
   const defaultThemes = [
-    '/themes/theme_phytolore_green.jpg',
-    '/themes/theme_phytolore_dark_green.jpg',
-    '/themes/theme_white_brown.jpg',
-    '/themes/theme_yellow_scroll.jpg',
-    '/themes/theme_phytolore_green_theme5.jpg'
+    '/themes/theme_brown.jpg',
+    '/themes/theme_blue.jpg',
+    '/themes/theme_yellow.jpg',
+    '/themes/theme_purple.jpg'
   ];
   const existing = Array.isArray(cfg.customThemes) ? cfg.customThemes : [];
   cfg.customThemes = defaultThemes.map((dt, idx) => existing[idx] || dt);
@@ -2627,8 +2626,7 @@ const hardDeleteParticipant = async (req: Request, res: Response) => {
         mongoDb.collection('results').deleteMany({ participantId: partId }),
         mongoDb.collection('registrations').deleteMany({ participantId: partId }),
         mongoDb.collection('chestNumbers').deleteMany({ $or: [{ participantId: partId }, { entityId: partId }] }),
-        mongoDb.collection('greenRoomAssignments').deleteMany({ participantId: partId }),
-        mongoDb.collection('app_state').updateOne({ _id: 'global_state' as any }, { $pull: { participants: { id: partId } } } as any)
+        mongoDb.collection('greenRoomAssignments').deleteMany({ participantId: partId })
       ]);
     } catch (mongoErr) {
       console.error('Direct MongoDB permanent delete error:', mongoErr);
@@ -3147,8 +3145,7 @@ const handleDeleteTeamPermanent = async (req: any, res: any) => {
       await Promise.all([
         mongoDb.collection('teams').deleteMany({ $or: [{ id: teamId }, { _id: teamId as any }] }),
         mongoDb.collection('results').deleteMany({ teamId: teamId }),
-        mongoDb.collection('greenRoomAssignments').deleteMany({ teamId: teamId }),
-        mongoDb.collection('app_state').updateOne({ _id: 'global_state' as any }, { $pull: { teams: { id: teamId } } } as any)
+        mongoDb.collection('greenRoomAssignments').deleteMany({ teamId: teamId })
       ]);
     } catch (mongoErr) {
       console.error('Direct MongoDB permanent delete error for team:', mongoErr);
@@ -5070,12 +5067,7 @@ const handleChestNumberUpdate = async (req: Request, res: Response) => {
           { $or: [{ id: targetChest.id }, { _id: targetChest.id as any }] },
           { id: targetChest.id, ...targetChest },
           { upsert: true }
-        ) : Promise.resolve(),
-        mongoDb.collection('app_state').replaceOne(
-          { _id: 'global_state' as any },
-          { ...db },
-          { upsert: true }
-        )
+        ) : Promise.resolve()
       ];
 
       if (partB) {

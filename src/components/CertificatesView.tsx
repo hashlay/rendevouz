@@ -224,9 +224,9 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
       const festivalTitle = (eventSettings?.festivalName || 'RENDEZVOUS 26').toUpperCase();
       const compIdx = competitions.findIndex(c => c.id === comp.id) + 1;
       const formattedNum = compIdx > 0 ? String(compIdx).padStart(2, '0') : '01';
-      const slogan = eventSettings?.festivalTagline || eventSettings?.slogan || 'Decoding Phytolore';
-      const campus = eventSettings?.campusName || eventSettings?.sectorName || 'Imam Rabbani Life Festival';
-      const hashtags = eventSettings?.shareHashtags || '#Rendezvous26 #ImamRabbani #LifeFestival #DecodingPhytolore #Results #Congratulations';
+      const slogan = eventSettings?.festivalTagline || eventSettings?.slogan || 'Meelad Fest';
+      const campus = eventSettings?.campusName || eventSettings?.sectorName || 'Swalahul Huda Academy';
+      const hashtags = eventSettings?.shareHashtags || '#Fanous2K26 #SwalahulHudaAcademy #MeeladFest #Results #Muchila';
 
       const catName = categories.find(c => c.id === comp.categoryId)?.name || '';
 

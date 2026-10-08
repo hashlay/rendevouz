@@ -48,7 +48,7 @@ async function _connectToMongo() {
 
     const mongoUriStr = mongoUri || '';
     const dbPath = mongoUriStr.includes('/') ? mongoUriStr.split('/').pop()?.split('?')[0] : null;
-    const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
+    const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'rendezvous_2026';
 
     const mongoDb = mongoClient.db(dbName);
     mongoCollection = mongoDb.collection('app_state');
@@ -59,30 +59,15 @@ async function _connectToMongo() {
 
     await syncStateFromMongo(true);
 
-    // Explicit recovery check: if categories or units are empty, ensure default defaults exist
-    if (!db.categories || db.categories.length === 0) {
-      db.categories = [
-        { id: 'cat_kids', name: 'Kids', startingChestNumber: 101, dobStart: '2019-01-01', dobEnd: '2026-12-31', active: true },
-        { id: 'cat_sub_junior', name: 'Sub-Junior', startingChestNumber: 201, dobStart: '2016-01-01', dobEnd: '2018-12-31', active: true },
-        { id: 'cat_junior', name: 'Junior', startingChestNumber: 301, dobStart: '2014-01-01', dobEnd: '2015-12-31', active: true },
-        { id: 'cat_senior', name: 'Senior', startingChestNumber: 401, dobStart: '2010-01-01', dobEnd: '2013-12-31', active: true }
-      ];
+    // Explicit recovery check: ensure arrays are defined
+    if (!db.categories) {
+      db.categories = [];
     }
     if (!db.units || db.units.length === 0) {
       db.units = [
-        { id: 'unit_ash_shukr', name: 'Ash-Shukr', code: 'SHK', active: true },
-        { id: 'unit_as_sabr', name: 'As-Sabr', code: 'SBR', active: true }
+        { id: 'unit_1', name: 'Unit 1', code: 'U1', active: true },
+        { id: 'unit_2', name: 'Unit 2', code: 'U2', active: true }
       ];
-    }
-
-    // Normalize category starting chest numbers (convert legacy 1000/2000/3000/4000 to 101/201/301/401)
-    if (Array.isArray(db.categories)) {
-      db.categories.forEach((cat: any) => {
-        if (cat.id === 'cat_kids' && (!cat.startingChestNumber || cat.startingChestNumber === 1000)) cat.startingChestNumber = 101;
-        if (cat.id === 'cat_sub_junior' && (!cat.startingChestNumber || cat.startingChestNumber === 2000)) cat.startingChestNumber = 201;
-        if (cat.id === 'cat_junior' && (!cat.startingChestNumber || cat.startingChestNumber === 3000)) cat.startingChestNumber = 301;
-        if (cat.id === 'cat_senior' && (!cat.startingChestNumber || cat.startingChestNumber === 4000)) cat.startingChestNumber = 401;
-      });
     }
   } catch (err) {
     console.error("❌ Failed to connect to MongoDB. Falling back to local file store.", err);
@@ -217,14 +202,14 @@ function ensureDbExists() {
   const initialCompetitions: Competition[] = [];
 
   const initialSettings: EventSettings = {
-    eventTitle: 'Decoding Phytolore',
+    eventTitle: 'Meelad Fest',
     festivalName: 'Rendezvous 26',
-    campusName: 'Imam Rabbani Life Festival',
-    sectorName: 'Imam Rabbani Life Festival',
+    campusName: 'Swalahul Huda Academy',
+    sectorName: 'Swalahul Huda Academy',
     eventYear: '2026',
     cutoffDate: '2026-09-01',
     eventDate: '2026-09-23',
-    venue: 'Imam Rabbani Campus',
+    venue: 'Rifayiya Juma Masjid Muchila',
     contactInfo: 'zenith.theorganizer@gmail.com',
     maxIndividualEvents: 10,
     maxGroupEvents: 10,
@@ -235,8 +220,8 @@ function ensureDbExists() {
     autoRemoveLogoBg: false,
     ssfLogoUrl: '/rendezvous_icon.png',
     sahityotsavLogoUrl: '/rendezvous_logo.png',
-    primaryColor: '#18BA46',
-    accentColor: '#18BA46',
+    primaryColor: '#48205D',
+    accentColor: '#48205D',
     numJudges: 2,
     markDecimalPrecision: 2,
     autoRankingEnabled: true,
@@ -327,7 +312,7 @@ async function _syncMongoNow(targetCollections?: string[]) {
     try {
       const mongoUriStr = process.env.MONGO_URI || process.env.MONGODB_URI || '';
       const dbPath = mongoUriStr.includes('/') ? mongoUriStr.split('/').pop()?.split('?')[0] : null;
-      const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
+      const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'rendezvous_2026';
       const mongoDb = mongoClient.db(dbName);
 
       const allCollectionKeys = [
@@ -492,7 +477,7 @@ export function getCollection(name: string): Collection<any> | null {
   if (!mongoClient || !isMongoConnected) return null;
   const mongoUriStr = process.env.MONGO_URI || process.env.MONGODB_URI || '';
   const dbPath = mongoUriStr.includes('/') ? mongoUriStr.split('/').pop()?.split('?')[0] : null;
-  const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
+  const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'rendezvous_2026';
   return mongoClient.db(dbName).collection(name);
 }
 
@@ -500,7 +485,7 @@ export function getDb() {
   if (!mongoClient || !isMongoConnected) return null;
   const mongoUriStr = process.env.MONGO_URI || process.env.MONGODB_URI || '';
   const dbPath = mongoUriStr.includes('/') ? mongoUriStr.split('/').pop()?.split('?')[0] : null;
-  const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'sahityotsav';
+  const dbName = (dbPath && dbPath.length > 0) ? dbPath : 'rendezvous_2026';
   return mongoClient.db(dbName);
 }
 

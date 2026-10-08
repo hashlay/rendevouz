@@ -628,7 +628,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
               {eventSettings?.festivalName || 'RENDEZVOUS 26'}
             </h1>
             <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-0.5">
-              {eventSettings?.campusName || eventSettings?.sectorName || 'Imam Rabbani Life Festival'}
+              {eventSettings?.campusName || eventSettings?.sectorName || 'Swalahul Huda Academy'}
             </p>
             <div className="mt-2 inline-block bg-black text-white text-[11px] font-bold px-3 py-0.5 uppercase tracking-widest rounded">
               Official Stage Announcement Winners Sheet

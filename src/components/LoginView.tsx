@@ -194,7 +194,7 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                   {eventSettings?.festivalName || 'RENDEZVOUS 26'}
                 </span>
                 <span className="text-amber-600 font-mono text-[10px] font-semibold tracking-widest mt-1 uppercase">
-                  {eventSettings?.campusName || eventSettings?.sectorName || 'Imam Rabbani Life Festival'}
+                  {eventSettings?.campusName || eventSettings?.sectorName || 'Swalahul Huda Academy'}
                 </span>
               </div>
             </div>
