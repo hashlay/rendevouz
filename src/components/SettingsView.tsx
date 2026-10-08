@@ -276,10 +276,10 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       const data = await sRes.json();
       setSectorName(data.sectorName || 'Swalahul Huda Academy');
       setEventTitle(data.eventTitle || 'Meelad Fest');
-      setFestivalName(data.festivalName || 'RENDEZVOUS 26');
+      setFestivalName(data.festivalName || 'FANOUS 2K26');
       setCampusName(data.campusName || data.sectorName || 'Swalahul Huda Academy');
-      setSsfLogoUrl(data.ssfLogoUrl || '/rendezvous_icon.png');
-      setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '/rendezvous_logo.png');
+      setSsfLogoUrl(data.ssfLogoUrl || '/fanous_logo.png');
+      setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '/fanous_logo.png');
       setCertTheme1Url(data.certTheme1Url || '');
       setCertTheme2Url(data.certTheme2Url || '');
       setCertTheme3Url(data.certTheme3Url || '');

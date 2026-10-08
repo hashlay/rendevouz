@@ -148,7 +148,7 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
             eventSettings.ssfLogoUrl.includes('ssf_logo') ||
             eventSettings.ssfLogoUrl.includes('tabassum')
           );
-          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/rendezvous_logo.png';
+          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/fanous_logo.png';
 
           return eventSettings?.fillLogo ? (
             <div className="flex justify-center items-center py-1 text-center w-full">
@@ -165,8 +165,8 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                 }}
                 onError={(e) => {
                   const target = e.currentTarget;
-                  if (!target.src.includes('rendezvous_icon.png')) {
-                    target.src = '/rendezvous_icon.png';
+                  if (!target.src.includes('fanous_logo.png')) {
+                    target.src = '/fanous_logo.png';
                   } else {
                     target.style.display = 'none';
                   }
@@ -181,8 +181,8 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                 className="h-12 w-12 object-contain shrink-0 drop-shadow-xs"
                 onError={(e) => {
                   const target = e.currentTarget;
-                  if (!target.src.includes('rendezvous_icon.png')) {
-                    target.src = '/rendezvous_icon.png';
+                  if (!target.src.includes('fanous_logo.png')) {
+                    target.src = '/fanous_logo.png';
                   } else {
                     target.style.display = 'none';
                   }

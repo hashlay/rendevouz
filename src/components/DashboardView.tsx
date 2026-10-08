@@ -357,9 +357,9 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
         <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
           <h4 className="font-display font-bold text-slate-800 text-base">Registrations by Campus {entityLabelPlural}</h4>
           <div className="space-y-3 pt-2">
-            {stats.participantsByUnit.map((item: any) => {
+            {(stats?.participantsByUnit || []).map((item: any) => {
               // Calculate width fraction relative to max
-              const maxCount = Math.max(...stats.participantsByUnit.map((u: any) => u.count)) || 1;
+              const maxCount = Math.max(...(stats?.participantsByUnit || []).map((u: any) => u.count)) || 1;
               const barWidth = (item.count / maxCount) * 100;
               return (
                 <div key={item.unitId} className="space-y-1">
@@ -383,8 +383,8 @@ export default function DashboardView({ user, token, eventSettings }: DashboardV
         <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
           <h4 className="font-display font-bold text-slate-800 text-base">Registrations by Category</h4>
           <div className="space-y-3 pt-2">
-            {stats.participantsByCategory.map((item: any) => {
-              const maxCount = Math.max(...stats.participantsByCategory.map((c: any) => c.count)) || 1;
+            {(stats?.participantsByCategory || []).map((item: any) => {
+              const maxCount = Math.max(...(stats?.participantsByCategory || []).map((c: any) => c.count)) || 1;
               const barWidth = (item.count / maxCount) * 100;
               return (
                 <div key={item.categoryId} className="space-y-1">
