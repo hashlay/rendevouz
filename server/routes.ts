@@ -6518,7 +6518,7 @@ apiRouter.get('/public/standings/meta', async (req, res) => {
   const publishedResults = (db.results || []).filter((r: any) => !r.deletedAt && (r.publishedStatus === true || r.isPublished === true));
   const publishedCompIds = new Set(publishedResults.map((r) => r.competitionId).filter(Boolean));
   res.json({
-    resultsCount: publishedSnapshot?.resultsCount ?? publishedCompIds.size,
+    resultsCount: publishedSnapshot ? (publishedSnapshot.resultsCount || 0) : 0,
     publishedAt: publishedSnapshot?.publishedAt || null,
     isSnapshot: !!publishedSnapshot,
     liveResultsCount: publishedCompIds.size
@@ -6527,10 +6527,25 @@ apiRouter.get('/public/standings/meta', async (req, res) => {
 
 apiRouter.get('/public/standings', async (req, res) => {
   try {
-    const standings = CalculationService.getUnitStandings();
-    res.json(standings);
+    const db = dbClient.get() as any;
+    let publishedSnapshot = db.settings?.publishedTeamStandings || db.eventSettings?.publishedTeamStandings || null;
+    if (!publishedSnapshot) {
+      try {
+        const snapDoc = await getCollection('settings').findOne({ _id: 'publishedTeamStandings' as any });
+        if (snapDoc && Array.isArray((snapDoc as any).standings)) {
+          publishedSnapshot = snapDoc;
+        }
+      } catch (_) {}
+    }
+
+    if (publishedSnapshot && Array.isArray(publishedSnapshot.standings) && publishedSnapshot.standings.length > 0) {
+      return res.json(publishedSnapshot.standings);
+    }
+
+    // Do NOT return live calculation to public if not published by admin!
+    res.json([]);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to calculate standings' });
+    res.status(500).json({ error: 'Failed to retrieve standings' });
   }
 });
 
