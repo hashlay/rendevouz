@@ -937,7 +937,7 @@ const DEFAULT_DRAG_BLOCKS = [
   { id: '2', title: 'About & Concept', type: 'about', enabled: true, order: 2 },
   { id: '3', title: 'Live Team Standings', type: 'results', enabled: true, order: 3 },
   { id: '4', title: 'Announced Results & Placements', type: 'announcements', enabled: true, order: 4 },
-  { id: '5', title: 'Photo Hub (Drive & QR)', type: 'smile', enabled: true, order: 5 },
+  { id: '5', title: 'Photo Hub (Drive & QR)', type: 'smile', enabled: false, order: 5 },
   { id: '6', title: 'Media Gallery (Photo Uploads)', type: 'gallery', enabled: false, order: 6 },
   { id: '7', title: 'Live Broadcast Streams', type: 'live_stages', enabled: false, order: 7 },
   { id: '8', title: 'Video Highlights & Stage Clips', type: 'highlights', enabled: false, order: 8 },

@@ -561,7 +561,14 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   // Save Participant Changes
   const saveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingPart) return;
+    if (criteriaMode === 'class' && !editCandidateClass) {
+      alert('Please select Candidate Class / Grade');
+      return;
+    }
+    if (criteriaMode === 'dob' && !editDob) {
+      alert('Please enter Candidate Date of Birth');
+      return;
+    }
 
     setSavingEdit(true);
     try {
@@ -1415,8 +1422,11 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Class / Grade</label>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Class / Grade {criteriaMode === 'class' ? <span className="text-rose-500">*</span> : <span className="text-slate-400 font-normal">(Optional)</span>}
+                  </label>
                   <select
+                    required={criteriaMode === 'class'}
                     value={editCandidateClass}
                     onChange={(e) => setEditCandidateClass(e.target.value)}
                     className="mt-1.5 block w-full px-3 py-2 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-semibold bg-white cursor-pointer"
