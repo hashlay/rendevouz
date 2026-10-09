@@ -119,9 +119,9 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const criteriaMode = eventSettings?.participantLoginCriteria || 'class';
   const rawClasses: string[] = (Array.isArray(eventSettings?.availableClasses) && eventSettings.availableClasses.length > 0)
     ? eventSettings.availableClasses
-    : ['+1', '+2', 'BS1', 'BS2', 'BS3'];
+    : ['+1', '+2'];
   const availableClasses: string[] = Array.from(new Set(rawClasses.map(c => c.replace(/^Class\s*/i, '').trim()))).filter(Boolean);
-  if (availableClasses.length === 0) availableClasses.push('+1', '+2', 'BS1', 'BS2', 'BS3');
+  if (availableClasses.length === 0) availableClasses.push('+1', '+2');
 
   // Deletion confirm
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -1426,7 +1426,9 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                       <option value={editCandidateClass}>{editCandidateClass}</option>
                     )}
                     {availableClasses.map((cls, idx) => (
-                      <option key={idx} value={cls}>{cls}</option>
+                      <option key={idx} value={cls}>
+                        {cls === '+1' ? '+1 (Junior)' : cls === '+2' ? '+2 (Senior)' : cls}
+                      </option>
                     ))}
                   </select>
                 </div>

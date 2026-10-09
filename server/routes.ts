@@ -6710,8 +6710,14 @@ apiRouter.post('/public/auth/participant-login', async (req, res) => {
 
   const criteriaMode = db.eventSettings?.participantLoginCriteria || 'class';
   if (criteriaMode === 'class') {
-    const val = (candidateClass || classVal || dob || '').toString().trim().toLowerCase();
-    const pClass = (participant.candidateClass || '').toString().trim().toLowerCase();
+    const normalizeClass = (s: any) => {
+      let str = (s || '').toString().trim().toLowerCase().replace(/^class\s*/i, '');
+      if (str.includes('junior')) return '+1';
+      if (str.includes('senior')) return '+2';
+      return str.replace(/\s*\(.*?\)/g, '').trim();
+    };
+    const val = normalizeClass(candidateClass || classVal || dob);
+    const pClass = normalizeClass(participant.candidateClass);
     if (val && pClass && val !== pClass) {
       return res.status(401).json({ error: 'Incorrect Class / Grade' });
     }

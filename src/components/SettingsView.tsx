@@ -364,7 +364,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
           participantLoginCriteria,
           classRangeStart,
           classRangeEnd,
-          availableClasses: ['+1', '+2', 'BS1', 'BS2', 'BS3']
+          availableClasses: ['+1', '+2']
         })
       });
       const responseText = await res.text();
@@ -1061,17 +1061,20 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                 {participantLoginCriteria === 'class' && (
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono mb-1.5">
-                      Available Classes (+1 to BS3)
+                      Available Classes (+1 to +2)
                     </label>
                     <div className="flex flex-wrap gap-2 items-center">
-                      {['+1', '+2', 'BS1', 'BS2', 'BS3'].map((cls) => (
-                        <span key={cls} className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl font-mono text-xs font-bold shadow-2xs">
-                          {cls}
+                      {[
+                        { id: '+1', label: '+1 (Junior)' },
+                        { id: '+2', label: '+2 (Senior)' }
+                      ].map((cls) => (
+                        <span key={cls.id} className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl font-mono text-xs font-bold shadow-2xs">
+                          {cls.label}
                         </span>
                       ))}
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1.5 font-mono">
-                      Institutional Classes: +1, +2, BS1, BS2, BS3 (used across Participant Portals & Registrations)
+                      Institutional Classes: +1 (Junior), +2 (Senior) (used across Participant Portals & Registrations)
                     </p>
                   </div>
                 )}

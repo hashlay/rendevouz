@@ -46,9 +46,9 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
   const criteriaMode = eventSettings?.participantLoginCriteria || 'class';
   const rawClasses: string[] = (Array.isArray(eventSettings?.availableClasses) && eventSettings.availableClasses.length > 0)
     ? eventSettings.availableClasses
-    : ['+1', '+2', 'BS1', 'BS2', 'BS3'];
+    : ['+1', '+2'];
   const availableClasses: string[] = Array.from(new Set(rawClasses.map(c => c.replace(/^Class\s*/i, '').trim()))).filter(Boolean);
-  if (availableClasses.length === 0) availableClasses.push('+1', '+2', 'BS1', 'BS2', 'BS3');
+  if (availableClasses.length === 0) availableClasses.push('+1', '+2');
 
   const updateCombinedDob = (d: string, m: string, y: string) => {
     if (d && m && y && y.length === 4) {
@@ -403,7 +403,7 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
                 <option value="">Select Class</option>
                 {availableClasses.map((cls, idx) => (
                   <option key={idx} value={cls}>
-                    {cls}
+                    {cls === '+1' ? '+1 (Junior)' : cls === '+2' ? '+2 (Senior)' : cls}
                   </option>
                 ))}
               </select>
