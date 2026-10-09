@@ -966,7 +966,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
         userConf.rank2Color = defaultConf.rank2Color;
         userConf.rank3Color = defaultConf.rank3Color;
       }
-      if (!userConf.resultNumFont || userConf.resultNumFont.includes('bold "Fractul Alt"') || userConf.resultNumFont.includes('Thunder')) {
+      if (!userConf.resultNumFont || userConf.resultNumFont.includes('bold "Fractul Alt"')) {
         userConf.resultNumFont = defaultConf.resultNumFont;
       }
       if (!userConf.categoryFont || userConf.categoryFont.includes('bold "Fractul Alt"')) {
