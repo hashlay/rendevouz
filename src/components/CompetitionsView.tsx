@@ -53,7 +53,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [catName, setCatName] = useState('');
-  const [catCriteriaType, setCatCriteriaType] = useState<'dob' | 'class'>('dob');
+  const [catCriteriaType, setCatCriteriaType] = useState<'dob' | 'class'>('class');
   const [catDobStart, setCatDobStart] = useState('');
   const [catDobEnd, setCatDobEnd] = useState('');
   const [catClassStart, setCatClassStart] = useState('');

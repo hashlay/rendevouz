@@ -254,7 +254,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [catName, setCatName] = useState('');
   const [catStartChestNo, setCatStartChestNo] = useState(1001);
-  const [catCriteria, setCatCriteria] = useState<'dob' | 'class'>('dob');
+  const [catCriteria, setCatCriteria] = useState<'dob' | 'class'>('class');
   const [catDobStart, setCatDobStart] = useState('');
   const [catDobEnd, setCatDobEnd] = useState('');
   const [catClassStart, setCatClassStart] = useState('');

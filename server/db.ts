@@ -160,6 +160,7 @@ function ensureDbExists() {
       if (!db.eventSettings.contactInfo) db.eventSettings.contactInfo = 'zenith.theorganizer@gmail.com';
       if (!db.eventSettings.ssfLogoUrl || db.eventSettings.ssfLogoUrl.includes('base64') || db.eventSettings.ssfLogoUrl.includes('zenith')) db.eventSettings.ssfLogoUrl = '/tabassum_logo.jpg';
       if (!db.eventSettings.sahityotsavLogoUrl || db.eventSettings.sahityotsavLogoUrl.includes('base64') || db.eventSettings.sahityotsavLogoUrl.includes('zenith')) db.eventSettings.sahityotsavLogoUrl = '/tabassum_logo.jpg';
+      if (!db.eventSettings.participantLoginCriteria || db.eventSettings.participantLoginCriteria === 'dob') db.eventSettings.participantLoginCriteria = 'class';
       return;
     } catch (e) {
       console.error("Error reading database file, initializing fresh one", e);

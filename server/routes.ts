@@ -929,6 +929,10 @@ apiRouter.get('/settings', async (req, res) => {
   if (!settings.photoHubDriveLink) {
     settings.photoHubDriveLink = DEFAULT_PHOTO_HUB_DRIVE_LINK;
   }
+  if (!settings.participantLoginCriteria || settings.participantLoginCriteria === 'dob') {
+    settings.participantLoginCriteria = 'class';
+    if (db.eventSettings) db.eventSettings.participantLoginCriteria = 'class';
+  }
   res.json(settings);
 });
 
