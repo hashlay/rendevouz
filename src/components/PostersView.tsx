@@ -862,8 +862,20 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
       const aCat = aComp ? categories.find(cat => cat.id === aComp.categoryId) : null;
       const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
 
-      const compOverride = (eventSettings?.posterOverrides && aComp?.name && eventSettings.posterOverrides[aComp.name]) ||
-                           (eventSettings?.posterOverrides && selectedCompId && eventSettings.posterOverrides[selectedCompId]);
+      const overrides = eventSettings?.posterOverrides || {};
+      let compOverride = (selectedCompId && overrides[selectedCompId]) ||
+                         (aCat?.name && aComp?.name && overrides[`${aCat.name}_${aComp.name}`]);
+
+      // If the override was saved under a DIFFERENT theme, do NOT apply its styling/coordinates!
+      if (compOverride && compOverride._savedThemeIndex !== undefined && compOverride._savedThemeIndex !== themeIdx) {
+        const textOnly: any = {};
+        Object.keys(compOverride).forEach(k => {
+          if (k.includes('Override') || k.includes('Tie') || k.includes('customText')) {
+            textOnly[k] = compOverride[k];
+          }
+        });
+        compOverride = Object.keys(textOnly).length > 0 ? textOnly : null;
+      }
 
       const baseTheme = { ...getDefaultThemeConfig(themeIdx), ...(themeConfigs[themeIdx] || {}) };
       // Strip any accidental name/unit overrides from baseTheme
@@ -907,23 +919,26 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
 
   const getThemeConfig = (idx: number) => {
     const aComp = competitions.find(c => c.id === selectedCompId);
+    const aCat = aComp ? categories.find(cat => cat.id === aComp.categoryId) : null;
     const overrides = eventSettings?.posterOverrides || {};
     let compOverride = null;
     if (selectedCompId && overrides[selectedCompId]) {
       compOverride = overrides[selectedCompId];
-    } else if (aComp?.name && overrides[aComp.name]) {
-      compOverride = overrides[aComp.name];
-    } else if (aComp?.name && overrides[aComp.name.trim()]) {
-      compOverride = overrides[aComp.name.trim()];
-    } else if (aComp?.name) {
-      const target = aComp.name.trim().toLowerCase();
-      for (const [k, v] of Object.entries(overrides)) {
-        if (k.trim().toLowerCase() === target) {
-          compOverride = v;
-          break;
-        }
-      }
+    } else if (aCat?.name && aComp?.name && overrides[`${aCat.name}_${aComp.name}`]) {
+      compOverride = overrides[`${aCat.name}_${aComp.name}`];
     }
+
+    // If the override was saved under a DIFFERENT theme, do NOT apply its styling/coordinates!
+    if (compOverride && compOverride._savedThemeIndex !== undefined && compOverride._savedThemeIndex !== idx) {
+      const textOnly: any = {};
+      Object.keys(compOverride).forEach(k => {
+        if (k.includes('Override') || k.includes('Tie') || k.includes('customText')) {
+          textOnly[k] = compOverride[k];
+        }
+      });
+      compOverride = Object.keys(textOnly).length > 0 ? textOnly : null;
+    }
+
     const defaultConf = getDefaultThemeConfig(idx);
     const userConf = { ...(themeConfigs[idx] || {}) };
     if (idx === 0) {
@@ -1063,10 +1078,9 @@ export default function PostersView({ user, token, eventSettings, onSettingsUpda
       const updatedOverrides = {
         ...(eventSettings?.posterOverrides || {}),
         [selectedCompId]: individualConfig,
-        [aComp?.name || '']: individualConfig
       };
-      if (aComp?.name && aComp.name.trim() !== aComp.name) {
-        updatedOverrides[aComp.name.trim()] = individualConfig;
+      if (aCat?.name && aComp?.name) {
+        updatedOverrides[`${aCat.name}_${aComp.name}`] = individualConfig;
       }
 
       const res = await fetch('/api/settings', {
