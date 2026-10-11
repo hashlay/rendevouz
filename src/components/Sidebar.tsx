@@ -54,9 +54,14 @@ export default function Sidebar({
     { id: 'settings', label: 'Settings', icon: Settings, roles: [UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM] },
   ];
 
-  const filteredItems = menuItems.filter(item =>
-    user.role === UserRole.VIEWER || item.roles.includes(user.role as UserRole)
-  );
+  const isCertificatesEnabled = Boolean(eventSettings?.enableCertificates);
+
+  const filteredItems = menuItems.filter(item => {
+    if ((item.id === 'certificates' || item.id === 'certificate-studio') && !isCertificatesEnabled) {
+      return false;
+    }
+    return user.role === UserRole.VIEWER || item.roles.includes(user.role as UserRole);
+  });
 
   const sidebarContent = (
     <div className="h-full flex flex-col justify-between bg-emerald-950 text-emerald-100 border-r border-emerald-900 font-sans">

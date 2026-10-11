@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Globe, Video, Image as ImageIcon, Loader2, GripVertical, CheckCircle2, Palette, RotateCcw } from 'lucide-react';
+import { Settings, Save, Globe, Video, Image as ImageIcon, Loader2, GripVertical, CheckCircle2, Palette, RotateCcw, FileBadge } from 'lucide-react';
 import { User, DragBlock, CMSSettings, HeroMedia } from '../types';
 import { QRCodeSVG } from 'qrcode.react';
 import { Logo } from './Logo';
@@ -31,10 +31,10 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
   });
 
   const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1PyLeWulSJqRPGFAk5Nb7copC1ZN7BRbL';
-
   const [stage1LiveLink, setStage1LiveLink] = useState('');
   const [stage2LiveLink, setStage2LiveLink] = useState('');
   const [photoHubDriveLink, setPhotoHubDriveLink] = useState(DEFAULT_PHOTO_HUB_DRIVE_LINK);
+  const [enableCertificates, setEnableCertificates] = useState<boolean>(false);
 
   const DEFAULT_COLOR_THEME: Record<string, string> = {
     primaryAccent: '#18BA46',
@@ -215,6 +215,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         setStage1LiveLink(data.stage1LiveLink || '');
         setStage2LiveLink(data.stage2LiveLink || '');
         setPhotoHubDriveLink(data.photoHubDriveLink || DEFAULT_PHOTO_HUB_DRIVE_LINK);
+        setEnableCertificates(Boolean(data.enableCertificates));
       }
     } catch (err) {
       console.error(err);
@@ -227,7 +228,8 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
     try {
       const updatedSettings = {
         ...settings,
-        colorTheme
+        colorTheme,
+        enableCertificates
       };
 
       const response = await fetch('/api/cms', {
@@ -239,7 +241,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         body: JSON.stringify({ dragBlocks, heroMedia, cmsSettings: updatedSettings })
       });
 
-      // Also save event settings for live/drive url
+      // Also save event settings for live/drive url and enableCertificates
       await fetch('/api/settings', {
         method: 'PUT',
         headers: {
@@ -249,7 +251,8 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         body: JSON.stringify({
           stage1LiveLink,
           stage2LiveLink,
-          photoHubDriveLink
+          photoHubDriveLink,
+          enableCertificates
         })
       });
 
@@ -975,8 +978,45 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
 
         </div>
 
-        {/* Right Column - Block Ordering */}
+        {/* Right Column - Block Ordering & Festival Modules */}
         <div className="space-y-6">
+          {/* Certificate Module Feature Switch */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <FileBadge className="w-4 h-4 text-emerald-600" />
+                  Certificates & Public Verification
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Enable or disable certificates across Admin Sidebar, Studio, and Participant Portal.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={enableCertificates}
+                  onChange={(e) => setEnableCertificates(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+            <div className="p-3.5 bg-slate-50/30 text-xs leading-relaxed border-t border-slate-100">
+              {enableCertificates ? (
+                <div className="text-emerald-700 font-medium flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Certificates Active: Visible in Admin Sidebar, Certificate Studio, and Participant Portal.</span>
+                </div>
+              ) : (
+                <div className="text-slate-500 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-slate-400" />
+                  <span>Certificates Disabled: Completely hidden from Participant Portal and Admin Sidebar.</span>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden sticky top-6">
             <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
               <h3 className="font-bold text-slate-900">Website Layout order</h3>
