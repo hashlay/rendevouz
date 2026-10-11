@@ -1451,15 +1451,15 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto">
             
             {/* Header */}
-            <div className="flex justify-between items-center border-b pb-3">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-amber-100 rounded-xl">
-                  <Trophy className="h-5 w-5 text-amber-700" />
+                <div className="p-2.5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-xl">
+                  <Trophy className="h-5 w-5 text-emerald-700" />
                 </div>
                 <div>
-                  <h3 className="font-display font-extrabold text-slate-800 text-base flex items-center gap-2">
+                  <h3 className="font-display font-extrabold text-slate-900 text-base flex items-center gap-2">
                     <span>Preview Champions</span>
-                    <span className="text-[10px] font-mono bg-amber-100 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-full font-bold uppercase">
+                    <span className="text-[10px] font-mono bg-emerald-100 text-emerald-900 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
                       Internal Tally
                     </span>
                   </h3>
@@ -1470,7 +1470,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
               </div>
               <button 
                 onClick={() => setShowChampionsModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1479,7 +1479,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
             {/* Content */}
             {championsLoading ? (
               <div className="py-12 flex flex-col items-center justify-center">
-                <RefreshCw className="h-8 w-8 text-amber-500 animate-spin mb-3" />
+                <RefreshCw className="h-8 w-8 text-emerald-600 animate-spin mb-3" />
                 <span className="text-slate-500 text-xs font-mono">Calculating live champion standings...</span>
               </div>
             ) : championsData.length === 0 ? (
@@ -1490,19 +1490,19 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
               <div className="space-y-4">
                 {/* 1st Place Champion Spotlight */}
                 {championsData[0] && (
-                  <div className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 text-slate-950 p-4 rounded-2xl shadow-md flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-full bg-slate-950 text-amber-400 flex items-center justify-center font-extrabold text-xl shadow-inner">
-                        👑 1
+                  <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 text-white p-5 rounded-2xl border border-emerald-800 shadow-md flex items-center justify-between">
+                    <div className="flex items-center gap-3.5">
+                      <div className="h-11 w-11 rounded-2xl bg-amber-400 text-emerald-950 flex items-center justify-center font-black text-xl shadow-sm border border-amber-300">
+                        1
                       </div>
                       <div>
-                        <span className="text-[10px] uppercase tracking-widest font-mono font-bold text-amber-950 block">Current Leading Champion</span>
-                        <h2 className="text-xl font-black uppercase tracking-wide">{championsData[0].unitName}</h2>
+                        <span className="text-[10px] uppercase tracking-widest font-mono font-bold text-emerald-300 block">Current Leading Champion</span>
+                        <h2 className="text-xl md:text-2xl font-black uppercase tracking-wide text-white">{championsData[0].unitName}</h2>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-3xl font-black">{championsData[0].overallPoints}</span>
-                      <span className="text-[10px] font-mono font-bold block uppercase tracking-wider text-amber-950">Total Points</span>
+                      <span className="text-3xl font-black text-amber-400 font-display">{championsData[0].overallPoints}</span>
+                      <span className="text-[10px] font-mono font-bold block uppercase tracking-wider text-emerald-200">Total Points</span>
                     </div>
                   </div>
                 )}
@@ -1510,7 +1510,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                 {/* Full Standings Table */}
                 <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                   <table className="w-full text-xs">
-                    <thead className="bg-slate-50 font-mono text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                    <thead className="bg-slate-50 font-mono text-[10px] uppercase font-bold text-slate-600 border-b border-slate-200">
                       <tr>
                         <th className="py-2.5 px-3 text-center w-12">Rank</th>
                         <th className="py-2.5 px-3 text-left">House / Unit</th>
@@ -1523,12 +1523,12 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                       {championsData.map((st: any) => {
                         const isTop = st.rank === 1;
                         return (
-                          <tr key={st.unitId} className={`hover:bg-slate-50/60 ${isTop ? 'bg-amber-50/30 font-bold' : ''}`}>
+                          <tr key={st.unitId} className={`hover:bg-slate-50/60 ${isTop ? 'bg-emerald-50/30 font-semibold' : ''}`}>
                             <td className="py-2.5 px-3 text-center whitespace-nowrap">
                               <span className={`inline-flex items-center justify-center h-6 w-6 rounded-full font-bold text-xs ${
-                                st.rank === 1 ? 'bg-amber-400 text-slate-950 shadow-sm' :
+                                st.rank === 1 ? 'bg-amber-400 text-emerald-950 font-black shadow-xs' :
                                 st.rank === 2 ? 'bg-slate-200 text-slate-800' :
-                                st.rank === 3 ? 'bg-orange-200 text-orange-950' : 'bg-slate-100 text-slate-500'
+                                st.rank === 3 ? 'bg-amber-100 text-amber-900 border border-amber-200' : 'bg-slate-100 text-slate-500'
                               }`}>
                                 {st.rank}
                               </span>
@@ -1553,11 +1553,11 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                   </table>
                 </div>
 
-                <div className="p-3 bg-slate-50 border rounded-xl text-[11px] text-slate-500 flex justify-between items-center">
+                <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl text-[11px] text-slate-600 flex justify-between items-center">
                   <span>💡 Note: Includes all locked & published results. Public site remains strictly showing announced results only.</span>
                   <button
                     onClick={() => { setShowChampionsModal(false); openWinnersPrint(); }}
-                    className="font-bold text-indigo-600 hover:text-indigo-800 underline ml-2 cursor-pointer"
+                    className="font-bold text-emerald-700 hover:text-emerald-800 underline ml-2 cursor-pointer"
                   >
                     View Winner List →
                   </button>
@@ -1568,7 +1568,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setShowChampionsModal(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                className="px-5 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm"
               >
                 Close Preview
               </button>
