@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   Settings, Save, Database, Trash2, ShieldAlert,
   RefreshCw, CheckCircle2, Download, Upload, AlertTriangle, Sparkles, UserCheck,
-  GripVertical, ArrowUp, ArrowDown
+  GripVertical, ArrowUp, ArrowDown, Plus, RotateCcw
 } from 'lucide-react';
-import { User, UserRole } from '../types';
+import { User, UserRole, GradeMatrixRow, DEFAULT_GRADE_MATRIX } from '../types';
 
 interface SettingsViewProps {
   user: User;
@@ -125,6 +125,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [certTheme3Url, setCertTheme3Url] = useState('');
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const [gradeSystemEnabled, setGradeSystemEnabled] = useState(true);
+  const [gradeMatrix, setGradeMatrix] = useState<GradeMatrixRow[]>(DEFAULT_GRADE_MATRIX);
   const [maxIndividualEvents, setMaxIndividualEvents] = useState(10);
   const [maxGroupEvents, setMaxGroupEvents] = useState(10);
   const [hasOnStageLimit, setHasOnStageLimit] = useState(false);
@@ -285,6 +286,11 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       setCertTheme3Url(data.certTheme3Url || '');
       setRegistrationOpen(data.registrationOpen ?? true);
       setGradeSystemEnabled(data.gradeSystemEnabled ?? true);
+      if (data.gradeMatrix && Array.isArray(data.gradeMatrix) && data.gradeMatrix.length > 0) {
+        setGradeMatrix(data.gradeMatrix);
+      } else {
+        setGradeMatrix(DEFAULT_GRADE_MATRIX);
+      }
       setMaxIndividualEvents(data.maxIndividualEvents || 10);
       setMaxGroupEvents(data.maxGroupEvents || 10);
       setHasOnStageLimit(data.maxOnStageEvents !== null && data.maxOnStageEvents !== undefined);
@@ -343,6 +349,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
           certTheme3Url,
           registrationOpen,
           gradeSystemEnabled,
+          gradeMatrix,
           maxIndividualEvents,
           maxGroupEvents,
           maxOnStageEvents: hasOnStageLimit ? maxOnStageEvents : null,
@@ -771,16 +778,16 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
             </label>
           </div>
 
-          {/* Grade Pointing System Toggle & Distribution Table */}
-          <div className="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-200 space-y-3">
+          {/* Grade Pointing System Toggle & Customizable Distribution Table */}
+          <div className="bg-emerald-950/5 p-5 md:p-6 rounded-3xl border border-emerald-900/15 space-y-4 shadow-2xs">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div>
-                <h4 className="font-bold text-indigo-950 text-xs uppercase tracking-wider font-mono flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                <h4 className="font-bold text-emerald-950 text-xs md:text-sm uppercase tracking-wider font-mono flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
                   Grade Pointing System (Team Standings Points by Grade)
                 </h4>
-                <p className="text-[11px] text-indigo-900/80 mt-0.5">
-                  When <strong>ENABLED</strong>, team championship points are awarded strictly based on participant/team <strong>grades</strong>. When <strong>DISABLED</strong>, system falls back to the rank-based points (1st, 2nd, 3rd...) below.
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  When <strong>ENABLED</strong>, team championship points are awarded strictly based on participant/team <strong>grades</strong>. When <strong>DISABLED</strong>, system falls back to rank-based points (1st, 2nd, 3rd...) configured below.
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
@@ -790,118 +797,216 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                   onChange={(e) => setGradeSystemEnabled(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                <span className={`ml-2.5 text-xs font-extrabold font-mono uppercase ${gradeSystemEnabled ? 'text-indigo-700' : 'text-slate-500'}`}>
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                <span className={`ml-2.5 text-xs font-extrabold font-mono uppercase ${gradeSystemEnabled ? 'text-emerald-700' : 'text-slate-500'}`}>
                   {gradeSystemEnabled ? 'ENABLED' : 'DISABLED'}
                 </span>
               </label>
             </div>
 
-            {/* Active Grade Distribution Matrix */}
-            <div className="mt-2 pt-2.5 border-t border-indigo-200/70">
-              <div className="text-[10px] font-bold text-indigo-900 uppercase tracking-wider font-mono mb-2 flex items-center justify-between">
-                <span>Current Festival Grade & Points Distribution Matrix</span>
-                <span className="text-[9px] font-normal text-indigo-700">Applied automatically across all categories</span>
+            {/* Matrix Action & Info Bar */}
+            <div className="pt-3 border-t border-emerald-900/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-2.5">
+              <div>
+                <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider font-mono block">
+                  Festival Grade & Points Distribution Matrix
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Customizable mark ranges, individual grades, and points awarded automatically across all categories
+                </span>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-center text-xs font-mono border-collapse bg-white/90 rounded-xl overflow-hidden shadow-xs border border-indigo-100">
-                  <thead>
-                    <tr className="bg-indigo-100/70 text-indigo-950 font-bold border-b border-indigo-200 text-[11px]">
-                      <th className="py-2 px-3 text-left">Mark Range</th>
-                      <th className="py-2 px-2 text-emerald-800 bg-emerald-50/70">Ind Grade</th>
-                      <th className="py-2 px-2.5 text-emerald-700 bg-emerald-50/50">Individual Points</th>
-                      <th className="py-2 px-2 text-purple-800 bg-purple-50/70">Group Grade</th>
-                      <th className="py-2 px-2.5 text-purple-700 bg-purple-50/50">Group Points</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-indigo-50 text-[11px]">
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">95 – 100</td>
-                      <td className="py-1 px-2 font-extrabold text-emerald-700 bg-emerald-50/40">A+</td>
-                      <td className="py-1 px-2.5 font-bold text-emerald-700 bg-emerald-50/20">10 pts</td>
-                      <td className="py-1 px-2 font-extrabold text-purple-700 bg-purple-50/40">A+</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">20 pts</td>
-                    </tr>
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">90 – 95</td>
-                      <td className="py-1 px-2 font-extrabold text-blue-700 bg-emerald-50/40">A</td>
-                      <td className="py-1 px-2.5 font-bold text-blue-700 bg-emerald-50/20">9 pts</td>
-                      <td className="py-1 px-2 font-extrabold text-blue-700 bg-purple-50/40">A</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">19 pts</td>
-                    </tr>
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">85 – 90</td>
-                      <td className="py-1 px-2 font-extrabold text-blue-700 bg-emerald-50/40">A</td>
-                      <td className="py-1 px-2.5 font-bold text-blue-700 bg-emerald-50/20">8 pts</td>
-                      <td className="py-1 px-2 font-extrabold text-blue-700 bg-purple-50/40">A</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">18 pts</td>
-                    </tr>
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">80 – 85</td>
-                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-emerald-50/40">B</td>
-                      <td className="py-1 px-2.5 font-bold text-amber-700 bg-emerald-50/20">7 pts</td>
-                      <td className="py-1 px-2 font-extrabold text-blue-700 bg-purple-50/40">A</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">17 pts</td>
-                    </tr>
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">75 – 80</td>
-                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-emerald-50/40">B</td>
-                      <td className="py-1 px-2.5 font-bold text-amber-700 bg-emerald-50/20">6 pts</td>
-                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-purple-50/40">B</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">16 pts</td>
-                    </tr>
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">70 – 75</td>
-                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-emerald-50/40">B</td>
-                      <td className="py-1 px-2.5 font-bold text-amber-700 bg-emerald-50/20">5 pts</td>
-                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-purple-50/40">B</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">15 pts</td>
-                    </tr>
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">65 – 70</td>
-                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-emerald-50/40">C</td>
-                      <td className="py-1 px-2.5 font-bold text-orange-700 bg-emerald-50/20">4 pts</td>
-                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-purple-50/40">B</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">14 pts</td>
-                    </tr>
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">55 – 65</td>
-                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-emerald-50/40">C</td>
-                      <td className="py-1 px-2.5 font-bold text-orange-700 bg-emerald-50/20">3 pts</td>
-                      <td className="py-1 px-2 font-extrabold text-amber-700 bg-purple-50/40">B</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">13 pts</td>
-                    </tr>
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">50 – 55</td>
-                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-emerald-50/40">C</td>
-                      <td className="py-1 px-2.5 font-bold text-orange-700 bg-emerald-50/20">2 pts</td>
-                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-purple-50/40">C</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">12 pts</td>
-                    </tr>
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">40 – 50</td>
-                      <td className="py-1 px-2 font-medium text-slate-400 bg-emerald-50/40">–</td>
-                      <td className="py-1 px-2.5 font-bold text-slate-700 bg-emerald-50/20">1 pt</td>
-                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-purple-50/40">C</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">11 pts</td>
-                    </tr>
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">30 – 40</td>
-                      <td className="py-1 px-2 font-medium text-slate-400 bg-emerald-50/40">–</td>
-                      <td className="py-1 px-2.5 font-medium text-slate-400 bg-emerald-50/20">0 pts</td>
-                      <td className="py-1 px-2 font-extrabold text-orange-700 bg-purple-50/40">C</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">10 pts</td>
-                    </tr>
-                    <tr className="hover:bg-indigo-50/40">
-                      <td className="py-1 px-3 text-left font-semibold text-slate-800">Below 30</td>
-                      <td className="py-1 px-2 font-medium text-slate-400 bg-emerald-50/40">–</td>
-                      <td className="py-1 px-2.5 font-medium text-slate-400 bg-emerald-50/20">0 pts</td>
-                      <td className="py-1 px-2 font-medium text-slate-400 bg-purple-50/40">–</td>
-                      <td className="py-1 px-2.5 font-bold text-purple-700 bg-purple-50/20">5 pts</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newId = `row_${Date.now()}`;
+                    setGradeMatrix(prev => [
+                      ...prev,
+                      { id: newId, minMark: 0, maxMark: 25, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 0 }
+                    ]);
+                  }}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Tier</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Reset grade matrix to the standard SSF festival distribution?")) {
+                      setGradeMatrix(DEFAULT_GRADE_MATRIX);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  title="Reset to default SSF Festival Matrix"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Reset Default</span>
+                </button>
               </div>
+            </div>
+
+            {/* Matrix Editable Table */}
+            <div className="overflow-x-auto rounded-2xl border border-emerald-900/15 shadow-xs bg-white">
+              <table className="w-full text-center text-xs font-mono border-collapse">
+                <thead>
+                  <tr className="bg-emerald-950 text-emerald-100 font-bold border-b border-emerald-900 text-[11px]">
+                    <th className="py-2.5 px-3 text-left">Mark Range (Min – Max)</th>
+                    <th className="py-2.5 px-3 text-emerald-300 bg-emerald-900/60">Ind Grade</th>
+                    <th className="py-2.5 px-3 text-emerald-200 bg-emerald-900/40">Individual Points</th>
+                    <th className="py-2.5 px-3 text-amber-300 bg-emerald-900/60">Group Grade</th>
+                    <th className="py-2.5 px-3 text-amber-200 bg-emerald-900/40">Group Points</th>
+                    <th className="py-2.5 px-2 text-center w-12">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-[11px]">
+                  {gradeMatrix.map((row, idx) => (
+                    <tr key={row.id || idx} className="hover:bg-emerald-50/20 transition-colors">
+                      {/* Mark Range */}
+                      <td className="py-2 px-3 text-left">
+                        <div className="inline-flex items-center gap-1.5 font-bold text-slate-800">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={row.minMark}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setGradeMatrix(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], minMark: val };
+                                return updated;
+                              });
+                            }}
+                            className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                          />
+                          <span className="text-slate-400">–</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={row.maxMark}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setGradeMatrix(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], maxMark: val };
+                                return updated;
+                              });
+                            }}
+                            className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                          />
+                        </div>
+                      </td>
+
+                      {/* Ind Grade */}
+                      <td className="py-2 px-3 bg-emerald-50/20">
+                        <select
+                          value={row.indGrade}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setGradeMatrix(prev => {
+                              const updated = [...prev];
+                              updated[idx] = { ...updated[idx], indGrade: val };
+                              return updated;
+                            });
+                          }}
+                          className="px-2.5 py-1 font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
+                        >
+                          <option value="A+">A+</option>
+                          <option value="A">A</option>
+                          <option value="B">B</option>
+                          <option value="C">C</option>
+                          <option value="D">D</option>
+                          <option value="-">- (No Grade)</option>
+                        </select>
+                      </td>
+
+                      {/* Ind Points */}
+                      <td className="py-2 px-3 bg-emerald-50/10">
+                        <div className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                          <input
+                            type="number"
+                            min="0"
+                            value={row.indPoints}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setGradeMatrix(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], indPoints: val };
+                                return updated;
+                              });
+                            }}
+                            className="w-14 px-2 py-1 text-center font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                          />
+                          <span className="text-[10px] text-emerald-600">pts</span>
+                        </div>
+                      </td>
+
+                      {/* Group Grade */}
+                      <td className="py-2 px-3 bg-amber-50/20">
+                        <select
+                          value={row.groupGrade}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setGradeMatrix(prev => {
+                              const updated = [...prev];
+                              updated[idx] = { ...updated[idx], groupGrade: val };
+                              return updated;
+                            });
+                          }}
+                          className="px-2.5 py-1 font-bold text-amber-900 bg-white border border-amber-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
+                        >
+                          <option value="A+">A+</option>
+                          <option value="A">A</option>
+                          <option value="B">B</option>
+                          <option value="C">C</option>
+                          <option value="D">D</option>
+                          <option value="-">- (No Grade)</option>
+                        </select>
+                      </td>
+
+                      {/* Group Points */}
+                      <td className="py-2 px-3 bg-amber-50/10">
+                        <div className="inline-flex items-center gap-1 text-amber-900 font-bold">
+                          <input
+                            type="number"
+                            min="0"
+                            value={row.groupPoints}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setGradeMatrix(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], groupPoints: val };
+                                return updated;
+                              });
+                            }}
+                            className="w-14 px-2 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                          />
+                          <span className="text-[10px] text-amber-700">pts</span>
+                        </div>
+                      </td>
+
+                      {/* Action */}
+                      <td className="py-2 px-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (gradeMatrix.length <= 1) {
+                              alert("At least one grade tier must remain in the matrix.");
+                              return;
+                            }
+                            setGradeMatrix(prev => prev.filter((_, i) => i !== idx));
+                          }}
+                          className="p-1 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                          title="Delete Tier"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 

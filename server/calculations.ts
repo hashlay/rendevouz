@@ -35,58 +35,55 @@ export const getNormalizedMark = (r: Result): number => {
  *  30 - 54: C  (50-55: C, 40-50: C, 30-40: C)
  *  Below 30: No grade (with 5 points for mark > 0)
  */
-export const calculateGrade = (mark: number, isGroup: boolean = false): string => {
+export interface GradeMatrixRow {
+  id: string;
+  minMark: number;
+  maxMark: number;
+  indGrade: string;
+  indPoints: number;
+  groupGrade: string;
+  groupPoints: number;
+}
+
+export const DEFAULT_GRADE_MATRIX: GradeMatrixRow[] = [
+  { id: '1', minMark: 95, maxMark: 100, indGrade: 'A+', indPoints: 10, groupGrade: 'A+', groupPoints: 20 },
+  { id: '2', minMark: 90, maxMark: 95, indGrade: 'A', indPoints: 9, groupGrade: 'A', groupPoints: 19 },
+  { id: '3', minMark: 85, maxMark: 90, indGrade: 'A', indPoints: 8, groupGrade: 'A', groupPoints: 18 },
+  { id: '4', minMark: 80, maxMark: 85, indGrade: 'B', indPoints: 7, groupGrade: 'A', groupPoints: 17 },
+  { id: '5', minMark: 75, maxMark: 80, indGrade: 'B', indPoints: 6, groupGrade: 'B', groupPoints: 16 },
+  { id: '6', minMark: 70, maxMark: 75, indGrade: 'B', indPoints: 5, groupGrade: 'B', groupPoints: 15 },
+  { id: '7', minMark: 65, maxMark: 70, indGrade: 'C', indPoints: 4, groupGrade: 'B', groupPoints: 14 },
+  { id: '8', minMark: 55, maxMark: 65, indGrade: 'C', indPoints: 3, groupGrade: 'B', groupPoints: 13 },
+  { id: '9', minMark: 50, maxMark: 55, indGrade: 'C', indPoints: 2, groupGrade: 'C', groupPoints: 12 },
+  { id: '10', minMark: 40, maxMark: 50, indGrade: '-', indPoints: 1, groupGrade: 'C', groupPoints: 11 },
+  { id: '11', minMark: 30, maxMark: 40, indGrade: '-', indPoints: 0, groupGrade: 'C', groupPoints: 10 },
+  { id: '12', minMark: 0, maxMark: 30, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 5 }
+];
+
+export const calculateGrade = (mark: number, isGroup: boolean = false, eventSettings?: any): string => {
   const m = Math.round(Number(mark) || 0);
   if (m <= 0) return '';
 
-  if (isGroup) {
-    if (m >= 95) return 'A+';
-    if (m >= 80) return 'A';
-    if (m >= 55) return 'B';
-    if (m >= 30) return 'C';
-    return '';
-  } else {
-    if (m >= 95) return 'A+';
-    if (m >= 85) return 'A';
-    if (m >= 70) return 'B';
-    if (m >= 50) return 'C';
-    return '';
+  const db = dbClient.get();
+  const settings = eventSettings || db.eventSettings;
+  const matrix: GradeMatrixRow[] = settings?.gradeMatrix && Array.isArray(settings.gradeMatrix) && settings.gradeMatrix.length > 0
+    ? settings.gradeMatrix
+    : DEFAULT_GRADE_MATRIX;
+
+  const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
+  for (const row of sorted) {
+    if (m >= Number(row.minMark)) {
+      const g = isGroup ? row.groupGrade : row.indGrade;
+      return (!g || g === '-' || g === 'None') ? '' : g;
+    }
   }
+  return '';
 };
 
 /**
  * Grade Pointing System (Festival Points Distribution):
  * If gradeSystemEnabled !== false (Enabled by default):
- *
- * Individual Competitions:
- *  100 - 95: 10 pts (A+)
- *   95 - 90:  9 pts (A)
- *   90 - 85:  8 pts (A)
- *   85 - 80:  7 pts (B)
- *   80 - 75:  6 pts (B)
- *   75 - 70:  5 pts (B)
- *   70 - 65:  4 pts (C)
- *   65 - 55:  3 pts (C)
- *   55 - 50:  2 pts (C)
- *   50 - 40:  1 pt  (No grade)
- *   Below 40: 0 pts (No grade)
- *
- * Group Competitions:
- *  100 - 95: 20 pts (A+)
- *   95 - 90: 19 pts (A)
- *   90 - 85: 18 pts (A)
- *   85 - 80: 17 pts (A)
- *   80 - 75: 16 pts (B)
- *   75 - 70: 15 pts (B)
- *   70 - 65: 14 pts (B)
- *   65 - 55: 13 pts (B)
- *   55 - 50: 12 pts (C)
- *   50 - 40: 11 pts (C)
- *   40 - 30: 10 pts (C)
- *   Below 30: 5 pts (No grade for m > 0; 0 pts if m <= 0 or absent)
- *
- * Fallback (when Grade Pointing System is disabled):
- * Rank-based points (1st: 20, 2nd: 14, 3rd: 7, etc.)
+ * Evaluates points dynamically from settings.gradeMatrix or DEFAULT_GRADE_MATRIX
  */
 export const calculateResultPoints = (r: Result, comp?: Competition, eventSettings?: any): number => {
   const db = dbClient.get();
@@ -101,32 +98,17 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
 
     const isGroup = !!r.teamId || comp?.participationType === ParticipationType.GROUP || (comp as any)?.isGroup === true || String(comp?.participationType).toLowerCase() === 'group';
 
-    if (isGroup) {
-      if (m >= 95) return 20;
-      if (m >= 90) return 19;
-      if (m >= 85) return 18;
-      if (m >= 80) return 17;
-      if (m >= 75) return 16;
-      if (m >= 70) return 15;
-      if (m >= 65) return 14;
-      if (m >= 55) return 13;
-      if (m >= 50) return 12;
-      if (m >= 40) return 11;
-      if (m >= 30) return 10;
-      return 5; // Below 30 (for active participation with marks > 0)
-    } else {
-      if (m >= 95) return 10;
-      if (m >= 90) return 9;
-      if (m >= 85) return 8;
-      if (m >= 80) return 7;
-      if (m >= 75) return 6;
-      if (m >= 70) return 5;
-      if (m >= 65) return 4;
-      if (m >= 55) return 3;
-      if (m >= 50) return 2;
-      if (m >= 40) return 1;
-      return 0; // Below 40
+    const matrix: GradeMatrixRow[] = settings?.gradeMatrix && Array.isArray(settings.gradeMatrix) && settings.gradeMatrix.length > 0
+      ? settings.gradeMatrix
+      : DEFAULT_GRADE_MATRIX;
+
+    const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
+    for (const row of sorted) {
+      if (m >= Number(row.minMark)) {
+        return isGroup ? Number(row.groupPoints) : Number(row.indPoints);
+      }
     }
+    return 0;
   }
 
   // Fallback: Rank-based points from Category or globalPointsRank

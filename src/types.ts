@@ -45,6 +45,31 @@ export interface Session {
   lastActivityAt: string;
 }
 
+export interface GradeMatrixRow {
+  id: string;
+  minMark: number;
+  maxMark: number;
+  indGrade: string;
+  indPoints: number;
+  groupGrade: string;
+  groupPoints: number;
+}
+
+export const DEFAULT_GRADE_MATRIX: GradeMatrixRow[] = [
+  { id: '1', minMark: 95, maxMark: 100, indGrade: 'A+', indPoints: 10, groupGrade: 'A+', groupPoints: 20 },
+  { id: '2', minMark: 90, maxMark: 95, indGrade: 'A', indPoints: 9, groupGrade: 'A', groupPoints: 19 },
+  { id: '3', minMark: 85, maxMark: 90, indGrade: 'A', indPoints: 8, groupGrade: 'A', groupPoints: 18 },
+  { id: '4', minMark: 80, maxMark: 85, indGrade: 'B', indPoints: 7, groupGrade: 'A', groupPoints: 17 },
+  { id: '5', minMark: 75, maxMark: 80, indGrade: 'B', indPoints: 6, groupGrade: 'B', groupPoints: 16 },
+  { id: '6', minMark: 70, maxMark: 75, indGrade: 'B', indPoints: 5, groupGrade: 'B', groupPoints: 15 },
+  { id: '7', minMark: 65, maxMark: 70, indGrade: 'C', indPoints: 4, groupGrade: 'B', groupPoints: 14 },
+  { id: '8', minMark: 55, maxMark: 65, indGrade: 'C', indPoints: 3, groupGrade: 'B', groupPoints: 13 },
+  { id: '9', minMark: 50, maxMark: 55, indGrade: 'C', indPoints: 2, groupGrade: 'C', groupPoints: 12 },
+  { id: '10', minMark: 40, maxMark: 50, indGrade: '-', indPoints: 1, groupGrade: 'C', groupPoints: 11 },
+  { id: '11', minMark: 30, maxMark: 40, indGrade: '-', indPoints: 0, groupGrade: 'C', groupPoints: 10 },
+  { id: '12', minMark: 0, maxMark: 30, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 5 }
+];
+
 export interface LoginAudit {
   id: string;
   username: string;
@@ -269,6 +294,7 @@ export interface EventSettings {
   entityMode?: 'unit' | 'house' | 'team';
   entityLabel?: string;
   gradeSystemEnabled?: boolean;
+  gradeMatrix?: GradeMatrixRow[];
   fillLogo?: boolean;
   autoRemoveLogoBg?: boolean;
   certTheme1Url?: string;
