@@ -3,13 +3,12 @@ import { UserRole } from '../types';
 import { Save } from 'lucide-react';
 import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper';
 
-// Set to false in the future to re-enable certificates instantly
-const CERTIFICATES_DISABLED = true;
-
 const getBgHash = (bg: string) => { if (!bg || typeof bg !== 'string') return ''; return bg.length > 200 ? `hash_${bg.length}_${bg.slice(-30)}` : bg; };
 
 export default function CertificateSettingsView({ user, token, eventSettings, onSettingsUpdated }: any) {
-  if (CERTIFICATES_DISABLED) {
+  const isCertificatesEnabled = Boolean(eventSettings?.enableCertificates);
+
+  if (eventSettings && !isCertificatesEnabled) {
     return (
       <div className="p-6 max-w-3xl mx-auto mt-8">
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
@@ -20,6 +19,25 @@ export default function CertificateSettingsView({ user, token, eventSettings, on
           <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
             The certificate generation and studio system is currently disabled for this festival to preserve server bandwidth and maximize speed. All your layout coordinates and settings remain saved and will be restored immediately when re-enabled.
           </p>
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ enableCertificates: true })
+                  });
+                  if (res.ok && onSettingsUpdated) onSettingsUpdated();
+                } catch (e) {
+                  console.error(e);
+                }
+              }}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm cursor-pointer"
+            >
+              Enable Certificates Now
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -6614,7 +6614,7 @@ apiRouter.get('/public/results', async (req, res) => {
         points,
         totalMark: normalizedMark,
         marks: normalizedMark,
-        certificatePublished: r.certificatePublished || false,
+        certificatePublished: r.certificatePublished !== false,
         // Also send raw data for Poster Studio
         raw: {
           ...r,

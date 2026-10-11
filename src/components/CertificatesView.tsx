@@ -35,11 +35,11 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
   const [sharingCompId, setSharingCompId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Set to false in the future to re-enable certificates instantly
-  const CERTIFICATES_DISABLED = true;
+  // Dynamic certificate toggle from eventSettings
+  const isCertificatesEnabled = Boolean(eventSettings?.enableCertificates);
 
   const fetchData = async () => {
-    if (CERTIFICATES_DISABLED) {
+    if (!isCertificatesEnabled) {
       setLoading(false);
       return;
     }
@@ -73,15 +73,15 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
   };
 
   useEffect(() => {
-    if (!CERTIFICATES_DISABLED) {
+    if (isCertificatesEnabled) {
       preloadCertificateImages(eventSettings);
       fetchData();
     } else {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, isCertificatesEnabled]);
 
-  if (CERTIFICATES_DISABLED) {
+  if (eventSettings && !isCertificatesEnabled) {
     return (
       <div className="p-6 max-w-3xl mx-auto mt-8">
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
@@ -92,6 +92,25 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
           <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
             The certificate generation and download system is currently disabled for this festival to preserve server bandwidth and maximize speed. All certificate configurations and templates remain securely stored.
           </p>
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ enableCertificates: true })
+                  });
+                  if (res.ok && onSettingsUpdated) onSettingsUpdated();
+                } catch (e) {
+                  console.error(e);
+                }
+              }}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm cursor-pointer"
+            >
+              Enable Certificates Now
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -336,6 +355,27 @@ ${hashtags}`;
     }
   };
 
+  const handleBulkPublish = async (compResults: Result[], publishState: boolean) => {
+    try {
+      await Promise.all(
+        compResults.map(r => 
+          fetch(`/api/results/${r.id}/publish-certificate`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ published: publishState })
+          })
+        )
+      );
+      const resIds = new Set(compResults.map(r => r.id));
+      setResults(prev => prev.map(r => resIds.has(r.id) ? { ...r, certificatePublished: publishState } : r));
+    } catch (e) {
+      alert('Network error while updating certificates');
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans min-w-0 w-full overflow-x-hidden">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -434,6 +474,21 @@ ${hashtags}`;
 
                           <div className="flex items-center gap-2 flex-wrap">
                             <button 
+                              onClick={() => {
+                                const anyUnpublished = compResults.some(r => r.certificatePublished === false);
+                                handleBulkPublish(compResults, anyUnpublished);
+                              }}
+                              className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                              title="Publish or unpublish all certificates for this competition in the participant portal"
+                            >
+                              {compResults.some(r => r.certificatePublished === false) ? (
+                                <><Eye className="w-3.5 h-3.5 text-emerald-600" /><span>Publish All</span></>
+                              ) : (
+                                <><EyeOff className="w-3.5 h-3.5 text-slate-400" /><span>Unpublish All</span></>
+                              )}
+                            </button>
+
+                            <button 
                               onClick={() => handleDownloadAll(comp, compResults)}
                               disabled={downloadingCompId === comp.id || sharingCompId === comp.id}
                               className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
@@ -501,6 +556,8 @@ ${hashtags}`;
                               return null;
                             }
 
+                            const isPublished = res.certificatePublished !== false;
+
                             return (
                               <div key={res.id} className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col justify-between">
                                 <div>
@@ -517,21 +574,21 @@ ${hashtags}`;
                                 <div className="mt-4 flex gap-2">
                                   <button 
                                     onClick={() => setSelectedCertificate({ names: certNames.length > 0 ? certNames : [winnerName], comp: comp.name, compId: comp.id, rank: res.rank as number })}
-                                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 rounded-lg text-xs font-bold transition-colors"
+                                    className="flex-1 flex items-center justify-center gap-2 py-2 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
                                   >
                                     <FileBadge className="w-4 h-4" />
                                     Generate
                                   </button>
                                   <button 
-                                    onClick={() => togglePublish(res.id, !!res.certificatePublished)}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2 border rounded-lg text-xs font-bold transition-colors ${
-                                      res.certificatePublished 
+                                    onClick={() => togglePublish(res.id, isPublished)}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 border rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                                      isPublished 
                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
                                         : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
                                     }`}
-                                    title={res.certificatePublished ? "Unpublish from participant portal" : "Publish to participant portal"}
+                                    title={isPublished ? "Unpublish from participant portal" : "Publish to participant portal"}
                                   >
-                                    {res.certificatePublished ? <><Eye className="w-4 h-4" /> Published</> : <><EyeOff className="w-4 h-4" /> Hidden</>}
+                                    {isPublished ? <><Eye className="w-4 h-4" /> Published</> : <><EyeOff className="w-4 h-4" /> Hidden</>}
                                   </button>
                                 </div>
                               </div>
