@@ -187,7 +187,7 @@ function ensureDbExists() {
   ];
 
   const initialUnits: Unit[] = [
-    { id: 'unit_nexa_mirat', name: 'Nexa Mirat', code: 'MIR', active: true },
+    { id: 'unit_nexa_mirath', name: 'Nexa Mirath', code: 'MIR', active: true },
     { id: 'unit_nexa_faylas', name: 'Nexa Faylas', code: 'FAY', active: true }
   ];
 

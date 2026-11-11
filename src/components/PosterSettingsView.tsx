@@ -43,7 +43,7 @@ export const getPosterTeamColor = (unitOrTeamName?: string, defaultColor: string
 
   // Built-in palettes if useTeamColors is active
   if (config?.useTeamColors === true) {
-    if (normalized.includes('mirat') || normalized.includes('nexamirat') || normalized === 'mir') return '#0284c7';
+    if (normalized.includes('mirath') || normalized.includes('mirat') || normalized.includes('nexamirath') || normalized.includes('nexamirat') || normalized === 'mir') return '#0284c7';
     if (normalized.includes('faylas') || normalized.includes('nexafaylas') || normalized === 'fay') return '#d97706';
     if (normalized.includes('sirafi') || normalized.includes('seafarer') || normalized.includes('سيرافي')) return '#0284c7';
     if (normalized.includes('tabrizi') || normalized.includes('taraz') || normalized.includes('تبريزي')) return '#d97706';
@@ -80,8 +80,8 @@ export const getPosterDisplayUnitName = (
   if (customMap[cleanRaw]) return customMap[cleanRaw];
 
   // Match Querencia teams
-  if (normalized.includes('mirat') || normalized.includes('nexamirat') || normalized === 'mir') {
-    return customMap['Nexa Mirat'] || customMap['mirat'] || 'NEXA MIRAT';
+  if (normalized.includes('mirath') || normalized.includes('mirat') || normalized.includes('nexamirath') || normalized.includes('nexamirat') || normalized === 'mir') {
+    return customMap['Nexa Mirath'] || customMap['Nexa Mirat'] || customMap['mirath'] || customMap['mirat'] || 'NEXA MIRATH';
   }
   if (normalized.includes('faylas') || normalized.includes('nexafaylas') || normalized === 'fay') {
     return customMap['Nexa Faylas'] || customMap['faylas'] || 'NEXA FAYLAS';
@@ -212,7 +212,7 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
       unitArabicNames: {
-        'Nexa Mirat': 'NEXA MIRAT',
+        'Nexa Mirath': 'NEXA MIRATH',
         'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
@@ -314,7 +314,7 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
       unitArabicNames: {
-        'Nexa Mirat': 'NEXA MIRAT',
+        'Nexa Mirath': 'NEXA MIRATH',
         'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
@@ -417,7 +417,7 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
       unitArabicNames: {
-        'Nexa Mirat': 'NEXA MIRAT',
+        'Nexa Mirath': 'NEXA MIRATH',
         'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
@@ -520,7 +520,7 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
       unitArabicNames: {
-        'Nexa Mirat': 'NEXA MIRAT',
+        'Nexa Mirath': 'NEXA MIRATH',
         'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
@@ -623,7 +623,7 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
       unitArabicNames: {
-        'Nexa Mirat': 'NEXA MIRAT',
+        'Nexa Mirath': 'NEXA MIRATH',
         'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
@@ -742,7 +742,7 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
     unitColors: {} as Record<string, string>,
     unitLanguage: 'ar', // 'en' | 'ar'
     unitArabicNames: {
-      'Nexa Mirat': 'NEXA MIRAT',
+      'Nexa Mirath': 'NEXA MIRATH',
       'Nexa Faylas': 'NEXA FAYLAS',
       'Sirafi Seafarers': 'TEAM السِّيرَافِي',
       'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
@@ -970,7 +970,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   }, []);
 
   const activeUnits: Unit[] = units.length > 0 ? units : [
-    { id: 'unit_nexa_mirat', name: 'Nexa Mirat', code: 'MIR', active: true },
+    { id: 'unit_nexa_mirath', name: 'Nexa Mirath', code: 'MIR', active: true },
     { id: 'unit_nexa_faylas', name: 'Nexa Faylas', code: 'FAY', active: true }
   ];
 
