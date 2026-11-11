@@ -892,10 +892,10 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                   Chest Number, Full Name, Category, Unit/House, Date of Birth (YYYY-MM-DD), Class, Gender, Competitions (Optional)
                 </p>
                 <div className="text-[10px] text-emerald-800 space-y-1 pt-1 font-sans">
-                  <p><strong>• Single Competition:</strong> <span className="font-mono">301, Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English</span></p>
-                  <p><strong>• Multiple Competitions:</strong> <span className="font-mono">302, Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English; Qira'at Recitation</span> (use <code className="bg-emerald-100 px-1 rounded">;</code> to separate)</p>
-                  <p><strong>• General Category Support:</strong> You can include General category competitions alongside category competitions (e.g. <span className="font-mono">Sudoku; General Quiz</span>). They will be automatically linked!</p>
-                  <p><strong>• Custom Chest Numbers:</strong> Provide custom chest numbers (e.g. <span className="font-mono">101</span> for Kids, <span className="font-mono">201</span> for Sub-Junior, <span className="font-mono">301</span> for Junior, <span className="font-mono">401</span> for Senior). If blank or <code className="bg-emerald-100 px-1 rounded">-</code>, next available number is auto-generated.</p>
+                  <p><strong>• Single Competition:</strong> <span className="font-mono">101, Muhammed Rayan, D-Zone, Nexa Mirat, 2008-04-15, BS1, Male, Elocution English</span></p>
+                  <p><strong>• Multiple Competitions:</strong> <span className="font-mono">102, Muhammed Rayan, D-Zone, Nexa Mirat, 2008-04-15, BS1, Male, Elocution English; Qira'at Recitation</span> (use <code className="bg-emerald-100 px-1 rounded">;</code> to separate)</p>
+                  <p><strong>• General Category Support:</strong> You can include General category competitions alongside category competitions (e.g. <span className="font-mono">Elocution; General Quiz</span>). They will be automatically linked!</p>
+                  <p><strong>• Custom Chest Numbers:</strong> Provide custom chest numbers (e.g. <span className="font-mono">101</span> for D-Zone, <span className="font-mono">201</span> for Hi-Zone, <span className="font-mono">301</span> for L-Zone, <span className="font-mono">501</span> for General). If blank or <code className="bg-emerald-100 px-1 rounded">-</code>, next available number is auto-generated.</p>
                   <p><strong>• Whitespace Safe:</strong> Extra leading or trailing spaces are automatically trimmed and normalized.</p>
                 </div>
               </div>
@@ -910,8 +910,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                     <span className="text-slate-400 font-normal"> (or: Chest Number, Full Name, Category, Competitions)</span>
                   </p>
                   <div className="text-[10px] text-indigo-800 space-y-1 pt-1 font-sans">
-                    <p><strong>• Simple Format:</strong> <span className="font-mono">301, Sudoku; General Quiz</span></p>
-                    <p><strong>• Full Format:</strong> <span className="font-mono">302, Muhammed Rayan, Premier, Sudoku; Pencil Drawing</span></p>
+                    <p><strong>• Simple Format:</strong> <span className="font-mono">101, Elocution; General Quiz</span></p>
+                    <p><strong>• Full Format:</strong> <span className="font-mono">102, Muhammed Rayan, D-Zone, Elocution; Pencil Drawing</span></p>
                     <p><strong>• General Category Competitions:</strong> All participants can join General Category competitions! Simply specify the General competition name (e.g. <span className="font-mono">General Quiz</span>) and it will be assigned seamlessly.</p>
                     <p><strong>• Multiple Competitions:</strong> Separate competitions using a semicolon <code className="bg-indigo-100 px-1 rounded">;</code>.</p>
                   </div>
@@ -951,8 +951,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
               onChange={(e) => setBulkText(e.target.value)}
               placeholder={
                 bulkModalTab === 'new_participants'
-                  ? "Paste new participants CSV lines here...\ne.g. 301, Muhammed Rayan, Junior, Zenith, 2008-04-15, Class 8, Male, Elocution English; General Quiz"
-                  : "Paste competition assignment lines here...\ne.g.\n301, Sudoku; General Quiz\n302, Muhammed Rayan, Premier, Sudoku; Pencil Drawing\n303, General Quiz"
+                  ? "Paste new participants CSV lines here...\ne.g. 101, Muhammed Rayan, D-Zone, Nexa Mirat, 2008-04-15, BS1, Male, Elocution English; General Quiz"
+                  : "Paste competition assignment lines here...\ne.g.\n101, Elocution; General Quiz\n102, Muhammed Rayan, D-Zone, Elocution; Pencil Drawing\n103, General Quiz"
               }
               className="w-full p-3 border border-slate-300 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />

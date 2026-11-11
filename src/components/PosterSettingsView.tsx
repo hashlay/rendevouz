@@ -43,6 +43,8 @@ export const getPosterTeamColor = (unitOrTeamName?: string, defaultColor: string
 
   // Built-in palettes if useTeamColors is active
   if (config?.useTeamColors === true) {
+    if (normalized.includes('mirat') || normalized.includes('nexamirat') || normalized === 'mir') return '#0284c7';
+    if (normalized.includes('faylas') || normalized.includes('nexafaylas') || normalized === 'fay') return '#d97706';
     if (normalized.includes('sirafi') || normalized.includes('seafarer') || normalized.includes('سيرافي')) return '#0284c7';
     if (normalized.includes('tabrizi') || normalized.includes('taraz') || normalized.includes('تبريزي')) return '#d97706';
     if (normalized.includes('zanzibari') || normalized.includes('souq') || normalized.includes('زنجباري')) return '#16a34a';
@@ -76,6 +78,14 @@ export const getPosterDisplayUnitName = (
   // Direct match in custom dictionary
   if (customMap[raw]) return customMap[raw];
   if (customMap[cleanRaw]) return customMap[cleanRaw];
+
+  // Match Querencia teams
+  if (normalized.includes('mirat') || normalized.includes('nexamirat') || normalized === 'mir') {
+    return customMap['Nexa Mirat'] || customMap['mirat'] || 'NEXA MIRAT';
+  }
+  if (normalized.includes('faylas') || normalized.includes('nexafaylas') || normalized === 'fay') {
+    return customMap['Nexa Faylas'] || customMap['faylas'] || 'NEXA FAYLAS';
+  }
 
   // Match Rendezvous Silver Edition teams
   if (normalized.includes('sirafi') || normalized.includes('seafarer') || normalized === 'sir') {
@@ -202,6 +212,8 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
       unitArabicNames: {
+        'Nexa Mirat': 'NEXA MIRAT',
+        'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
         'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
@@ -302,6 +314,8 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
       unitArabicNames: {
+        'Nexa Mirat': 'NEXA MIRAT',
+        'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
         'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
@@ -403,6 +417,8 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
       unitArabicNames: {
+        'Nexa Mirat': 'NEXA MIRAT',
+        'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
         'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
@@ -504,6 +520,8 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
       unitArabicNames: {
+        'Nexa Mirat': 'NEXA MIRAT',
+        'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
         'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
@@ -605,6 +623,8 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
       unitArabicNames: {
+        'Nexa Mirat': 'NEXA MIRAT',
+        'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
         'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
@@ -722,6 +742,8 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
     unitColors: {} as Record<string, string>,
     unitLanguage: 'ar', // 'en' | 'ar'
     unitArabicNames: {
+      'Nexa Mirat': 'NEXA MIRAT',
+      'Nexa Faylas': 'NEXA FAYLAS',
       'Sirafi Seafarers': 'TEAM السِّيرَافِي',
       'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
       'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
@@ -948,9 +970,8 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   }, []);
 
   const activeUnits: Unit[] = units.length > 0 ? units : [
-    { id: 'unit_sirafi', name: 'Sirafi Seafarers', code: 'SIR', active: true },
-    { id: 'unit_tabrizi', name: 'Tabrizi Taraz', code: 'TAB', active: true },
-    { id: 'unit_zanzibari', name: 'Zanzibari Souqs', code: 'ZAN', active: true }
+    { id: 'unit_nexa_mirat', name: 'Nexa Mirat', code: 'MIR', active: true },
+    { id: 'unit_nexa_faylas', name: 'Nexa Faylas', code: 'FAY', active: true }
   ];
 
   // Get current theme's config (with defaults)
@@ -1432,11 +1453,11 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     ctx.fillText(rLblText, c.resultLabelX, c.resultLabelY);
     addRegion('resultLabel', c.resultLabelX - 10, c.resultLabelY - (c.resultLabelSize || 28) - 5, rLblMetrics.width + 20, (c.resultLabelSize || 28) + 20);
 
-    // Result Number (Number: e.g. "01")
+    // Result Number (Number: e.g. "00")
     ctx.textAlign = 'left';
     ctx.font = parseFontForCanvas(c.resultNumFont || c.fontFamily, c.resultNumSize || 76, '600');
     ctx.fillStyle = c.resultNumColor || '#ffffff';
-    const rNumText = '01';
+    const rNumText = '00';
     const rNumMetrics = ctx.measureText(rNumText);
     ctx.fillText(rNumText, c.resultNumX, c.resultNumY);
     addRegion('resultNum', c.resultNumX - 10, c.resultNumY - (c.resultNumSize || 76) - 5, rNumMetrics.width + 20, (c.resultNumSize || 76) + 20);
@@ -1445,7 +1466,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     ctx.textAlign = 'left';
     ctx.font = parseFontForCanvas(c.categoryFont || c.fontFamily, c.categorySize ?? 26, '400');
     ctx.fillStyle = c.categoryColor || 'rgba(255, 255, 255, 0.7)';
-    const rawCat = 'Premier';
+    const rawCat = 'Category';
     const catText = c.categoryUppercase ? rawCat.toUpperCase() : rawCat;
     const catMetrics = ctx.measureText(catText);
     ctx.fillText(catText, c.categoryX ?? 540, c.categoryY ?? 260);
@@ -1455,7 +1476,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     ctx.textAlign = 'left';
     ctx.font = parseFontForCanvas(c.compNameFont || c.fontFamily, c.compNameSize ?? 52, '600');
     ctx.fillStyle = c.compNameColor || '#ffffff';
-    const rawComp = 'Sudoku';
+    const rawComp = 'Competition Name';
     const compText = c.compNameUppercase ? rawComp.toUpperCase() : rawComp;
     const compMetrics = ctx.measureText(compText);
     ctx.fillText(compText, c.compNameX ?? 540, c.compNameY ?? 330);
@@ -1463,9 +1484,9 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
     // Draw each rank separately
     const rankData = [
-      { rank: 1, badgeXKey: 'rank1BadgeX', badgeYKey: 'rank1BadgeY', nameXKey: 'rank1NameX', nameYKey: 'rank1NameY', unitXKey: 'rank1UnitX', unitYKey: 'rank1UnitY', color: c.rank1Color, text: c.rank1Text, badgeId: 'rank1Badge', nameId: 'rank1Name', unitId: 'rank1Unit', sampleName: 'Ameer favas', sampleUnit: 'zanzibari Souqs' },
-      { rank: 2, badgeXKey: 'rank2BadgeX', badgeYKey: 'rank2BadgeY', nameXKey: 'rank2NameX', nameYKey: 'rank2NameY', unitXKey: 'rank2UnitX', unitYKey: 'rank2UnitY', color: c.rank2Color, text: c.rank2Text, badgeId: 'rank2Badge', nameId: 'rank2Name', unitId: 'rank2Unit', sampleName: 'Swadiq Jafar', sampleUnit: 'zanzibari Souqs' },
-      { rank: 3, badgeXKey: 'rank3BadgeX', badgeYKey: 'rank3BadgeY', nameXKey: 'rank3NameX', nameYKey: 'rank3NameY', unitXKey: 'rank3UnitX', unitYKey: 'rank3UnitY', color: c.rank3Color, text: c.rank3Text, badgeId: 'rank3Badge', nameId: 'rank3Name', unitId: 'rank3Unit', sampleName: 'Midlaj Musthafa', sampleUnit: 'zanzibari Souqs' },
+      { rank: 1, badgeXKey: 'rank1BadgeX', badgeYKey: 'rank1BadgeY', nameXKey: 'rank1NameX', nameYKey: 'rank1NameY', unitXKey: 'rank1UnitX', unitYKey: 'rank1UnitY', color: c.rank1Color, text: c.rank1Text, badgeId: 'rank1Badge', nameId: 'rank1Name', unitId: 'rank1Unit', sampleName: 'Participant Name 1', sampleUnit: 'Team Name' },
+      { rank: 2, badgeXKey: 'rank2BadgeX', badgeYKey: 'rank2BadgeY', nameXKey: 'rank2NameX', nameYKey: 'rank2NameY', unitXKey: 'rank2UnitX', unitYKey: 'rank2UnitY', color: c.rank2Color, text: c.rank2Text, badgeId: 'rank2Badge', nameId: 'rank2Name', unitId: 'rank2Unit', sampleName: 'Participant Name 2', sampleUnit: 'Team Name' },
+      { rank: 3, badgeXKey: 'rank3BadgeX', badgeYKey: 'rank3BadgeY', nameXKey: 'rank3NameX', nameYKey: 'rank3NameY', unitXKey: 'rank3UnitX', unitYKey: 'rank3UnitY', color: c.rank3Color, text: c.rank3Text, badgeId: 'rank3Badge', nameId: 'rank3Name', unitId: 'rank3Unit', sampleName: 'Participant Name 3', sampleUnit: 'Team Name' },
     ];
 
     rankData.forEach(rd => {
