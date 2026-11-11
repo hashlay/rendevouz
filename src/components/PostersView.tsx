@@ -816,8 +816,8 @@ const RangeControl = React.memo(({ label, value, onChange, min, max, step = 1 }:
 
 export default function PostersView({ user, token, eventSettings, onSettingsUpdated }: PosterGeneratorViewProps) {
   const entityLabel = eventSettings?.entityMode === 'house' ? 'House' : eventSettings?.entityMode === 'team' ? 'Team' : 'Unit';
-  const festivalName = eventSettings?.festivalName || 'Sahityotsav';
-  const campusName = eventSettings?.campusName || eventSettings?.sectorName || 'Campus';
+  const festivalName = eventSettings?.festivalName || 'QUERENCIA';
+  const campusName = eventSettings?.campusName || eventSettings?.sectorName || 'Thwaiba Valliyad';
 
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<Result[]>([]);

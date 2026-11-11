@@ -30,7 +30,7 @@ export const StyledQRCode: React.FC<StyledQRCodeProps> = ({
   const qrData = useMemo(() => {
     try {
       const qr = qrcode(0, 'M');
-      qr.addData(value || 'https://rendezvous26.com');
+      qr.addData(value || (typeof window !== 'undefined' ? window.location.origin : 'https://querencia.live'));
       qr.make();
       const count = qr.getModuleCount();
       const margin = 2;

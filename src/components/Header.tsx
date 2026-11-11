@@ -59,7 +59,7 @@ export default function Header({ user, activeTab, setMobileOpen, eventSettings, 
             {getTabTitle(activeTab)}
           </h1>
           <span className="hidden sm:inline-block text-[10px] font-semibold text-slate-400 mt-0.5 tracking-wider uppercase font-mono">
-            {eventSettings?.campusName || eventSettings?.sectorName || 'Campus'} • {eventSettings?.festivalName || eventSettings?.eventTitle || 'Sahityotsav'}
+            {eventSettings?.campusName || eventSettings?.sectorName || 'Thwaiba Valliyad'} • {eventSettings?.festivalName || eventSettings?.eventTitle || 'QUERENCIA'}
           </span>
         </div>
       </div>

@@ -116,7 +116,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   // CMS Settings form states
   const [sectorName, setSectorName] = useState('');
   const [eventTitle, setEventTitle] = useState('');
-  const [festivalName, setFestivalName] = useState('Sahityotsav');
+  const [festivalName, setFestivalName] = useState('QUERENCIA');
   const [campusName, setCampusName] = useState('Campus');
   const [ssfLogoUrl, setSsfLogoUrl] = useState('');
   const [sahityotsavLogoUrl, setSahityotsavLogoUrl] = useState('');
@@ -275,12 +275,12 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
         fetch(`/api/categories?t=${Date.now()}`)
       ]);
       const data = await sRes.json();
-      setSectorName(data.sectorName || 'Swalahul Huda Academy');
-      setEventTitle(data.eventTitle || 'Meelad Fest');
-      setFestivalName(data.festivalName || 'FANOUS 2K26');
-      setCampusName(data.campusName || data.sectorName || 'Swalahul Huda Academy');
-      setSsfLogoUrl(data.ssfLogoUrl || '/fanous_logo.png');
-      setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '/fanous_logo.png');
+      setSectorName(data.sectorName || 'Thwaiba Valliyad');
+      setEventTitle(data.eventTitle || 'Decoding a Century of Wisdom');
+      setFestivalName(data.festivalName || 'QUERENCIA');
+      setCampusName(data.campusName || data.sectorName || 'Thwaiba Valliyad');
+      setSsfLogoUrl(data.ssfLogoUrl || '/querencia_logo.png');
+      setSahityotsavLogoUrl(data.sahityotsavLogoUrl || '/querencia_logo.png');
       setCertTheme1Url(data.certTheme1Url || '');
       setCertTheme2Url(data.certTheme2Url || '');
       setCertTheme3Url(data.certTheme3Url || '');
@@ -623,7 +623,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                 required
                 value={festivalName}
                 onChange={(e) => setFestivalName(e.target.value)}
-                placeholder="e.g. Sahityotsav"
+                placeholder="e.g. QUERENCIA"
                 className="mt-1.5 block w-full px-3 py-2.5 border border-slate-300 rounded-xl text-slate-900 focus:outline-none font-bold"
               />
             </div>

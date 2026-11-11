@@ -240,12 +240,13 @@ export default function CertificatesView({ user, token, eventSettings, onSetting
         files.push(new File([blob], fileName, { type: 'image/jpeg' }));
       }
 
-      const festivalTitle = (eventSettings?.festivalName || 'RENDEZVOUS 26').toUpperCase();
+      const festivalTitle = (eventSettings?.festivalName || 'QUERENCIA').toUpperCase();
       const compIdx = competitions.findIndex(c => c.id === comp.id) + 1;
       const formattedNum = compIdx > 0 ? String(compIdx).padStart(2, '0') : '01';
-      const slogan = eventSettings?.festivalTagline || eventSettings?.slogan || 'Meelad Fest';
-      const campus = eventSettings?.campusName || eventSettings?.sectorName || 'Swalahul Huda Academy';
-      const hashtags = eventSettings?.shareHashtags || '#Fanous2K26 #SwalahulHudaAcademy #MeeladFest #Results #Muchila';
+      const slogan = eventSettings?.tagline || eventSettings?.festivalTagline || eventSettings?.slogan || 'Decoding a Century of Wisdom';
+      const campus = eventSettings?.campusName || eventSettings?.sectorName || 'Thwaiba Valliyad';
+      const cleanTag = festivalTitle.replace(/[^a-zA-Z0-9]/g, '');
+      const hashtags = eventSettings?.shareHashtags || `#${cleanTag} #Certificate #Winners #ThwaibaValliyad`;
 
       const catName = categories.find(c => c.id === comp.categoryId)?.name || '';
 
@@ -283,7 +284,10 @@ ${winnersSummary}
 🌿 Congratulations to all the winners and participants!
 May your talents continue to shine. ✨
 ${campus}
-${hashtags}`;
+
+${hashtags}
+
+© Zenith Software`;
 
       if (navigator.canShare && navigator.canShare({ files })) {
         await navigator.share({

@@ -151,15 +151,15 @@ function ensureDbExists() {
       if (!db.gallery) db.gallery = [];
       if (!db.videoHighlights) db.videoHighlights = [];
       if (!db.eventSettings) db.eventSettings = {} as any;
-      if (!db.eventSettings.eventTitle) db.eventSettings.eventTitle = 'A SMILE THAT BRINGS HEARTS TOGETHER';
-      if (!db.eventSettings.festivalName) db.eventSettings.festivalName = 'tabassum';
-      if (!db.eventSettings.campusName) db.eventSettings.campusName = 'Noorul Islam Madrasa, Jeppu';
-      if (!db.eventSettings.sectorName) db.eventSettings.sectorName = 'Noorul Islam Madrasa, Jeppu';
+      if (!db.eventSettings.eventTitle) db.eventSettings.eventTitle = 'Decoding a Century of Wisdom';
+      if (!db.eventSettings.festivalName) db.eventSettings.festivalName = 'QUERENCIA';
+      if (!db.eventSettings.campusName) db.eventSettings.campusName = 'Thwaiba Valliyad';
+      if (!db.eventSettings.sectorName) db.eventSettings.sectorName = 'Thwaiba Valliyad';
       if (!db.eventSettings.eventYear) db.eventSettings.eventYear = '2026';
-      if (!db.eventSettings.venue) db.eventSettings.venue = 'Jeppu';
+      if (!db.eventSettings.venue) db.eventSettings.venue = 'Thwaiba Valliyad';
       if (!db.eventSettings.contactInfo) db.eventSettings.contactInfo = 'zenith.theorganizer@gmail.com';
-      if (!db.eventSettings.ssfLogoUrl || db.eventSettings.ssfLogoUrl.includes('base64') || db.eventSettings.ssfLogoUrl.includes('zenith')) db.eventSettings.ssfLogoUrl = '/tabassum_logo.jpg';
-      if (!db.eventSettings.sahityotsavLogoUrl || db.eventSettings.sahityotsavLogoUrl.includes('base64') || db.eventSettings.sahityotsavLogoUrl.includes('zenith')) db.eventSettings.sahityotsavLogoUrl = '/tabassum_logo.jpg';
+      if (!db.eventSettings.ssfLogoUrl || db.eventSettings.ssfLogoUrl.includes('base64') || db.eventSettings.ssfLogoUrl.includes('zenith') || db.eventSettings.ssfLogoUrl.includes('tabassum') || db.eventSettings.ssfLogoUrl.includes('fanous')) db.eventSettings.ssfLogoUrl = '/querencia_logo.png';
+      if (!db.eventSettings.sahityotsavLogoUrl || db.eventSettings.sahityotsavLogoUrl.includes('base64') || db.eventSettings.sahityotsavLogoUrl.includes('zenith') || db.eventSettings.sahityotsavLogoUrl.includes('tabassum') || db.eventSettings.sahityotsavLogoUrl.includes('fanous')) db.eventSettings.sahityotsavLogoUrl = '/querencia_logo.png';
       if (!db.eventSettings.participantLoginCriteria || db.eventSettings.participantLoginCriteria === 'dob') db.eventSettings.participantLoginCriteria = 'class';
       return;
     } catch (e) {

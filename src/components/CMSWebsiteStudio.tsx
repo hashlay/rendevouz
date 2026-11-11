@@ -15,17 +15,17 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
   const [heroMedia, setHeroMedia] = useState<HeroMedia[]>([]);
   const [settings, setSettings] = useState<CMSSettings>({
     aboutTitle: '', aboutSubtitle: '', aboutDescription: '', aboutImage: '', footerText: '',
-    themeTitle: 'Meelad Fest', themeDescription: '',
-    heroTitle: 'FANOUS 2K26', heroSubtitle: 'Meelad Fest', heroDate: 'October 9, 2026', heroLocation: 'Rifayiya Juma Masjid Muchila',
-    headerLogoTitle: 'FANOUS',
-    headerLogoSubtitle: '2K26',
-    heroLogoTitle: 'FANOUS 2K26',
-    heroLogoSubtitle: 'Meelad Fest',
-    heroLogoBadge: 'SWALAHUL HUDA ACADEMY',
-    heroDesktopImages: ['/fanous_hero_desktop.jpg'],
+    themeTitle: 'Querencia', themeDescription: '',
+    heroTitle: 'QUERENCIA', heroSubtitle: 'Decoding a Century of Wisdom', heroDate: 'November 27, 28, 29, 2026', heroLocation: 'Thwaiba Valliyad',
+    headerLogoTitle: 'QUERENCIA',
+    headerLogoSubtitle: '',
+    heroLogoTitle: 'QUERENCIA',
+    heroLogoSubtitle: 'Decoding a Century of Wisdom',
+    heroLogoBadge: 'THWAIBA VALLIYAD',
+    heroDesktopImages: [],
     heroDesktopLoopEnabled: true,
     heroDesktopLoopInterval: 5,
-    heroMobileImages: ['/fanous_hero_mobile.jpg'],
+    heroMobileImages: [],
     heroMobileLoopEnabled: true,
     heroMobileLoopInterval: 5,
   });
@@ -130,53 +130,53 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
         setHeroMedia(data.heroMedia || []);
         const mergedSettings = data.cmsSettings || {};
         const DEFAULT_CMS_SETTINGS: any = {
-          headerLogoTitle: 'FANOUS',
-          headerLogoSubtitle: '2K26',
-          heroLogoTitle: 'FANOUS 2K26',
-          heroLogoSubtitle: 'Meelad Fest',
-          heroLogoBadge: 'SWALAHUL HUDA ACADEMY',
+          headerLogoTitle: 'QUERENCIA',
+          headerLogoSubtitle: '',
+          heroLogoTitle: 'QUERENCIA',
+          heroLogoSubtitle: 'Decoding a Century of Wisdom',
+          heroLogoBadge: 'THWAIBA VALLIYAD',
           heroHideLogo: false,
-          heroTitle: 'FANOUS 2K26',
-          heroSubtitle: 'Meelad Fest',
-          heroInstitutionLeft: 'Swalahul Huda',
-          heroInstitutionRight: 'Academy',
-          heroDate: 'October 9, 2026',
-          heroLocation: 'Rifayiya Juma Masjid Muchila',
+          heroTitle: 'QUERENCIA',
+          heroSubtitle: 'Decoding a Century of Wisdom',
+          heroInstitutionLeft: 'Thwaiba',
+          heroInstitutionRight: 'Valliyad',
+          heroDate: 'November 27, 28, 29, 2026',
+          heroLocation: 'Thwaiba Valliyad',
           aboutBadge: 'Festival Vision',
           aboutMainHeading: 'ABOUT THE <span class="text-[#18BA46]">FESTIVAL</span>',
-          aboutTitle: 'Swalahul Huda Academy',
-          aboutSubtitle: 'Fanous 2K26 – Meelad Fest',
-          aboutDescription: 'Swalahul Huda Academy, functioning under the guidance and management of Rifayiya Juma Masjid Muchila, proudly presents FANOUS 2K26 in grand celebration of Meelad Fest. This annual arts and cultural festival provides an inspiring platform dedicated to nurturing intellectual, literary, and moral excellence among students.',
+          aboutTitle: 'Thwaiba Valliyad',
+          aboutSubtitle: 'Querencia – Decoding a Century of Wisdom',
+          aboutDescription: 'Thwaiba Valliyad proudly presents QUERENCIA under the theme "Decoding a Century of Wisdom". This grand festival provides an inspiring platform dedicated to nurturing intellectual, literary, and moral excellence among students.',
           aboutImageBadge: 'MAIN STAGE',
-          aboutImageTitle: 'FANOUS 2K26',
-          aboutImageSubtitle: 'Grand Cultural & Literary Fest',
-          aboutImageLocation: 'Rifayiya Juma Masjid Muchila',
-          aboutImageFooter: 'Swalahul Huda Academy',
-          themeTitle: 'Meelad Fest',
-          themeDescription: 'An inspiring confluence of artistic devotion, ethical scholarship, and youth talent commemorating Meelad Fest at Rifayiya Juma Masjid Muchila.',
+          aboutImageTitle: 'QUERENCIA',
+          aboutImageSubtitle: 'Decoding a Century of Wisdom',
+          aboutImageLocation: 'Thwaiba Valliyad',
+          aboutImageFooter: 'Thwaiba Valliyad',
+          themeTitle: 'Querencia',
+          themeDescription: 'An inspiring celebration of talent, creativity, knowledge, and togetherness, proudly organized by Thwaiba Valliyad under the theme "Decoding a Century of Wisdom".',
           themeButtonText: 'READ FESTIVAL CONCEPT',
           conceptModalBadge: 'Festival Concept & Vision',
-          conceptModalTitle: 'FANOUS 2K26 — MEELAD FEST',
-          conceptModalSubtitle: 'Swalahul Huda Academy • Under Rifayiya Juma Masjid Muchila',
-          conceptModalFooter: 'FANOUS 2K26 • Swalahul Huda Academy',
-          conceptModalDescription: 'FANOUS 2K26 is the premier annual arts, literary, and cultural festival presented by Swalahul Huda Academy, functioning under the guidance and management of Rifayiya Juma Masjid Muchila. Commemorating the auspicious occasion of Meelad Fest, FANOUS stands as a radiant beacon of intellectual illumination, spiritual devotion, and artistic excellence.\n\nThe festival is designed to nurture and showcase the multidimensional talents of students across diverse artistic, literary, and oratory disciplines. Through rigorous academic competitions, creative writing, elocution, calligraphy, and cultural renditions, participants are inspired to achieve the highest benchmarks of performance and moral integrity.\n\nFANOUS—meaning "The Lantern of Guidance"—symbolizes the radiant light of knowledge that dispels ignorance. Rooted in traditional Islamic ethics and progressive scholastic aspirations, this grand platform fosters brotherhood, healthy competitive spirit, and collaborative leadership among students.\n\nWith comprehensive judging standards, dynamic digital tabulation, and an inspiring celebration of youth potential, FANOUS 2K26 unites students, teachers, and the broader community in a joyous commemoration of love, wisdom, and creative devotion for Meelad Fest.',
-          footerLogo: '/fanous_logo.png',
-          footerLogoTitle: 'FANOUS',
-          footerLogoSubtitle: '2K26',
-          footerLogoBadge: 'SWALAHUL HUDA ACADEMY',
-          footerDescription: 'Fanous 2K26 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Swalahul Huda Academy at Rifayiya Juma Masjid Muchila.',
-          footerLocation: 'Rifayiya Juma Masjid Muchila',
+          conceptModalTitle: 'QUERENCIA — DECODING A CENTURY OF WISDOM',
+          conceptModalSubtitle: 'Thwaiba Valliyad',
+          conceptModalFooter: 'QUERENCIA • Thwaiba Valliyad',
+          conceptModalDescription: 'Querencia is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Thwaiba Valliyad under the theme "Decoding a Century of Wisdom".\n\nThe festival is designed to nurture and showcase the multidimensional talents of students across diverse artistic, literary, and oratory disciplines. Through rigorous academic competitions, creative writing, elocution, calligraphy, and cultural renditions, participants are inspired to achieve the highest benchmarks of performance and moral integrity.\n\nQuerencia symbolizes a sanctuary where strength and character are drawn, celebrating a century of enduring wisdom and heritage.\n\nWith comprehensive judging standards, dynamic digital tabulation, and an inspiring celebration of youth potential, QUERENCIA unites students, teachers, and the broader community in a joyous commemoration of wisdom and creative devotion.',
+          footerLogo: '/querencia_logo.png',
+          footerLogoTitle: 'QUERENCIA',
+          footerLogoSubtitle: '',
+          footerLogoBadge: 'THWAIBA VALLIYAD',
+          footerDescription: 'Querencia is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Thwaiba Valliyad under the theme "Decoding a Century of Wisdom".',
+          footerLocation: 'Thwaiba Valliyad',
           footerEmail: 'zenith.theorganizer@gmail.com',
           footerPhone: '+91 7483138340',
           footerInstagram: 'https://instagram.com',
           footerYoutube: 'https://youtube.com',
           footerFacebook: 'https://facebook.com',
-          footerText: '© 2026 Fanous 2K26 – Meelad Fest. Swalahul Huda Academy. All rights reserved. Developed by Zenith.',
-          copyrightText: '© 2026 Fanous 2K26 – Meelad Fest. Swalahul Huda Academy. All rights reserved. Developed by Zenith.',
-          heroDesktopImages: ['/fanous_hero_desktop.jpg'],
+          footerText: '© 2026 Querencia. Thwaiba Valliyad. All rights reserved. Developed by Zenith Software.',
+          copyrightText: '© 2026 Querencia. Thwaiba Valliyad. All rights reserved. Developed by Zenith Software.',
+          heroDesktopImages: [],
           heroDesktopLoopEnabled: true,
           heroDesktopLoopInterval: 5,
-          heroMobileImages: ['/fanous_hero_mobile.jpg'],
+          heroMobileImages: [],
           heroMobileLoopEnabled: true,
           heroMobileLoopInterval: 5
         };
@@ -187,11 +187,11 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
             finalSettings[key] = mergedSettings[key];
           }
         });
-        if (!finalSettings.heroMobileImages || finalSettings.heroMobileImages.length === 0) {
-          finalSettings.heroMobileImages = ['/fanous_hero_mobile.jpg'];
+        if (!finalSettings.heroMobileImages) {
+          finalSettings.heroMobileImages = [];
         }
-        if (!finalSettings.heroDesktopImages || finalSettings.heroDesktopImages.length === 0) {
-          finalSettings.heroDesktopImages = ['/fanous_hero_desktop.jpg'];
+        if (!finalSettings.heroDesktopImages) {
+          finalSettings.heroDesktopImages = [];
         }
         setSettings(finalSettings);
         if (mergedSettings.colorTheme) {
@@ -563,11 +563,11 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Header Logo Title</label>
-                    <input type="text" value={settings.headerLogoTitle !== undefined ? settings.headerLogoTitle : 'RENDEZVOUS'} onChange={(e) => setSettings({ ...settings, headerLogoTitle: e.target.value })} placeholder="RENDEZVOUS" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.headerLogoTitle !== undefined ? settings.headerLogoTitle : 'QUERENCIA'} onChange={(e) => setSettings({ ...settings, headerLogoTitle: e.target.value })} placeholder="QUERENCIA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Header Logo Subtitle</label>
-                    <input type="text" value={settings.headerLogoSubtitle !== undefined ? settings.headerLogoSubtitle : '26'} onChange={(e) => setSettings({ ...settings, headerLogoSubtitle: e.target.value })} placeholder="26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.headerLogoSubtitle !== undefined ? settings.headerLogoSubtitle : ''} onChange={(e) => setSettings({ ...settings, headerLogoSubtitle: e.target.value })} placeholder="" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                 </div>
               </div>
@@ -627,39 +627,39 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Title</label>
-                    <input type="text" value={settings.heroLogoTitle !== undefined ? settings.heroLogoTitle : 'RENDEZVOUS'} onChange={(e) => setSettings({ ...settings, heroLogoTitle: e.target.value })} placeholder="RENDEZVOUS" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoTitle !== undefined ? settings.heroLogoTitle : 'QUERENCIA'} onChange={(e) => setSettings({ ...settings, heroLogoTitle: e.target.value })} placeholder="QUERENCIA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Subtitle</label>
-                    <input type="text" value={settings.heroLogoSubtitle !== undefined ? settings.heroLogoSubtitle : '26'} onChange={(e) => setSettings({ ...settings, heroLogoSubtitle: e.target.value })} placeholder="26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoSubtitle !== undefined ? settings.heroLogoSubtitle : 'Decoding a Century of Wisdom'} onChange={(e) => setSettings({ ...settings, heroLogoSubtitle: e.target.value })} placeholder="Decoding a Century of Wisdom" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Badge</label>
-                    <input type="text" value={settings.heroLogoBadge !== undefined ? settings.heroLogoBadge : 'IMAM RABBANI LIFE FESTIVAL'} onChange={(e) => setSettings({ ...settings, heroLogoBadge: e.target.value })} placeholder="SWALAHUL HUDA ACADEMY" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
+                    <input type="text" value={settings.heroLogoBadge !== undefined ? settings.heroLogoBadge : 'THWAIBA VALLIYAD'} onChange={(e) => setSettings({ ...settings, heroLogoBadge: e.target.value })} placeholder="THWAIBA VALLIYAD" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-800" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Main Title</label>
-                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} placeholder="RENDEZVOUS 26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroTitle} onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })} placeholder="QUERENCIA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Subtitle</label>
-                    <input type="text" value={settings.heroSubtitle} onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroSubtitle} onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })} placeholder="Decoding a Century of Wisdom" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Institution Text (Left)</label>
-                    <input type="text" value={settings.heroInstitutionLeft} onChange={(e) => setSettings({ ...settings, heroInstitutionLeft: e.target.value })} placeholder="Swalahul Huda" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroInstitutionLeft} onChange={(e) => setSettings({ ...settings, heroInstitutionLeft: e.target.value })} placeholder="Thwaiba" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Institution Text (Right)</label>
-                    <input type="text" value={settings.heroInstitutionRight} onChange={(e) => setSettings({ ...settings, heroInstitutionRight: e.target.value })} placeholder="Life Festival" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroInstitutionRight} onChange={(e) => setSettings({ ...settings, heroInstitutionRight: e.target.value })} placeholder="Valliyad" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Date string</label>
-                    <input type="text" value={settings.heroDate} onChange={(e) => setSettings({ ...settings, heroDate: e.target.value })} placeholder="2026 September 23, 24" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroDate} onChange={(e) => setSettings({ ...settings, heroDate: e.target.value })} placeholder="November 27, 28, 29, 2026" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-600 mb-1">Location string</label>
-                    <input type="text" value={settings.heroLocation} onChange={(e) => setSettings({ ...settings, heroLocation: e.target.value })} placeholder="Rifayiya Juma Masjid Muchila" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.heroLocation} onChange={(e) => setSettings({ ...settings, heroLocation: e.target.value })} placeholder="Thwaiba Valliyad" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
               </div>
@@ -678,16 +678,16 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Title</label>
-                    <input type="text" value={settings.aboutTitle} onChange={(e) => setSettings({ ...settings, aboutTitle: e.target.value })} placeholder="Swalahul Huda Academy" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutTitle} onChange={(e) => setSettings({ ...settings, aboutTitle: e.target.value })} placeholder="Thwaiba Valliyad" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Subtitle</label>
-                    <input type="text" value={settings.aboutSubtitle} onChange={(e) => setSettings({ ...settings, aboutSubtitle: e.target.value })} placeholder="Off-Campus of Markaz Garden, Poonoor" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutSubtitle} onChange={(e) => setSettings({ ...settings, aboutSubtitle: e.target.value })} placeholder="Querencia – Decoding a Century of Wisdom" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Description</label>
-                  <textarea value={settings.aboutDescription} onChange={(e) => setSettings({ ...settings, aboutDescription: e.target.value })} placeholder="Swalahul Huda Academy proudly presents FANOUS 2K26..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-24" />
+                  <textarea value={settings.aboutDescription} onChange={(e) => setSettings({ ...settings, aboutDescription: e.target.value })} placeholder="Thwaiba Valliyad proudly presents QUERENCIA under the theme 'Decoding a Century of Wisdom'..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-24" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">About Image Background</label>
@@ -721,19 +721,19 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Title</label>
-                    <input type="text" value={settings.aboutImageTitle} onChange={(e) => setSettings({ ...settings, aboutImageTitle: e.target.value })} placeholder="SWALAHUL HUDA ACADEMY" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutImageTitle} onChange={(e) => setSettings({ ...settings, aboutImageTitle: e.target.value })} placeholder="QUERENCIA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Subtitle</label>
-                    <input type="text" value={settings.aboutImageSubtitle} onChange={(e) => setSettings({ ...settings, aboutImageSubtitle: e.target.value })} placeholder="Distinguished Scholars & Dignitaries at Grand Assembly" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutImageSubtitle} onChange={(e) => setSettings({ ...settings, aboutImageSubtitle: e.target.value })} placeholder="Decoding a Century of Wisdom" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Location</label>
-                    <input type="text" value={settings.aboutImageLocation} onChange={(e) => setSettings({ ...settings, aboutImageLocation: e.target.value })} placeholder="Main Stage Auditorium • Markaz Garden Campus" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutImageLocation} onChange={(e) => setSettings({ ...settings, aboutImageLocation: e.target.value })} placeholder="Main Stage • Thwaiba Valliyad" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Image Footer</label>
-                    <input type="text" value={settings.aboutImageFooter} onChange={(e) => setSettings({ ...settings, aboutImageFooter: e.target.value })} placeholder="Markaz Garden Off-Campus" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.aboutImageFooter} onChange={(e) => setSettings({ ...settings, aboutImageFooter: e.target.value })} placeholder="Thwaiba Valliyad" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
               </div>
@@ -767,21 +767,21 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Footer</label>
-                    <input type="text" value={settings.conceptModalFooter} onChange={(e) => setSettings({ ...settings, conceptModalFooter: e.target.value })} placeholder="Rendezvous 26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalFooter} onChange={(e) => setSettings({ ...settings, conceptModalFooter: e.target.value })} placeholder="QUERENCIA • Thwaiba Valliyad" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Title</label>
-                    <input type="text" value={settings.conceptModalTitle} onChange={(e) => setSettings({ ...settings, conceptModalTitle: e.target.value })} placeholder="FANOUS 2K26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalTitle} onChange={(e) => setSettings({ ...settings, conceptModalTitle: e.target.value })} placeholder="QUERENCIA — DECODING A CENTURY OF WISDOM" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Modal Subtitle</label>
-                    <input type="text" value={settings.conceptModalSubtitle} onChange={(e) => setSettings({ ...settings, conceptModalSubtitle: e.target.value })} placeholder="Meelad Fest" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.conceptModalSubtitle} onChange={(e) => setSettings({ ...settings, conceptModalSubtitle: e.target.value })} placeholder="Thwaiba Valliyad" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Modal Description (Paragraphs)</label>
                   <p className="text-[10px] text-slate-400 mb-1">Separate paragraphs with a blank line.</p>
-                  <textarea value={settings.conceptModalDescription} onChange={(e) => setSettings({ ...settings, conceptModalDescription: e.target.value })} placeholder="“Fanous – Meelad Fest 2K26”, the grand celebration of faith, knowledge, and creativity..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-32" />
+                  <textarea value={settings.conceptModalDescription} onChange={(e) => setSettings({ ...settings, conceptModalDescription: e.target.value })} placeholder="Querencia is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Thwaiba Valliyad..." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm h-32" />
                 </div>
               </div>
 
@@ -824,27 +824,27 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Title</label>
-                    <input type="text" value={settings.footerLogoTitle} onChange={(e) => setSettings({ ...settings, footerLogoTitle: e.target.value })} placeholder="RENDEZVOUS" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLogoTitle} onChange={(e) => setSettings({ ...settings, footerLogoTitle: e.target.value })} placeholder="QUERENCIA" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Subtitle</label>
-                    <input type="text" value={settings.footerLogoSubtitle} onChange={(e) => setSettings({ ...settings, footerLogoSubtitle: e.target.value })} placeholder="26" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLogoSubtitle} onChange={(e) => setSettings({ ...settings, footerLogoSubtitle: e.target.value })} placeholder="" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Logo Badge</label>
-                    <input type="text" value={settings.footerLogoBadge} onChange={(e) => setSettings({ ...settings, footerLogoBadge: e.target.value })} placeholder="SWALAHUL HUDA ACADEMY" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLogoBadge} onChange={(e) => setSettings({ ...settings, footerLogoBadge: e.target.value })} placeholder="THWAIBA VALLIYAD" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Footer Description</label>
-                  <textarea rows={3} value={settings.footerDescription} onChange={(e) => setSettings({ ...settings, footerDescription: e.target.value })} placeholder="Fanous 2K26 is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Swalahul Huda Academy at Rifayiya Juma Masjid Muchila." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                  <textarea rows={3} value={settings.footerDescription} onChange={(e) => setSettings({ ...settings, footerDescription: e.target.value })} placeholder="Querencia is a vibrant celebration of talent, creativity, knowledge, and togetherness, proudly organized by Thwaiba Valliyad under the theme 'Decoding a Century of Wisdom'." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Location</label>
-                    <input type="text" value={settings.footerLocation} onChange={(e) => setSettings({ ...settings, footerLocation: e.target.value })} placeholder="Rifayiya Juma Masjid Muchila" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={settings.footerLocation} onChange={(e) => setSettings({ ...settings, footerLocation: e.target.value })} placeholder="Thwaiba Valliyad" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
@@ -870,7 +870,7 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Copyright Text</label>
-                  <input type="text" value={settings.footerText} onChange={(e) => setSettings({ ...settings, footerText: e.target.value })} placeholder="© 2026 Fanous 2K26 – Meelad Fest. Swalahul Huda Academy. All rights reserved. Developed by Zenith." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                  <input type="text" value={settings.footerText} onChange={(e) => setSettings({ ...settings, footerText: e.target.value })} placeholder="© 2026 Querencia. Thwaiba Valliyad. All rights reserved. Developed by Zenith Software." className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                 </div>
               </div>
 

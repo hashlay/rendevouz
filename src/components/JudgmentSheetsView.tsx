@@ -518,8 +518,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         <div className="text-center mb-6">
           <div className="flex items-center justify-center mb-3">
             <img
-              src={eventSettings?.sahityotsavLogoUrl || '/logos/sahityotsav-logo.png'}
-              alt="Sahityotsav"
+              src={eventSettings?.sahityotsavLogoUrl || '/querencia_logo.png'}
+              alt={eventSettings?.festivalName || 'QUERENCIA'}
               className="h-12 max-h-12 w-auto object-contain"
               style={{ height: '48px', maxHeight: '48px', maxWidth: '160px', width: 'auto', objectFit: 'contain' }}
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -625,10 +625,10 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
           {/* Header */}
           <div className="border-b-2 border-black pb-4 mb-4 text-center">
             <h1 className="text-xl font-black uppercase tracking-wider">
-              {eventSettings?.festivalName || 'RENDEZVOUS 26'}
+              {eventSettings?.festivalName || 'QUERENCIA'}
             </h1>
             <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-0.5">
-              {eventSettings?.campusName || eventSettings?.sectorName || 'Swalahul Huda Academy'}
+              {eventSettings?.campusName || eventSettings?.sectorName || 'Thwaiba Valliyad'}
             </p>
             <div className="mt-2 inline-block bg-black text-white text-[11px] font-bold px-3 py-0.5 uppercase tracking-widest rounded">
               Official Stage Announcement Winners Sheet

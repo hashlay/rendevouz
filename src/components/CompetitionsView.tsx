@@ -466,7 +466,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-xl font-bold uppercase tracking-wider text-slate-900">
-              {eventSettings?.festName || 'RENDEZVOUS 26'}
+              {eventSettings?.festName || eventSettings?.festivalName || 'QUERENCIA'}
             </h1>
             <h2 className="text-sm font-semibold text-slate-700 mt-1">
               Competitions Master List {selectedCategoryId ? `— ${categories.find(c => c.id === selectedCategoryId)?.name || ''}` : ''}

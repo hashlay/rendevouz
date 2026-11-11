@@ -859,8 +859,8 @@ const RangeControl = React.memo(({ label, value, onChange, min, max, step = 1 }:
 });
 
 export default function PosterSettingsView({ user, token, eventSettings, onSettingsUpdated }: PosterSettingsViewProps) {
-  const festivalName = eventSettings?.festivalName || 'Sahityotsav';
-  const campusName = eventSettings?.campusName || eventSettings?.sectorName || 'Campus';
+  const festivalName = eventSettings?.festivalName || 'QUERENCIA';
+  const campusName = eventSettings?.campusName || eventSettings?.sectorName || 'Thwaiba Valliyad';
 
   const defaultThemes = [
     '/themes/theme_brown.jpg',

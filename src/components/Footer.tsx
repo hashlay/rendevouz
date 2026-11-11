@@ -6,8 +6,8 @@ interface FooterProps {
 }
 
 export default function Footer({ eventSettings }: FooterProps) {
-  const sector = (eventSettings?.campusName || eventSettings?.sectorName || 'Sahityotsav').toUpperCase();
-  const festival = eventSettings?.festivalName || 'Sahityotsav';
+  const sector = (eventSettings?.campusName || eventSettings?.sectorName || 'Thwaiba Valliyad').toUpperCase();
+  const festival = eventSettings?.festivalName || 'QUERENCIA';
 
   return (
     <footer className="w-full py-4 mt-auto border-t border-slate-100 bg-white text-center text-xs text-slate-500 font-sans select-none no-print">

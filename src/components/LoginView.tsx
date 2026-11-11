@@ -146,9 +146,10 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
             eventSettings.ssfLogoUrl.includes('base64') ||
             eventSettings.ssfLogoUrl.includes('zenith') ||
             eventSettings.ssfLogoUrl.includes('ssf_logo') ||
-            eventSettings.ssfLogoUrl.includes('tabassum')
+            eventSettings.ssfLogoUrl.includes('tabassum') ||
+            eventSettings.ssfLogoUrl.includes('fanous')
           );
-          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/fanous_logo.png';
+          const adminLogoUrl = (!isOldLogo && eventSettings?.ssfLogoUrl) ? eventSettings.ssfLogoUrl : '/querencia_logo.png';
 
           return eventSettings?.fillLogo ? (
             <div className="flex justify-center items-center py-1 text-center w-full">
@@ -165,8 +166,8 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                 }}
                 onError={(e) => {
                   const target = e.currentTarget;
-                  if (!target.src.includes('fanous_logo.png')) {
-                    target.src = '/fanous_logo.png';
+                  if (!target.src.includes('querencia_logo.png')) {
+                    target.src = '/querencia_logo.png';
                   } else {
                     target.style.display = 'none';
                   }
@@ -181,8 +182,8 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
                 className="h-12 w-12 object-contain shrink-0 drop-shadow-xs"
                 onError={(e) => {
                   const target = e.currentTarget;
-                  if (!target.src.includes('fanous_logo.png')) {
-                    target.src = '/fanous_logo.png';
+                  if (!target.src.includes('querencia_logo.png')) {
+                    target.src = '/querencia_logo.png';
                   } else {
                     target.style.display = 'none';
                   }
@@ -191,10 +192,10 @@ export default function LoginView({ onLoginSuccess, eventSettings, sessionExpire
               <div className="h-8 w-px bg-slate-300" />
               <div className="flex flex-col items-start text-left">
                 <span className="font-display font-bold text-emerald-900 text-base tracking-tight leading-none uppercase">
-                  {eventSettings?.festivalName || 'RENDEZVOUS 26'}
+                  {eventSettings?.festivalName || 'QUERENCIA'}
                 </span>
                 <span className="text-amber-600 font-mono text-[10px] font-semibold tracking-widest mt-1 uppercase">
-                  {eventSettings?.campusName || eventSettings?.sectorName || 'Swalahul Huda Academy'}
+                  {eventSettings?.campusName || eventSettings?.sectorName || 'Thwaiba Valliyad'}
                 </span>
               </div>
             </div>

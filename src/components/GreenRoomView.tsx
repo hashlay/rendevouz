@@ -232,8 +232,8 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
         <div className="text-center mb-6">
           <div className="flex items-center justify-center mb-3">
             <img
-              src={eventSettings?.sahityotsavLogoUrl || '/logos/sahityotsav-logo.png'}
-              alt="Sahityotsav"
+              src={eventSettings?.sahityotsavLogoUrl || '/querencia_logo.png'}
+              alt={eventSettings?.festivalName || 'QUERENCIA'}
               className="h-12 max-h-12 w-auto object-contain"
               style={{ height: '48px', maxHeight: '48px', maxWidth: '160px', width: 'auto', objectFit: 'contain' }}
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

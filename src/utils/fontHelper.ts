@@ -46,7 +46,7 @@ export const UNIVERSAL_FONT_OPTIONS: FontOption[] = [
   { label: 'Inter (Sans)', value: 'Inter, sans-serif' },
   { label: 'Outfit (Geometric Sans)', value: 'Outfit, sans-serif' },
   { label: 'Roboto (Sans)', value: 'Roboto, sans-serif' },
-  { label: 'Hochland (Rendezvous Display)', value: 'bold "Hochland", sans-serif' },
+  { label: 'Hochland (Festival Display)', value: 'bold "Hochland", sans-serif' },
   { label: 'Playfair Display (Luxury Serif)', value: '"Playfair Display", serif' },
   { label: 'Cinzel (Classical Elegant Serif)', value: 'Cinzel, serif' },
   { label: 'Cairo (Arabic / Modern)', value: "'Cairo', sans-serif" },
