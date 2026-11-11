@@ -169,14 +169,14 @@ function ensureDbExists() {
 
   // Create fresh seeded database
   const salt = bcrypt.genSaltSync(10);
-  const adminPasswordHash = bcrypt.hashSync(process.env.INITIAL_ADMIN_PASSWORD || 'admin123', salt);
+  const adminPasswordHash = bcrypt.hashSync(process.env.INITIAL_ADMIN_PASSWORD || 'admin@qurencia', salt);
 
   const initialUsers: User[] = [
     {
       id: 'usr_admin',
       fullName: 'Super Administrator',
       username: process.env.INITIAL_ADMIN_USERNAME || 'admin',
-      email: 'admin@ssf.org',
+      email: 'admin@querencia.live',
       passwordHash: adminPasswordHash,
       role: UserRole.SUPER_ADMIN,
       active: true,
@@ -192,10 +192,10 @@ function ensureDbExists() {
   ];
 
   const initialCategories: Category[] = [
-    { id: 'cat_l_zone', name: 'L Zone', startingChestNumber: 101, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
-    { id: 'cat_hi_zone', name: 'Hi Zone', startingChestNumber: 201, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
-    { id: 'cat_d_zone', name: 'D Zone', startingChestNumber: 301, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
-    { id: 'cat_general', name: 'General', startingChestNumber: 501, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true }
+    { id: 'cat_d_zone', name: 'D-Zone', code: 'D-ZN', startingChestNumber: 101, criteriaType: 'class', classes: ['BS1', 'HS2'], classStart: 'BS1', classEnd: 'HS2', active: true },
+    { id: 'cat_hi_zone', name: 'Hi-Zone', code: 'HI-ZN', startingChestNumber: 201, criteriaType: 'class', classes: ['HS1', 'JD3'], classStart: 'HS1', classEnd: 'JD3', active: true },
+    { id: 'cat_l_zone', name: 'L-Zone', code: 'L-ZN', startingChestNumber: 301, criteriaType: 'class', classes: ['JD2', 'JD1'], classStart: 'JD1', classEnd: 'JD2', active: true },
+    { id: 'cat_general', name: 'General', code: 'GEN', startingChestNumber: 501, criteriaType: 'class', classes: ['BS1', 'HS2', 'HS1', 'JD3', 'JD2', 'JD1'], active: true }
   ];
 
   // Default initial competitions array starts empty (0 programs) for new databases
@@ -228,6 +228,7 @@ function ensureDbExists() {
     entityMode: 'team',
     gradeSystemEnabled: true,
     participantLoginCriteria: 'class',
+    availableClasses: ['BS1', 'HS2', 'HS1', 'JD3', 'JD2', 'JD1'],
     globalPointsRank1: 20,
     globalPointsRank2: 14,
     globalPointsRank3: 7,
@@ -242,9 +243,9 @@ function ensureDbExists() {
 
   // Chest number counters - one per category, starting at the specified base values
   const initialCounters: Counter[] = [
-    { id: 'counter_l_zone', categoryId: 'cat_l_zone', currentValue: 100 },
+    { id: 'counter_d_zone', categoryId: 'cat_d_zone', currentValue: 100 },
     { id: 'counter_hi_zone', categoryId: 'cat_hi_zone', currentValue: 200 },
-    { id: 'counter_d_zone', categoryId: 'cat_d_zone', currentValue: 300 },
+    { id: 'counter_l_zone', categoryId: 'cat_l_zone', currentValue: 300 },
     { id: 'counter_general', categoryId: 'cat_general', currentValue: 500 }
   ];
 

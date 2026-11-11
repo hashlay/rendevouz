@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   UserPlus, GraduationCap, ClipboardCheck, AlertTriangle, Check, RefreshCw, X
 } from 'lucide-react';
@@ -46,9 +46,23 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
   const criteriaMode = eventSettings?.participantLoginCriteria || 'class';
   const rawClasses: string[] = (Array.isArray(eventSettings?.availableClasses) && eventSettings.availableClasses.length > 0)
     ? eventSettings.availableClasses
-    : ['+1', '+2'];
-  const availableClasses: string[] = Array.from(new Set(rawClasses.map(c => c.replace(/^Class\s*/i, '').trim()))).filter(Boolean);
-  if (availableClasses.length === 0) availableClasses.push('+1', '+2');
+    : ['BS1', 'HS2', 'HS1', 'JD3', 'JD2', 'JD1'];
+  const allAvailableClasses: string[] = Array.from(new Set(rawClasses.map(c => c.replace(/^Class\s*/i, '').trim()))).filter(Boolean);
+  if (allAvailableClasses.length === 0) allAvailableClasses.push('BS1', 'HS2', 'HS1', 'JD3', 'JD2', 'JD1');
+
+  // Filter classes dynamically based on selected category
+  const selectedCat = categories.find(c => c.id === selectedCategoryId);
+  const availableClasses: string[] = useMemo(() => {
+    if (!selectedCat) return allAvailableClasses;
+    if (selectedCat.classes && Array.isArray(selectedCat.classes) && selectedCat.classes.length > 0) {
+      return selectedCat.classes;
+    }
+    const catNameLower = (selectedCat.name || '').toLowerCase();
+    if (catNameLower.includes('d-zone') || catNameLower.includes('d zone')) return ['BS1', 'HS2'];
+    if (catNameLower.includes('hi-zone') || catNameLower.includes('hi zone')) return ['HS1', 'JD3'];
+    if (catNameLower.includes('l-zone') || catNameLower.includes('l zone')) return ['JD2', 'JD1'];
+    return allAvailableClasses;
+  }, [selectedCat, allAvailableClasses]);
 
   const updateCombinedDob = (d: string, m: string, y: string) => {
     if (d && m && y && y.length === 4) {
