@@ -187,15 +187,14 @@ function ensureDbExists() {
   ];
 
   const initialUnits: Unit[] = [
-    { id: 'unit_sirafi', name: 'Sirafi Seafarers', code: 'SIR', active: true },
-    { id: 'unit_tabrizi', name: 'Tabrizi Taraz', code: 'TAB', active: true },
-    { id: 'unit_zanzibari', name: 'Zanzibari Souqs', code: 'ZAN', active: true }
+    { id: 'unit_nexa_mirat', name: 'Nexa Mirat', code: 'MIR', active: true },
+    { id: 'unit_nexa_faylas', name: 'Nexa Faylas', code: 'FAY', active: true }
   ];
 
   const initialCategories: Category[] = [
-    { id: 'cat_premier', name: 'Premier', startingChestNumber: 101, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
-    { id: 'cat_sub_junior', name: 'Sub Junior', startingChestNumber: 201, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
-    { id: 'cat_junior', name: 'Junior', startingChestNumber: 301, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
+    { id: 'cat_l_zone', name: 'L Zone', startingChestNumber: 101, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
+    { id: 'cat_hi_zone', name: 'Hi Zone', startingChestNumber: 201, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
+    { id: 'cat_d_zone', name: 'D Zone', startingChestNumber: 301, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true },
     { id: 'cat_general', name: 'General', startingChestNumber: 501, dobStart: '2000-01-01', dobEnd: '2026-12-31', active: true }
   ];
 
@@ -203,14 +202,14 @@ function ensureDbExists() {
   const initialCompetitions: Competition[] = [];
 
   const initialSettings: EventSettings = {
-    eventTitle: 'Meelad Fest',
-    festivalName: 'Rendezvous 26',
-    campusName: 'Swalahul Huda Academy',
-    sectorName: 'Swalahul Huda Academy',
+    eventTitle: 'Querencia',
+    festivalName: 'Querencia',
+    campusName: 'Thwaiba Vallyad',
+    sectorName: 'Thwaiba Vallyad',
     eventYear: '2026',
     cutoffDate: '2026-09-01',
-    eventDate: '2026-09-23',
-    venue: 'Rifayiya Juma Masjid Muchila',
+    eventDate: '2026-11-15',
+    venue: 'Thwaiba Vallyad',
     contactInfo: 'zenith.theorganizer@gmail.com',
     maxIndividualEvents: 10,
     maxGroupEvents: 10,
@@ -219,10 +218,10 @@ function ensureDbExists() {
     registrationOpen: true,
     fillLogo: true,
     autoRemoveLogoBg: false,
-    ssfLogoUrl: '/rendezvous_icon.png',
-    sahityotsavLogoUrl: '/rendezvous_logo.png',
-    primaryColor: '#48205D',
-    accentColor: '#48205D',
+    ssfLogoUrl: '/querencia_logo.png',
+    sahityotsavLogoUrl: '/querencia_logo.png',
+    primaryColor: '#18BA46',
+    accentColor: '#18BA46',
     numJudges: 2,
     markDecimalPrecision: 2,
     autoRankingEnabled: true,
@@ -243,10 +242,10 @@ function ensureDbExists() {
 
   // Chest number counters - one per category, starting at the specified base values
   const initialCounters: Counter[] = [
-    { id: 'counter_kids', categoryId: 'cat_kids', currentValue: 100 },
-    { id: 'counter_sub_junior', categoryId: 'cat_sub_junior', currentValue: 200 },
-    { id: 'counter_junior', categoryId: 'cat_junior', currentValue: 300 },
-    { id: 'counter_senior', categoryId: 'cat_senior', currentValue: 400 }
+    { id: 'counter_l_zone', categoryId: 'cat_l_zone', currentValue: 100 },
+    { id: 'counter_hi_zone', categoryId: 'cat_hi_zone', currentValue: 200 },
+    { id: 'counter_d_zone', categoryId: 'cat_d_zone', currentValue: 300 },
+    { id: 'counter_general', categoryId: 'cat_general', currentValue: 500 }
   ];
 
   db = {
