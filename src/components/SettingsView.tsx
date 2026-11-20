@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Settings, Save, Database, Trash2, ShieldAlert,
   RefreshCw, CheckCircle2, Download, Upload, AlertTriangle, Sparkles, UserCheck,
-  GripVertical, ArrowUp, ArrowDown, Plus, RotateCcw, X
+  GripVertical, ArrowUp, ArrowDown, Plus, RotateCcw, X, Layers, Copy
 } from 'lucide-react';
 import { User, UserRole, GradeMatrixRow, DEFAULT_GRADE_MATRIX } from '../types';
 
@@ -126,6 +126,83 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const [gradeSystemEnabled, setGradeSystemEnabled] = useState(true);
   const [gradeMatrix, setGradeMatrix] = useState<GradeMatrixRow[]>(DEFAULT_GRADE_MATRIX);
+  const [categorySpecificGradesEnabled, setCategorySpecificGradesEnabled] = useState(false);
+  const [categoryGradeMatrices, setCategoryGradeMatrices] = useState<Record<string, GradeMatrixRow[]>>({});
+  const [selectedCategoryTierId, setSelectedCategoryTierId] = useState<string>('');
+
+  const getEffectiveCategoryMatrix = (catId: string): GradeMatrixRow[] => {
+    if (categoryGradeMatrices && categoryGradeMatrices[catId] && Array.isArray(categoryGradeMatrices[catId]) && categoryGradeMatrices[catId].length > 0) {
+      return categoryGradeMatrices[catId];
+    }
+    return gradeMatrix && gradeMatrix.length > 0 ? gradeMatrix : DEFAULT_GRADE_MATRIX;
+  };
+
+  const handleUpdateCategoryMatrixRow = (catId: string, idx: number, field: keyof GradeMatrixRow, val: any) => {
+    const current = [...getEffectiveCategoryMatrix(catId)];
+    current[idx] = { ...current[idx], [field]: val };
+    setCategoryGradeMatrices(prev => ({
+      ...prev,
+      [catId]: current
+    }));
+  };
+
+  const handleAddCategoryTier = (catId: string) => {
+    const current = [...getEffectiveCategoryMatrix(catId)];
+    const newId = `row_${Date.now()}`;
+    setCategoryGradeMatrices(prev => ({
+      ...prev,
+      [catId]: [
+        ...current,
+        { id: newId, minMark: 0, maxMark: 25, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 0 }
+      ]
+    }));
+  };
+
+  const handleRemoveCategoryTier = (catId: string, idx: number) => {
+    const current = [...getEffectiveCategoryMatrix(catId)];
+    if (current.length <= 1) {
+      alert("At least one grade tier must remain in the matrix.");
+      return;
+    }
+    setCategoryGradeMatrices(prev => ({
+      ...prev,
+      [catId]: current.filter((_, i) => i !== idx)
+    }));
+  };
+
+  const handleResetCategoryMatrix = (catId: string, catName: string) => {
+    if (window.confirm(`Reset "${catName}" grade distribution matrix to standard festival defaults?`)) {
+      setCategoryGradeMatrices(prev => ({
+        ...prev,
+        [catId]: JSON.parse(JSON.stringify(DEFAULT_GRADE_MATRIX))
+      }));
+    }
+  };
+
+  const handleCloneMatrix = (targetCatId: string, sourceCatId: string) => {
+    let source: GradeMatrixRow[];
+    if (sourceCatId === 'global') {
+      source = gradeMatrix && gradeMatrix.length > 0 ? gradeMatrix : DEFAULT_GRADE_MATRIX;
+    } else {
+      source = getEffectiveCategoryMatrix(sourceCatId);
+    }
+    setCategoryGradeMatrices(prev => ({
+      ...prev,
+      [targetCatId]: JSON.parse(JSON.stringify(source))
+    }));
+  };
+
+  const handleApplyToAllCategories = (sourceCatId: string, sourceName: string) => {
+    const source = getEffectiveCategoryMatrix(sourceCatId);
+    if (window.confirm(`Copy the grade & point distribution from "${sourceName}" to ALL other categories?`)) {
+      const updated: Record<string, GradeMatrixRow[]> = {};
+      categories.forEach(c => {
+        updated[c.id] = JSON.parse(JSON.stringify(source));
+      });
+      setCategoryGradeMatrices(updated);
+      alert(`Point distribution from "${sourceName}" applied to all categories! You can now customize any specific category (e.g. General) individually.`);
+    }
+  };
   const [maxIndividualEvents, setMaxIndividualEvents] = useState(10);
   const [maxGroupEvents, setMaxGroupEvents] = useState(10);
   const [hasOnStageLimit, setHasOnStageLimit] = useState(false);
@@ -326,6 +403,12 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       } else {
         setGradeMatrix(DEFAULT_GRADE_MATRIX);
       }
+      setCategorySpecificGradesEnabled(data.categorySpecificGradesEnabled ?? false);
+      if (data.categoryGradeMatrices && typeof data.categoryGradeMatrices === 'object') {
+        setCategoryGradeMatrices(data.categoryGradeMatrices);
+      } else {
+        setCategoryGradeMatrices({});
+      }
       setMaxIndividualEvents(data.maxIndividualEvents || 10);
       setMaxGroupEvents(data.maxGroupEvents || 10);
       setHasOnStageLimit(data.maxOnStageEvents !== null && data.maxOnStageEvents !== undefined);
@@ -355,7 +438,13 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       }
 
       if (uRes.ok) setUnits(await uRes.json());
-      if (cRes.ok) setCategories(await cRes.json());
+      if (cRes.ok) {
+        const cats = await cRes.json();
+        setCategories(cats);
+        if (cats.length > 0) {
+          setSelectedCategoryTierId(prev => prev || cats[0].id);
+        }
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -844,210 +933,491 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
               </label>
             </div>
 
-            {/* Matrix Action & Info Bar */}
-            <div className="pt-3 border-t border-emerald-900/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-2.5">
+            {/* Points Configuration Scope Mode Switcher */}
+            <div className="pt-3 border-t border-emerald-900/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider font-mono block">
-                  Festival Grade & Points Distribution Matrix
+                  Grade & Points Matrix Mode
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  Customizable mark ranges, individual grades, and points awarded automatically across all categories
+                  Choose whether all festival categories share one unified grading scale, or if each category has a custom point system
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0">
                 <button
                   type="button"
-                  onClick={() => {
-                    const newId = `row_${Date.now()}`;
-                    setGradeMatrix(prev => [
-                      ...prev,
-                      { id: newId, minMark: 0, maxMark: 25, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 0 }
-                    ]);
-                  }}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  onClick={() => setCategorySpecificGradesEnabled(false)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer ${
+                    !categorySpecificGradesEnabled
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Tier</span>
+                  Same for All Categories
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm("Reset grade matrix to the standard SSF festival distribution?")) {
-                      setGradeMatrix(DEFAULT_GRADE_MATRIX);
+                    setCategorySpecificGradesEnabled(true);
+                    if (!selectedCategoryTierId && categories.length > 0) {
+                      setSelectedCategoryTierId(categories[0].id);
                     }
                   }}
-                  className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-                  title="Reset to default SSF Festival Matrix"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+                    categorySpecificGradesEnabled
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
-                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Reset Default</span>
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Separate per Category (Tiers)</span>
                 </button>
               </div>
             </div>
 
-            {/* Matrix Editable Table */}
-            <div className="overflow-x-auto rounded-2xl border border-emerald-900/15 shadow-xs bg-white">
-              <table className="w-full text-center text-xs font-mono border-collapse">
-                <thead>
-                  <tr className="bg-emerald-950 text-emerald-100 font-bold border-b border-emerald-900 text-[11px]">
-                    <th className="py-2.5 px-3 text-left">Mark Range (Min – Max)</th>
-                    <th className="py-2.5 px-3 text-emerald-300 bg-emerald-900/60">Ind Grade</th>
-                    <th className="py-2.5 px-3 text-emerald-200 bg-emerald-900/40">Individual Points</th>
-                    <th className="py-2.5 px-3 text-amber-300 bg-emerald-900/60">Group Grade</th>
-                    <th className="py-2.5 px-3 text-amber-200 bg-emerald-900/40">Group Points</th>
-                    <th className="py-2.5 px-2 text-center w-12">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-[11px]">
-                  {gradeMatrix.map((row, idx) => (
-                    <tr key={row.id || idx} className="hover:bg-emerald-50/20 transition-colors">
-                      {/* Mark Range */}
-                      <td className="py-2 px-3 text-left">
-                        <div className="inline-flex items-center gap-1.5 font-bold text-slate-800">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={row.minMark}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setGradeMatrix(prev => {
-                                const updated = [...prev];
-                                updated[idx] = { ...updated[idx], minMark: val };
-                                return updated;
-                              });
-                            }}
-                            className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
-                          />
-                          <span className="text-slate-400">–</span>
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={row.maxMark}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setGradeMatrix(prev => {
-                                const updated = [...prev];
-                                updated[idx] = { ...updated[idx], maxMark: val };
-                                return updated;
-                              });
-                            }}
-                            className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
-                          />
+            {/* UNIFIED GLOBAL MATRIX VIEW */}
+            {!categorySpecificGradesEnabled && (
+              <div className="space-y-3 pt-1">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2.5">
+                  <div>
+                    <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider font-mono block">
+                      Unified Festival Grade & Points Distribution Matrix
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Standard mark ranges, individual grades, and points awarded automatically across all categories
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newId = `row_${Date.now()}`;
+                        setGradeMatrix(prev => [
+                          ...prev,
+                          { id: newId, minMark: 0, maxMark: 25, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 0 }
+                        ]);
+                      }}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Tier</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm("Reset grade matrix to the standard SSF festival distribution?")) {
+                          setGradeMatrix(DEFAULT_GRADE_MATRIX);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      title="Reset to default SSF Festival Matrix"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Reset Default</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-2xl border border-emerald-900/15 shadow-xs bg-white">
+                  <table className="w-full text-center text-xs font-mono border-collapse">
+                    <thead>
+                      <tr className="bg-emerald-950 text-emerald-100 font-bold border-b border-emerald-900 text-[11px]">
+                        <th className="py-2.5 px-3 text-left">Mark Range (Min – Max)</th>
+                        <th className="py-2.5 px-3 text-emerald-300 bg-emerald-900/60">Ind Grade</th>
+                        <th className="py-2.5 px-3 text-emerald-200 bg-emerald-900/40">Individual Points</th>
+                        <th className="py-2.5 px-3 text-amber-300 bg-emerald-900/60">Group Grade</th>
+                        <th className="py-2.5 px-3 text-amber-200 bg-emerald-900/40">Group Points</th>
+                        <th className="py-2.5 px-2 text-center w-12">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-[11px]">
+                      {gradeMatrix.map((row, idx) => (
+                        <tr key={row.id || idx} className="hover:bg-emerald-50/20 transition-colors">
+                          <td className="py-2 px-3 text-left">
+                            <div className="inline-flex items-center gap-1.5 font-bold text-slate-800">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={row.minMark}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setGradeMatrix(prev => {
+                                    const updated = [...prev];
+                                    updated[idx] = { ...updated[idx], minMark: val };
+                                    return updated;
+                                  });
+                                }}
+                                className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                              />
+                              <span className="text-slate-400">–</span>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={row.maxMark}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setGradeMatrix(prev => {
+                                    const updated = [...prev];
+                                    updated[idx] = { ...updated[idx], maxMark: val };
+                                    return updated;
+                                  });
+                                }}
+                                className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                              />
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 bg-emerald-50/20">
+                            <select
+                              value={row.indGrade}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setGradeMatrix(prev => {
+                                  const updated = [...prev];
+                                  updated[idx] = { ...updated[idx], indGrade: val };
+                                  return updated;
+                                });
+                              }}
+                              className="px-2.5 py-1 font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
+                            >
+                              <option value="A+">A+</option>
+                              <option value="A">A</option>
+                              <option value="B">B</option>
+                              <option value="C">C</option>
+                              <option value="D">D</option>
+                              <option value="-">- (No Grade)</option>
+                            </select>
+                          </td>
+                          <td className="py-2 px-3 bg-emerald-50/10">
+                            <div className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                              <input
+                                type="number"
+                                min="0"
+                                value={row.indPoints}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setGradeMatrix(prev => {
+                                    const updated = [...prev];
+                                    updated[idx] = { ...updated[idx], indPoints: val };
+                                    return updated;
+                                  });
+                                }}
+                                className="w-14 px-2 py-1 text-center font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                              />
+                              <span className="text-[10px] text-emerald-600">pts</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 bg-amber-50/20">
+                            <select
+                              value={row.groupGrade}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setGradeMatrix(prev => {
+                                  const updated = [...prev];
+                                  updated[idx] = { ...updated[idx], groupGrade: val };
+                                  return updated;
+                                });
+                              }}
+                              className="px-2.5 py-1 font-bold text-amber-900 bg-white border border-amber-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
+                            >
+                              <option value="A+">A+</option>
+                              <option value="A">A</option>
+                              <option value="B">B</option>
+                              <option value="C">C</option>
+                              <option value="D">D</option>
+                              <option value="-">- (No Grade)</option>
+                            </select>
+                          </td>
+                          <td className="py-2 px-3 bg-amber-50/10">
+                            <div className="inline-flex items-center gap-1 text-amber-900 font-bold">
+                              <input
+                                type="number"
+                                min="0"
+                                value={row.groupPoints}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setGradeMatrix(prev => {
+                                    const updated = [...prev];
+                                    updated[idx] = { ...updated[idx], groupPoints: val };
+                                    return updated;
+                                  });
+                                }}
+                                className="w-14 px-2 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                              />
+                              <span className="text-[10px] text-amber-700">pts</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (gradeMatrix.length <= 1) {
+                                  alert("At least one grade tier must remain in the matrix.");
+                                  return;
+                                }
+                                setGradeMatrix(prev => prev.filter((_, i) => i !== idx));
+                              }}
+                              className="p-1 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                              title="Delete Tier"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* CATEGORY-WISE TIERS MATRIX VIEW */}
+            {categorySpecificGradesEnabled && (
+              <div className="space-y-3 pt-1">
+                <div>
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider font-mono block">
+                    Category Tiers (Click to select & configure):
+                  </span>
+                  <p className="text-[11px] text-slate-500">
+                    Each category can have its own customized individual and group points. Click a category tier below to edit its matrix.
+                  </p>
+                </div>
+
+                {/* Category Tiers Selector Tabs */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {categories.map((cat, idx) => {
+                    const activeId = selectedCategoryTierId || (categories[0]?.id || '');
+                    const isSelected = activeId === cat.id;
+                    const tierRows = getEffectiveCategoryMatrix(cat.id);
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setSelectedCategoryTierId(cat.id)}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden ${
+                          isSelected
+                            ? 'bg-emerald-950 text-white border-emerald-950 shadow-md ring-2 ring-emerald-500/50'
+                            : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isSelected ? 'text-emerald-400' : 'text-slate-400'}`}>
+                            Tier {idx + 1}
+                          </span>
+                          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full font-bold ${
+                            isSelected ? 'bg-emerald-800 text-emerald-200' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {tierRows.length} grades
+                          </span>
                         </div>
-                      </td>
-
-                      {/* Ind Grade */}
-                      <td className="py-2 px-3 bg-emerald-50/20">
-                        <select
-                          value={row.indGrade}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setGradeMatrix(prev => {
-                              const updated = [...prev];
-                              updated[idx] = { ...updated[idx], indGrade: val };
-                              return updated;
-                            });
-                          }}
-                          className="px-2.5 py-1 font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
-                        >
-                          <option value="A+">A+</option>
-                          <option value="A">A</option>
-                          <option value="B">B</option>
-                          <option value="C">C</option>
-                          <option value="D">D</option>
-                          <option value="-">- (No Grade)</option>
-                        </select>
-                      </td>
-
-                      {/* Ind Points */}
-                      <td className="py-2 px-3 bg-emerald-50/10">
-                        <div className="inline-flex items-center gap-1 text-emerald-700 font-bold">
-                          <input
-                            type="number"
-                            min="0"
-                            value={row.indPoints}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setGradeMatrix(prev => {
-                                const updated = [...prev];
-                                updated[idx] = { ...updated[idx], indPoints: val };
-                                return updated;
-                              });
-                            }}
-                            className="w-14 px-2 py-1 text-center font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
-                          />
-                          <span className="text-[10px] text-emerald-600">pts</span>
+                        <div className="font-extrabold text-sm truncate font-mono">
+                          {cat.name}
                         </div>
-                      </td>
+                        {cat.code && (
+                          <div className={`text-[10px] font-mono truncate ${isSelected ? 'text-emerald-300' : 'text-slate-500'}`}>
+                            Code: {cat.code}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
 
-                      {/* Group Grade */}
-                      <td className="py-2 px-3 bg-amber-50/20">
-                        <select
-                          value={row.groupGrade}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setGradeMatrix(prev => {
-                              const updated = [...prev];
-                              updated[idx] = { ...updated[idx], groupGrade: val };
-                              return updated;
-                            });
-                          }}
-                          className="px-2.5 py-1 font-bold text-amber-900 bg-white border border-amber-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
-                        >
-                          <option value="A+">A+</option>
-                          <option value="A">A</option>
-                          <option value="B">B</option>
-                          <option value="C">C</option>
-                          <option value="D">D</option>
-                          <option value="-">- (No Grade)</option>
-                        </select>
-                      </td>
+                {/* Selected Category Editor Card */}
+                {(() => {
+                  const activeId = selectedCategoryTierId || (categories[0]?.id || '');
+                  const activeCat = categories.find(c => c.id === activeId) || categories[0];
+                  if (!activeCat) return (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                      No categories found. Please create categories first in the Category Manager below.
+                    </div>
+                  );
+                  const matrix = getEffectiveCategoryMatrix(activeCat.id);
 
-                      {/* Group Points */}
-                      <td className="py-2 px-3 bg-amber-50/10">
-                        <div className="inline-flex items-center gap-1 text-amber-900 font-bold">
-                          <input
-                            type="number"
-                            min="0"
-                            value={row.groupPoints}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              setGradeMatrix(prev => {
-                                const updated = [...prev];
-                                updated[idx] = { ...updated[idx], groupPoints: val };
-                                return updated;
-                              });
-                            }}
-                            className="w-14 px-2 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
-                          />
-                          <span className="text-[10px] text-amber-700">pts</span>
+                  return (
+                    <div className="p-4 rounded-2xl border border-emerald-900/15 bg-slate-50/70 space-y-3">
+                      {/* Active Tier Toolbar */}
+                      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 pb-3 border-b border-slate-200">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 bg-emerald-700 text-white rounded-md text-[10px] font-bold font-mono uppercase tracking-wide">
+                              Active Tier
+                            </span>
+                            <h4 className="text-sm font-extrabold text-slate-900 font-mono">
+                              {activeCat.name} Grade & Points Matrix
+                            </h4>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Custom mark ranges and separate individual / group points for <strong>{activeCat.name}</strong>.
+                          </p>
                         </div>
-                      </td>
 
-                      {/* Action */}
-                      <td className="py-2 px-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (gradeMatrix.length <= 1) {
-                              alert("At least one grade tier must remain in the matrix.");
-                              return;
-                            }
-                            setGradeMatrix(prev => prev.filter((_, i) => i !== idx));
-                          }}
-                          className="p-1 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
-                          title="Delete Tier"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* Clone from other category dropdown */}
+                          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs shadow-xs">
+                            <Copy className="w-3.5 h-3.5 text-slate-500" />
+                            <span className="text-[11px] font-bold text-slate-600 font-mono">Copy from:</span>
+                            <select
+                              defaultValue=""
+                              onChange={(e) => {
+                                const srcId = e.target.value;
+                                if (!srcId) return;
+                                handleCloneMatrix(activeCat.id, srcId);
+                                e.target.value = '';
+                              }}
+                              className="bg-transparent font-bold text-slate-800 text-xs outline-none cursor-pointer"
+                            >
+                              <option value="" disabled>Select Source...</option>
+                              <option value="global">Unified Matrix</option>
+                              {categories.filter(c => c.id !== activeCat.id).map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Apply to All Categories Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleApplyToAllCategories(activeCat.id, activeCat.name)}
+                            className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                            title="Copy this category's matrix to all other categories"
+                          >
+                            <span>Apply to All Categories</span>
+                          </button>
+
+                          {/* Add Tier Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleAddCategoryTier(activeCat.id)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add Tier</span>
+                          </button>
+
+                          {/* Reset Default Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleResetCategoryMatrix(activeCat.id, activeCat.name)}
+                            className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                            title="Reset to default SSF Festival Matrix"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Reset</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Active Tier Matrix Table */}
+                      <div className="overflow-x-auto rounded-2xl border border-emerald-900/15 shadow-xs bg-white">
+                        <table className="w-full text-center text-xs font-mono border-collapse">
+                          <thead>
+                            <tr className="bg-emerald-950 text-emerald-100 font-bold border-b border-emerald-900 text-[11px]">
+                              <th className="py-2.5 px-3 text-left">Mark Range (Min – Max)</th>
+                              <th className="py-2.5 px-3 text-emerald-300 bg-emerald-900/60">Ind Grade</th>
+                              <th className="py-2.5 px-3 text-emerald-200 bg-emerald-900/40">Individual Points</th>
+                              <th className="py-2.5 px-3 text-amber-300 bg-emerald-900/60">Group Grade</th>
+                              <th className="py-2.5 px-3 text-amber-200 bg-emerald-900/40">Group Points</th>
+                              <th className="py-2.5 px-2 text-center w-12">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 text-[11px]">
+                            {matrix.map((row, idx) => (
+                              <tr key={row.id || idx} className="hover:bg-emerald-50/20 transition-colors">
+                                <td className="py-2 px-3 text-left">
+                                  <div className="inline-flex items-center gap-1.5 font-bold text-slate-800">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="100"
+                                      value={row.minMark}
+                                      onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'minMark', Number(e.target.value))}
+                                      className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                    />
+                                    <span className="text-slate-400">–</span>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="100"
+                                      value={row.maxMark}
+                                      onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'maxMark', Number(e.target.value))}
+                                      className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                    />
+                                  </div>
+                                </td>
+                                <td className="py-2 px-3 bg-emerald-50/20">
+                                  <select
+                                    value={row.indGrade}
+                                    onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'indGrade', e.target.value)}
+                                    className="px-2.5 py-1 font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
+                                  >
+                                    <option value="A+">A+</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                    <option value="-">- (No Grade)</option>
+                                  </select>
+                                </td>
+                                <td className="py-2 px-3 bg-emerald-50/10">
+                                  <div className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={row.indPoints}
+                                      onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'indPoints', Number(e.target.value))}
+                                      className="w-14 px-2 py-1 text-center font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                    />
+                                    <span className="text-[10px] text-emerald-600">pts</span>
+                                  </div>
+                                </td>
+                                <td className="py-2 px-3 bg-amber-50/20">
+                                  <select
+                                    value={row.groupGrade}
+                                    onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'groupGrade', e.target.value)}
+                                    className="px-2.5 py-1 font-bold text-amber-900 bg-white border border-amber-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
+                                  >
+                                    <option value="A+">A+</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                    <option value="-">- (No Grade)</option>
+                                  </select>
+                                </td>
+                                <td className="py-2 px-3 bg-amber-50/10">
+                                  <div className="inline-flex items-center gap-1 text-amber-900 font-bold">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={row.groupPoints}
+                                      onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'groupPoints', Number(e.target.value))}
+                                      className="w-14 px-2 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                    />
+                                    <span className="text-[10px] text-amber-700">pts</span>
+                                  </div>
+                                </td>
+                                <td className="py-2 px-2 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveCategoryTier(activeCat.id, idx)}
+                                    className="p-1 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                                    title="Delete Tier"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
 
           {/* Global Points System */}

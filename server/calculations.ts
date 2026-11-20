@@ -60,15 +60,19 @@ export const DEFAULT_GRADE_MATRIX: GradeMatrixRow[] = [
   { id: '12', minMark: 0, maxMark: 30, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 5 }
 ];
 
-export const calculateGrade = (mark: number, isGroup: boolean = false, eventSettings?: any): string => {
+export const calculateGrade = (mark: number, isGroup: boolean = false, eventSettings?: any, categoryId?: string): string => {
   const m = Math.round(Number(mark) || 0);
   if (m <= 0) return '';
 
   const db = dbClient.get();
   const settings = eventSettings || db.eventSettings;
-  const matrix: GradeMatrixRow[] = settings?.gradeMatrix && Array.isArray(settings.gradeMatrix) && settings.gradeMatrix.length > 0
-    ? settings.gradeMatrix
-    : DEFAULT_GRADE_MATRIX;
+
+  let matrix: GradeMatrixRow[] = DEFAULT_GRADE_MATRIX;
+  if (settings?.categorySpecificGradesEnabled && categoryId && settings?.categoryGradeMatrices?.[categoryId] && Array.isArray(settings.categoryGradeMatrices[categoryId]) && settings.categoryGradeMatrices[categoryId].length > 0) {
+    matrix = settings.categoryGradeMatrices[categoryId];
+  } else if (settings?.gradeMatrix && Array.isArray(settings.gradeMatrix) && settings.gradeMatrix.length > 0) {
+    matrix = settings.gradeMatrix;
+  }
 
   const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
   for (const row of sorted) {
@@ -83,7 +87,8 @@ export const calculateGrade = (mark: number, isGroup: boolean = false, eventSett
 /**
  * Grade Pointing System (Festival Points Distribution):
  * If gradeSystemEnabled !== false (Enabled by default):
- * Evaluates points dynamically from settings.gradeMatrix or DEFAULT_GRADE_MATRIX
+ * Evaluates points dynamically from settings.categoryGradeMatrices[catId] (if category-specific enabled)
+ * or settings.gradeMatrix or DEFAULT_GRADE_MATRIX
  */
 export const calculateResultPoints = (r: Result, comp?: Competition, eventSettings?: any): number => {
   const db = dbClient.get();
@@ -98,9 +103,16 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
 
     const isGroup = !!r.teamId || comp?.participationType === ParticipationType.GROUP || (comp as any)?.isGroup === true || String(comp?.participationType).toLowerCase() === 'group';
 
-    const matrix: GradeMatrixRow[] = settings?.gradeMatrix && Array.isArray(settings.gradeMatrix) && settings.gradeMatrix.length > 0
-      ? settings.gradeMatrix
-      : DEFAULT_GRADE_MATRIX;
+    // 1. Identify category: result category or competition category
+    const catId = r.categoryId || comp?.categoryId;
+
+    // 2. Select matrix: category-specific or global
+    let matrix: GradeMatrixRow[] = DEFAULT_GRADE_MATRIX;
+    if (settings?.categorySpecificGradesEnabled && catId && settings?.categoryGradeMatrices?.[catId] && Array.isArray(settings.categoryGradeMatrices[catId]) && settings.categoryGradeMatrices[catId].length > 0) {
+      matrix = settings.categoryGradeMatrices[catId];
+    } else if (settings?.gradeMatrix && Array.isArray(settings.gradeMatrix) && settings.gradeMatrix.length > 0) {
+      matrix = settings.gradeMatrix;
+    }
 
     const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
     for (const row of sorted) {
@@ -344,7 +356,7 @@ export const CalculationService = {
             rank: r.rank,
             marks: getNormalizedMark(r),
             points: calculateResultPoints(r, comp, db.eventSettings),
-            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), false),
+            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), false, db.eventSettings, r.categoryId || comp?.categoryId),
             type: 'Individual',
             isLocked: !((r as any).publishedStatus || (r as any).isPublished)
           };
@@ -357,7 +369,7 @@ export const CalculationService = {
             rank: r.rank,
             marks: getNormalizedMark(r),
             points: calculateResultPoints(r, comp, db.eventSettings),
-            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), true),
+            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), true, db.eventSettings, r.categoryId || comp?.categoryId),
             type: 'Group',
             isLocked: !((r as any).publishedStatus || (r as any).isPublished)
           };
@@ -370,7 +382,7 @@ export const CalculationService = {
             rank: r.rank,
             marks: getNormalizedMark(r),
             points: calculateResultPoints(r, comp, db.eventSettings),
-            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), comp?.participationType === 'group'),
+            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), comp?.participationType === 'group', db.eventSettings, r.categoryId || comp?.categoryId),
             type: 'General',
             isLocked: !((r as any).publishedStatus || (r as any).isPublished)
           };
@@ -735,7 +747,7 @@ export const CalculationService = {
         }
 
         const mark = getNormalizedMark(r);
-        const grade = (r as any).grade || calculateGrade(mark, comp.participationType === 'group');
+        const grade = (r as any).grade || calculateGrade(mark, comp.participationType === 'group', db.eventSettings, comp.categoryId || r.categoryId);
         const points = calculateResultPoints(r, comp, db.eventSettings);
 
         return {

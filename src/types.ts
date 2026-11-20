@@ -296,6 +296,8 @@ export interface EventSettings {
   entityLabel?: string;
   gradeSystemEnabled?: boolean;
   gradeMatrix?: GradeMatrixRow[];
+  categorySpecificGradesEnabled?: boolean;
+  categoryGradeMatrices?: Record<string, GradeMatrixRow[]>;
   fillLogo?: boolean;
   autoRemoveLogoBg?: boolean;
   certTheme1Url?: string;

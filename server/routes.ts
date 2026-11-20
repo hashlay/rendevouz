@@ -5981,7 +5981,7 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
       item.grade = '';
       item.points = 0;
     } else {
-      item.grade = calculateGrade(avg, isGroupCompetition);
+      item.grade = calculateGrade(avg, isGroupCompetition, db.eventSettings, sheet.categoryId || competition?.categoryId);
       const dummyResult: any = {
         averageMark: avg,
         totalMark: item.totalMark || avg,
@@ -6644,7 +6644,7 @@ apiRouter.get('/public/results', async (req, res) => {
       // Calculate grade and points dynamically using official Grade Pointing System
       const normalizedMark = getNormalizedMark(r);
       const isGroup = participationType === 'Group' || !!r.teamId || comp?.participationType === 'group';
-      const grade = calculateGrade(normalizedMark, isGroup);
+      const grade = calculateGrade(normalizedMark, isGroup, db.eventSettings, comp?.categoryId || r.categoryId);
       const points = calculateResultPoints(r, comp, db.eventSettings);
 
       const compCat = comp ? db.categories.find(c => c.id === comp.categoryId) : null;
