@@ -249,6 +249,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [certTheme3Url, setCertTheme3Url] = useState('');
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const [gradeSystemEnabled, setGradeSystemEnabled] = useState(true);
+  const [combineGradeAndRankPoints, setCombineGradeAndRankPoints] = useState(false);
   const [gradeMatrix, setGradeMatrix] = useState<GradeMatrixRow[]>(DEFAULT_GRADE_MATRIX);
   const [categorySpecificGradesEnabled, setCategorySpecificGradesEnabled] = useState(false);
   const [categoryGradeMatrices, setCategoryGradeMatrices] = useState<Record<string, GradeMatrixRow[]>>({});
@@ -523,6 +524,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       setCertTheme3Url(data.certTheme3Url || '');
       setRegistrationOpen(data.registrationOpen ?? true);
       setGradeSystemEnabled(data.gradeSystemEnabled ?? true);
+      setCombineGradeAndRankPoints(data.combineGradeAndRankPoints ?? false);
       if (data.gradeMatrix && Array.isArray(data.gradeMatrix) && data.gradeMatrix.length > 0) {
         setGradeMatrix(data.gradeMatrix);
       } else {
@@ -603,6 +605,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
           certTheme3Url,
           registrationOpen,
           gradeSystemEnabled,
+          combineGradeAndRankPoints,
           gradeMatrix,
           maxIndividualEvents,
           maxGroupEvents,
@@ -1057,6 +1060,36 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                 </span>
               </label>
             </div>
+
+            {/* Combined Grade + Rank Points Toggle */}
+            {gradeSystemEnabled && (
+              <div className="pt-3 border-t border-emerald-900/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white/80 p-4 rounded-2xl border border-emerald-900/15 shadow-2xs">
+                <div>
+                  <h5 className="font-bold text-emerald-950 text-xs md:text-sm uppercase tracking-wider font-mono flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+                    Combined Point System (Grade Points + Rank Placement Points)
+                  </h5>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    When <strong>ENABLED</strong>, a participant/team receives <strong>BOTH</strong> their earned <strong>Grade Points</strong> (from marks) <strong>PLUS</strong> their <strong>Rank Placement Points</strong> (1st, 2nd, 3rd... from the Rank Distribution below).
+                    <span className="block text-[11px] text-purple-700 font-bold mt-1">
+                      Example: A+ Grade (10 pts) + 1st Place (5 pts) = 15 total points; A+ Grade (10 pts) + 2nd Place (3 pts) = 13 total points.
+                    </span>
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={combineGradeAndRankPoints}
+                    onChange={(e) => setCombineGradeAndRankPoints(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                  <span className={`ml-2.5 text-xs font-extrabold font-mono uppercase ${combineGradeAndRankPoints ? 'text-purple-700' : 'text-slate-500'}`}>
+                    {combineGradeAndRankPoints ? 'COMBINED (GRADE + RANK)' : 'GRADE ONLY'}
+                  </span>
+                </label>
+              </div>
+            )}
 
             {/* Points Configuration Scope Mode Switcher */}
             <div className="pt-3 border-t border-emerald-900/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

@@ -295,6 +295,7 @@ export interface EventSettings {
   entityMode?: 'unit' | 'house' | 'team';
   entityLabel?: string;
   gradeSystemEnabled?: boolean;
+  combineGradeAndRankPoints?: boolean;
   gradeMatrix?: GradeMatrixRow[];
   categorySpecificGradesEnabled?: boolean;
   categoryGradeMatrices?: Record<string, GradeMatrixRow[]>;

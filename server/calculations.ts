@@ -94,19 +94,18 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
   const db = dbClient.get();
   const settings = eventSettings || db.eventSettings;
   const gradeSystemEnabled = settings?.gradeSystemEnabled !== false;
+  const combineGradeAndRankPoints = settings?.combineGradeAndRankPoints === true;
 
-  if (gradeSystemEnabled) {
-    if (r.status === ResultStatus.ABSENT || (r as any).status === 'absent') return 0;
-    const mark = getNormalizedMark(r);
-    const m = Math.round(Number(mark) || 0);
-    if (m <= 0) return 0;
+  if (r.status === ResultStatus.ABSENT || (r as any).status === 'absent') return 0;
+  const mark = getNormalizedMark(r);
+  const m = Math.round(Number(mark) || 0);
 
+  // 1. Calculate Grade Points (from Grade Matrix based on normalized marks)
+  let gradePoints = 0;
+  if (gradeSystemEnabled && m > 0) {
     const isGroup = !!r.teamId || comp?.participationType === ParticipationType.GROUP || (comp as any)?.isGroup === true || String(comp?.participationType).toLowerCase() === 'group';
-
-    // 1. Identify category: result category or competition category
     const catId = r.categoryId || comp?.categoryId;
 
-    // 2. Select matrix: category-specific or global
     let matrix: GradeMatrixRow[] = DEFAULT_GRADE_MATRIX;
     if (settings?.categorySpecificGradesEnabled && catId && settings?.categoryGradeMatrices?.[catId] && Array.isArray(settings.categoryGradeMatrices[catId]) && settings.categoryGradeMatrices[catId].length > 0) {
       matrix = settings.categoryGradeMatrices[catId];
@@ -117,30 +116,48 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
     const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
     for (const row of sorted) {
       if (m >= Number(row.minMark)) {
-        return isGroup ? Number(row.groupPoints) : Number(row.indPoints);
+        gradePoints = isGroup ? Number(row.groupPoints) : Number(row.indPoints);
+        break;
       }
     }
-    return 0;
   }
 
-  // Fallback: Rank-based points from Category or globalPointsRank
-  if (!r.rank || r.rank > 10) return 0;
-  const cat = db.categories.find(c => c.id === r.categoryId);
-  if (cat) {
-    const key = `pointsRank${r.rank}` as keyof typeof cat;
-    if (cat[key] !== undefined && cat[key] !== null) {
-      const val = Number(cat[key]);
-      if (!isNaN(val)) return val;
+  // 2. Calculate Rank Points (from Category rank points or globalPointsRank1..10)
+  let rankPoints = 0;
+  if (!gradeSystemEnabled || combineGradeAndRankPoints) {
+    if (r.rank && r.rank >= 1 && r.rank <= 10) {
+      const cat = db.categories ? db.categories.find(c => c.id === r.categoryId || c.id === comp?.categoryId) : null;
+      let catRankVal: any = null;
+      if (cat) {
+        const key = `pointsRank${r.rank}` as keyof typeof cat;
+        if (cat[key] !== undefined && cat[key] !== null) {
+          catRankVal = Number(cat[key]);
+        }
+      }
+      if (catRankVal !== null && !isNaN(catRankVal)) {
+        rankPoints = catRankVal;
+      } else {
+        const settingsKey = `globalPointsRank${r.rank}`;
+        const settingsVal = (settings as any)?.[settingsKey];
+        if (settingsVal !== undefined && settingsVal !== null) {
+          const val = Number(settingsVal);
+          if (!isNaN(val)) rankPoints = val;
+        } else {
+          const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
+          rankPoints = defaultMap[r.rank] || 0;
+        }
+      }
     }
   }
-  const settingsKey = `globalPointsRank${r.rank}`;
-  const settingsVal = (settings as any)?.[settingsKey];
-  if (settingsVal !== undefined && settingsVal !== null) {
-    const val = Number(settingsVal);
-    if (!isNaN(val)) return val;
+
+  // 3. Return combined or single mode points
+  if (gradeSystemEnabled && combineGradeAndRankPoints) {
+    return gradePoints + rankPoints;
   }
-  const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
-  return defaultMap[r.rank] || 0;
+  if (gradeSystemEnabled) {
+    return gradePoints;
+  }
+  return rankPoints;
 };
 
 export function toTitleCase(str: string): string {

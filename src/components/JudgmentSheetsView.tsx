@@ -47,10 +47,11 @@ const computeGrade = (mark: number, isGroup: boolean, eventSettings?: any, categ
 
 const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank?: number, categoryId?: string): number => {
   const gradeSystemEnabled = eventSettings?.gradeSystemEnabled !== false;
+  const combineGradeAndRankPoints = eventSettings?.combineGradeAndRankPoints === true;
   const m = Math.round(Number(mark) || 0);
 
-  if (gradeSystemEnabled) {
-    if (m <= 0) return 0;
+  let gradePoints = 0;
+  if (gradeSystemEnabled && m > 0) {
     let matrix: GradeMatrixRow[] = DEFAULT_GRADE_MATRIX;
     if (eventSettings?.categorySpecificGradesEnabled && categoryId && eventSettings?.categoryGradeMatrices?.[categoryId] && Array.isArray(eventSettings.categoryGradeMatrices[categoryId]) && eventSettings.categoryGradeMatrices[categoryId].length > 0) {
       matrix = eventSettings.categoryGradeMatrices[categoryId];
@@ -60,22 +61,34 @@ const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank
     const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
     for (const row of sorted) {
       if (m >= Number(row.minMark)) {
-        return isGroup ? Number(row.groupPoints) : Number(row.indPoints);
+        gradePoints = isGroup ? Number(row.groupPoints) : Number(row.indPoints);
+        break;
       }
     }
-    return 0;
   }
 
-  // Fallback: Rank-based points (when Grade Pointing System is disabled)
-  if (!rank || rank > 10) return 0;
-  const settingsKey = `globalPointsRank${rank}`;
-  const settingsVal = eventSettings?.[settingsKey];
-  if (settingsVal !== undefined && settingsVal !== null) {
-    const val = Number(settingsVal);
-    if (!isNaN(val)) return val;
+  let rankPoints = 0;
+  if (!gradeSystemEnabled || combineGradeAndRankPoints) {
+    if (rank && rank >= 1 && rank <= 10) {
+      const settingsKey = `globalPointsRank${rank}`;
+      const settingsVal = eventSettings?.[settingsKey];
+      if (settingsVal !== undefined && settingsVal !== null) {
+        const val = Number(settingsVal);
+        if (!isNaN(val)) rankPoints = val;
+      } else {
+        const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
+        rankPoints = defaultMap[rank] || 0;
+      }
+    }
   }
-  const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
-  return defaultMap[rank] || 0;
+
+  if (gradeSystemEnabled && combineGradeAndRankPoints) {
+    return gradePoints + rankPoints;
+  }
+  if (gradeSystemEnabled) {
+    return gradePoints;
+  }
+  return rankPoints;
 };
 
 export default function JudgmentSheetsView({ user, token, eventSettings }: JudgmentSheetsViewProps) {
