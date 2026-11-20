@@ -227,9 +227,9 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
   // Print mode: Green Room Sheet
   if (printMode && selectedComp && competitionAssignments.length > 0) {
     return (
-      <div className="print-sheet bg-white p-8 max-w-[210mm] mx-auto text-black" id="green-room-print">
+      <div className="print-sheet bg-white p-8 max-w-[210mm] mx-auto text-black print:p-0 print:max-w-none" id="green-room-print">
         {/* Print Header */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-6 print:mb-3 print:break-after-avoid">
           <div className="flex items-center justify-center mb-3">
             <img
               src={eventSettings?.sahityotsavLogoUrl || '/querencia_logo.png'}

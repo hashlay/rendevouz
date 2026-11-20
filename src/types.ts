@@ -118,6 +118,7 @@ export interface Category {
   name: string;
   code?: string;
   criteriaType?: 'dob' | 'class';
+  classes?: string[];
   dobStart?: string; // YYYY-MM-DD
   dobEnd?: string; // YYYY-MM-DD
   classStart?: string;

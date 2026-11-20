@@ -226,16 +226,20 @@ img {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 15mm;
+    margin: 12mm 15mm;
   }
   
-  /* Reset layout constraints so pages can break */
-  html, body, #root, .min-h-screen, .flex-1, .md\:pl-64, [class*="overflow-"], [class*="max-w-"], .mobile-scroll-table {
+  /* Reset layout constraints so pages can break and content starts immediately below headers */
+  html, body, #root, #root > div, main, .min-h-screen, .flex-1, .md\:pl-64, [class*="overflow-"], [class*="max-w-"], .mobile-scroll-table {
+    display: block !important;
+    position: static !important;
+    float: none !important;
     height: auto !important;
     min-height: auto !important;
     overflow: visible !important;
     padding: 0 !important;
     margin: 0 !important;
+    box-shadow: none !important;
   }
   
   /* Hide navigation, sidebars, and explicitly non-printing elements */
@@ -244,24 +248,35 @@ img {
   }
   
   .print-sheet {
-    position: relative;
-    width: 100%;
-    max-width: 210mm !important;
-    margin: 0 auto !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
     padding: 0 !important;
+    display: block !important;
   }
   
   thead {
     display: table-header-group;
   }
   
-  tr {
-    page-break-inside: avoid;
+  /* Prevent table rows and row items from breaking across pages */
+  tr, .print-row, [class*="print:break-inside-avoid"] {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Keep headings attached to the following content */
+  h1, h2, h3, h4, [class*="print:break-after-avoid"], .print-heading {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 
   body {
     background-color: white !important;
     color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .print-card {

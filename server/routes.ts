@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { dbClient, getCollection, getDb } from './db.js';
+import { dbClient, getCollection, getDb, bumpStateVersion } from './db.js';
 import { CalculationService, calculateGrade, calculateResultPoints, getNormalizedMark } from './calculations.js';
 import {
   UserRole, User, Session, LoginAudit, AuditLog,
@@ -1659,6 +1659,60 @@ apiRouter.get('/registrations', authenticate, async (req, res) => {
   res.json((db as any).registrations || []);
 });
 
+// Clear All Registered Events (Preserves participants and competitions, wipes event assignments & group teams)
+apiRouter.post('/registrations/clear-all-events', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  try {
+    const db = dbClient.get();
+    const user = (req as any).user as User;
+
+    // 1. Reset registeredEvents on all participants
+    if (Array.isArray(db.participants)) {
+      db.participants.forEach(p => {
+        p.registeredEvents = [];
+        p.updatedAt = new Date().toISOString();
+      });
+    }
+
+    // 2. Reset registration competition arrays
+    if (Array.isArray((db as any).registrations)) {
+      (db as any).registrations.forEach((r: any) => {
+        r.selectedIndividualCompetitionIds = [];
+        r.selectedGroupCompetitionIds = [];
+        r.selectedGroupTeamIds = [];
+        r.updatedAt = new Date().toISOString();
+      });
+    }
+
+    // 3. Clear all group teams
+    db.teams = [];
+
+    // 4. Also clean direct collections in MongoDB Atlas if connected
+    const mongoDb = getDb();
+    if (mongoDb) {
+      await Promise.all([
+        mongoDb.collection('participants').updateMany({}, { $set: { registeredEvents: [], updatedAt: new Date().toISOString() } }),
+        mongoDb.collection('registrations').updateMany({}, { $set: { selectedIndividualCompetitionIds: [], selectedGroupCompetitionIds: [], selectedGroupTeamIds: [], updatedAt: new Date().toISOString() } }),
+        mongoDb.collection('teams').deleteMany({})
+      ]).catch(e => console.error('Direct MongoDB clear events error:', e));
+    }
+
+    // 5. Log audit & persist
+    await dbClient.logAudit(user.id, user.username, user.role, 'Clear All Registered Events', 'Registration', 'global');
+    await dbClient.save(['participants', 'registrations', 'teams']);
+    await bumpStateVersion();
+
+    res.json({
+      success: true,
+      message: 'All registered events and group teams cleared successfully. Participants and competitions preserved.',
+      participantsCount: db.participants.length,
+      competitionsCount: db.competitions.length,
+      teamsCount: db.teams.length
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to clear registered events' });
+  }
+});
+
 // Bulk Import Participants
 apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
   const db = dbClient.get();
@@ -2102,6 +2156,7 @@ apiRouter.post('/participants/bulk-assign-competitions', authenticate, requireRo
         await mongoDb.collection('teams').bulkWrite(teamOps, { ordered: false }).catch(() => { });
       }
     }
+    await bumpStateVersion();
   } catch (mongoErr) {
     console.error('Mongo sync error in bulk-assign-competitions:', mongoErr);
   }

@@ -513,9 +513,9 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
 
   if (viewMode === 'print' && currentSheet) {
     return (
-      <div className="print-sheet bg-white p-8 max-w-[210mm] mx-auto text-black" id="judgment-sheet-print">
+      <div className="print-sheet bg-white p-8 max-w-[210mm] mx-auto text-black print:p-0 print:max-w-none" id="judgment-sheet-print">
         {/* Print Header */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-6 print:mb-3 print:break-after-avoid">
           <div className="flex items-center justify-center mb-3">
             <img
               src={eventSettings?.sahityotsavLogoUrl || '/querencia_logo.png'}
@@ -600,7 +600,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
 
   if (viewMode === 'print-winners') {
     return (
-      <div className="bg-white min-h-screen p-4 sm:p-8 max-w-[210mm] mx-auto text-black font-sans">
+      <div className="bg-white min-h-screen p-4 sm:p-8 max-w-[210mm] mx-auto text-black font-sans print:min-h-0 print:p-0 print:max-w-none">
         {/* Print Controls (Hidden when printing) */}
         <div className="mb-6 flex justify-between items-center print:hidden no-print border-b pb-4">
           <button
@@ -623,7 +623,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         {/* Master Print Document */}
         <div id="master-winners-print">
           {/* Header */}
-          <div className="border-b-2 border-black pb-4 mb-4 text-center">
+          <div className="border-b-2 border-black pb-4 mb-4 text-center print:pb-3 print:mb-3 print:break-after-avoid">
             <h1 className="text-xl font-black uppercase tracking-wider">
               {eventSettings?.festivalName || 'QUERENCIA'}
             </h1>

@@ -462,7 +462,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto font-sans min-w-0 w-full overflow-x-hidden">
       
       {/* Printable Document Header (Only visible on paper / PDF print) */}
-      <div className="hidden print:block mb-6 border-b-2 border-slate-800 pb-3">
+      <div className="hidden print:block mb-4 border-b-2 border-slate-800 pb-2 print:break-after-avoid">
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-xl font-bold uppercase tracking-wider text-slate-900">
@@ -750,7 +750,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
       )}
 
       {/* Dedicated Print Layout (Neat, Paper-Efficient A4 Table Grouped by Category) */}
-      <div className="hidden print:block space-y-6">
+      <div className="hidden print:block space-y-4 print-sheet">
         {categories
           .filter(cat => !selectedCategoryId || cat.id === selectedCategoryId)
           .map(cat => {
@@ -758,8 +758,8 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
             if (catComps.length === 0) return null;
 
             return (
-              <div key={`print-cat-${cat.id}`} className="space-y-2 break-inside-avoid">
-                <div className="flex justify-between items-center bg-slate-100 px-3 py-1.5 border border-slate-300 rounded">
+              <div key={`print-cat-${cat.id}`} className="space-y-2 print:break-inside-auto">
+                <div className="flex justify-between items-center bg-slate-100 px-3 py-1.5 border border-slate-300 rounded print:break-after-avoid">
                   <span className="font-bold text-xs uppercase tracking-wider text-slate-800">{cat.name}</span>
                   <span className="text-[10px] font-mono font-bold text-slate-600">{catComps.length} Programs</span>
                 </div>
@@ -775,7 +775,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
                   </thead>
                   <tbody>
                     {catComps.map((comp) => (
-                      <tr key={`print-row-${comp.id}`} className="border-b border-slate-200">
+                      <tr key={`print-row-${comp.id}`} className="border-b border-slate-200 print:break-inside-avoid">
                         <td className="border border-slate-300 px-2.5 py-1.5 font-mono font-bold text-slate-800">
                           {comp.code || comp.id.replace('comp_', '').toUpperCase()}
                         </td>

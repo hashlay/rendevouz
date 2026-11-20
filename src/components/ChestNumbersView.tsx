@@ -300,7 +300,7 @@ export default function ChestNumbersView({ user, token, eventSettings }: ChestNu
       {/* Print Wrapper */}
       <div className="print-sheet print:overflow-visible">
         {/* Print Header */}
-        <div className="hidden print:flex items-center justify-between pb-6 border-b border-dashed border-slate-300 mb-6">
+        <div className="hidden print:flex items-center justify-between pb-4 print:pb-3 border-b border-dashed border-slate-300 mb-4 print:break-after-avoid">
           <div className="flex-shrink-0 w-32 flex justify-start">
             {eventSettings?.logoUrl && (
               <img src={eventSettings.logoUrl} alt="Festival Logo" className="max-h-24 object-contain" />
@@ -319,7 +319,7 @@ export default function ChestNumbersView({ user, token, eventSettings }: ChestNu
         </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden print:shadow-none print:border print:overflow-visible">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden print:shadow-none print:border print:border-slate-300 print:rounded-none print:overflow-visible">
         <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full text-sm">
             <thead>
@@ -338,7 +338,7 @@ export default function ChestNumbersView({ user, token, eventSettings }: ChestNu
                 <tr><td colSpan={7} className="text-center py-8 text-slate-400">No chest numbers found</td></tr>
               ) : (
                 filtered.map(cn => (
-                  <tr key={cn.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                  <tr key={cn.id} className="border-b border-slate-100 hover:bg-slate-50 transition print:break-inside-avoid">
                     <td className="px-4 py-3">
                       {editingId === cn.id ? (
                         <div className="flex items-center gap-2">

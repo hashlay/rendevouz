@@ -119,9 +119,9 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const criteriaMode = eventSettings?.participantLoginCriteria || 'class';
   const rawClasses: string[] = (Array.isArray(eventSettings?.availableClasses) && eventSettings.availableClasses.length > 0)
     ? eventSettings.availableClasses
-    : ['+1', '+2'];
+    : ['JD1', 'JD2', 'JD3', 'HS1', 'HS2', 'BS1'];
   const availableClasses: string[] = Array.from(new Set(rawClasses.map(c => c.replace(/^Class\s*/i, '').trim()))).filter(Boolean);
-  if (availableClasses.length === 0) availableClasses.push('+1', '+2');
+  if (availableClasses.length === 0) availableClasses.push('JD1', 'JD2', 'JD3', 'HS1', 'HS2', 'BS1');
 
   // Deletion confirm
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -1079,9 +1079,9 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden md:block print:block print-sheet bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden print:shadow-none print:border-none print:overflow-visible">
+        <div className="hidden md:block print:block print-sheet bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden print:shadow-none print:border-none print:rounded-none print:p-0 print:overflow-visible">
           
-          <div className="hidden print:flex items-center justify-between pb-6 border-b border-dashed border-slate-300 mb-8">
+          <div className="hidden print:flex items-center justify-between pb-4 border-b border-dashed border-slate-300 mb-4 print:break-after-avoid">
             <div className="flex-shrink-0 w-32 flex justify-start">
               {eventSettings?.logoUrl && (
                 <img src={eventSettings.logoUrl} alt="Festival Logo" className="max-h-24 object-contain" />
@@ -1116,7 +1116,7 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                     const unit = units.find(u => u.id === p.unitId);
                     const cat = categories.find(c => c.id === p.selectedCategoryId);
                     return (
-                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors print:break-inside-avoid">
                         <td className="px-6 py-4 font-mono font-bold text-slate-500 whitespace-nowrap">{p.profilePhoto}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">

@@ -268,10 +268,10 @@ export default function ReportsView({ user, token, eventSettings }: ReportsViewP
       </div>
 
       {/* 3. Printable sheet & layout */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md p-6 sm:p-10 relative overflow-hidden print-sheet print:overflow-visible">
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md p-6 sm:p-10 relative overflow-hidden print-sheet print:overflow-visible print:p-0 print:border-none print:shadow-none print:rounded-none">
         
         {/* Printable header */}
-        <div className="flex items-center justify-between pb-8 border-b border-dashed border-slate-300">
+        <div className="flex items-center justify-between pb-4 print:pb-3 border-b border-dashed border-slate-300 print:break-after-avoid">
           {/* Logo on Left */}
           <div className="flex-shrink-0 w-32 flex justify-start">
             {eventSettings?.logoUrl && (
@@ -295,7 +295,7 @@ export default function ReportsView({ user, token, eventSettings }: ReportsViewP
           <div className="flex-shrink-0 w-32"></div>
         </div>
 
-        <div className="text-center mt-4 mb-2">
+        <div className="text-center mt-4 mb-2 print:mt-2 print:mb-1">
           <span className="text-[10px] font-mono text-slate-400 font-bold uppercase">
             REPORT GENERATED ON: {new Date().toLocaleDateString()} AT {new Date().toLocaleTimeString()}
           </span>
@@ -304,7 +304,7 @@ export default function ReportsView({ user, token, eventSettings }: ReportsViewP
         {previewLoading ? (
           <div className="py-24 text-center text-xs font-mono text-slate-400 animate-pulse">Querying report sheet entries...</div>
         ) : (
-          <div className="mt-8 overflow-x-auto print:overflow-visible">
+          <div className="mt-6 print:mt-2 overflow-x-auto print:overflow-visible">
             {previewData.length > 0 ? (
               <table className="min-w-full divide-y divide-slate-200 text-xs print-table">
                 

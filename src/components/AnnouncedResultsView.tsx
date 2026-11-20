@@ -442,8 +442,8 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
       </div>
 
       {/* PRINT LAYOUT */}
-      <div className="hidden print:block print-sheet font-sans text-black bg-white p-8">
-        <div className="flex items-center justify-between pb-6 border-b border-dashed border-slate-300 mb-8">
+      <div className="hidden print:block print-sheet font-sans text-black bg-white p-8 print:p-0">
+        <div className="flex items-center justify-between pb-4 print:pb-3 border-b border-dashed border-slate-300 mb-4 print:break-after-avoid">
           <div className="flex-shrink-0 w-32 flex justify-start">
             {eventSettings?.logoUrl && (
               <img src={eventSettings.logoUrl} alt="Festival Logo" className="max-h-24 object-contain" />
@@ -459,7 +459,7 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
           <div className="flex-shrink-0 w-32"></div>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-8 print:space-y-4">
           {categories.filter(c => c.active).map(cat => {
             const catComps = competitionsWithAnnouncedResults.filter(comp => comp.categoryId === cat.id);
             
@@ -493,11 +493,11 @@ export default function AnnouncedResultsView({ user, token, eventSettings }: Ann
             if (printableComps.length === 0) return null;
 
             return (
-              <div key={cat.id} className="mb-8">
-                <h2 className="text-xl font-bold border-b-2 border-black pb-1 mb-4 uppercase">{cat.name}</h2>
+              <div key={cat.id} className="mb-8 print:mb-4 print:break-inside-auto">
+                <h2 className="text-xl font-bold border-b-2 border-black pb-1 mb-3 uppercase print:break-after-avoid">{cat.name}</h2>
                 <div className="space-y-5">
                   {printableComps.map((item, idx) => (
-                    <div key={item.comp.id} className="pl-4">
+                    <div key={item.comp.id} className="pl-4 print:pl-2 print:break-inside-avoid">
                       <h3 className="font-bold text-lg mb-2">{idx + 1}. {item.comp.name}</h3>
                       <div className="pl-6 space-y-1.5">
                         {item.results.map(res => {

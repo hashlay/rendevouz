@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Filter, Printer, RefreshCw, CheckCircle, AlertTriangle, Users } from 'lucide-react';
+import { ClipboardList, Filter, Printer, RefreshCw, CheckCircle, AlertTriangle, Users, Trash2 } from 'lucide-react';
 import { User, UserRole, Category, Unit, Participant, Competition, Team, ParticipationType, StageType } from '../types';
 
 interface RegisteredEventsViewProps {
@@ -69,6 +69,32 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
     fetchLists();
   }, [token]);
 
+  const [clearingEvents, setClearingEvents] = useState(false);
+
+  const handleClearAllEvents = async () => {
+    if (!window.confirm("ARE YOU ABSOLUTELY SURE?\n\nThis will remove ALL registered competitions and group teams for all participants, allowing you to register from scratch.\n\nAll 81 participants and 129 competitions will NOT be deleted.")) {
+      return;
+    }
+    setClearingEvents(true);
+    try {
+      const res = await fetch('/api/registrations/clear-all-events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to clear registered events');
+      alert('All registered events and group teams have been cleared successfully. Participants and competitions are preserved.');
+      await fetchLists();
+    } catch (err: any) {
+      alert(err.message || 'Error clearing registered events');
+    } finally {
+      setClearingEvents(false);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -110,6 +136,17 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {user.role === UserRole.SUPER_ADMIN && (
+            <button
+              onClick={handleClearAllEvents}
+              disabled={loading || clearingEvents}
+              className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+              title="Clear all registered events for all participants"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>{clearingEvents ? 'Clearing...' : 'Clear All Events'}</span>
+            </button>
+          )}
           <button 
             onClick={fetchLists}
             className="p-2.5 text-slate-500 hover:text-emerald-600 bg-slate-50 hover:bg-emerald-50 rounded-xl border border-slate-200 transition-all cursor-pointer"
@@ -196,10 +233,10 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
           <p className="text-xs text-slate-400">Compiling registration lists...</p>
         </div>
       ) : (
-        <div className="space-y-8 print-sheet print:overflow-visible">
+        <div className="space-y-8 print:space-y-4 print-sheet print:overflow-visible">
           
           {/* Print Only Header */}
-          <div className="hidden print:flex items-center justify-between pb-6 border-b border-dashed border-slate-300 mb-6">
+          <div className="hidden print:flex items-center justify-between pb-4 border-b border-dashed border-slate-300 mb-4 print:break-after-avoid">
             <div className="flex-shrink-0 w-32 flex justify-start">
               {eventSettings?.logoUrl && (
                 <img src={eventSettings.logoUrl} alt="Festival Logo" className="max-h-24 object-contain" />
@@ -234,9 +271,9 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
             const sortedComps = [...categoryComps].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0) || a.name.localeCompare(b.name));
 
             return (
-              <div key={category.id} className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden print:overflow-visible print:shadow-none break-inside-avoid">
+              <div key={category.id} className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden print:overflow-visible print:shadow-none print:border-none print:rounded-none print:break-inside-auto print:space-y-2">
                 {/* Category Header */}
-                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center print:px-3 print:py-2 print:bg-slate-100 print:border print:border-slate-300 print:rounded print:break-after-avoid">
                   <h3 className="font-display font-bold text-slate-800 text-sm uppercase tracking-wide">{category.name} Category</h3>
                   <span className="px-2.5 py-1 bg-slate-200 text-slate-600 font-mono text-[10px] font-bold rounded-lg print:hidden">
                     {categoryComps.length} Events
@@ -325,7 +362,7 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
                     }
 
                     return (
-                      <div key={comp.id} className="p-4 sm:px-6 flex flex-col sm:flex-row justify-between sm:items-start gap-4 hover:bg-slate-50/50 transition-colors">
+                      <div key={comp.id} className="p-4 sm:px-6 flex flex-col sm:flex-row justify-between sm:items-start gap-4 hover:bg-slate-50/50 transition-colors print:p-2.5 print:border-b print:border-slate-200 print:break-inside-avoid print:bg-transparent">
                         {/* Event Details */}
                         <div className="flex-1 space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
