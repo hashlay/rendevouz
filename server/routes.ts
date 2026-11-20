@@ -7196,15 +7196,10 @@ apiRouter.get('/public/results', async (req, res) => {
         }
       }
 
-      let points = r.points || 0;
-      if (!points) {
-        if (r.rank === 1) points = db.eventSettings?.globalPointsRank1 ?? 20;
-        else if (r.rank === 2) points = db.eventSettings?.globalPointsRank2 ?? 14;
-        else if (r.rank === 3) points = db.eventSettings?.globalPointsRank3 ?? 7;
-        else if (r.rank && r.rank >= 4 && r.rank <= 10) points = (db.eventSettings as any)?.[`globalPointsRank${r.rank}`] ?? 0;
-      }
-
-      let grade = r.grade || 'A';
+            const normalizedMark = getNormalizedMark(r);
+      const isGroup = participationType === 'Group' || !!r.teamId || comp?.participationType === 'group';
+      const grade = r.grade || (normalizedMark > 0 ? calculateGrade(normalizedMark, isGroup, db.eventSettings, comp?.categoryId || r.categoryId) : '');
+      const points = (r.points !== undefined && r.points !== null) ? Number(r.points) : calculateResultPoints(r, comp, db.eventSettings);
       const announcementNumber = compAnnouncementMap.get(r.competitionId) || 1;
       const updatedAt = r.updatedAt || r.createdAt || new Date().toISOString();
       return {

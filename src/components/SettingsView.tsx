@@ -109,6 +109,130 @@ const removeBackgroundFromLogo = (imageSource: string): Promise<string> => {
   });
 };
 
+const STANDARD_GRADES = ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', '-'];
+
+interface GradeCellSelectorProps {
+  value: string;
+  onChange: (val: string) => void;
+  variant?: 'emerald' | 'amber';
+  cellKey: string;
+  activeEditingKey: string | null;
+  setActiveEditingKey: (key: string | null) => void;
+}
+
+const GradeCellSelector: React.FC<GradeCellSelectorProps> = ({
+  value,
+  onChange,
+  variant = 'emerald',
+  cellKey,
+  activeEditingKey,
+  setActiveEditingKey
+}) => {
+  const isEditing = activeEditingKey === cellKey;
+  const isCustom = Boolean(value && value !== '-' && !STANDARD_GRADES.includes(value));
+  const [customDraft, setCustomDraft] = useState(isCustom ? value : '');
+
+  useEffect(() => {
+    if (isEditing) {
+      setCustomDraft(value && value !== '-' ? value : '');
+    }
+  }, [isEditing, value]);
+
+  if (isEditing) {
+    return (
+      <div className="inline-flex items-center gap-1">
+        <input
+          type="text"
+          autoFocus
+          value={customDraft}
+          onChange={(e) => setCustomDraft(e.target.value.toUpperCase())}
+          placeholder="Grade..."
+          className={`w-16 px-1.5 py-1 text-center font-bold text-xs uppercase bg-white border rounded-lg shadow-inner outline-none ${
+            variant === 'amber'
+              ? 'border-amber-400 focus:ring-1 focus:ring-amber-500 text-amber-900'
+              : 'border-emerald-400 focus:ring-1 focus:ring-emerald-500 text-emerald-900'
+          }`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const val = customDraft.trim().toUpperCase() || '-';
+              onChange(val);
+              setActiveEditingKey(null);
+            } else if (e.key === 'Escape') {
+              setActiveEditingKey(null);
+            }
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            const val = customDraft.trim().toUpperCase() || '-';
+            onChange(val);
+            setActiveEditingKey(null);
+          }}
+          className={`px-1.5 py-1 rounded text-white text-[11px] font-bold shadow-xs cursor-pointer ${
+            variant === 'amber' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'
+          }`}
+          title="Apply Custom Grade"
+        >
+          ✓
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveEditingKey(null)}
+          className="px-1.5 py-1 rounded bg-slate-200 hover:bg-slate-300 text-slate-600 text-[11px] font-bold cursor-pointer"
+          title="Cancel"
+        >
+          ✕
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="inline-flex items-center gap-1">
+      <select
+        value={value}
+        onChange={(e) => {
+          const val = e.target.value;
+          if (val === '__custom__') {
+            setActiveEditingKey(cellKey);
+          } else {
+            onChange(val);
+          }
+        }}
+        className={`px-2 py-1 font-bold rounded-lg text-xs cursor-pointer outline-none border transition-colors ${
+          variant === 'amber'
+            ? 'text-amber-900 bg-white border-amber-200 focus:border-amber-500'
+            : 'text-emerald-800 bg-white border-emerald-200 focus:border-emerald-600'
+        }`}
+      >
+        {isCustom && <option value={value}>{value} (Custom)</option>}
+        <option value="A+">A+</option>
+        <option value="A">A</option>
+        <option value="B+">B+</option>
+        <option value="B">B</option>
+        <option value="C+">C+</option>
+        <option value="C">C</option>
+        <option value="D+">D+</option>
+        <option value="D">D</option>
+        <option value="-">- (No Grade)</option>
+        <option value="__custom__">✏️ Custom Grade...</option>
+      </select>
+      {isCustom && (
+        <button
+          type="button"
+          onClick={() => setActiveEditingKey(cellKey)}
+          className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-800 text-[11px] cursor-pointer"
+          title="Edit Custom Grade"
+        >
+          ✏️
+        </button>
+      )}
+    </div>
+  );
+};
+
 export default function SettingsView({ user, token, eventSettings }: SettingsViewProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -128,6 +252,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [gradeMatrix, setGradeMatrix] = useState<GradeMatrixRow[]>(DEFAULT_GRADE_MATRIX);
   const [categorySpecificGradesEnabled, setCategorySpecificGradesEnabled] = useState(false);
   const [categoryGradeMatrices, setCategoryGradeMatrices] = useState<Record<string, GradeMatrixRow[]>>({});
+  const [editingCustomGradeCell, setEditingCustomGradeCell] = useState<string | null>(null);
   const [selectedCategoryTierId, setSelectedCategoryTierId] = useState<string>('');
 
   const getEffectiveCategoryMatrix = (catId: string): GradeMatrixRow[] => {
@@ -1069,25 +1194,20 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                             </div>
                           </td>
                           <td className="py-2 px-3 bg-emerald-50/20">
-                            <select
+                            <GradeCellSelector
                               value={row.indGrade}
-                              onChange={(e) => {
-                                const val = e.target.value;
+                              onChange={(val) => {
                                 setGradeMatrix(prev => {
                                   const updated = [...prev];
                                   updated[idx] = { ...updated[idx], indGrade: val };
                                   return updated;
                                 });
                               }}
-                              className="px-2.5 py-1 font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
-                            >
-                              <option value="A+">A+</option>
-                              <option value="A">A</option>
-                              <option value="B">B</option>
-                              <option value="C">C</option>
-                              <option value="D">D</option>
-                              <option value="-">- (No Grade)</option>
-                            </select>
+                              variant="emerald"
+                              cellKey={`global-${row.id || idx}-ind`}
+                              activeEditingKey={editingCustomGradeCell}
+                              setActiveEditingKey={setEditingCustomGradeCell}
+                            />
                           </td>
                           <td className="py-2 px-3 bg-emerald-50/10">
                             <div className="inline-flex items-center gap-1 text-emerald-700 font-bold">
@@ -1109,25 +1229,20 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                             </div>
                           </td>
                           <td className="py-2 px-3 bg-amber-50/20">
-                            <select
+                            <GradeCellSelector
                               value={row.groupGrade}
-                              onChange={(e) => {
-                                const val = e.target.value;
+                              onChange={(val) => {
                                 setGradeMatrix(prev => {
                                   const updated = [...prev];
                                   updated[idx] = { ...updated[idx], groupGrade: val };
                                   return updated;
                                 });
                               }}
-                              className="px-2.5 py-1 font-bold text-amber-900 bg-white border border-amber-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
-                            >
-                              <option value="A+">A+</option>
-                              <option value="A">A</option>
-                              <option value="B">B</option>
-                              <option value="C">C</option>
-                              <option value="D">D</option>
-                              <option value="-">- (No Grade)</option>
-                            </select>
+                              variant="amber"
+                              cellKey={`global-${row.id || idx}-group`}
+                              activeEditingKey={editingCustomGradeCell}
+                              setActiveEditingKey={setEditingCustomGradeCell}
+                            />
                           </td>
                           <td className="py-2 px-3 bg-amber-50/10">
                             <div className="inline-flex items-center gap-1 text-amber-900 font-bold">
@@ -1347,18 +1462,14 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                                   </div>
                                 </td>
                                 <td className="py-2 px-3 bg-emerald-50/20">
-                                  <select
+                                  <GradeCellSelector
                                     value={row.indGrade}
-                                    onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'indGrade', e.target.value)}
-                                    className="px-2.5 py-1 font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
-                                  >
-                                    <option value="A+">A+</option>
-                                    <option value="A">A</option>
-                                    <option value="B">B</option>
-                                    <option value="C">C</option>
-                                    <option value="D">D</option>
-                                    <option value="-">- (No Grade)</option>
-                                  </select>
+                                    onChange={(val) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'indGrade', val)}
+                                    variant="emerald"
+                                    cellKey={`cat-${activeCat.id}-${row.id || idx}-ind`}
+                                    activeEditingKey={editingCustomGradeCell}
+                                    setActiveEditingKey={setEditingCustomGradeCell}
+                                  />
                                 </td>
                                 <td className="py-2 px-3 bg-emerald-50/10">
                                   <div className="inline-flex items-center gap-1 text-emerald-700 font-bold">
@@ -1373,18 +1484,14 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                                   </div>
                                 </td>
                                 <td className="py-2 px-3 bg-amber-50/20">
-                                  <select
+                                  <GradeCellSelector
                                     value={row.groupGrade}
-                                    onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'groupGrade', e.target.value)}
-                                    className="px-2.5 py-1 font-bold text-amber-900 bg-white border border-amber-200 rounded-lg text-xs cursor-pointer focus:border-emerald-600 outline-none"
-                                  >
-                                    <option value="A+">A+</option>
-                                    <option value="A">A</option>
-                                    <option value="B">B</option>
-                                    <option value="C">C</option>
-                                    <option value="D">D</option>
-                                    <option value="-">- (No Grade)</option>
-                                  </select>
+                                    onChange={(val) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'groupGrade', val)}
+                                    variant="amber"
+                                    cellKey={`cat-${activeCat.id}-${row.id || idx}-group`}
+                                    activeEditingKey={editingCustomGradeCell}
+                                    setActiveEditingKey={setEditingCustomGradeCell}
+                                  />
                                 </td>
                                 <td className="py-2 px-3 bg-amber-50/10">
                                   <div className="inline-flex items-center gap-1 text-amber-900 font-bold">

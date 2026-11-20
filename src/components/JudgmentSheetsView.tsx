@@ -4,7 +4,7 @@ import {
   CheckCircle, Clock, AlertTriangle, FileText, Check, Save, Lock, Plus,
   Trophy, X, Globe
 } from 'lucide-react';
-import { User, UserRole, JudgmentSheetStatus, JudgeScoreStatus } from '../types';
+import { User, UserRole, JudgmentSheetStatus, JudgeScoreStatus, GradeMatrixRow, DEFAULT_GRADE_MATRIX } from '../types';
 
 interface JudgmentSheetsViewProps {
   user: User;
@@ -26,56 +26,44 @@ const STATUS_LABELS: Record<string, string> = {
   locked: 'Locked'
 };
 
-const computeGrade = (mark: number, isGroup: boolean): string => {
+const computeGrade = (mark: number, isGroup: boolean, eventSettings?: any, categoryId?: string): string => {
   const m = Math.round(Number(mark) || 0);
   if (m <= 0) return '';
-  if (isGroup) {
-    if (m >= 95) return 'A+';
-    if (m >= 80) return 'A';
-    if (m >= 55) return 'B';
-    if (m >= 30) return 'C';
-    return '';
-  } else {
-    if (m >= 95) return 'A+';
-    if (m >= 85) return 'A';
-    if (m >= 70) return 'B';
-    if (m >= 50) return 'C';
-    return '';
+  let matrix: GradeMatrixRow[] = DEFAULT_GRADE_MATRIX;
+  if (eventSettings?.categorySpecificGradesEnabled && categoryId && eventSettings?.categoryGradeMatrices?.[categoryId] && Array.isArray(eventSettings.categoryGradeMatrices[categoryId]) && eventSettings.categoryGradeMatrices[categoryId].length > 0) {
+    matrix = eventSettings.categoryGradeMatrices[categoryId];
+  } else if (eventSettings?.gradeMatrix && Array.isArray(eventSettings.gradeMatrix) && eventSettings.gradeMatrix.length > 0) {
+    matrix = eventSettings.gradeMatrix;
   }
+  const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
+  for (const row of sorted) {
+    if (m >= Number(row.minMark)) {
+      const g = isGroup ? row.groupGrade : row.indGrade;
+      return (!g || g === '-' || g === 'None') ? '' : g;
+    }
+  }
+  return '';
 };
 
-const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank?: number): number => {
+const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank?: number, categoryId?: string): number => {
   const gradeSystemEnabled = eventSettings?.gradeSystemEnabled !== false;
   const m = Math.round(Number(mark) || 0);
 
   if (gradeSystemEnabled) {
     if (m <= 0) return 0;
-    if (isGroup) {
-      if (m >= 95) return 20;
-      if (m >= 90) return 19;
-      if (m >= 85) return 18;
-      if (m >= 80) return 17;
-      if (m >= 75) return 16;
-      if (m >= 70) return 15;
-      if (m >= 65) return 14;
-      if (m >= 55) return 13;
-      if (m >= 50) return 12;
-      if (m >= 40) return 11;
-      if (m >= 30) return 10;
-      return 5;
-    } else {
-      if (m >= 95) return 10;
-      if (m >= 90) return 9;
-      if (m >= 85) return 8;
-      if (m >= 80) return 7;
-      if (m >= 75) return 6;
-      if (m >= 70) return 5;
-      if (m >= 65) return 4;
-      if (m >= 55) return 3;
-      if (m >= 50) return 2;
-      if (m >= 40) return 1;
-      return 0;
+    let matrix: GradeMatrixRow[] = DEFAULT_GRADE_MATRIX;
+    if (eventSettings?.categorySpecificGradesEnabled && categoryId && eventSettings?.categoryGradeMatrices?.[categoryId] && Array.isArray(eventSettings.categoryGradeMatrices[categoryId]) && eventSettings.categoryGradeMatrices[categoryId].length > 0) {
+      matrix = eventSettings.categoryGradeMatrices[categoryId];
+    } else if (eventSettings?.gradeMatrix && Array.isArray(eventSettings.gradeMatrix) && eventSettings.gradeMatrix.length > 0) {
+      matrix = eventSettings.gradeMatrix;
     }
+    const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
+    for (const row of sorted) {
+      if (m >= Number(row.minMark)) {
+        return isGroup ? Number(row.groupPoints) : Number(row.indPoints);
+      }
+    }
+    return 0;
   }
 
   // Fallback: Rank-based points (when Grade Pointing System is disabled)
@@ -1263,8 +1251,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                     const calculatedAvg = Math.round((sumMarks / activeJudgesCount) * 100) / 100;
                     const displayAvg = (s.averageMark && s.averageMark > 0) ? s.averageMark : (sumMarks > 0 ? calculatedAvg : (s.averageMark ?? 0));
 
-                    const displayGrade = isParticipated && displayAvg > 0 ? computeGrade(displayAvg, isGroupCompetition) : (s.grade || '');
-                    const displayPoints = isParticipated && displayAvg > 0 ? computePoints(displayAvg, isGroupCompetition, eventSettings, s.rank) : (s.points ?? 0);
+                    const displayGrade = isParticipated && displayAvg > 0 ? computeGrade(displayAvg, isGroupCompetition, eventSettings, currentSheet?.categoryId) : (s.grade || '');
+                    const displayPoints = isParticipated && displayAvg > 0 ? computePoints(displayAvg, isGroupCompetition, eventSettings, s.rank, currentSheet?.categoryId) : (s.points ?? 0);
 
                     return (
                       <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
