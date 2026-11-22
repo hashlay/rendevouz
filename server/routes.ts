@@ -1248,9 +1248,9 @@ apiRouter.post('/categories', authenticate, requireRole([UserRole.SUPER_ADMIN, U
     dobEnd,
     classStart,
     classEnd,
-    pointsRank1: Number(pointsRank1) || 20,
-    pointsRank2: Number(pointsRank2) || 14,
-    pointsRank3: Number(pointsRank3) || 7,
+    pointsRank1: Number(pointsRank1) || 5,
+    pointsRank2: Number(pointsRank2) || 3,
+    pointsRank3: Number(pointsRank3) || 1,
     startingChestNumber: Number(startingChestNumber) || defaultStartNumber,
     active: true
   };
@@ -7202,7 +7202,7 @@ apiRouter.get('/public/results', async (req, res) => {
             const normalizedMark = getNormalizedMark(r);
       const isGroup = participationType === 'Group' || !!r.teamId || comp?.participationType === 'group';
       const grade = r.grade || (normalizedMark > 0 ? calculateGrade(normalizedMark, isGroup, db.eventSettings, comp?.categoryId || r.categoryId) : '');
-      const points = (r.points !== undefined && r.points !== null) ? Number(r.points) : calculateResultPoints(r, comp, db.eventSettings);
+      const points = calculateResultPoints(r, comp, db.eventSettings);
       const announcementNumber = compAnnouncementMap.get(r.competitionId) || 1;
       const updatedAt = r.updatedAt || r.createdAt || new Date().toISOString();
       return {

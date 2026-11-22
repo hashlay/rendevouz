@@ -3,7 +3,7 @@ import {
   Users, Search, Filter, Trash2, Edit3, Eye, FileSpreadsheet, 
   RefreshCw, CheckCircle, Award, Compass, Sparkles, X, ChevronRight, ListCollapse, Hash, Printer 
 } from 'lucide-react';
-import { User, UserRole, Category, Unit, Participant, Competition, EducationStatus } from '../types';
+import { User, UserRole, Category, Unit, Participant, Competition, EducationStatus, DEFAULT_GRADE_MATRIX, GradeMatrixRow } from '../types';
 import { useAdminData } from '../context/AdminDataContext';
 
 interface ParticipantsViewProps {
@@ -12,50 +12,59 @@ interface ParticipantsViewProps {
   eventSettings?: any;
 }
 
-const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank?: number): number => {
+const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank?: number, teamSize?: number): number => {
   const gradeSystemEnabled = eventSettings?.gradeSystemEnabled !== false;
+  const combineGradeAndRankPoints = eventSettings?.combineGradeAndRankPoints === true;
   const m = Math.round(Number(mark) || 0);
 
-  if (gradeSystemEnabled) {
-    if (m <= 0) return 0;
-    if (isGroup) {
-      if (m >= 95) return 20;
-      if (m >= 90) return 19;
-      if (m >= 85) return 18;
-      if (m >= 80) return 17;
-      if (m >= 75) return 16;
-      if (m >= 70) return 15;
-      if (m >= 65) return 14;
-      if (m >= 55) return 13;
-      if (m >= 50) return 12;
-      if (m >= 40) return 11;
-      if (m >= 30) return 10;
-      return 5;
-    } else {
-      if (m >= 95) return 10;
-      if (m >= 90) return 9;
-      if (m >= 85) return 8;
-      if (m >= 80) return 7;
-      if (m >= 75) return 6;
-      if (m >= 70) return 5;
-      if (m >= 65) return 4;
-      if (m >= 55) return 3;
-      if (m >= 50) return 2;
-      if (m >= 40) return 1;
-      return 0;
+  let gradePoints = 0;
+  if (gradeSystemEnabled && m > 0) {
+    let matrix: GradeMatrixRow[] = (eventSettings?.gradeMatrix && Array.isArray(eventSettings.gradeMatrix) && eventSettings.gradeMatrix.length > 0)
+      ? eventSettings.gradeMatrix
+      : DEFAULT_GRADE_MATRIX;
+    const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
+    for (const row of sorted) {
+      if (m >= Number(row.minMark)) {
+        if (!isGroup || (teamSize && teamSize === 1)) {
+          gradePoints = Number(row.indPoints) || 0;
+        } else if (teamSize === 2) {
+          gradePoints = (row.group2Points !== undefined && row.group2Points !== null) ? Number(row.group2Points) : (Number(row.groupPoints) || 0);
+        } else if (teamSize === 3) {
+          gradePoints = (row.group3Points !== undefined && row.group3Points !== null) ? Number(row.group3Points) : (Number(row.groupPoints) || 0);
+        } else if (teamSize === 4 || teamSize === 5) {
+          gradePoints = (row.group4_5Points !== undefined && row.group4_5Points !== null) ? Number(row.group4_5Points) : (Number(row.groupPoints) || 0);
+        } else if (teamSize && teamSize >= 10) {
+          gradePoints = (row.group10Points !== undefined && row.group10Points !== null) ? Number(row.group10Points) : (row.group4_5Points !== undefined ? Number(row.group4_5Points) : (Number(row.groupPoints) || 0));
+        } else {
+          gradePoints = isGroup ? (row.group4_5Points !== undefined ? Number(row.group4_5Points) : (Number(row.groupPoints) || 0)) : Number(row.indPoints);
+        }
+        break;
+      }
     }
   }
 
-  // Fallback: Rank-based points
-  if (!rank || rank > 10) return 0;
-  const settingsKey = `globalPointsRank${rank}`;
-  const settingsVal = eventSettings?.[settingsKey];
-  if (settingsVal !== undefined && settingsVal !== null) {
-    const val = Number(settingsVal);
-    if (!isNaN(val)) return val;
+  let rankPoints = 0;
+  if (!gradeSystemEnabled || combineGradeAndRankPoints) {
+    if (rank && rank >= 1 && rank <= 10) {
+      const settingsKey = `globalPointsRank${rank}`;
+      const settingsVal = eventSettings?.[settingsKey];
+      if (settingsVal !== undefined && settingsVal !== null) {
+        const val = Number(settingsVal);
+        if (!isNaN(val)) rankPoints = val;
+      } else {
+        const defaultMap: Record<number, number> = { 1: 5, 2: 3, 3: 1, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
+        rankPoints = defaultMap[rank] || 0;
+      }
+    }
   }
-  const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
-  return defaultMap[rank] || 0;
+
+  if (gradeSystemEnabled && combineGradeAndRankPoints) {
+    return gradePoints + rankPoints;
+  }
+  if (gradeSystemEnabled) {
+    return gradePoints;
+  }
+  return rankPoints;
 };
 
 export default function ParticipantsView({ user, token, eventSettings }: ParticipantsViewProps) {

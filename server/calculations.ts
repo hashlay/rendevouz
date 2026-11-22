@@ -140,6 +140,15 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
   const catId = r.categoryId || compObj?.categoryId;
   const grade = (r as any).grade || (m > 0 ? calculateGrade(m, isGroup, settings, catId) : '');
 
+  const compName = (compObj?.name || (r as any).eventName || '').toLowerCase();
+  let teamSize = Number(compObj?.teamSize) || (isGroup ? 2 : 1);
+  if (r.teamId && db.teams) {
+    const t = db.teams.find(tm => tm.id === r.teamId);
+    if (t && Array.isArray(t.memberIds) && t.memberIds.length > 0) {
+      teamSize = t.memberIds.length;
+    }
+  }
+
   // 1. Calculate Grade Points based on active Point Distribution Mode
   let gradePoints = 0;
   if (gradeSystemEnabled && m > 0 && grade) {
@@ -147,15 +156,6 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
       const tiers: TeamSizePointTier[] = (settings?.teamSizePointTiers && Array.isArray(settings.teamSizePointTiers) && settings.teamSizePointTiers.length > 0)
         ? settings.teamSizePointTiers
         : DEFAULT_TEAM_SIZE_TIERS;
-
-      const compName = (compObj?.name || (r as any).eventName || '').toLowerCase();
-      let teamSize = Number(compObj?.teamSize) || (isGroup ? 2 : 1);
-      if (r.teamId && db.teams) {
-        const t = db.teams.find(tm => tm.id === r.teamId);
-        if (t && Array.isArray(t.memberIds) && t.memberIds.length > 0) {
-          teamSize = t.memberIds.length;
-        }
-      }
 
       // 1. Check keyword match first (Project, Vlog, Social Story, etc.)
       let matchedTier = tiers.find(t =>
@@ -209,30 +209,18 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
     }
   }
 
-  // 2. Calculate Rank Points (Default: 1st=5, 2nd=3, 3rd=1, others=0)
+  // 2. Calculate Rank Points (Official Global Festival Scale: 1st=5, 2nd=3, 3rd=1, others=0)
   let rankPoints = 0;
   if (!gradeSystemEnabled || combineGradeAndRankPoints) {
     if (r.rank && r.rank >= 1 && r.rank <= 10) {
-      const cat = db.categories ? db.categories.find(c => c.id === r.categoryId || c.id === compObj?.categoryId) : null;
-      let catRankVal: any = null;
-      if (cat) {
-        const key = `pointsRank${r.rank}` as keyof typeof cat;
-        if (cat[key] !== undefined && cat[key] !== null) {
-          catRankVal = Number(cat[key]);
-        }
-      }
-      if (catRankVal !== null && !isNaN(catRankVal)) {
-        rankPoints = catRankVal;
+      // Prioritize global festival rank point distribution configured in Settings
+      const settingsKey = `globalPointsRank${r.rank}`;
+      const settingsVal = (settings as any)?.[settingsKey] ?? (settings as any)?.[`pointsRank${r.rank}`];
+      if (settingsVal !== undefined && settingsVal !== null && !isNaN(Number(settingsVal))) {
+        rankPoints = Number(settingsVal);
       } else {
-        const settingsKey = `globalPointsRank${r.rank}`;
-        const settingsVal = (settings as any)?.[settingsKey];
-        if (settingsVal !== undefined && settingsVal !== null) {
-          const val = Number(settingsVal);
-          if (!isNaN(val)) rankPoints = val;
-        } else {
-          const defaultMap: Record<number, number> = { 1: 5, 2: 3, 3: 1, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
-          rankPoints = defaultMap[r.rank] || 0;
-        }
+        const defaultMap: Record<number, number> = { 1: 5, 2: 3, 3: 1, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
+        rankPoints = defaultMap[r.rank] || 0;
       }
     }
   }

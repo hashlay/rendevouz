@@ -58,9 +58,9 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
   const [catDobEnd, setCatDobEnd] = useState('');
   const [catClassStart, setCatClassStart] = useState('');
   const [catClassEnd, setCatClassEnd] = useState('');
-  const [catRank1Pts, setCatRank1Pts] = useState(20);
-  const [catRank2Pts, setCatRank2Pts] = useState(14);
-  const [catRank3Pts, setCatRank3Pts] = useState(7);
+  const [catRank1Pts, setCatRank1Pts] = useState(5);
+  const [catRank2Pts, setCatRank2Pts] = useState(3);
+  const [catRank3Pts, setCatRank3Pts] = useState(1);
   const [catStartingChestNumber, setCatStartingChestNumber] = useState<number>(1001);
   const [savingCategory, setSavingCategory] = useState(false);
 
@@ -1072,7 +1072,7 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
                             : `${cat.dobStart || 'Any'} → ${cat.dobEnd || 'Any'}`}
                         </td>
                         <td className="px-3 py-2.5 text-center font-mono font-bold text-emerald-700">
-                          {cat.pointsRank1 || 20} / {cat.pointsRank2 || 14} / {cat.pointsRank3 || 7}
+                          {cat.pointsRank1 ?? 5} / {cat.pointsRank2 ?? 3} / {cat.pointsRank3 ?? 1}
                         </td>
                         <td className="px-3 py-2.5 text-center flex justify-center gap-1">
                           <button
@@ -1084,9 +1084,9 @@ export default function CompetitionsView({ user, token, eventSettings }: Competi
                               setCatDobEnd(cat.dobEnd || '');
                               setCatClassStart(cat.classStart || '');
                               setCatClassEnd(cat.classEnd || '');
-                              setCatRank1Pts(cat.pointsRank1 || 20);
-                              setCatRank2Pts(cat.pointsRank2 || 14);
-                              setCatRank3Pts(cat.pointsRank3 || 7);
+                              setCatRank1Pts(cat.pointsRank1 ?? 5);
+                              setCatRank2Pts(cat.pointsRank2 ?? 3);
+                              setCatRank3Pts(cat.pointsRank3 ?? 1);
                             }}
                             className="p-1 rounded text-slate-400 hover:text-blue-600"
                             title="Edit"

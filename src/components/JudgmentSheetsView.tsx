@@ -45,7 +45,7 @@ const computeGrade = (mark: number, isGroup: boolean, eventSettings?: any, categ
   return '';
 };
 
-const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank?: number, categoryId?: string): number => {
+const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank?: number, categoryId?: string, teamSize?: number): number => {
   const gradeSystemEnabled = eventSettings?.gradeSystemEnabled !== false;
   const combineGradeAndRankPoints = eventSettings?.combineGradeAndRankPoints === true;
   const m = Math.round(Number(mark) || 0);
@@ -61,7 +61,19 @@ const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank
     const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
     for (const row of sorted) {
       if (m >= Number(row.minMark)) {
-        gradePoints = isGroup ? Number(row.groupPoints) : Number(row.indPoints);
+        if (!isGroup || (teamSize && teamSize === 1)) {
+          gradePoints = Number(row.indPoints) || 0;
+        } else if (teamSize === 2) {
+          gradePoints = (row.group2Points !== undefined && row.group2Points !== null) ? Number(row.group2Points) : (Number(row.groupPoints) || 0);
+        } else if (teamSize === 3) {
+          gradePoints = (row.group3Points !== undefined && row.group3Points !== null) ? Number(row.group3Points) : (Number(row.groupPoints) || 0);
+        } else if (teamSize === 4 || teamSize === 5) {
+          gradePoints = (row.group4_5Points !== undefined && row.group4_5Points !== null) ? Number(row.group4_5Points) : (Number(row.groupPoints) || 0);
+        } else if (teamSize && teamSize >= 10) {
+          gradePoints = (row.group10Points !== undefined && row.group10Points !== null) ? Number(row.group10Points) : (row.group4_5Points !== undefined ? Number(row.group4_5Points) : (Number(row.groupPoints) || 0));
+        } else {
+          gradePoints = isGroup ? (row.group4_5Points !== undefined ? Number(row.group4_5Points) : (Number(row.groupPoints) || 0)) : Number(row.indPoints);
+        }
         break;
       }
     }
@@ -76,7 +88,7 @@ const computePoints = (mark: number, isGroup: boolean, eventSettings?: any, rank
         const val = Number(settingsVal);
         if (!isNaN(val)) rankPoints = val;
       } else {
-        const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
+        const defaultMap: Record<number, number> = { 1: 5, 2: 3, 3: 1, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
         rankPoints = defaultMap[rank] || 0;
       }
     }
@@ -1265,7 +1277,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                     const displayAvg = (s.averageMark && s.averageMark > 0) ? s.averageMark : (sumMarks > 0 ? calculatedAvg : (s.averageMark ?? 0));
 
                     const displayGrade = isParticipated && displayAvg > 0 ? computeGrade(displayAvg, isGroupCompetition, eventSettings, currentSheet?.categoryId) : (s.grade || '');
-                    const displayPoints = isParticipated && displayAvg > 0 ? computePoints(displayAvg, isGroupCompetition, eventSettings, s.rank, currentSheet?.categoryId) : (s.points ?? 0);
+                    const displayPoints = isParticipated && displayAvg > 0 ? computePoints(displayAvg, isGroupCompetition, eventSettings, s.rank, currentSheet?.categoryId, currentComp?.teamSize) : (s.points ?? 0);
 
                     return (
                       <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
