@@ -1904,7 +1904,7 @@ apiRouter.post('/participants/bulk', authenticate, requireRole([UserRole.SUPER_A
               teamNumber: `T-${String(db.teams.length + 1).padStart(3, '0')}`,
               teamName: `${p.fullName} & Team`,
               unitId: p.unitId,
-              categoryId: p.selectedCategoryId,
+              categoryId: comp.categoryId || p.selectedCategoryId,
               competitionId: comp.id,
               memberIds: [p.id],
               createdAt: new Date().toISOString(),
@@ -2067,7 +2067,7 @@ apiRouter.post('/participants/bulk-assign-competitions', authenticate, requireRo
             teamNumber: `T-${String(db.teams.length + 1).padStart(3, '0')}`,
             teamName: `${participant.fullName} & Team`,
             unitId: participant.unitId,
-            categoryId: participant.selectedCategoryId,
+            categoryId: gComp.categoryId || participant.selectedCategoryId,
             competitionId: gComp.id,
             memberIds: [participant.id],
             createdAt: new Date().toISOString(),
@@ -2344,7 +2344,7 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
       id: `chest_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       chestNumber: finalChestVal as any,
       participantId,
-      categoryId: selectedCategoryId,
+      categoryId: groupComp.categoryId || selectedCategoryId,
       unitId: finalUnitId,
       generatedBy: user.id,
       generatedAt: new Date().toISOString()
@@ -2859,13 +2859,15 @@ apiRouter.post('/teams', authenticate, async (req, res) => {
   const serial = db.teams.filter(t => t.competitionId === competitionId && !t.deletedAt).length + 1;
   const firstMember = db.participants.find(p => p.id === memberIds[0]);
   const finalTeamName = firstMember ? `${firstMember.fullName} & Team` : `${db.units.find(u => u.id === finalUnitId)?.name} Team ${serial}`;
+  const compObj = db.competitions.find(c => c.id === competitionId);
+  const finalCategoryId = compObj?.categoryId || categoryId;
 
   const newTeam: Team = {
     id: `team_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
     teamNumber: `T-${String(db.teams.length + 1).padStart(3, '0')}`,
     teamName: finalTeamName,
     unitId: finalUnitId,
-    categoryId,
+    categoryId: finalCategoryId,
     competitionId,
     memberIds,
     createdAt: new Date().toISOString(),
@@ -2955,6 +2957,7 @@ apiRouter.put('/teams/:id', authenticate, async (req, res) => {
   if (memberIds) {
     const comp = db.competitions.find(c => c.id === team.competitionId);
     if (!comp) return res.status(404).json({ error: 'Competition not found' });
+    if (comp.categoryId) team.categoryId = comp.categoryId;
 
     if (memberIds.length < 2 || memberIds.length > comp.teamSize) {
       return res.status(400).json({ error: `Team size must be between 2 and ${comp.teamSize} members.` });

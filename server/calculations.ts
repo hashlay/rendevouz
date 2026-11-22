@@ -40,24 +40,21 @@ export interface GradeMatrixRow {
   minMark: number;
   maxMark: number;
   indGrade: string;
-  indPoints: number;
-  groupGrade: string;
-  groupPoints: number;
+  indPoints: number; // 1 Member (Individual)
+  groupGrade?: string;
+  groupPoints?: number;
+  group2Points?: number; // 2 Members (Group)
+  group3Points?: number; // 3 Members (Group)
+  group4_5Points?: number; // 4 or 5 Members (Group)
+  group10Points?: number; // 10 Members / Project / Special
 }
 
 export const DEFAULT_GRADE_MATRIX: GradeMatrixRow[] = [
-  { id: '1', minMark: 95, maxMark: 100, indGrade: 'A+', indPoints: 10, groupGrade: 'A+', groupPoints: 20 },
-  { id: '2', minMark: 90, maxMark: 95, indGrade: 'A', indPoints: 9, groupGrade: 'A', groupPoints: 19 },
-  { id: '3', minMark: 85, maxMark: 90, indGrade: 'A', indPoints: 8, groupGrade: 'A', groupPoints: 18 },
-  { id: '4', minMark: 80, maxMark: 85, indGrade: 'B', indPoints: 7, groupGrade: 'A', groupPoints: 17 },
-  { id: '5', minMark: 75, maxMark: 80, indGrade: 'B', indPoints: 6, groupGrade: 'B', groupPoints: 16 },
-  { id: '6', minMark: 70, maxMark: 75, indGrade: 'B', indPoints: 5, groupGrade: 'B', groupPoints: 15 },
-  { id: '7', minMark: 65, maxMark: 70, indGrade: 'C', indPoints: 4, groupGrade: 'B', groupPoints: 14 },
-  { id: '8', minMark: 55, maxMark: 65, indGrade: 'C', indPoints: 3, groupGrade: 'B', groupPoints: 13 },
-  { id: '9', minMark: 50, maxMark: 55, indGrade: 'C', indPoints: 2, groupGrade: 'C', groupPoints: 12 },
-  { id: '10', minMark: 40, maxMark: 50, indGrade: '-', indPoints: 1, groupGrade: 'C', groupPoints: 11 },
-  { id: '11', minMark: 30, maxMark: 40, indGrade: '-', indPoints: 0, groupGrade: 'C', groupPoints: 10 },
-  { id: '12', minMark: 0, maxMark: 30, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 5 }
+  { id: '1', minMark: 90, maxMark: 100, indGrade: 'A+', indPoints: 6, groupGrade: 'A+', groupPoints: 10, group2Points: 7, group3Points: 10, group4_5Points: 18, group10Points: 25 },
+  { id: '2', minMark: 70, maxMark: 89, indGrade: 'A', indPoints: 5, groupGrade: 'A', groupPoints: 9, group2Points: 6, group3Points: 9, group4_5Points: 15, group10Points: 20 },
+  { id: '3', minMark: 60, maxMark: 69, indGrade: 'B', indPoints: 3, groupGrade: 'B', groupPoints: 6, group2Points: 4, group3Points: 6, group4_5Points: 10, group10Points: 12 },
+  { id: '4', minMark: 50, maxMark: 59, indGrade: 'C', indPoints: 1, groupGrade: 'C', groupPoints: 3, group2Points: 2, group3Points: 3, group4_5Points: 5, group10Points: 6 },
+  { id: '5', minMark: 0, maxMark: 49, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 0, group2Points: 0, group3Points: 0, group4_5Points: 0, group10Points: 0 }
 ];
 
 export interface TeamSizePointTier {
@@ -193,7 +190,19 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
       const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
       for (const row of sorted) {
         if (m >= Number(row.minMark)) {
-          gradePoints = isGroup ? Number(row.groupPoints) : Number(row.indPoints);
+          if (!isGroup || teamSize === 1) {
+            gradePoints = Number(row.indPoints) || 0;
+          } else if (teamSize === 2) {
+            gradePoints = (row.group2Points !== undefined && row.group2Points !== null) ? Number(row.group2Points) : (Number(row.groupPoints) || 0);
+          } else if (teamSize === 3) {
+            gradePoints = (row.group3Points !== undefined && row.group3Points !== null) ? Number(row.group3Points) : (Number(row.groupPoints) || 0);
+          } else if (teamSize === 4 || teamSize === 5) {
+            gradePoints = (row.group4_5Points !== undefined && row.group4_5Points !== null) ? Number(row.group4_5Points) : (Number(row.groupPoints) || 0);
+          } else if (teamSize >= 10) {
+            gradePoints = (row.group10Points !== undefined && row.group10Points !== null) ? Number(row.group10Points) : (row.group4_5Points !== undefined ? Number(row.group4_5Points) : (Number(row.groupPoints) || 0));
+          } else {
+            gradePoints = (row.group4_5Points !== undefined && row.group4_5Points !== null) ? Number(row.group4_5Points) : (Number(row.groupPoints) || 0);
+          }
           break;
         }
       }

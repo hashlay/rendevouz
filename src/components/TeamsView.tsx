@@ -101,7 +101,7 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
         },
         body: JSON.stringify({
           unitId: wizardUnitId,
-          categoryId: wizardCategoryId,
+          categoryId: selectedWizardComp?.categoryId || wizardCategoryId,
           competitionId: wizardCompId,
           teamName: teamName.trim() || undefined,
           memberIds: selectedMembers
@@ -231,10 +231,16 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
   const selectedWizardComp = competitions.find(c => c.id === wizardCompId);
 
   // Eligible members: same unit, same category, not already in a team for this same competition
+  const wizardCompCat = categories.find(c => c.id === selectedWizardComp?.categoryId);
+  const isWizardGeneral = categories.find(c => c.id === wizardCategoryId)?.name?.toLowerCase().includes('general') ||
+                          wizardCompCat?.name?.toLowerCase().includes('general') ||
+                          selectedWizardComp?.categoryId === 'cat_general';
+
+  // Eligible members: same unit, and if general competition allow any zone category; otherwise same category
   const eligibleMembers = participants.filter(p => {
     const isSameUnit = p.unitId === wizardUnitId || (p.unitId && wizardUnitId && String(p.unitId).trim() === String(wizardUnitId).trim());
     const pCatId = p.selectedCategoryId || (p as any).categoryId;
-    const isSameCategory = pCatId === wizardCategoryId || (pCatId && wizardCategoryId && String(pCatId).trim() === String(wizardCategoryId).trim());
+    const isSameCategory = isWizardGeneral || pCatId === wizardCategoryId || (pCatId && wizardCategoryId && String(pCatId).trim() === String(wizardCategoryId).trim());
     const notDeleted = !p.deletedAt;
     const notInOtherTeam = !wizardCompId || !teams.some(t => t.competitionId === wizardCompId && t.memberIds.includes(p.id) && !t.deletedAt);
     return isSameUnit && isSameCategory && notDeleted && notInOtherTeam;
@@ -290,7 +296,8 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
           teams.map((team) => {
             const comp = competitions.find(c => c.id === team.competitionId);
             const unit = units.find(u => u.id === team.unitId);
-            const cat = categories.find(c => c.id === team.categoryId);
+            const compCat = categories.find(c => c.id === comp?.categoryId);
+            const cat = compCat || categories.find(c => c.id === team.categoryId);
             const displayTeamName = team.teamName || `${unit?.name} Team`;
 
             return (
@@ -327,7 +334,17 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                         const p = participants.find(part => part.id === mid);
                         return (
                           <li key={mid} className="flex justify-between items-center bg-slate-50 border p-2 rounded-xl text-xs font-medium text-slate-700">
-                            <span>{p ? p.fullName : 'Deleted Participant'}</span>
+                            <div className="flex items-center gap-2">
+                              <span>{p ? p.fullName : 'Deleted Participant'}</span>
+                              {(() => {
+                                const pCat = categories.find(c => c.id === (p?.selectedCategoryId || (p as any)?.categoryId));
+                                return pCat ? (
+                                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-600">
+                                    {pCat.name}
+                                  </span>
+                                ) : null;
+                              })()}
+                            </div>
                             <span className="font-mono text-[10px] text-slate-400 font-bold">{p?.profilePhoto || '-'}</span>
                           </li>
                         );
@@ -337,7 +354,9 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                 </div>
 
                 <div className="mt-6 pt-3 border-t border-slate-100 flex justify-between items-center text-[10px] font-mono font-bold text-slate-400">
-                  <span>CATEGORY: {cat?.name}</span>
+                  <span className="flex items-center gap-1.5">
+                    CATEGORY: <span className="font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{compCat?.name || cat?.name || 'General'}</span>
+                  </span>
                   <span>SIZE: 2 - {comp?.teamSize}</span>
                 </div>
               </div>
@@ -502,20 +521,26 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
       {editOpen && editingTeam && (() => {
         const comp = competitions.find(c => c.id === editingTeam.competitionId);
         const unit = units.find(u => u.id === editingTeam.unitId);
-        const targetCatId = editingTeam.categoryId || comp?.categoryId || '';
+        const compCat = categories.find(c => c.id === comp?.categoryId);
+        const targetCatId = comp?.categoryId || editingTeam.categoryId || '';
         const targetUnitId = editingTeam.unitId || '';
-        const cat = categories.find(c => c.id === targetCatId);
+        const cat = compCat || categories.find(c => c.id === targetCatId);
         const maxCapacity = comp?.teamSize || 2;
 
-        // Eligible candidates from same unit and category, excluding current editing members & members in other teams for this comp
+        const isGeneralComp = comp?.categoryId === 'cat_general' ||
+                              cat?.name?.toLowerCase().includes('general') ||
+                              compCat?.name?.toLowerCase().includes('general') ||
+                              (compCat as any)?.isGeneral;
+
+        // Eligible candidates from same unit and category (or ANY zone if general competition), excluding current editing members & members in other teams for this comp
         const eligibleCandidates = participants.filter(p => {
-          const isSameUnit = p.unitId === targetUnitId || (p.unitId && targetUnitId && String(p.unitId).trim() === String(targetUnitId).trim()) || (unit && p.unitId === unit.name);
+          const isSameUnit = p.unitId === targetUnitId || (p.unitId && targetUnitId && String(p.unitId).trim() === String(targetUnitId).trim()) || (unit && (p.unitId === unit.name || p.unitId === unit.id));
           const pCatId = p.selectedCategoryId || (p as any).categoryId;
-          const isSameCategory = pCatId === targetCatId || (pCatId && targetCatId && String(pCatId).trim() === String(targetCatId).trim()) || (cat && pCatId === cat.name);
+          const isCategoryAllowed = isGeneralComp || pCatId === targetCatId || (pCatId && targetCatId && String(pCatId).trim() === String(targetCatId).trim()) || (cat && pCatId === cat.name);
           const notDeleted = !p.deletedAt;
           const notCurrentMember = !editingMemberIds.includes(p.id);
           const notInOtherTeam = !teams.some(t => t.id !== editingTeam.id && t.competitionId === editingTeam.competitionId && t.memberIds.includes(p.id) && !t.deletedAt);
-          return isSameUnit && isSameCategory && notDeleted && notCurrentMember && notInOtherTeam;
+          return isSameUnit && isCategoryAllowed && notDeleted && notCurrentMember && notInOtherTeam;
         });
 
         // Filter eligible candidates by search query
@@ -648,7 +673,17 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                               <span className="font-mono text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">
                                 {p.profilePhoto || '#'}
                               </span>
-                              <span className="font-semibold text-slate-800 text-xs">{p.fullName}</span>
+                              <div>
+                                <span className="font-semibold text-slate-800 text-xs block">{p.fullName}</span>
+                                {(() => {
+                                  const pCat = categories.find(c => c.id === (p.selectedCategoryId || (p as any).categoryId));
+                                  return pCat ? (
+                                    <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                      {pCat.name}
+                                    </span>
+                                  ) : null;
+                                })()}
+                              </div>
                             </div>
 
                             <button

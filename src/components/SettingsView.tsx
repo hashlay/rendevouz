@@ -268,6 +268,12 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const handleUpdateCategoryMatrixRow = (catId: string, idx: number, field: keyof GradeMatrixRow, val: any) => {
     const current = [...getEffectiveCategoryMatrix(catId)];
     current[idx] = { ...current[idx], [field]: val };
+    if (field === 'group4_5Points') {
+      current[idx].groupPoints = val;
+    }
+    if (field === 'indGrade') {
+      current[idx].groupGrade = val;
+    }
     setCategoryGradeMatrices(prev => ({
       ...prev,
       [catId]: current
@@ -281,7 +287,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       ...prev,
       [catId]: [
         ...current,
-        { id: newId, minMark: 0, maxMark: 25, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 0 }
+        { id: newId, minMark: 0, maxMark: 25, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 0, group2Points: 0, group3Points: 0, group4_5Points: 0, group10Points: 0 }
       ]
     }));
   };
@@ -1351,7 +1357,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                         const newId = `row_${Date.now()}`;
                         setGradeMatrix(prev => [
                           ...prev,
-                          { id: newId, minMark: 0, maxMark: 25, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 0 }
+                          { id: newId, minMark: 0, maxMark: 25, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 0, group2Points: 0, group3Points: 0, group4_5Points: 0, group10Points: 0 }
                         ]);
                       }}
                       className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
@@ -1380,10 +1386,12 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                     <thead>
                       <tr className="bg-emerald-950 text-emerald-100 font-bold border-b border-emerald-900 text-[11px]">
                         <th className="py-2.5 px-3 text-left">Mark Range (Min – Max)</th>
-                        <th className="py-2.5 px-3 text-emerald-300 bg-emerald-900/60">Ind Grade</th>
-                        <th className="py-2.5 px-3 text-emerald-200 bg-emerald-900/40">Individual Points</th>
-                        <th className="py-2.5 px-3 text-amber-300 bg-emerald-900/60">Group Grade</th>
-                        <th className="py-2.5 px-3 text-amber-200 bg-emerald-900/40">Group Points</th>
+                        <th className="py-2.5 px-2 text-center text-emerald-300 bg-emerald-900/60">Grade</th>
+                        <th className="py-2.5 px-2 text-center text-emerald-200 bg-emerald-900/40">Individual (1)</th>
+                        <th className="py-2.5 px-2 text-center text-amber-300 bg-emerald-900/50">Group (2)</th>
+                        <th className="py-2.5 px-2 text-center text-amber-200 bg-emerald-900/60">Group (3)</th>
+                        <th className="py-2.5 px-2 text-center text-amber-100 bg-emerald-900/70">Group (4, 5)</th>
+                        <th className="py-2.5 px-2 text-center text-yellow-200 bg-emerald-900/80">Group (10+)</th>
                         <th className="py-2.5 px-2 text-center w-12">Action</th>
                       </tr>
                     </thead>
@@ -1405,7 +1413,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                                     return updated;
                                   });
                                 }}
-                                className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                className="w-13 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
                               />
                               <span className="text-slate-400">–</span>
                               <input
@@ -1421,28 +1429,28 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                                     return updated;
                                   });
                                 }}
-                                className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                className="w-13 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
                               />
                             </div>
                           </td>
-                          <td className="py-2 px-3 bg-emerald-50/20">
+                          <td className="py-2 px-2 text-center bg-emerald-50/20">
                             <GradeCellSelector
                               value={row.indGrade}
                               onChange={(val) => {
                                 setGradeMatrix(prev => {
                                   const updated = [...prev];
-                                  updated[idx] = { ...updated[idx], indGrade: val };
+                                  updated[idx] = { ...updated[idx], indGrade: val, groupGrade: val };
                                   return updated;
                                 });
                               }}
                               variant="emerald"
-                              cellKey={`global-${row.id || idx}-ind`}
+                              cellKey={`global-${row.id || idx}-grade`}
                               activeEditingKey={editingCustomGradeCell}
                               setActiveEditingKey={setEditingCustomGradeCell}
                             />
                           </td>
-                          <td className="py-2 px-3 bg-emerald-50/10">
-                            <div className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                          <td className="py-2 px-2 text-center bg-emerald-50/10">
+                            <div className="inline-flex items-center justify-center gap-1 text-emerald-700 font-bold">
                               <input
                                 type="number"
                                 min="0"
@@ -1455,44 +1463,85 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                                     return updated;
                                   });
                                 }}
-                                className="w-14 px-2 py-1 text-center font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                className="w-13 px-1.5 py-1 text-center font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
                               />
                               <span className="text-[10px] text-emerald-600">pts</span>
                             </div>
                           </td>
-                          <td className="py-2 px-3 bg-amber-50/20">
-                            <GradeCellSelector
-                              value={row.groupGrade}
-                              onChange={(val) => {
-                                setGradeMatrix(prev => {
-                                  const updated = [...prev];
-                                  updated[idx] = { ...updated[idx], groupGrade: val };
-                                  return updated;
-                                });
-                              }}
-                              variant="amber"
-                              cellKey={`global-${row.id || idx}-group`}
-                              activeEditingKey={editingCustomGradeCell}
-                              setActiveEditingKey={setEditingCustomGradeCell}
-                            />
-                          </td>
-                          <td className="py-2 px-3 bg-amber-50/10">
-                            <div className="inline-flex items-center gap-1 text-amber-900 font-bold">
+                          <td className="py-2 px-2 text-center bg-amber-50/10">
+                            <div className="inline-flex items-center justify-center gap-1 text-amber-800 font-bold">
                               <input
                                 type="number"
                                 min="0"
-                                value={row.groupPoints}
+                                value={row.group2Points !== undefined && row.group2Points !== null ? row.group2Points : (row.groupPoints || 0)}
                                 onChange={(e) => {
                                   const val = Number(e.target.value);
                                   setGradeMatrix(prev => {
                                     const updated = [...prev];
-                                    updated[idx] = { ...updated[idx], groupPoints: val };
+                                    updated[idx] = { ...updated[idx], group2Points: val };
                                     return updated;
                                   });
                                 }}
-                                className="w-14 px-2 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                className="w-13 px-1.5 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none text-xs"
                               />
                               <span className="text-[10px] text-amber-700">pts</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-2 text-center bg-amber-50/20">
+                            <div className="inline-flex items-center justify-center gap-1 text-amber-800 font-bold">
+                              <input
+                                type="number"
+                                min="0"
+                                value={row.group3Points !== undefined && row.group3Points !== null ? row.group3Points : (row.groupPoints || 0)}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setGradeMatrix(prev => {
+                                    const updated = [...prev];
+                                    updated[idx] = { ...updated[idx], group3Points: val };
+                                    return updated;
+                                  });
+                                }}
+                                className="w-13 px-1.5 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none text-xs"
+                              />
+                              <span className="text-[10px] text-amber-700">pts</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-2 text-center bg-amber-50/30">
+                            <div className="inline-flex items-center justify-center gap-1 text-amber-900 font-bold">
+                              <input
+                                type="number"
+                                min="0"
+                                value={row.group4_5Points !== undefined && row.group4_5Points !== null ? row.group4_5Points : (row.groupPoints || 0)}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setGradeMatrix(prev => {
+                                    const updated = [...prev];
+                                    updated[idx] = { ...updated[idx], group4_5Points: val, groupPoints: val };
+                                    return updated;
+                                  });
+                                }}
+                                className="w-13 px-1.5 py-1 text-center font-bold text-amber-900 bg-white border border-amber-300 rounded-lg focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none text-xs"
+                              />
+                              <span className="text-[10px] text-amber-800">pts</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-2 text-center bg-amber-50/40">
+                            <div className="inline-flex items-center justify-center gap-1 text-amber-950 font-bold">
+                              <input
+                                type="number"
+                                min="0"
+                                value={row.group10Points !== undefined && row.group10Points !== null ? row.group10Points : (row.groupPoints || 0)}
+                                onChange={(e) => {
+                                  const val = Number(e.target.value);
+                                  setGradeMatrix(prev => {
+                                    const updated = [...prev];
+                                    updated[idx] = { ...updated[idx], group10Points: val };
+                                    return updated;
+                                  });
+                                }}
+                                className="w-13 px-1.5 py-1 text-center font-bold text-amber-950 bg-white border border-amber-300 rounded-lg focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none text-xs"
+                              />
+                              <span className="text-[10px] text-amber-800">pts</span>
                             </div>
                           </td>
                           <td className="py-2 px-2 text-center">
@@ -1662,10 +1711,12 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                           <thead>
                             <tr className="bg-emerald-950 text-emerald-100 font-bold border-b border-emerald-900 text-[11px]">
                               <th className="py-2.5 px-3 text-left">Mark Range (Min – Max)</th>
-                              <th className="py-2.5 px-3 text-emerald-300 bg-emerald-900/60">Ind Grade</th>
-                              <th className="py-2.5 px-3 text-emerald-200 bg-emerald-900/40">Individual Points</th>
-                              <th className="py-2.5 px-3 text-amber-300 bg-emerald-900/60">Group Grade</th>
-                              <th className="py-2.5 px-3 text-amber-200 bg-emerald-900/40">Group Points</th>
+                              <th className="py-2.5 px-2 text-center text-emerald-300 bg-emerald-900/60">Grade</th>
+                              <th className="py-2.5 px-2 text-center text-emerald-200 bg-emerald-900/40">Individual (1)</th>
+                              <th className="py-2.5 px-2 text-center text-amber-300 bg-emerald-900/50">Group (2)</th>
+                              <th className="py-2.5 px-2 text-center text-amber-200 bg-emerald-900/60">Group (3)</th>
+                              <th className="py-2.5 px-2 text-center text-amber-100 bg-emerald-900/70">Group (4, 5)</th>
+                              <th className="py-2.5 px-2 text-center text-yellow-200 bg-emerald-900/80">Group (10+)</th>
                               <th className="py-2.5 px-2 text-center w-12">Action</th>
                             </tr>
                           </thead>
@@ -1680,7 +1731,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                                       max="100"
                                       value={row.minMark}
                                       onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'minMark', Number(e.target.value))}
-                                      className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                      className="w-13 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
                                     />
                                     <span className="text-slate-400">–</span>
                                     <input
@@ -1689,52 +1740,78 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                                       max="100"
                                       value={row.maxMark}
                                       onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'maxMark', Number(e.target.value))}
-                                      className="w-14 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                      className="w-13 px-2 py-1 text-center font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
                                     />
                                   </div>
                                 </td>
-                                <td className="py-2 px-3 bg-emerald-50/20">
+                                <td className="py-2 px-2 text-center bg-emerald-50/20">
                                   <GradeCellSelector
                                     value={row.indGrade}
                                     onChange={(val) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'indGrade', val)}
                                     variant="emerald"
-                                    cellKey={`cat-${activeCat.id}-${row.id || idx}-ind`}
+                                    cellKey={`cat-${activeCat.id}-${row.id || idx}-grade`}
                                     activeEditingKey={editingCustomGradeCell}
                                     setActiveEditingKey={setEditingCustomGradeCell}
                                   />
                                 </td>
-                                <td className="py-2 px-3 bg-emerald-50/10">
-                                  <div className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                                <td className="py-2 px-2 text-center bg-emerald-50/10">
+                                  <div className="inline-flex items-center justify-center gap-1 text-emerald-700 font-bold">
                                     <input
                                       type="number"
                                       min="0"
                                       value={row.indPoints}
                                       onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'indPoints', Number(e.target.value))}
-                                      className="w-14 px-2 py-1 text-center font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                      className="w-13 px-1.5 py-1 text-center font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
                                     />
                                     <span className="text-[10px] text-emerald-600">pts</span>
                                   </div>
                                 </td>
-                                <td className="py-2 px-3 bg-amber-50/20">
-                                  <GradeCellSelector
-                                    value={row.groupGrade}
-                                    onChange={(val) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'groupGrade', val)}
-                                    variant="amber"
-                                    cellKey={`cat-${activeCat.id}-${row.id || idx}-group`}
-                                    activeEditingKey={editingCustomGradeCell}
-                                    setActiveEditingKey={setEditingCustomGradeCell}
-                                  />
-                                </td>
-                                <td className="py-2 px-3 bg-amber-50/10">
-                                  <div className="inline-flex items-center gap-1 text-amber-900 font-bold">
+                                <td className="py-2 px-2 text-center bg-amber-50/10">
+                                  <div className="inline-flex items-center justify-center gap-1 text-amber-800 font-bold">
                                     <input
                                       type="number"
                                       min="0"
-                                      value={row.groupPoints}
-                                      onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'groupPoints', Number(e.target.value))}
-                                      className="w-14 px-2 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                                      value={row.group2Points !== undefined && row.group2Points !== null ? row.group2Points : (row.groupPoints || 0)}
+                                      onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'group2Points', Number(e.target.value))}
+                                      className="w-13 px-1.5 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none text-xs"
                                     />
                                     <span className="text-[10px] text-amber-700">pts</span>
+                                  </div>
+                                </td>
+                                <td className="py-2 px-2 text-center bg-amber-50/20">
+                                  <div className="inline-flex items-center justify-center gap-1 text-amber-800 font-bold">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={row.group3Points !== undefined && row.group3Points !== null ? row.group3Points : (row.groupPoints || 0)}
+                                      onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'group3Points', Number(e.target.value))}
+                                      className="w-13 px-1.5 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none text-xs"
+                                    />
+                                    <span className="text-[10px] text-amber-700">pts</span>
+                                  </div>
+                                </td>
+                                <td className="py-2 px-2 text-center bg-amber-50/30">
+                                  <div className="inline-flex items-center justify-center gap-1 text-amber-900 font-bold">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={row.group4_5Points !== undefined && row.group4_5Points !== null ? row.group4_5Points : (row.groupPoints || 0)}
+                                      onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'group4_5Points', Number(e.target.value))}
+                                      className="w-13 px-1.5 py-1 text-center font-bold text-amber-900 bg-white border border-amber-300 rounded-lg focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none text-xs"
+                                    />
+                                    <span className="text-[10px] text-amber-800">pts</span>
+                                  </div>
+                                </td>
+                                <td className="py-2 px-2 text-center bg-amber-50/40">
+                                  <div className="inline-flex items-center justify-center gap-1 text-amber-950 font-bold">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={row.group10Points !== undefined && row.group10Points !== null ? row.group10Points : (row.groupPoints || 0)}
+                                      onChange={(e) => handleUpdateCategoryMatrixRow(activeCat.id, idx, 'group10Points', Number(e.target.value))}
+                                      className="w-13 px-1.5 py-1 text-center font-bold text-amber-950 bg-white border border-amber-300 rounded-lg focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none text-xs"
+                                    />
+                                    <span className="text-[10px] text-amber-800">pts</span>
                                   </div>
                                 </td>
                                 <td className="py-2 px-2 text-center">
