@@ -4199,13 +4199,15 @@ apiRouter.get('/scoreboard', authenticate, async (req, res) => {
   const stageType = req.query.stageType ? (String(req.query.stageType) as StageType) : undefined;
   const search = req.query.search ? String(req.query.search) : undefined;
   const includeLocked = req.query.includeLocked !== 'false'; // Enabled by default as requested!
+  const includeGeneralIndividual = req.query.includeGeneralIndividual === 'true';
 
   const scoreboard = CalculationService.getIndividualScoreboard({
     categoryId,
     unitId,
     stageType,
     search,
-    includeLocked
+    includeLocked,
+    includeGeneralIndividual
   });
 
   res.json(scoreboard);

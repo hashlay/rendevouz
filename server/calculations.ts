@@ -313,6 +313,7 @@ export const CalculationService = {
     stageType?: StageType;
     search?: string;
     includeLocked?: boolean;
+    includeGeneralIndividual?: boolean;
   } = {}) => {
     const db = dbClient.get();
     const includeLocked = filters.includeLocked !== false; // Enabled by default as requested!
@@ -419,7 +420,9 @@ export const CalculationService = {
       // Individual Marks: strictly from primary category individual competitions
       const individualMarks = Math.round(primaryIndividualResults.reduce((sum, r) => sum + getNormalizedMark(r), 0) * 100) / 100;
       const groupMarks = Math.round(primaryGroupResults.reduce((sum, r) => sum + getNormalizedMark(r), 0) * 100) / 100;
-      const generalMarks = Math.round([...generalIndividualResults, ...generalGroupResults].reduce((sum, r) => sum + getNormalizedMark(r), 0) * 100) / 100;
+      const generalIndividualMarks = Math.round(generalIndividualResults.reduce((sum, r) => sum + getNormalizedMark(r), 0) * 100) / 100;
+      const generalGroupMarks = Math.round(generalGroupResults.reduce((sum, r) => sum + getNormalizedMark(r), 0) * 100) / 100;
+      const generalMarks = Math.round((generalIndividualMarks + generalGroupMarks) * 100) / 100;
       
       // Calculate points dynamically from grade pointing system
       const individualPoints = primaryIndividualResults.reduce((sum, r) => {
@@ -427,9 +430,31 @@ export const CalculationService = {
         return sum + calculateResultPoints(r, comp, db.eventSettings);
       }, 0);
 
-      // Individual Scoreboard strictly counts only their primary category individual competitions
-      const overallMarks = individualMarks;
-      const totalEvents = primaryIndividualResults.length;
+      const groupPoints = primaryGroupResults.reduce((sum, r) => {
+        const comp = db.competitions.find(c => c.id === r.competitionId);
+        return sum + calculateResultPoints(r, comp, db.eventSettings);
+      }, 0);
+
+      const generalIndividualPoints = generalIndividualResults.reduce((sum, r) => {
+        const comp = db.competitions.find(c => c.id === r.competitionId);
+        return sum + calculateResultPoints(r, comp, db.eventSettings);
+      }, 0);
+
+      const generalGroupPoints = generalGroupResults.reduce((sum, r) => {
+        const comp = db.competitions.find(c => c.id === r.competitionId);
+        return sum + calculateResultPoints(r, comp, db.eventSettings);
+      }, 0);
+
+      const generalPoints = generalIndividualPoints + generalGroupPoints;
+
+      // Combined Individual Points = Own Category Individual + General Individual Points
+      const combinedIndividualPoints = individualPoints + generalIndividualPoints;
+      const combinedIndividualMarks = Math.round((individualMarks + generalIndividualMarks) * 100) / 100;
+
+      const includeGeneralIndividual = filters.includeGeneralIndividual === true;
+      const overallPoints = includeGeneralIndividual ? combinedIndividualPoints : individualPoints;
+      const overallMarks = includeGeneralIndividual ? combinedIndividualMarks : individualMarks;
+      const totalEvents = (includeGeneralIndividual ? [...primaryIndividualResults, ...generalIndividualResults] : primaryIndividualResults).length;
       
       const unit = db.units.find(u => u.id === participant.unitId);
       const category = db.categories.find(c => c.id === participant.selectedCategoryId);
@@ -465,7 +490,7 @@ export const CalculationService = {
             isLocked: !((r as any).publishedStatus || (r as any).isPublished)
           };
         }),
-        ...[...generalIndividualResults, ...generalGroupResults].map(r => {
+        ...generalIndividualResults.map(r => {
           const comp = db.competitions.find(c => c.id === r.competitionId);
           return {
             compId: r.competitionId,
@@ -473,8 +498,21 @@ export const CalculationService = {
             rank: r.rank,
             marks: getNormalizedMark(r),
             points: calculateResultPoints(r, comp, db.eventSettings),
-            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), comp?.participationType === 'group', db.eventSettings, r.categoryId || comp?.categoryId),
-            type: 'General',
+            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), false, db.eventSettings, r.categoryId || comp?.categoryId),
+            type: 'General Individual',
+            isLocked: !((r as any).publishedStatus || (r as any).isPublished)
+          };
+        }),
+        ...generalGroupResults.map(r => {
+          const comp = db.competitions.find(c => c.id === r.competitionId);
+          return {
+            compId: r.competitionId,
+            compName: comp ? toTitleCase(comp.name) : 'Competition',
+            rank: r.rank,
+            marks: getNormalizedMark(r),
+            points: calculateResultPoints(r, comp, db.eventSettings),
+            grade: (r as any).grade || calculateGrade(getNormalizedMark(r), true, db.eventSettings, r.categoryId || comp?.categoryId),
+            type: 'General Group',
             isLocked: !((r as any).publishedStatus || (r as any).isPublished)
           };
         })
@@ -490,19 +528,27 @@ export const CalculationService = {
         totalEvents,
         individualMarks,
         individualPoints,
-        overallPoints: individualPoints,
         groupMarks,
+        groupPoints,
+        generalIndividualMarks,
+        generalIndividualPoints,
+        generalGroupMarks,
+        generalGroupPoints,
         generalMarks,
+        generalPoints,
+        combinedIndividualMarks,
+        combinedIndividualPoints,
+        overallPoints,
         overallMarks,
         placements: rankPlacements,
         chestNumber
       };
     });
     
-    // Sort primarily by points descending, then by overall marks descending, then by name
+    // Sort primarily by overallPoints descending, then by overallMarks descending, then by name
     scoreboardEntries.sort((a, b) => {
-      const bPts = b.individualPoints ?? 0;
-      const aPts = a.individualPoints ?? 0;
+      const bPts = b.overallPoints ?? 0;
+      const aPts = a.overallPoints ?? 0;
       if (bPts !== aPts) {
         return bPts - aPts;
       }
@@ -517,15 +563,15 @@ export const CalculationService = {
     const finalScoreboard = scoreboardEntries.map((entry, index) => {
       if (index > 0) {
         const prev = scoreboardEntries[index - 1];
-        const entryPts = entry.individualPoints ?? 0;
-        const prevPts = prev.individualPoints ?? 0;
+        const entryPts = entry.overallPoints ?? 0;
+        const prevPts = prev.overallPoints ?? 0;
         if (entryPts < prevPts || (entryPts === prevPts && entry.overallMarks < prev.overallMarks)) {
           currentRank++;
         }
       }
       return {
         ...entry,
-        rank: ((entry.individualPoints ?? 0) > 0 || entry.overallMarks > 0) ? currentRank : 'N/A'
+        rank: ((entry.overallPoints ?? 0) > 0 || entry.overallMarks > 0) ? currentRank : 'N/A'
       };
     });
     

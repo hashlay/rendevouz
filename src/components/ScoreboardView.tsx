@@ -24,6 +24,7 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedStageType, setSelectedStageType] = useState('');
   const [includeLocked, setIncludeLocked] = useState(true); // Enabled by default as requested!
+  const [includeGeneralIndividual, setIncludeGeneralIndividual] = useState(false);
 
   // Selected participant breakdown modal
   const [selectedRow, setSelectedRow] = useState<any>(null);
@@ -32,7 +33,7 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
     setLoading(true);
     try {
       const [sbRes, cRes, uRes] = await Promise.all([
-        fetch(`/api/scoreboard?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}&search=${search}&stageType=${selectedStageType}&includeLocked=${includeLocked}`, {
+        fetch(`/api/scoreboard?unitId=${selectedUnitId}&categoryId=${selectedCategoryId}&search=${search}&stageType=${selectedStageType}&includeLocked=${includeLocked}&includeGeneralIndividual=${includeGeneralIndividual}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('/api/categories'),
@@ -58,7 +59,7 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
 
   useEffect(() => {
     fetchScoreboard();
-  }, [selectedUnitId, selectedCategoryId, search, selectedStageType, includeLocked]);
+  }, [selectedUnitId, selectedCategoryId, search, selectedStageType, includeLocked, includeGeneralIndividual]);
 
   if (loading) {
     return (
@@ -99,6 +100,28 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
             <span className="flex items-center gap-1.5">
               <span>Include Locked Results</span>
               <span className="text-[9px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-mono uppercase font-extrabold">Internal</span>
+            </span>
+          </label>
+
+          {/* Include General Individual Points Toggle */}
+          <label className={`flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer select-none text-xs font-bold shadow-xs transition-all border ${
+            includeGeneralIndividual
+              ? 'bg-purple-50 text-purple-950 border-purple-300 ring-1 ring-purple-400'
+              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+          }`}>
+            <input
+              type="checkbox"
+              checked={includeGeneralIndividual}
+              onChange={(e) => setIncludeGeneralIndividual(e.target.checked)}
+              className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer"
+            />
+            <span className="flex items-center gap-1.5 flex-wrap">
+              <span>Combine General Individual</span>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono uppercase font-extrabold ${
+                includeGeneralIndividual ? 'bg-purple-200 text-purple-900' : 'bg-slate-100 text-slate-600'
+              }`}>
+                Own + Gen Indiv
+              </span>
             </span>
           </label>
 
@@ -164,8 +187,13 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
                     </div>
                     <div className="text-right flex items-baseline gap-2.5">
                       <div>
-                        <span className="text-base font-extrabold text-amber-600 block">{row.individualPoints ?? row.overallPoints ?? 0}</span>
+                        <span className="text-base font-extrabold text-amber-600 block">{row.overallPoints ?? 0}</span>
                         <span className="text-[9px] font-mono font-bold text-slate-400 uppercase">Points</span>
+                        {includeGeneralIndividual && (
+                          <span className="text-[8px] font-mono font-bold text-purple-700 block">
+                            ({row.individualPoints || 0}c + {row.generalIndividualPoints || 0}g)
+                          </span>
+                        )}
                       </div>
                       <div className="border-l border-slate-200 pl-2.5">
                         <span className="text-base font-extrabold text-emerald-700 block">{row.overallMarks}</span>
@@ -247,8 +275,19 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
                         </td>
                         <td className="px-5 py-4 whitespace-nowrap text-center font-semibold text-slate-600">{row.totalEvents}</td>
                         <td className="px-5 py-4 whitespace-nowrap text-right text-base font-extrabold text-amber-600">
-                          {row.individualPoints ?? row.overallPoints ?? 0}
+                          {row.overallPoints ?? 0}
                           <span className="text-[10px] font-mono font-bold text-slate-400 ml-1">pts</span>
+                          {includeGeneralIndividual ? (
+                            <span className="text-[9px] font-mono font-bold text-purple-700 block">
+                              ({row.individualPoints || 0} cat + {row.generalIndividualPoints || 0} gen)
+                            </span>
+                          ) : (
+                            (row.generalIndividualPoints || 0) > 0 && (
+                              <span className="text-[9px] font-mono text-slate-400 block" title="General individual points available">
+                                +{row.generalIndividualPoints} gen
+                              </span>
+                            )
+                          )}
                         </td>
                         <td className="px-5 py-4 whitespace-nowrap text-right text-base font-extrabold text-emerald-700">{row.overallMarks}</td>
                         <td className="px-5 py-4 whitespace-nowrap text-center">
@@ -298,11 +337,26 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
               {/* Overall Championship Points & Marks Summary */}
               <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-emerald-500/10 p-3.5 rounded-2xl border border-amber-200/70 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] uppercase tracking-wider font-mono font-bold text-amber-900 block">Overall Championship Points</span>
-                  <span className="text-2xl font-black text-amber-600">
-                    {selectedRow.individualPoints ?? selectedRow.overallPoints ?? 0}
-                    <span className="text-xs font-mono font-bold text-slate-500 ml-1">pts</span>
+                  <span className="text-[10px] uppercase tracking-wider font-mono font-bold text-amber-900 block">
+                    {includeGeneralIndividual ? 'Combined Individual Championship Points' : 'Own Category Individual Points'}
                   </span>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="text-2xl font-black text-amber-600">
+                      {selectedRow.overallPoints ?? 0}
+                      <span className="text-xs font-mono font-bold text-slate-500 ml-1">pts</span>
+                    </span>
+                    {includeGeneralIndividual ? (
+                      <span className="text-[10px] font-mono font-bold text-purple-700 bg-purple-100 border border-purple-200 px-1.5 py-0.5 rounded">
+                        Cat: {selectedRow.individualPoints || 0} + Gen: {selectedRow.generalIndividualPoints || 0}
+                      </span>
+                    ) : (
+                      (selectedRow.generalIndividualPoints || 0) > 0 && (
+                        <span className="text-[10px] font-mono text-slate-400">
+                          (+{selectedRow.generalIndividualPoints} gen available)
+                        </span>
+                      )
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] uppercase tracking-wider font-mono font-bold text-slate-500 block">Overall Marks</span>
@@ -312,19 +366,27 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
                 </div>
               </div>
 
-              {/* Individual vs Group vs General contributions card */}
-              <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-slate-50 p-3.5 sm:p-4 rounded-2xl border text-center">
-                <div>
-                  <span className="text-[9px] font-bold text-slate-400 block uppercase font-mono truncate" title="Individual Contribution">Individual</span>
-                  <span className="text-base sm:text-lg font-extrabold text-slate-800 mt-1 block">{selectedRow.individualMarks || 0} marks</span>
+              {/* 4 Separate Contribution Cards: Category Individual, Category Group, General Individual, General Group */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 bg-slate-50 p-3 rounded-2xl border text-center">
+                <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                  <span className="text-[9px] font-bold text-slate-500 block uppercase font-mono truncate" title="Own Category Individual">Cat Individual</span>
+                  <span className="text-base font-extrabold text-amber-600 mt-0.5 block">{selectedRow.individualPoints || 0} pts</span>
+                  <span className="text-[10px] font-mono text-slate-400 block">{selectedRow.individualMarks || 0} marks</span>
                 </div>
-                <div className="border-l border-slate-200 pl-1 sm:pl-2">
-                  <span className="text-[9px] font-bold text-slate-400 block uppercase font-mono truncate" title="Group Contribution">Group</span>
-                  <span className="text-base sm:text-lg font-extrabold text-slate-800 mt-1 block">{selectedRow.groupMarks || 0} marks</span>
+                <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                  <span className="text-[9px] font-bold text-slate-500 block uppercase font-mono truncate" title="Own Category Group">Cat Group</span>
+                  <span className="text-base font-extrabold text-slate-700 mt-0.5 block">{selectedRow.groupPoints || 0} pts</span>
+                  <span className="text-[10px] font-mono text-slate-400 block">{selectedRow.groupMarks || 0} marks</span>
                 </div>
-                <div className="border-l border-slate-200 pl-1 sm:pl-2">
-                  <span className="text-[9px] font-bold text-slate-400 block uppercase font-mono truncate" title="General Contribution">General</span>
-                  <span className="text-base sm:text-lg font-extrabold text-emerald-700 mt-1 block">{selectedRow.generalMarks || 0} marks</span>
+                <div className="bg-purple-50/40 p-2.5 rounded-xl border border-purple-200 shadow-2xs">
+                  <span className="text-[9px] font-bold text-purple-700 block uppercase font-mono truncate" title="General Category Individual">Gen Individual</span>
+                  <span className="text-base font-extrabold text-purple-700 mt-0.5 block">{selectedRow.generalIndividualPoints || 0} pts</span>
+                  <span className="text-[10px] font-mono text-slate-400 block">{selectedRow.generalIndividualMarks || 0} marks</span>
+                </div>
+                <div className="bg-emerald-50/40 p-2.5 rounded-xl border border-emerald-200 shadow-2xs">
+                  <span className="text-[9px] font-bold text-emerald-800 block uppercase font-mono truncate" title="General Category Group">Gen Group</span>
+                  <span className="text-base font-extrabold text-emerald-700 mt-0.5 block">{selectedRow.generalGroupPoints || 0} pts</span>
+                  <span className="text-[10px] font-mono text-slate-400 block">{selectedRow.generalGroupMarks || 0} marks</span>
                 </div>
               </div>
 
