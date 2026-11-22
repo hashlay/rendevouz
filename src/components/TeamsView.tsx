@@ -33,6 +33,7 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
   const [wizardCompId, setWizardCompId] = useState('');
   const [teamName, setTeamName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [wizardMemberSearch, setWizardMemberSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Edit Team Modal
@@ -441,61 +442,94 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
               )}
 
               {/* Members check list */}
-              {wizardCompId && selectedWizardComp && (
-                <div className="space-y-2 border border-slate-200 p-4 rounded-2xl">
-                  <div className="flex justify-between items-center border-b pb-2 mb-2">
-                    <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] font-mono">Select Team Members</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
-                      selectedMembers.length >= 2 && selectedMembers.length <= selectedWizardComp.teamSize 
-                        ? 'bg-emerald-100 text-emerald-800' 
-                        : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      Size: {selectedMembers.length} / {selectedWizardComp.teamSize} Selected
-                    </span>
-                  </div>
+              {wizardCompId && selectedWizardComp && (() => {
+                const searchedMembers = eligibleMembers.filter(p => {
+                  if (!wizardMemberSearch.trim()) return true;
+                  const q = wizardMemberSearch.toLowerCase().trim();
+                  const name = (p.fullName || '').toLowerCase();
+                  const chest = String(p.profilePhoto || '').toLowerCase();
+                  return name.includes(q) || chest.includes(q);
+                });
 
-                  <div className="max-h-48 overflow-y-auto pr-2 space-y-1">
-                    {eligibleMembers.length > 0 ? (
-                      eligibleMembers.map((p) => {
-                        const isChecked = selectedMembers.includes(p.id);
-                        const otherTeam = wizardCompId ? teams.find(t => t.competitionId === wizardCompId && t.memberIds.includes(p.id) && !t.deletedAt) : null;
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => {
-                              if (isChecked) {
-                                setSelectedMembers(selectedMembers.filter(id => id !== p.id));
-                              } else {
-                                if (selectedMembers.length >= selectedWizardComp.teamSize) {
-                                  alert(`Team size cannot exceed ${selectedWizardComp.teamSize} members.`);
-                                  return;
+                return (
+                  <div className="space-y-2 border border-slate-200 p-4 rounded-2xl">
+                    <div className="flex justify-between items-center border-b pb-2 mb-2">
+                      <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] font-mono">Select Team Members</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                        selectedMembers.length >= 2 && selectedMembers.length <= selectedWizardComp.teamSize 
+                          ? 'bg-emerald-100 text-emerald-800' 
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        Size: {selectedMembers.length} / {selectedWizardComp.teamSize} Selected
+                      </span>
+                    </div>
+
+                    {/* Search Bar for Team Members */}
+                    <div className="relative mb-2">
+                      <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={wizardMemberSearch}
+                        onChange={(e) => setWizardMemberSearch(e.target.value)}
+                        placeholder="Search member by name or chest no..."
+                        className="w-full pl-8 pr-8 py-1.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none focus:bg-white focus:border-emerald-500 font-mono"
+                      />
+                      {wizardMemberSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setWizardMemberSearch('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto pr-2 space-y-1">
+                      {searchedMembers.length > 0 ? (
+                        searchedMembers.map((p) => {
+                          const isChecked = selectedMembers.includes(p.id);
+                          const otherTeam = wizardCompId ? teams.find(t => t.competitionId === wizardCompId && t.memberIds.includes(p.id) && !t.deletedAt) : null;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                if (isChecked) {
+                                  setSelectedMembers(selectedMembers.filter(id => id !== p.id));
+                                } else {
+                                  if (selectedMembers.length >= selectedWizardComp.teamSize) {
+                                    alert(`Team size cannot exceed ${selectedWizardComp.teamSize} members.`);
+                                    return;
+                                  }
+                                  setSelectedMembers([...selectedMembers, p.id]);
                                 }
-                                setSelectedMembers([...selectedMembers, p.id]);
-                              }
-                            }}
-                            className={`p-2 rounded-xl border text-left transition-all flex items-center justify-between w-full ${
-                              isChecked ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200 bg-white hover:bg-slate-50'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-slate-800">{p.fullName}</span>
-                              {otherTeam && (
-                                <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded font-mono">
-                                  In {otherTeam.teamName}
-                                </span>
-                              )}
-                            </div>
-                            <span className="font-mono text-[10px] text-slate-400">{p.profilePhoto}</span>
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <p className="text-center py-4 text-slate-400 font-mono text-[11px]">No eligible candidates found in this unit & category</p>
-                    )}
+                              }}
+                              className={`p-2 rounded-xl border text-left transition-all flex items-center justify-between w-full ${
+                                isChecked ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200 bg-white hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-slate-800">{p.fullName}</span>
+                                {otherTeam && (
+                                  <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded font-mono">
+                                    In {otherTeam.teamName}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="font-mono text-[10px] text-slate-400">{p.profilePhoto}</span>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <p className="text-center py-4 text-slate-400 font-mono text-[11px]">
+                          {wizardMemberSearch ? `No members found matching "${wizardMemberSearch}"` : 'No eligible candidates found in this unit & category'}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               <div className="flex justify-end gap-3 pt-3 border-t">
                 <button
@@ -505,6 +539,7 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                     setWizardCategoryId('');
                     setWizardCompId('');
                     setSelectedMembers([]);
+                    setWizardMemberSearch('');
                   }}
                   className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 bg-slate-50"
                 >
@@ -653,18 +688,25 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                   </div>
 
                   {/* Search Bar */}
-                  {eligibleCandidates.length > 3 && (
-                    <div className="relative mb-2">
-                      <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        value={editSearchQuery}
-                        onChange={(e) => setEditSearchQuery(e.target.value)}
-                        placeholder="Search candidate by name or chest no..."
-                        className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none focus:bg-white focus:border-emerald-500"
-                      />
-                    </div>
-                  )}
+                  <div className="relative mb-2">
+                    <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={editSearchQuery}
+                      onChange={(e) => setEditSearchQuery(e.target.value)}
+                      placeholder="Search candidate by name or chest no..."
+                      className="w-full pl-8 pr-8 py-1.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none focus:bg-white focus:border-emerald-500 font-mono"
+                    />
+                    {editSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setEditSearchQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
 
                   <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                     {filteredEligible.length > 0 ? (

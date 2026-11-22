@@ -124,6 +124,10 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
   const [editComps, setEditComps] = useState<string[]>([]);
   const [editGroupComps, setEditGroupComps] = useState<string[]>([]);
   const [editGenTab, setEditGenTab] = useState<'all' | 'individual' | 'group'>('all');
+  const [editIndivSearch, setEditIndivSearch] = useState('');
+  const [editGroupSearch, setEditGroupSearch] = useState('');
+  const [editGenIndivSearch, setEditGenIndivSearch] = useState('');
+  const [editGenGroupSearch, setEditGenGroupSearch] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
   const criteriaMode = eventSettings?.participantLoginCriteria || 'class';
@@ -486,6 +490,11 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
     setEditCandidateClass(initialClass);
     setEditCategoryId(p.selectedCategoryId || '');
     setEditGender(p.gender || 'male');
+    setEditIndivSearch('');
+    setEditGroupSearch('');
+    setEditGenIndivSearch('');
+    setEditGenGroupSearch('');
+    setEditGenTab('all');
 
     // Fetch registered individual & group competitions
     try {
@@ -1481,15 +1490,58 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                 </div>
               </div>
 
+              {/* 1. REGISTERED INDIVIDUAL COMPETITIONS */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono mb-1.5">Registered Competitions (Individual)</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+                    Registered Competitions (Individual)
+                  </label>
+                  <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    {competitions.filter(c => c.categoryId === editCategoryId && c.participationType === 'individual' && editComps.includes(c.id)).length} selected
+                  </span>
+                </div>
+
+                {/* Search Bar for Individual Competitions */}
+                <div className="relative mb-2">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={editIndivSearch}
+                    onChange={(e) => setEditIndivSearch(e.target.value)}
+                    placeholder="Search individual competitions..."
+                    className="w-full pl-8 pr-7 py-1 text-xs bg-slate-50 focus:bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                  />
+                  {editIndivSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setEditIndivSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
                 <div className="space-y-2 max-h-36 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
-                  {competitions
-                    .filter(c => c.categoryId === editCategoryId && c.participationType === 'individual')
-                    .map(comp => {
+                  {(() => {
+                    const categoryIndivComps = competitions.filter(c => c.categoryId === editCategoryId && c.participationType === 'individual');
+                    const filtered = categoryIndivComps.filter(c => {
+                      if (!editIndivSearch.trim()) return true;
+                      const q = editIndivSearch.toLowerCase().trim();
+                      return c.name.toLowerCase().includes(q) || (c.code && c.code.toLowerCase().includes(q));
+                    });
+
+                    if (categoryIndivComps.length === 0) {
+                      return <span className="text-slate-400 font-mono text-[10px]">No individual competitions available for this category.</span>;
+                    }
+                    if (filtered.length === 0) {
+                      return <span className="text-slate-400 font-mono text-[10px]">No individual competitions found matching "{editIndivSearch}".</span>;
+                    }
+
+                    return filtered.map(comp => {
                       const isChecked = editComps.includes(comp.id);
                       return (
-                        <label key={comp.id} className="flex items-center gap-2.5 cursor-pointer select-none text-slate-700 hover:text-slate-900">
+                        <label key={comp.id} className="flex items-center gap-2.5 cursor-pointer select-none text-slate-700 hover:text-slate-900 bg-white p-2 rounded-lg border border-slate-200/70 transition-colors">
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -1502,6 +1554,10 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                                 const offStageCount = allComps.filter(c => c!.stageType === 'off_stage').length;
                                 const maxOn = (eventSettings as any)?.maxOnStageEvents;
                                 const maxOff = (eventSettings as any)?.maxOffStageEvents;
+                                const maxInd = (eventSettings as any)?.maxIndividualEvents ?? 10;
+                                if (maxInd != null && editComps.length >= maxInd) {
+                                  return alert(`Cannot select more than ${maxInd} individual competitions.`);
+                                }
                                 if (maxOn != null && comp.stageType === 'on_stage' && onStageCount > maxOn) {
                                   return alert(`Cannot select more than ${maxOn} on-stage competitions.`);
                                 }
@@ -1513,30 +1569,85 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                                 setEditComps(editComps.filter(id => id !== comp.id));
                               }
                             }}
-                            className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                            className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer shrink-0"
                           />
-                          <span className="font-semibold text-xs">{comp.name}</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 flex-1">
+                            <span className="font-semibold text-xs text-slate-800">{comp.name}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Individual
+                              </span>
+                              {comp.stageType && (
+                                <span className="text-[9px] font-mono text-slate-400 uppercase">
+                                  {comp.stageType.replace('_', ' ')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </label>
                       );
-                    })}
-                  {competitions.filter(c => c.categoryId === editCategoryId && c.participationType === 'individual').length === 0 && (
-                    <span className="text-slate-400 font-mono text-[10px]">No individual competitions available for this category.</span>
-                  )}
+                    });
+                  })()}
                 </div>
               </div>
 
+              {/* 2. REGISTERED GROUP COMPETITIONS */}
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono mb-1.5 flex items-center justify-between">
-                  <span>Registered Competitions (Group)</span>
-                  <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Group Competitions</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+                    Registered Competitions (Group)
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                      Group Competitions
+                    </span>
+                    <span className="text-[9px] font-mono font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                      {competitions.filter(c => c.categoryId === editCategoryId && c.participationType === 'group' && editGroupComps.includes(c.id)).length} selected
+                    </span>
+                  </div>
+                </div>
+
+                {/* Search Bar for Group Competitions */}
+                <div className="relative mb-2">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={editGroupSearch}
+                    onChange={(e) => setEditGroupSearch(e.target.value)}
+                    placeholder="Search group competitions..."
+                    className="w-full pl-8 pr-7 py-1 text-xs bg-slate-50 focus:bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 font-mono"
+                  />
+                  {editGroupSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setEditGroupSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
                 <div className="space-y-2 max-h-36 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
-                  {competitions
-                    .filter(c => c.categoryId === editCategoryId && c.participationType === 'group')
-                    .map(comp => {
+                  {(() => {
+                    const categoryGroupComps = competitions.filter(c => c.categoryId === editCategoryId && c.participationType === 'group');
+                    const filtered = categoryGroupComps.filter(c => {
+                      if (!editGroupSearch.trim()) return true;
+                      const q = editGroupSearch.toLowerCase().trim();
+                      return c.name.toLowerCase().includes(q) || (c.code && c.code.toLowerCase().includes(q));
+                    });
+
+                    if (categoryGroupComps.length === 0) {
+                      return <span className="text-slate-400 font-mono text-[10px]">No group competitions available for this category.</span>;
+                    }
+                    if (filtered.length === 0) {
+                      return <span className="text-slate-400 font-mono text-[10px]">No group competitions found matching "{editGroupSearch}".</span>;
+                    }
+
+                    return filtered.map(comp => {
                       const isChecked = editGroupComps.includes(comp.id);
                       return (
-                        <label key={comp.id} className="flex items-center gap-2.5 cursor-pointer select-none text-slate-700 hover:text-slate-900">
+                        <label key={comp.id} className="flex items-center gap-2.5 cursor-pointer select-none text-slate-700 hover:text-slate-900 bg-white p-2 rounded-lg border border-slate-200/70 transition-colors">
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -1549,6 +1660,10 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                                 const offStageCount = allComps.filter(c => c!.stageType === 'off_stage').length;
                                 const maxOn = (eventSettings as any)?.maxOnStageEvents;
                                 const maxOff = (eventSettings as any)?.maxOffStageEvents;
+                                const maxGrp = (eventSettings as any)?.maxGroupEvents ?? 10;
+                                if (maxGrp != null && editGroupComps.length >= maxGrp) {
+                                  return alert(`Cannot select more than ${maxGrp} group competitions.`);
+                                }
                                 if (maxOn != null && comp.stageType === 'on_stage' && onStageCount > maxOn) {
                                   return alert(`Cannot select more than ${maxOn} on-stage competitions.`);
                                 }
@@ -1560,18 +1675,25 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                                 setEditGroupComps(editGroupComps.filter(id => id !== comp.id));
                               }
                             }}
-                            className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                            className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer shrink-0"
                           />
-                          <span className="font-semibold text-xs">{comp.name}</span>
-                          {comp.teamSize && (
-                            <span className="text-[9px] font-mono text-slate-400 ml-auto">({comp.teamSize} members)</span>
-                          )}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 flex-1">
+                            <span className="font-semibold text-xs text-slate-800">{comp.name}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200">
+                                Group{comp.teamSize ? ` (${comp.teamSize})` : ''}
+                              </span>
+                              {comp.stageType && (
+                                <span className="text-[9px] font-mono text-slate-400 uppercase">
+                                  {comp.stageType.replace('_', ' ')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </label>
                       );
-                    })}
-                  {competitions.filter(c => c.categoryId === editCategoryId && c.participationType === 'group').length === 0 && (
-                    <span className="text-slate-400 font-mono text-[10px]">No group competitions available for this category.</span>
-                  )}
+                    });
+                  })()}
                 </div>
               </div>
 
@@ -1648,11 +1770,43 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                           </span>
                         </div>
 
+                        {/* Search Bar for General Individual */}
+                        <div className="relative">
+                          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="text"
+                            value={editGenIndivSearch}
+                            onChange={(e) => setEditGenIndivSearch(e.target.value)}
+                            placeholder="Search general individual..."
+                            className="w-full pl-8 pr-7 py-1 text-xs bg-white border border-emerald-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                          />
+                          {editGenIndivSearch && (
+                            <button
+                              type="button"
+                              onClick={() => setEditGenIndivSearch('')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+
                         <div className="space-y-1.5 max-h-36 overflow-y-auto border border-emerald-200 rounded-xl p-2.5 bg-emerald-50/30">
-                          {generalIndivComps.length === 0 ? (
-                            <span className="text-slate-400 font-mono text-[10px] block py-1">No general individual competitions configured.</span>
-                          ) : (
-                            generalIndivComps.map(comp => {
+                          {(() => {
+                            const filtered = generalIndivComps.filter(c => {
+                              if (!editGenIndivSearch.trim()) return true;
+                              const q = editGenIndivSearch.toLowerCase().trim();
+                              return c.name.toLowerCase().includes(q) || (c.code && c.code.toLowerCase().includes(q));
+                            });
+
+                            if (generalIndivComps.length === 0) {
+                              return <span className="text-slate-400 font-mono text-[10px] block py-1">No general individual competitions configured.</span>;
+                            }
+                            if (filtered.length === 0) {
+                              return <span className="text-slate-400 font-mono text-[10px] block py-1">No general individual competitions found matching "{editGenIndivSearch}".</span>;
+                            }
+
+                            return filtered.map(comp => {
                               const isChecked = editComps.includes(comp.id);
                               return (
                                 <label
@@ -1707,8 +1861,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                                   </div>
                                 </label>
                               );
-                            })
-                          )}
+                            });
+                          })()}
                         </div>
                       </div>
                     )}
@@ -1728,11 +1882,43 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                           </span>
                         </div>
 
+                        {/* Search Bar for General Group */}
+                        <div className="relative">
+                          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="text"
+                            value={editGenGroupSearch}
+                            onChange={(e) => setEditGenGroupSearch(e.target.value)}
+                            placeholder="Search general group..."
+                            className="w-full pl-8 pr-7 py-1 text-xs bg-white border border-purple-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 font-mono"
+                          />
+                          {editGenGroupSearch && (
+                            <button
+                              type="button"
+                              onClick={() => setEditGenGroupSearch('')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+
                         <div className="space-y-1.5 max-h-36 overflow-y-auto border border-purple-200 rounded-xl p-2.5 bg-purple-50/30">
-                          {generalGroupComps.length === 0 ? (
-                            <span className="text-slate-400 font-mono text-[10px] block py-1">No general group competitions configured.</span>
-                          ) : (
-                            generalGroupComps.map(comp => {
+                          {(() => {
+                            const filtered = generalGroupComps.filter(c => {
+                              if (!editGenGroupSearch.trim()) return true;
+                              const q = editGenGroupSearch.toLowerCase().trim();
+                              return c.name.toLowerCase().includes(q) || (c.code && c.code.toLowerCase().includes(q));
+                            });
+
+                            if (generalGroupComps.length === 0) {
+                              return <span className="text-slate-400 font-mono text-[10px] block py-1">No general group competitions configured.</span>;
+                            }
+                            if (filtered.length === 0) {
+                              return <span className="text-slate-400 font-mono text-[10px] block py-1">No general group competitions found matching "{editGenGroupSearch}".</span>;
+                            }
+
+                            return filtered.map(comp => {
                               const isChecked = editGroupComps.includes(comp.id);
                               return (
                                 <label
@@ -1787,8 +1973,8 @@ export default function ParticipantsView({ user, token, eventSettings }: Partici
                                   </div>
                                 </label>
                               );
-                            })
-                          )}
+                            });
+                          })()}
                         </div>
                       </div>
                     )}
