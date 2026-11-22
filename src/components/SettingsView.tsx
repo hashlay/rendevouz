@@ -331,6 +331,41 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       alert(`Point distribution from "${sourceName}" applied to all categories! You can now customize any specific category (e.g. General) individually.`);
     }
   };
+  const handleUpdateTeamSizeTier = (tierId: string, field: keyof TeamSizePointTier, value: any) => {
+    setTeamSizePointTiers(prev => prev.map(t => t.id === tierId ? { ...t, [field]: value } : t));
+  };
+
+  const handleAddTeamSizeTier = () => {
+    const newId = `tier_${Date.now()}`;
+    setTeamSizePointTiers(prev => [
+      ...prev,
+      {
+        id: newId,
+        name: 'Custom Tier',
+        minMembers: 6,
+        maxMembers: 9,
+        pointsAPlus: 20,
+        pointsA: 16,
+        pointsB: 11,
+        pointsC: 5
+      }
+    ]);
+  };
+
+  const handleRemoveTeamSizeTier = (tierId: string) => {
+    if (teamSizePointTiers.length <= 1) {
+      alert("At least one tier must remain.");
+      return;
+    }
+    setTeamSizePointTiers(prev => prev.filter(t => t.id !== tierId));
+  };
+
+  const handleResetTeamSizeTiers = () => {
+    if (window.confirm("Reset team-size point distribution to the official Sahityotsav '26 festival defaults?")) {
+      setTeamSizePointTiers(DEFAULT_TEAM_SIZE_TIERS);
+    }
+  };
+
   const [maxIndividualEvents, setMaxIndividualEvents] = useState(10);
   const [maxGroupEvents, setMaxGroupEvents] = useState(10);
   const [hasOnStageLimit, setHasOnStageLimit] = useState(false);
@@ -614,6 +649,10 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
           registrationOpen,
           gradeSystemEnabled,
           combineGradeAndRankPoints,
+          pointDistributionMode,
+          teamSizePointTiers,
+          categorySpecificGradesEnabled: pointDistributionMode === 'category_wise',
+          categoryGradeMatrices,
           gradeMatrix,
           maxIndividualEvents,
           maxGroupEvents,
@@ -1099,22 +1138,40 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
               </div>
             )}
 
-            {/* Points Configuration Scope Mode Switcher */}
-            <div className="pt-3 border-t border-emerald-900/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            {/* Points Configuration Scope Mode Switcher (3 Modes) */}
+            <div className="pt-3 border-t border-emerald-900/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
               <div>
                 <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider font-mono block">
                   Grade & Points Matrix Mode
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  Choose whether all festival categories share one unified grading scale, or if each category has a custom point system
+                  Select the festival point distribution system for team standings & scoreboards
                 </span>
               </div>
-              <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0">
+              <div className="inline-flex flex-wrap p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0 gap-1">
                 <button
                   type="button"
-                  onClick={() => setCategorySpecificGradesEnabled(false)}
+                  onClick={() => {
+                    setPointDistributionMode('team_size');
+                    setCategorySpecificGradesEnabled(false);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+                    pointDistributionMode === 'team_size'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Team-Size Based (1, 2, 3, 4-5...)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPointDistributionMode('all_categories');
+                    setCategorySpecificGradesEnabled(false);
+                  }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer ${
-                    !categorySpecificGradesEnabled
+                    pointDistributionMode === 'all_categories'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
@@ -1124,13 +1181,14 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                 <button
                   type="button"
                   onClick={() => {
+                    setPointDistributionMode('category_wise');
                     setCategorySpecificGradesEnabled(true);
                     if (!selectedCategoryTierId && categories.length > 0) {
                       setSelectedCategoryTierId(categories[0].id);
                     }
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
-                    categorySpecificGradesEnabled
+                    pointDistributionMode === 'category_wise'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
@@ -1141,8 +1199,141 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
               </div>
             </div>
 
-            {/* UNIFIED GLOBAL MATRIX VIEW */}
-            {!categorySpecificGradesEnabled && (
+            {/* MODE 1: TEAM SIZE BASED MATRIX (Default & Recommended) */}
+            {pointDistributionMode === 'team_size' && (
+              <div className="space-y-3 pt-1">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2.5">
+                  <div>
+                    <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider font-mono block">
+                      Festival Points Distribution (Based on Team Size / Members)
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Points awarded according to the number of members participating in the competition (Official Sahityotsav '26 Scale)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleAddTeamSizeTier}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Tier</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResetTeamSizeTiers}
+                      className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      title="Reset to official Sahityotsav '26 team-size tiers"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Reset Default</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-2xl border border-emerald-900/15 shadow-xs bg-white">
+                  <table className="w-full text-center text-xs font-mono border-collapse">
+                    <thead>
+                      <tr className="bg-emerald-950 text-emerald-100 font-bold border-b border-emerald-900 text-[11px]">
+                        <th className="py-2.5 px-3 text-left">Competition Type / Members</th>
+                        <th className="py-2.5 px-3 text-emerald-300 bg-emerald-900/70">A+ Grade Points</th>
+                        <th className="py-2.5 px-3 text-emerald-200 bg-emerald-900/50">A Grade Points</th>
+                        <th className="py-2.5 px-3 text-amber-300 bg-emerald-900/70">B Grade Points</th>
+                        <th className="py-2.5 px-3 text-amber-200 bg-emerald-900/50">C Grade Points</th>
+                        <th className="py-2.5 px-2 text-center w-12">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-[11px]">
+                      {teamSizePointTiers.map((tier, idx) => (
+                        <tr key={tier.id || idx} className="hover:bg-emerald-50/20 transition-colors">
+                          <td className="py-2.5 px-3 text-left">
+                            <div className="flex flex-col gap-0.5">
+                              <input
+                                type="text"
+                                value={tier.name}
+                                onChange={(e) => handleUpdateTeamSizeTier(tier.id, 'name', e.target.value)}
+                                className="font-bold text-slate-900 bg-transparent hover:bg-slate-50 focus:bg-white border border-transparent focus:border-slate-300 rounded px-1.5 py-0.5 text-xs outline-none"
+                              />
+                              <div className="text-[10px] text-slate-400 font-mono px-1.5">
+                                {tier.matchKeywords && tier.matchKeywords.length > 0 ? (
+                                  <span className="text-purple-600 font-bold">Special: {tier.matchKeywords.join(', ')}</span>
+                                ) : tier.minMembers === tier.maxMembers ? (
+                                  <span>{tier.minMembers} {tier.minMembers === 1 ? 'member' : 'members'}</span>
+                                ) : (
+                                  <span>{tier.minMembers} – {tier.maxMembers} members</span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 bg-emerald-50/20">
+                            <div className="inline-flex items-center gap-1">
+                              <input
+                                type="number"
+                                min={0}
+                                value={tier.pointsAPlus}
+                                onChange={(e) => handleUpdateTeamSizeTier(tier.id, 'pointsAPlus', Number(e.target.value))}
+                                className="w-16 px-2 py-1 text-center font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                              />
+                              <span className="text-[10px] text-emerald-600 font-bold">pts</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 bg-emerald-50/10">
+                            <div className="inline-flex items-center gap-1">
+                              <input
+                                type="number"
+                                min={0}
+                                value={tier.pointsA}
+                                onChange={(e) => handleUpdateTeamSizeTier(tier.id, 'pointsA', Number(e.target.value))}
+                                className="w-16 px-2 py-1 text-center font-bold text-emerald-800 bg-white border border-emerald-200 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none text-xs"
+                              />
+                              <span className="text-[10px] text-emerald-600 font-bold">pts</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 bg-amber-50/20">
+                            <div className="inline-flex items-center gap-1">
+                              <input
+                                type="number"
+                                min={0}
+                                value={tier.pointsB}
+                                onChange={(e) => handleUpdateTeamSizeTier(tier.id, 'pointsB', Number(e.target.value))}
+                                className="w-16 px-2 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none text-xs"
+                              />
+                              <span className="text-[10px] text-amber-700 font-bold">pts</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 bg-amber-50/10">
+                            <div className="inline-flex items-center gap-1">
+                              <input
+                                type="number"
+                                min={0}
+                                value={tier.pointsC}
+                                onChange={(e) => handleUpdateTeamSizeTier(tier.id, 'pointsC', Number(e.target.value))}
+                                className="w-16 px-2 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none text-xs"
+                              />
+                              <span className="text-[10px] text-amber-700 font-bold">pts</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTeamSizeTier(tier.id)}
+                              className="p-1 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                              title="Delete Tier"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* MODE 2: UNIFIED GLOBAL MATRIX VIEW */}
+            {pointDistributionMode === 'all_categories' && (
               <div className="space-y-3 pt-1">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2.5">
                   <div>
@@ -1328,8 +1519,8 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
               </div>
             )}
 
-            {/* CATEGORY-WISE TIERS MATRIX VIEW */}
-            {categorySpecificGradesEnabled && (
+            {/* MODE 3: CATEGORY-WISE TIERS MATRIX VIEW */}
+            {pointDistributionMode === 'category_wise' && (
               <div className="space-y-3 pt-1">
                 <div>
                   <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider font-mono block">
@@ -1359,12 +1550,12 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isSelected ? 'text-emerald-400' : 'text-slate-400'}`}>
-                            Tier {idx + 1}
+                            Tier ${idx + 1}
                           </span>
                           <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full font-bold ${
                             isSelected ? 'bg-emerald-800 text-emerald-200' : 'bg-slate-100 text-slate-600'
                           }`}>
-                            {tierRows.length} grades
+                            ${tierRows.length} grades
                           </span>
                         </div>
                         <div className="font-extrabold text-sm truncate font-mono">
@@ -1566,36 +1757,125 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                 })()}
               </div>
             )}
-          </div>
 
-          {/* Global Points System */}
-          <div className="space-y-2 pt-2 border-t border-slate-200 mt-4">
-            <label className="block text-[10px] font-extrabold text-slate-900 uppercase tracking-wider font-mono">Global Points Distribution (Ranks 1st through 10th)</label>
-            <p className="text-[11px] text-slate-500 mb-2">This single point system applies to all categories.</p>
-            <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-              {[
-                { label: '1st', state: globalPoints1, setter: setGlobalPoints1, color: 'text-emerald-700 font-extrabold' },
-                { label: '2nd', state: globalPoints2, setter: setGlobalPoints2, color: 'text-slate-800 font-extrabold' },
-                { label: '3rd', state: globalPoints3, setter: setGlobalPoints3, color: 'text-orange-700 font-extrabold' },
-                { label: '4th', state: globalPoints4, setter: setGlobalPoints4, color: 'text-slate-700 font-bold' },
-                { label: '5th', state: globalPoints5, setter: setGlobalPoints5, color: 'text-slate-700 font-bold' },
-                { label: '6th', state: globalPoints6, setter: setGlobalPoints6, color: 'text-slate-700 font-bold' },
-                { label: '7th', state: globalPoints7, setter: setGlobalPoints7, color: 'text-slate-700 font-bold' },
-                { label: '8th', state: globalPoints8, setter: setGlobalPoints8, color: 'text-slate-600' },
-                { label: '9th', state: globalPoints9, setter: setGlobalPoints9, color: 'text-slate-600' },
-                { label: '10th', state: globalPoints10, setter: setGlobalPoints10, color: 'text-slate-600' }
-              ].map(item => (
-                <div key={item.label}>
-                  <label className="block text-[9px] font-bold text-slate-500 text-center font-mono">{item.label}</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={item.state}
-                    onChange={(e) => item.setter(Number(e.target.value))}
-                    className={`mt-0.5 block w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-center text-xs font-mono ${item.color}`}
-                  />
+            {/* Embedded Rank Points System (Global 1st, 2nd, 3rd Place) */}
+            <div className="pt-4 border-t border-emerald-900/15 space-y-3">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-amber-600" />
+                    <h5 className="font-bold text-emerald-950 text-xs md:text-sm uppercase tracking-wider font-mono">
+                      Rank Points System (1st, 2nd, 3rd Place)
+                    </h5>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                      Global Rank Points
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Points awarded based on rank placement in each competition. Added to Grade Points when Combined Mode is enabled.
+                  </p>
                 </div>
-              ))}
+                {combineGradeAndRankPoints && (
+                  <span className="text-[10px] font-mono font-extrabold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200">
+                    ✓ Combined Mode Active: Added with Grade Points
+                  </span>
+                )}
+              </div>
+
+              {/* 1st, 2nd, 3rd Podium Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* 1st Place */}
+                <div className="p-3 bg-gradient-to-br from-amber-50 to-amber-100/60 rounded-xl border-2 border-amber-400 shadow-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">🥇</span>
+                    <div>
+                      <div className="text-xs font-black font-mono text-amber-950 uppercase tracking-wide">1st Place (Rank 1)</div>
+                      <div className="text-[10px] text-amber-700 font-mono">First Position Award</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      value={globalPoints1}
+                      onChange={(e) => setGlobalPoints1(Number(e.target.value))}
+                      className="w-16 px-2.5 py-1.5 bg-white border-2 border-amber-400 rounded-lg text-center font-mono font-black text-amber-950 text-base shadow-inner focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                    <span className="text-xs font-mono font-bold text-amber-800">pts</span>
+                  </div>
+                </div>
+
+                {/* 2nd Place */}
+                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border-2 border-slate-300 shadow-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">🥈</span>
+                    <div>
+                      <div className="text-xs font-black font-mono text-slate-900 uppercase tracking-wide">2nd Place (Rank 2)</div>
+                      <div className="text-[10px] text-slate-500 font-mono">Second Position Award</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      value={globalPoints2}
+                      onChange={(e) => setGlobalPoints2(Number(e.target.value))}
+                      className="w-16 px-2.5 py-1.5 bg-white border-2 border-slate-400 rounded-lg text-center font-mono font-black text-slate-900 text-base shadow-inner focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    />
+                    <span className="text-xs font-mono font-bold text-slate-700">pts</span>
+                  </div>
+                </div>
+
+                {/* 3rd Place */}
+                <div className="p-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border-2 border-orange-300 shadow-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">🥉</span>
+                    <div>
+                      <div className="text-xs font-black font-mono text-orange-950 uppercase tracking-wide">3rd Place (Rank 3)</div>
+                      <div className="text-[10px] text-orange-700 font-mono">Third Position Award</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      value={globalPoints3}
+                      onChange={(e) => setGlobalPoints3(Number(e.target.value))}
+                      className="w-16 px-2.5 py-1.5 bg-white border-2 border-orange-400 rounded-lg text-center font-mono font-black text-orange-950 text-base shadow-inner focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                    <span className="text-xs font-mono font-bold text-orange-800">pts</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ranks 4th through 10th - compact grid */}
+              <div className="p-2.5 bg-white rounded-xl border border-slate-200">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono block mb-1.5">
+                  Additional Positions (Ranks 4th through 10th) — Defaults to 0 pts:
+                </span>
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                  {[
+                    { label: '4th', state: globalPoints4, setter: setGlobalPoints4 },
+                    { label: '5th', state: globalPoints5, setter: setGlobalPoints5 },
+                    { label: '6th', state: globalPoints6, setter: setGlobalPoints6 },
+                    { label: '7th', state: globalPoints7, setter: setGlobalPoints7 },
+                    { label: '8th', state: globalPoints8, setter: setGlobalPoints8 },
+                    { label: '9th', state: globalPoints9, setter: setGlobalPoints9 },
+                    { label: '10th', state: globalPoints10, setter: setGlobalPoints10 }
+                  ].map(item => (
+                    <div key={item.label} className="text-center">
+                      <label className="block text-[9px] font-bold text-slate-500 font-mono">{item.label}</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={item.state}
+                        onChange={(e) => item.setter(Number(e.target.value))}
+                        className="mt-0.5 block w-full px-1.5 py-1 bg-slate-50 border border-slate-200 rounded-md text-center text-xs font-mono font-bold text-slate-700"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
