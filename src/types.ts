@@ -55,6 +55,7 @@ export interface TeamSizePointTier {
   pointsA: number;
   pointsB: number;
   pointsC: number;
+  pointsNoGrade?: number;
 }
 
 export const DEFAULT_TEAM_SIZE_TIERS: TeamSizePointTier[] = [
@@ -66,7 +67,8 @@ export const DEFAULT_TEAM_SIZE_TIERS: TeamSizePointTier[] = [
     pointsAPlus: 6,
     pointsA: 5,
     pointsB: 3,
-    pointsC: 1
+    pointsC: 1,
+    pointsNoGrade: 0
   },
   {
     id: 'tier_2',
@@ -76,7 +78,8 @@ export const DEFAULT_TEAM_SIZE_TIERS: TeamSizePointTier[] = [
     pointsAPlus: 7,
     pointsA: 6,
     pointsB: 4,
-    pointsC: 2
+    pointsC: 2,
+    pointsNoGrade: 0
   },
   {
     id: 'tier_3',
@@ -86,7 +89,8 @@ export const DEFAULT_TEAM_SIZE_TIERS: TeamSizePointTier[] = [
     pointsAPlus: 10,
     pointsA: 9,
     pointsB: 6,
-    pointsC: 3
+    pointsC: 3,
+    pointsNoGrade: 0
   },
   {
     id: 'tier_4_5',
@@ -96,39 +100,8 @@ export const DEFAULT_TEAM_SIZE_TIERS: TeamSizePointTier[] = [
     pointsAPlus: 18,
     pointsA: 15,
     pointsB: 10,
-    pointsC: 5
-  },
-  {
-    id: 'tier_10',
-    name: '10 Members (Group)',
-    minMembers: 10,
-    maxMembers: 10,
-    pointsAPlus: 25,
-    pointsA: 20,
-    pointsB: 12,
-    pointsC: 6
-  },
-  {
-    id: 'tier_project',
-    name: 'Project (Special)',
-    minMembers: 1,
-    maxMembers: 99,
-    matchKeywords: ['project', 'പ്രോജക്ട്'],
-    pointsAPlus: 25,
-    pointsA: 20,
-    pointsB: 12,
-    pointsC: 6
-  },
-  {
-    id: 'tier_vlog',
-    name: 'Vlog / Social Story',
-    minMembers: 1,
-    maxMembers: 99,
-    matchKeywords: ['vlog', 'social story', 'വ്ലോഗ്', 'സോഷ്യൽ സ്റ്റോറി'],
-    pointsAPlus: 25,
-    pointsA: 20,
-    pointsB: 12,
-    pointsC: 6
+    pointsC: 5,
+    pointsNoGrade: 0
   }
 ];
 

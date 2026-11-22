@@ -343,17 +343,21 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
 
   const handleAddTeamSizeTier = () => {
     const newId = `tier_${Date.now()}`;
+    const nextMin = teamSizePointTiers.length > 0
+      ? Math.max(...teamSizePointTiers.map(t => Number(t.maxMembers) || 1)) + 1
+      : 1;
     setTeamSizePointTiers(prev => [
       ...prev,
       {
         id: newId,
-        name: 'Custom Tier',
-        minMembers: 6,
-        maxMembers: 9,
+        name: `Group (${nextMin}+ Members)`,
+        minMembers: nextMin,
+        maxMembers: nextMin + 4,
         pointsAPlus: 20,
         pointsA: 16,
-        pointsB: 11,
-        pointsC: 5
+        pointsB: 10,
+        pointsC: 5,
+        pointsNoGrade: 0
       }
     ]);
   };
@@ -367,7 +371,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   };
 
   const handleResetTeamSizeTiers = () => {
-    if (window.confirm("Reset team-size point distribution to the official Sahityotsav '26 festival defaults?")) {
+    if (window.confirm("Reset team-size point distribution to the official 4 Sahityotsav '26 festival tiers?")) {
       setTeamSizePointTiers(DEFAULT_TEAM_SIZE_TIERS);
     }
   };
@@ -1145,7 +1149,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
             )}
 
             {/* Points Configuration Scope Mode Switcher (3 Modes) */}
-            <div className="pt-3 border-t border-emerald-900/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div className="pt-3 pb-1 border-t border-emerald-900/10 space-y-2">
               <div>
                 <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider font-mono block">
                   Grade & Points Matrix Mode
@@ -1154,14 +1158,14 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                   Select the festival point distribution system for team standings & scoreboards
                 </span>
               </div>
-              <div className="inline-flex flex-wrap p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0 gap-1">
+              <div className="inline-flex flex-wrap p-1 bg-slate-100 rounded-xl border border-slate-200 gap-1 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => {
                     setPointDistributionMode('team_size');
                     setCategorySpecificGradesEnabled(false);
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     pointDistributionMode === 'team_size'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -1176,13 +1180,13 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                     setPointDistributionMode('all_categories');
                     setCategorySpecificGradesEnabled(false);
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     pointDistributionMode === 'all_categories'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Same for All Categories
+                  <span>Same for All Categories</span>
                 </button>
                 <button
                   type="button"
@@ -1193,7 +1197,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                       setSelectedCategoryTierId(categories[0].id);
                     }
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     pointDistributionMode === 'category_wise'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -1208,7 +1212,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
             {/* MODE 1: TEAM SIZE BASED MATRIX (Default & Recommended) */}
             {pointDistributionMode === 'team_size' && (
               <div className="space-y-3 pt-1">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2.5">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <div>
                     <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider font-mono block">
                       Festival Points Distribution (Based on Team Size / Members)
@@ -1217,7 +1221,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                       Points awarded according to the number of members participating in the competition (Official Sahityotsav '26 Scale)
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
                       onClick={handleAddTeamSizeTier}
@@ -1230,7 +1234,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                       type="button"
                       onClick={handleResetTeamSizeTiers}
                       className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold font-mono transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-                      title="Reset to official Sahityotsav '26 team-size tiers"
+                      title="Reset to official 4 Sahityotsav '26 team-size tiers"
                     >
                       <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
                       <span>Reset Default</span>
@@ -1247,6 +1251,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                         <th className="py-2.5 px-3 text-emerald-200 bg-emerald-900/50">A Grade Points</th>
                         <th className="py-2.5 px-3 text-amber-300 bg-emerald-900/70">B Grade Points</th>
                         <th className="py-2.5 px-3 text-amber-200 bg-emerald-900/50">C Grade Points</th>
+                        <th className="py-2.5 px-3 text-slate-300 bg-emerald-900/40">No Grade (-)</th>
                         <th className="py-2.5 px-2 text-center w-12">Action</th>
                       </tr>
                     </thead>
@@ -1254,26 +1259,44 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                       {teamSizePointTiers.map((tier, idx) => (
                         <tr key={tier.id || idx} className="hover:bg-emerald-50/20 transition-colors">
                           <td className="py-2.5 px-3 text-left">
-                            <div className="flex flex-col gap-0.5">
+                            <div className="flex flex-col gap-1">
                               <input
                                 type="text"
                                 value={tier.name}
                                 onChange={(e) => handleUpdateTeamSizeTier(tier.id, 'name', e.target.value)}
-                                className="font-bold text-slate-900 bg-transparent hover:bg-slate-50 focus:bg-white border border-transparent focus:border-slate-300 rounded px-1.5 py-0.5 text-xs outline-none"
+                                className="font-bold text-slate-900 bg-slate-50/80 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-emerald-600 rounded-lg px-2 py-1 text-xs outline-none"
                               />
-                              <div className="text-[10px] text-slate-400 font-mono px-1.5">
-                                {tier.matchKeywords && tier.matchKeywords.length > 0 ? (
-                                  <span className="text-purple-600 font-bold">Special: {tier.matchKeywords.join(', ')}</span>
-                                ) : tier.minMembers === tier.maxMembers ? (
-                                  <span>{tier.minMembers} {tier.minMembers === 1 ? 'member' : 'members'}</span>
-                                ) : (
-                                  <span>{tier.minMembers} – {tier.maxMembers} members</span>
+                              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono">
+                                <span>Members:</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={99}
+                                  value={tier.minMembers}
+                                  onChange={(e) => handleUpdateTeamSizeTier(tier.id, 'minMembers', Number(e.target.value))}
+                                  className="w-12 px-1.5 py-0.5 text-center font-bold text-slate-800 bg-white border border-slate-200 rounded-md focus:border-emerald-600 outline-none text-[11px]"
+                                  title="Min Members"
+                                />
+                                <span className="text-slate-400">to</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={99}
+                                  value={tier.maxMembers}
+                                  onChange={(e) => handleUpdateTeamSizeTier(tier.id, 'maxMembers', Number(e.target.value))}
+                                  className="w-12 px-1.5 py-0.5 text-center font-bold text-slate-800 bg-white border border-slate-200 rounded-md focus:border-emerald-600 outline-none text-[11px]"
+                                  title="Max Members"
+                                />
+                                {tier.matchKeywords && tier.matchKeywords.length > 0 && (
+                                  <span className="text-[10px] text-purple-600 font-bold ml-1">
+                                    ({tier.matchKeywords.join(', ')})
+                                  </span>
                                 )}
                               </div>
                             </div>
                           </td>
                           <td className="py-2 px-3 bg-emerald-50/20">
-                            <div className="inline-flex items-center gap-1">
+                            <div className="inline-flex items-center justify-center gap-1">
                               <input
                                 type="number"
                                 min={0}
@@ -1285,7 +1308,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                             </div>
                           </td>
                           <td className="py-2 px-3 bg-emerald-50/10">
-                            <div className="inline-flex items-center gap-1">
+                            <div className="inline-flex items-center justify-center gap-1">
                               <input
                                 type="number"
                                 min={0}
@@ -1297,7 +1320,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                             </div>
                           </td>
                           <td className="py-2 px-3 bg-amber-50/20">
-                            <div className="inline-flex items-center gap-1">
+                            <div className="inline-flex items-center justify-center gap-1">
                               <input
                                 type="number"
                                 min={0}
@@ -1309,7 +1332,7 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                             </div>
                           </td>
                           <td className="py-2 px-3 bg-amber-50/10">
-                            <div className="inline-flex items-center gap-1">
+                            <div className="inline-flex items-center justify-center gap-1">
                               <input
                                 type="number"
                                 min={0}
@@ -1318,6 +1341,18 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
                                 className="w-16 px-2 py-1 text-center font-bold text-amber-900 bg-white border border-amber-200 rounded-lg focus:border-amber-600 focus:ring-1 focus:ring-amber-600 outline-none text-xs"
                               />
                               <span className="text-[10px] text-amber-700 font-bold">pts</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 bg-slate-50/50">
+                            <div className="inline-flex items-center justify-center gap-1">
+                              <input
+                                type="number"
+                                min={0}
+                                value={tier.pointsNoGrade ?? 0}
+                                onChange={(e) => handleUpdateTeamSizeTier(tier.id, 'pointsNoGrade', Number(e.target.value))}
+                                className="w-14 px-2 py-1 text-center font-bold text-slate-600 bg-white border border-slate-200 rounded-lg focus:border-slate-400 outline-none text-xs"
+                              />
+                              <span className="text-[10px] text-slate-500 font-bold">pts</span>
                             </div>
                           </td>
                           <td className="py-2 px-2 text-center">
