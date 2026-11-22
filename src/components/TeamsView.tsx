@@ -242,8 +242,7 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
     const pCatId = p.selectedCategoryId || (p as any).categoryId;
     const isSameCategory = isWizardGeneral || pCatId === wizardCategoryId || (pCatId && wizardCategoryId && String(pCatId).trim() === String(wizardCategoryId).trim());
     const notDeleted = !p.deletedAt;
-    const notInOtherTeam = !wizardCompId || !teams.some(t => t.competitionId === wizardCompId && t.memberIds.includes(p.id) && !t.deletedAt);
-    return isSameUnit && isSameCategory && notDeleted && notInOtherTeam;
+    return isSameUnit && isSameCategory && notDeleted;
   });
 
   return (
@@ -459,6 +458,7 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                     {eligibleMembers.length > 0 ? (
                       eligibleMembers.map((p) => {
                         const isChecked = selectedMembers.includes(p.id);
+                        const otherTeam = wizardCompId ? teams.find(t => t.competitionId === wizardCompId && t.memberIds.includes(p.id) && !t.deletedAt) : null;
                         return (
                           <button
                             key={p.id}
@@ -478,7 +478,14 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                               isChecked ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200 bg-white hover:bg-slate-50'
                             }`}
                           >
-                            <span className="font-semibold text-slate-800">{p.fullName}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-800">{p.fullName}</span>
+                              {otherTeam && (
+                                <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded font-mono">
+                                  In {otherTeam.teamName}
+                                </span>
+                              )}
+                            </div>
                             <span className="font-mono text-[10px] text-slate-400">{p.profilePhoto}</span>
                           </button>
                         );
@@ -532,15 +539,14 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                               compCat?.name?.toLowerCase().includes('general') ||
                               (compCat as any)?.isGeneral;
 
-        // Eligible candidates from same unit and category (or ANY zone if general competition), excluding current editing members & members in other teams for this comp
+        // Eligible candidates from same unit and category (or ANY zone if general competition), excluding current editing members
         const eligibleCandidates = participants.filter(p => {
           const isSameUnit = p.unitId === targetUnitId || (p.unitId && targetUnitId && String(p.unitId).trim() === String(targetUnitId).trim()) || (unit && (p.unitId === unit.name || p.unitId === unit.id));
           const pCatId = p.selectedCategoryId || (p as any).categoryId;
           const isCategoryAllowed = isGeneralComp || pCatId === targetCatId || (pCatId && targetCatId && String(pCatId).trim() === String(targetCatId).trim()) || (cat && pCatId === cat.name);
           const notDeleted = !p.deletedAt;
           const notCurrentMember = !editingMemberIds.includes(p.id);
-          const notInOtherTeam = !teams.some(t => t.id !== editingTeam.id && t.competitionId === editingTeam.competitionId && t.memberIds.includes(p.id) && !t.deletedAt);
-          return isSameUnit && isCategoryAllowed && notDeleted && notCurrentMember && notInOtherTeam;
+          return isSameUnit && isCategoryAllowed && notDeleted && notCurrentMember;
         });
 
         // Filter eligible candidates by search query
@@ -674,11 +680,21 @@ export default function TeamsView({ user, token, eventSettings }: TeamsViewProps
                                 {p.profilePhoto || '#'}
                               </span>
                               <div>
-                                <span className="font-semibold text-slate-800 text-xs block">{p.fullName}</span>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-semibold text-slate-800 text-xs">{p.fullName}</span>
+                                  {(() => {
+                                    const otherTeam = teams.find(t => t.id !== editingTeam.id && t.competitionId === editingTeam.competitionId && t.memberIds.includes(p.id) && !t.deletedAt);
+                                    return otherTeam ? (
+                                      <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded font-mono border border-amber-200">
+                                        In {otherTeam.teamName}
+                                      </span>
+                                    ) : null;
+                                  })()}
+                                </div>
                                 {(() => {
                                   const pCat = categories.find(c => c.id === (p.selectedCategoryId || (p as any).categoryId));
                                   return pCat ? (
-                                    <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                    <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-0.5 inline-block">
                                       {pCat.name}
                                     </span>
                                   ) : null;
