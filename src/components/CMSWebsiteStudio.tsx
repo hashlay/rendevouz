@@ -37,15 +37,15 @@ export default function CMSWebsiteStudio({ user }: CMSWebsiteStudioProps) {
   const [enableCertificates, setEnableCertificates] = useState<boolean>(false);
 
   const DEFAULT_COLOR_THEME: Record<string, string> = {
-    primaryAccent: '#18BA46',
-    bodyBg: '#012002',
-    cardBg: '#07380B',
-    cardElevatedBg: '#0B4A12',
-    borderSubtle: '#176523',
-    textPrimary: '#F4F8F4',
-    textSecondary: '#A2D5A4',
-    textMuted: '#7EA681',
-    goldAccent: '#FFA28A',
+    primaryAccent: '#F5C542',
+    bodyBg: '#080808',
+    cardBg: '#141414',
+    cardElevatedBg: '#202020',
+    borderSubtle: '#333333',
+    textPrimary: '#FFFFFF',
+    textSecondary: '#C5C5C5',
+    textMuted: '#929292',
+    goldAccent: '#F5C542',
     successAccent: '#10B981',
   };
 

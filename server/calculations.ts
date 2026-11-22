@@ -60,27 +60,64 @@ export const DEFAULT_GRADE_MATRIX: GradeMatrixRow[] = [
   { id: '12', minMark: 0, maxMark: 30, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 5 }
 ];
 
+export interface TeamSizePointTier {
+  id: string;
+  name: string;
+  minMembers: number;
+  maxMembers: number;
+  matchKeywords?: string[];
+  pointsAPlus: number;
+  pointsA: number;
+  pointsB: number;
+  pointsC: number;
+}
+
+export const DEFAULT_TEAM_SIZE_TIERS: TeamSizePointTier[] = [
+  { id: 'tier_ind', name: '1 Member (Individual)', minMembers: 1, maxMembers: 1, pointsAPlus: 6, pointsA: 5, pointsB: 3, pointsC: 1 },
+  { id: 'tier_2', name: '2 Members (Group)', minMembers: 2, maxMembers: 2, pointsAPlus: 7, pointsA: 6, pointsB: 4, pointsC: 2 },
+  { id: 'tier_3', name: '3 Members (Group)', minMembers: 3, maxMembers: 3, pointsAPlus: 10, pointsA: 9, pointsB: 6, pointsC: 3 },
+  { id: 'tier_4_5', name: '4 or 5 Members (Group)', minMembers: 4, maxMembers: 5, pointsAPlus: 18, pointsA: 15, pointsB: 10, pointsC: 5 },
+  { id: 'tier_10', name: '10 Members (Group)', minMembers: 10, maxMembers: 10, pointsAPlus: 25, pointsA: 20, pointsB: 12, pointsC: 6 },
+  { id: 'tier_project', name: 'Project (Special)', minMembers: 1, maxMembers: 99, matchKeywords: ['project', 'പ്രോജക്ട്'], pointsAPlus: 25, pointsA: 20, pointsB: 12, pointsC: 6 },
+  { id: 'tier_vlog', name: 'Vlog / Social Story', minMembers: 1, maxMembers: 99, matchKeywords: ['vlog', 'social story', 'വ്ലോഗ്', 'സോഷ്യൽ സ്റ്റോറി'], pointsAPlus: 25, pointsA: 20, pointsB: 12, pointsC: 6 }
+];
+
+export const OFFICIAL_GRADE_MATRIX: GradeMatrixRow[] = [
+  { id: '1', minMark: 90, maxMark: 100, indGrade: 'A+', indPoints: 6, groupGrade: 'A+', groupPoints: 10 },
+  { id: '2', minMark: 70, maxMark: 89, indGrade: 'A', indPoints: 5, groupGrade: 'A', groupPoints: 9 },
+  { id: '3', minMark: 60, maxMark: 69, indGrade: 'B', indPoints: 3, groupGrade: 'B', groupPoints: 6 },
+  { id: '4', minMark: 50, maxMark: 59, indGrade: 'C', indPoints: 1, groupGrade: 'C', groupPoints: 3 },
+  { id: '5', minMark: 0, maxMark: 49, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 0 }
+];
+
 export const calculateGrade = (mark: number, isGroup: boolean = false, eventSettings?: any, categoryId?: string): string => {
   const m = Math.round(Number(mark) || 0);
-  if (m <= 0) return '';
+  if (m <= 0 || isNaN(m)) return '';
 
   const db = dbClient.get();
   const settings = eventSettings || db.eventSettings;
 
-  let matrix: GradeMatrixRow[] = DEFAULT_GRADE_MATRIX;
-  if (settings?.categorySpecificGradesEnabled && categoryId && settings?.categoryGradeMatrices?.[categoryId] && Array.isArray(settings.categoryGradeMatrices[categoryId]) && settings.categoryGradeMatrices[categoryId].length > 0) {
-    matrix = settings.categoryGradeMatrices[categoryId];
-  } else if (settings?.gradeMatrix && Array.isArray(settings.gradeMatrix) && settings.gradeMatrix.length > 0) {
-    matrix = settings.gradeMatrix;
-  }
-
-  const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
-  for (const row of sorted) {
-    if (m >= Number(row.minMark)) {
-      const g = isGroup ? row.groupGrade : row.indGrade;
-      return (!g || g === '-' || g === 'None') ? '' : g;
+  // If a custom gradeMatrix is configured, use it
+  if (settings?.gradeMatrix && Array.isArray(settings.gradeMatrix) && settings.gradeMatrix.length > 0) {
+    let matrix: GradeMatrixRow[] = settings.gradeMatrix;
+    if (settings?.categorySpecificGradesEnabled && categoryId && settings?.categoryGradeMatrices?.[categoryId] && Array.isArray(settings.categoryGradeMatrices[categoryId]) && settings.categoryGradeMatrices[categoryId].length > 0) {
+      matrix = settings.categoryGradeMatrices[categoryId];
+    }
+    const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
+    for (const row of sorted) {
+      if (m >= Number(row.minMark)) {
+        const g = isGroup ? row.groupGrade : row.indGrade;
+        return (!g || g === '-' || g === 'None') ? '' : g;
+      }
     }
   }
+
+  // Official Sahityotsav '26 Grade System:
+  // A+: 90–100, A: 70–89, B: 60–69, C: 50–59, Below 50: No grade
+  if (m >= 90) return 'A+';
+  if (m >= 70) return 'A';
+  if (m >= 60) return 'B';
+  if (m >= 50) return 'C';
   return '';
 };
 
@@ -95,38 +132,79 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
   const settings = eventSettings || db.eventSettings;
   const gradeSystemEnabled = settings?.gradeSystemEnabled !== false;
   const combineGradeAndRankPoints = settings?.combineGradeAndRankPoints === true;
+  const pointDistributionMode = settings?.pointDistributionMode || (settings?.categorySpecificGradesEnabled ? 'category_wise' : 'team_size');
 
   if (r.status === ResultStatus.ABSENT || (r as any).status === 'absent') return 0;
   const mark = getNormalizedMark(r);
   const m = Math.round(Number(mark) || 0);
 
-  // 1. Calculate Grade Points (from Grade Matrix based on normalized marks)
+  const compObj = comp || (db.competitions ? db.competitions.find(c => c.id === r.competitionId) : undefined);
+  const isGroup = !!r.teamId || compObj?.participationType === ParticipationType.GROUP || (compObj as any)?.isGroup === true || String(compObj?.participationType).toLowerCase() === 'group';
+  const catId = r.categoryId || compObj?.categoryId;
+  const grade = (r as any).grade || (m > 0 ? calculateGrade(m, isGroup, settings, catId) : '');
+
+  // 1. Calculate Grade Points based on active Point Distribution Mode
   let gradePoints = 0;
-  if (gradeSystemEnabled && m > 0) {
-    const isGroup = !!r.teamId || comp?.participationType === ParticipationType.GROUP || (comp as any)?.isGroup === true || String(comp?.participationType).toLowerCase() === 'group';
-    const catId = r.categoryId || comp?.categoryId;
+  if (gradeSystemEnabled && m > 0 && grade) {
+    if (pointDistributionMode === 'team_size') {
+      const tiers: TeamSizePointTier[] = (settings?.teamSizePointTiers && Array.isArray(settings.teamSizePointTiers) && settings.teamSizePointTiers.length > 0)
+        ? settings.teamSizePointTiers
+        : DEFAULT_TEAM_SIZE_TIERS;
 
-    let matrix: GradeMatrixRow[] = DEFAULT_GRADE_MATRIX;
-    if (settings?.categorySpecificGradesEnabled && catId && settings?.categoryGradeMatrices?.[catId] && Array.isArray(settings.categoryGradeMatrices[catId]) && settings.categoryGradeMatrices[catId].length > 0) {
-      matrix = settings.categoryGradeMatrices[catId];
-    } else if (settings?.gradeMatrix && Array.isArray(settings.gradeMatrix) && settings.gradeMatrix.length > 0) {
-      matrix = settings.gradeMatrix;
-    }
+      const compName = (compObj?.name || (r as any).eventName || '').toLowerCase();
+      let teamSize = Number(compObj?.teamSize) || (isGroup ? 2 : 1);
+      if (r.teamId && db.teams) {
+        const t = db.teams.find(tm => tm.id === r.teamId);
+        if (t && Array.isArray(t.memberIds) && t.memberIds.length > 0) {
+          teamSize = t.memberIds.length;
+        }
+      }
 
-    const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
-    for (const row of sorted) {
-      if (m >= Number(row.minMark)) {
-        gradePoints = isGroup ? Number(row.groupPoints) : Number(row.indPoints);
-        break;
+      // 1. Check keyword match first (Project, Vlog, Social Story, etc.)
+      let matchedTier = tiers.find(t =>
+        Array.isArray(t.matchKeywords) && t.matchKeywords.some(kw => compName.includes(kw.toLowerCase()))
+      );
+
+      // 2. Match by team size range
+      if (!matchedTier) {
+        matchedTier = tiers.find(t => teamSize >= t.minMembers && teamSize <= t.maxMembers);
+      }
+
+      // 3. Fallback
+      if (!matchedTier) {
+        matchedTier = teamSize === 1 ? tiers[0] : (tiers.find(t => t.minMembers > 1) || tiers[0]);
+      }
+
+      if (matchedTier) {
+        if (grade === 'A+') gradePoints = matchedTier.pointsAPlus;
+        else if (grade === 'A') gradePoints = matchedTier.pointsA;
+        else if (grade === 'B+' || grade === 'B') gradePoints = matchedTier.pointsB;
+        else if (grade === 'C+' || grade === 'C') gradePoints = matchedTier.pointsC;
+      }
+    } else {
+      // Standard Matrix lookup (Mode 1: all_categories, or Mode 2: category_wise)
+      let matrix: GradeMatrixRow[] = OFFICIAL_GRADE_MATRIX;
+      if (pointDistributionMode === 'category_wise' && catId && settings?.categoryGradeMatrices?.[catId] && Array.isArray(settings.categoryGradeMatrices[catId]) && settings.categoryGradeMatrices[catId].length > 0) {
+        matrix = settings.categoryGradeMatrices[catId];
+      } else if (settings?.gradeMatrix && Array.isArray(settings.gradeMatrix) && settings.gradeMatrix.length > 0) {
+        matrix = settings.gradeMatrix;
+      }
+
+      const sorted = [...matrix].sort((a, b) => Number(b.minMark) - Number(a.minMark));
+      for (const row of sorted) {
+        if (m >= Number(row.minMark)) {
+          gradePoints = isGroup ? Number(row.groupPoints) : Number(row.indPoints);
+          break;
+        }
       }
     }
   }
 
-  // 2. Calculate Rank Points (from Category rank points or globalPointsRank1..10)
+  // 2. Calculate Rank Points (Default: 1st=5, 2nd=3, 3rd=1, others=0)
   let rankPoints = 0;
   if (!gradeSystemEnabled || combineGradeAndRankPoints) {
     if (r.rank && r.rank >= 1 && r.rank <= 10) {
-      const cat = db.categories ? db.categories.find(c => c.id === r.categoryId || c.id === comp?.categoryId) : null;
+      const cat = db.categories ? db.categories.find(c => c.id === r.categoryId || c.id === compObj?.categoryId) : null;
       let catRankVal: any = null;
       if (cat) {
         const key = `pointsRank${r.rank}` as keyof typeof cat;
@@ -143,14 +221,14 @@ export const calculateResultPoints = (r: Result, comp?: Competition, eventSettin
           const val = Number(settingsVal);
           if (!isNaN(val)) rankPoints = val;
         } else {
-          const defaultMap: Record<number, number> = { 1: 20, 2: 14, 3: 7, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
+          const defaultMap: Record<number, number> = { 1: 5, 2: 3, 3: 1, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 };
           rankPoints = defaultMap[r.rank] || 0;
         }
       }
     }
   }
 
-  // 3. Return combined or single mode points
+  // 3. Return total points according to active mode
   if (gradeSystemEnabled && combineGradeAndRankPoints) {
     return gradePoints + rankPoints;
   }

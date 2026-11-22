@@ -45,6 +45,101 @@ export interface Session {
   lastActivityAt: string;
 }
 
+export interface TeamSizePointTier {
+  id: string;
+  name: string;
+  minMembers: number;
+  maxMembers: number;
+  matchKeywords?: string[];
+  pointsAPlus: number;
+  pointsA: number;
+  pointsB: number;
+  pointsC: number;
+}
+
+export const DEFAULT_TEAM_SIZE_TIERS: TeamSizePointTier[] = [
+  {
+    id: 'tier_ind',
+    name: '1 Member (Individual)',
+    minMembers: 1,
+    maxMembers: 1,
+    pointsAPlus: 6,
+    pointsA: 5,
+    pointsB: 3,
+    pointsC: 1
+  },
+  {
+    id: 'tier_2',
+    name: '2 Members (Group)',
+    minMembers: 2,
+    maxMembers: 2,
+    pointsAPlus: 7,
+    pointsA: 6,
+    pointsB: 4,
+    pointsC: 2
+  },
+  {
+    id: 'tier_3',
+    name: '3 Members (Group)',
+    minMembers: 3,
+    maxMembers: 3,
+    pointsAPlus: 10,
+    pointsA: 9,
+    pointsB: 6,
+    pointsC: 3
+  },
+  {
+    id: 'tier_4_5',
+    name: '4 or 5 Members (Group)',
+    minMembers: 4,
+    maxMembers: 5,
+    pointsAPlus: 18,
+    pointsA: 15,
+    pointsB: 10,
+    pointsC: 5
+  },
+  {
+    id: 'tier_10',
+    name: '10 Members (Group)',
+    minMembers: 10,
+    maxMembers: 10,
+    pointsAPlus: 25,
+    pointsA: 20,
+    pointsB: 12,
+    pointsC: 6
+  },
+  {
+    id: 'tier_project',
+    name: 'Project (Special)',
+    minMembers: 1,
+    maxMembers: 99,
+    matchKeywords: ['project', 'പ്രോജക്ട്'],
+    pointsAPlus: 25,
+    pointsA: 20,
+    pointsB: 12,
+    pointsC: 6
+  },
+  {
+    id: 'tier_vlog',
+    name: 'Vlog / Social Story',
+    minMembers: 1,
+    maxMembers: 99,
+    matchKeywords: ['vlog', 'social story', 'വ്ലോഗ്', 'സോഷ്യൽ സ്റ്റോറി'],
+    pointsAPlus: 25,
+    pointsA: 20,
+    pointsB: 12,
+    pointsC: 6
+  }
+];
+
+export const OFFICIAL_GRADE_MATRIX: GradeMatrixRow[] = [
+  { id: '1', minMark: 90, maxMark: 100, indGrade: 'A+', indPoints: 6, groupGrade: 'A+', groupPoints: 10 },
+  { id: '2', minMark: 70, maxMark: 89, indGrade: 'A', indPoints: 5, groupGrade: 'A', groupPoints: 9 },
+  { id: '3', minMark: 60, maxMark: 69, indGrade: 'B', indPoints: 3, groupGrade: 'B', groupPoints: 6 },
+  { id: '4', minMark: 50, maxMark: 59, indGrade: 'C', indPoints: 1, groupGrade: 'C', groupPoints: 3 },
+  { id: '5', minMark: 0, maxMark: 49, indGrade: '-', indPoints: 0, groupGrade: '-', groupPoints: 0 }
+];
+
 export interface GradeMatrixRow {
   id: string;
   minMark: number;
@@ -296,6 +391,8 @@ export interface EventSettings {
   entityLabel?: string;
   gradeSystemEnabled?: boolean;
   combineGradeAndRankPoints?: boolean;
+  pointDistributionMode?: "all_categories" | "category_wise" | "team_size";
+  teamSizePointTiers?: TeamSizePointTier[];
   gradeMatrix?: GradeMatrixRow[];
   categorySpecificGradesEnabled?: boolean;
   categoryGradeMatrices?: Record<string, GradeMatrixRow[]>;

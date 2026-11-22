@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   Settings, Save, Database, Trash2, ShieldAlert,
   RefreshCw, CheckCircle2, Download, Upload, AlertTriangle, Sparkles, UserCheck,
-  GripVertical, ArrowUp, ArrowDown, Plus, RotateCcw, X, Layers, Copy
+  GripVertical, ArrowUp, ArrowDown, Plus, RotateCcw, X, Layers, Copy, Users, Award
 } from 'lucide-react';
-import { User, UserRole, GradeMatrixRow, DEFAULT_GRADE_MATRIX } from '../types';
+import { User, UserRole, GradeMatrixRow, DEFAULT_GRADE_MATRIX, TeamSizePointTier, DEFAULT_TEAM_SIZE_TIERS, OFFICIAL_GRADE_MATRIX } from '../types';
 
 interface SettingsViewProps {
   user: User;
@@ -253,6 +253,8 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [gradeMatrix, setGradeMatrix] = useState<GradeMatrixRow[]>(DEFAULT_GRADE_MATRIX);
   const [categorySpecificGradesEnabled, setCategorySpecificGradesEnabled] = useState(false);
   const [categoryGradeMatrices, setCategoryGradeMatrices] = useState<Record<string, GradeMatrixRow[]>>({});
+  const [pointDistributionMode, setPointDistributionMode] = useState<'all_categories' | 'category_wise' | 'team_size'>('team_size');
+  const [teamSizePointTiers, setTeamSizePointTiers] = useState<TeamSizePointTier[]>(DEFAULT_TEAM_SIZE_TIERS);
   const [editingCustomGradeCell, setEditingCustomGradeCell] = useState<string | null>(null);
   const [selectedCategoryTierId, setSelectedCategoryTierId] = useState<string>('');
 
@@ -335,9 +337,9 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
   const [maxOnStageEvents, setMaxOnStageEvents] = useState(10);
   const [hasOffStageLimit, setHasOffStageLimit] = useState(false);
   const [maxOffStageEvents, setMaxOffStageEvents] = useState(10);
-  const [globalPoints1, setGlobalPoints1] = useState(20);
-  const [globalPoints2, setGlobalPoints2] = useState(14);
-  const [globalPoints3, setGlobalPoints3] = useState(7);
+  const [globalPoints1, setGlobalPoints1] = useState(5);
+  const [globalPoints2, setGlobalPoints2] = useState(3);
+  const [globalPoints3, setGlobalPoints3] = useState(1);
   const [globalPoints4, setGlobalPoints4] = useState(0);
   const [globalPoints5, setGlobalPoints5] = useState(0);
   const [globalPoints6, setGlobalPoints6] = useState(0);
@@ -536,15 +538,21 @@ export default function SettingsView({ user, token, eventSettings }: SettingsVie
       } else {
         setCategoryGradeMatrices({});
       }
+      setPointDistributionMode(data.pointDistributionMode || (data.categorySpecificGradesEnabled ? 'category_wise' : 'team_size'));
+      if (Array.isArray(data.teamSizePointTiers) && data.teamSizePointTiers.length > 0) {
+        setTeamSizePointTiers(data.teamSizePointTiers);
+      } else {
+        setTeamSizePointTiers(DEFAULT_TEAM_SIZE_TIERS);
+      }
       setMaxIndividualEvents(data.maxIndividualEvents || 10);
       setMaxGroupEvents(data.maxGroupEvents || 10);
       setHasOnStageLimit(data.maxOnStageEvents !== null && data.maxOnStageEvents !== undefined);
       setMaxOnStageEvents(data.maxOnStageEvents || 3);
       setHasOffStageLimit(data.maxOffStageEvents !== null && data.maxOffStageEvents !== undefined);
       setMaxOffStageEvents(data.maxOffStageEvents || 5);
-      setGlobalPoints1(data.globalPointsRank1 ?? 20);
-      setGlobalPoints2(data.globalPointsRank2 ?? 14);
-      setGlobalPoints3(data.globalPointsRank3 ?? 7);
+      setGlobalPoints1(data.globalPointsRank1 ?? 5);
+      setGlobalPoints2(data.globalPointsRank2 ?? 3);
+      setGlobalPoints3(data.globalPointsRank3 ?? 1);
       setGlobalPoints4(data.globalPointsRank4 ?? 0);
       setGlobalPoints5(data.globalPointsRank5 ?? 0);
       setGlobalPoints6(data.globalPointsRank6 ?? 0);
