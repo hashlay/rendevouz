@@ -42,6 +42,7 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
   const [dobYear, setDobYear] = useState('');
   const [dob, setDob] = useState('');
   const [candidateClass, setCandidateClass] = useState('');
+  const [genCompTab, setGenCompTab] = useState<'all' | 'individual' | 'group'>('all');
 
   const criteriaMode = eventSettings?.participantLoginCriteria || 'class';
   const rawClasses: string[] = (Array.isArray(eventSettings?.availableClasses) && eventSettings.availableClasses.length > 0)
@@ -555,60 +556,169 @@ export default function RegistrationView({ user, token, eventSettings }: Registr
               const generalCategory = categories.find(c => c.id === 'cat_general' || c.name.toLowerCase() === 'general');
               const isNotGeneralCatSelected = selectedCategoryId !== generalCategory?.id;
               const generalComps = competitions.filter(c => c.categoryId === 'cat_general' || (generalCategory && c.categoryId === generalCategory.id));
+              const genIndivComps = generalComps.filter(c => c.participationType === ParticipationType.INDIVIDUAL);
+              const genGroupComps = generalComps.filter(c => c.participationType === ParticipationType.GROUP);
+
               if (!isNotGeneralCatSelected || generalComps.length === 0) return null;
 
               return (
                 <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-display font-bold text-slate-700 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="font-display font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                       <span className="text-amber-500">✨</span> General Competitions (Open For All)
                     </span>
-                    <span className="text-[10px] text-amber-700 font-bold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                      Individual & Group
-                    </span>
+
+                    {/* Filter Tabs */}
+                    <div className="inline-flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => setGenCompTab('all')}
+                        className={`px-2.5 py-1 text-[10px] font-mono font-bold rounded-md transition-all ${
+                          genCompTab === 'all'
+                            ? 'bg-white text-slate-900 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-900'
+                        }`}
+                      >
+                        All ({generalComps.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGenCompTab('individual')}
+                        className={`px-2.5 py-1 text-[10px] font-mono font-bold rounded-md transition-all ${
+                          genCompTab === 'individual'
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'text-emerald-700 hover:bg-emerald-50'
+                        }`}
+                      >
+                        👤 Individual ({genIndivComps.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGenCompTab('group')}
+                        className={`px-2.5 py-1 text-[10px] font-mono font-bold rounded-md transition-all ${
+                          genCompTab === 'group'
+                            ? 'bg-purple-600 text-white shadow-xs'
+                            : 'text-purple-700 hover:bg-purple-50'
+                        }`}
+                      >
+                        👥 Group ({genGroupComps.length})
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
-                    {generalComps.map(comp => {
-                      const isChecked = selectedComps.includes(comp.id);
-                      return (
-                        <div
-                          key={comp.id}
-                          onClick={() => handleCompToggle(comp.id)}
-                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                            isChecked
-                              ? 'bg-amber-50/80 border-amber-500 text-amber-950 shadow-xs'
-                              : 'bg-white border-slate-200 hover:border-amber-300 text-slate-800'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
-                              isChecked ? 'bg-amber-600 border-amber-600 text-white' : 'border-slate-300 bg-slate-50'
-                            }`}>
-                              {isChecked && <Check className="w-3.5 h-3.5" />}
-                            </div>
-                            <div>
-                              <span className="font-bold text-xs block">{comp.name}</span>
-                              <div className="flex gap-2 mt-0.5 font-mono text-[9px] font-bold">
-                                <span className={`uppercase px-1.5 py-0.2 rounded ${
-                                  comp.participationType === ParticipationType.INDIVIDUAL ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'
+                  {/* GENERAL INDIVIDUAL SECTION */}
+                  {(genCompTab === 'all' || genCompTab === 'individual') && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider font-mono flex items-center gap-1">
+                          <span>👤 General Individual Competitions</span>
+                          <span className="text-[9px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-full">
+                            Open for All
+                          </span>
+                        </span>
+                        <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          {genIndivComps.filter(c => selectedComps.includes(c.id)).length} selected
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                        {genIndivComps.map(comp => {
+                          const isChecked = selectedComps.includes(comp.id);
+                          return (
+                            <div
+                              key={comp.id}
+                              onClick={() => handleCompToggle(comp.id)}
+                              className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                                isChecked
+                                  ? 'bg-emerald-50/90 border-emerald-500 text-emerald-950 shadow-xs'
+                                  : 'bg-white border-slate-200 hover:border-emerald-300 text-slate-800'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${
+                                  isChecked ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-slate-50'
                                 }`}>
-                                  {comp.participationType}
-                                </span>
-                                {comp.stageType && (
-                                  <span className="text-slate-400 uppercase">{comp.stageType.replace('_', ' ')}</span>
-                                )}
+                                  {isChecked && <Check className="w-3.5 h-3.5" />}
+                                </div>
+                                <div>
+                                  <span className="font-bold text-xs block">{comp.name}</span>
+                                  <div className="flex gap-1.5 mt-0.5 font-mono text-[9px] font-bold">
+                                    <span className="uppercase px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                      Individual
+                                    </span>
+                                    {comp.stageType && (
+                                      <span className="text-slate-400 uppercase">{comp.stageType.replace('_', ' ')}</span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
 
-                          {comp.duration > 0 && (
-                            <span className="font-mono text-[10px] text-slate-400 font-bold shrink-0">{comp.duration}m</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                              {comp.duration > 0 && (
+                                <span className="font-mono text-[10px] text-slate-400 font-bold shrink-0">{comp.duration}m</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* GENERAL GROUP SECTION */}
+                  {(genCompTab === 'all' || genCompTab === 'group') && (
+                    <div className="space-y-2 pt-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-purple-800 uppercase tracking-wider font-mono flex items-center gap-1">
+                          <span>👥 General Group Competitions</span>
+                          <span className="text-[9px] text-purple-700 font-semibold bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded-full">
+                            Open for All
+                          </span>
+                        </span>
+                        <span className="text-[10px] font-mono font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                          {genGroupComps.filter(c => selectedComps.includes(c.id)).length} selected
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                        {genGroupComps.map(comp => {
+                          const isChecked = selectedComps.includes(comp.id);
+                          return (
+                            <div
+                              key={comp.id}
+                              onClick={() => handleCompToggle(comp.id)}
+                              className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                                isChecked
+                                  ? 'bg-purple-50/90 border-purple-500 text-purple-950 shadow-xs'
+                                  : 'bg-white border-slate-200 hover:border-purple-300 text-slate-800'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${
+                                  isChecked ? 'bg-purple-600 border-purple-600 text-white' : 'border-slate-300 bg-slate-50'
+                                }`}>
+                                  {isChecked && <Check className="w-3.5 h-3.5" />}
+                                </div>
+                                <div>
+                                  <span className="font-bold text-xs block">{comp.name}</span>
+                                  <div className="flex gap-1.5 mt-0.5 font-mono text-[9px] font-bold">
+                                    <span className="uppercase px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 border border-purple-200">
+                                      Group{comp.teamSize ? ` (${comp.teamSize})` : ''}
+                                    </span>
+                                    {comp.stageType && (
+                                      <span className="text-slate-400 uppercase">{comp.stageType.replace('_', ' ')}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {comp.duration > 0 && (
+                                <span className="font-mono text-[10px] text-slate-400 font-bold shrink-0">{comp.duration}m</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
