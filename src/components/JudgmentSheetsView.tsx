@@ -134,7 +134,63 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
   const [statusFilter, setStatusFilter] = useState<'all' | 'in_progress' | 'completed' | 'locked' | 'published'>('all');
   const [filterCategoryId, setFilterCategoryId] = useState('');
 
+  // Active competition data resolved safely for scoring & points
+  const currentComp = competitions.find((c: any) => c.id === currentSheet?.competitionId);
+  const isCurrentGroupComp = String(currentSheet?.participationType).toLowerCase() === 'group' || (currentSheet as any)?.isGroup === true || (currentComp && currentComp.participationType === 'group');
+  const currentTeamSize = currentComp?.teamSize || (currentSheet as any)?.teamSize;
+
+  // Listen to browser / hardware popstate event so mobile Back exits the sheet/modal back to dashboard instead of leaving website
+  useEffect(() => {
+    const handlePopState = () => {
+      setShowChampionsModal(prev => {
+        if (prev) return false;
+        return prev;
+      });
+      setViewMode(prev => {
+        if (prev === 'print') {
+          return currentSheet ? 'enter' : 'dashboard';
+        }
+        if (prev !== 'dashboard') {
+          setCurrentSheet(null);
+          return 'dashboard';
+        }
+        return prev;
+      });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [currentSheet]);
+
+  const handleBackToDashboard = () => {
+    if (window.history.state?.modalView?.startsWith('judgment-')) {
+      window.history.back();
+    } else {
+      setViewMode('dashboard');
+      setCurrentSheet(null);
+    }
+  };
+
+  const handleBackFromPrint = () => {
+    if (window.history.state?.modalView === 'judgment-sheet-print') {
+      window.history.back();
+    } else {
+      setViewMode('enter');
+    }
+  };
+
+  const handleCloseChampionsModal = () => {
+    if (window.history.state?.modalView === 'judgment-champions') {
+      window.history.back();
+    } else {
+      setShowChampionsModal(false);
+    }
+  };
+
   const fetchChampionsPreview = async () => {
+    window.history.pushState({ modalView: 'judgment-champions' }, '');
     setChampionsLoading(true);
     setShowChampionsModal(true);
     try {
@@ -160,6 +216,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch locked winners list');
       setWinnersData(data);
+      window.history.pushState({ modalView: 'judgment-winners' }, '');
       setViewMode('print-winners');
     } catch (err: any) {
       alert(err.message);
@@ -230,10 +287,11 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
       if (res.ok) {
         const data = await res.json();
         setCurrentSheet(data.sheet);
-        setCurrentScores(data.scores);
+        setCurrentScores(data.scores || []);
         if (data.sheet.assignedJudgeNumber) {
           setActiveJudgeNumber(data.sheet.assignedJudgeNumber);
         }
+        window.history.pushState({ modalView: 'judgment-sheet-enter' }, '');
         setViewMode('enter');
       }
     } catch (e) { console.error(e); }
@@ -550,47 +608,49 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         </div>
 
         {/* Table */}
-        <table className="w-full text-[15px] border-collapse border border-black table-fixed">
-          <thead>
-            <tr>
-              <th className="border border-black px-4 py-3 text-center font-bold w-24 align-middle" rowSpan={2}>Code Letter</th>
-              <th className="border border-black px-4 py-2 text-center font-bold align-middle" colSpan={5}>Mark</th>
-              <th className="border border-black px-4 py-3 text-center font-bold w-24 align-middle" rowSpan={2}>Average</th>
-              <th className="border border-black px-4 py-3 text-center font-bold w-48 align-middle" rowSpan={2}>Comments</th>
-            </tr>
-            <tr>
-              <th className="border border-black h-4 w-10"></th>
-              <th className="border border-black h-4 w-10"></th>
-              <th className="border border-black h-4 w-10"></th>
-              <th className="border border-black h-4 w-10"></th>
-              <th className="border border-black h-4 w-10"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentScores.map((s: any) => (
-              <tr key={s.id}>
-                <td className="border border-black px-3 py-6 text-center font-bold">{s.codeLetter}</td>
-
-                {[...Array(5)].map((_, i) => {
-                  const jm = s.judgeScores.find((x: any) => x.judgeNumber === i + 1);
-                  return (
-                    <td key={`v${i}`} className="border border-black px-1 py-6 text-center">
-                      {(printType === 'filled' && s.status === JudgeScoreStatus.PARTICIPATED && jm) ? jm.mark : ''}
-                    </td>
-                  );
-                })}
-
-                <td className="border border-black px-3 py-6 text-center">
-                  {(printType === 'filled' && s.status === JudgeScoreStatus.PARTICIPATED) ? (s.averageMark !== undefined ? s.averageMark : '') : ''}
-                </td>
-
-                <td className="border border-black px-3 py-6 text-left">
-                  {(printType === 'filled') ? (s.remarks || '') : ''}
-                </td>
+        <div className="overflow-x-auto touch-pan-x print:overflow-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <table className="w-full min-w-[650px] print:min-w-0 text-[15px] border-collapse border border-black table-fixed">
+            <thead>
+              <tr>
+                <th className="border border-black px-4 py-3 text-center font-bold w-24 align-middle" rowSpan={2}>Code Letter</th>
+                <th className="border border-black px-4 py-2 text-center font-bold align-middle" colSpan={5}>Mark</th>
+                <th className="border border-black px-4 py-3 text-center font-bold w-24 align-middle" rowSpan={2}>Average</th>
+                <th className="border border-black px-4 py-3 text-center font-bold w-48 align-middle" rowSpan={2}>Comments</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+              <tr>
+                <th className="border border-black h-4 w-10"></th>
+                <th className="border border-black h-4 w-10"></th>
+                <th className="border border-black h-4 w-10"></th>
+                <th className="border border-black h-4 w-10"></th>
+                <th className="border border-black h-4 w-10"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentScores.map((s: any) => (
+                <tr key={s.id}>
+                  <td className="border border-black px-3 py-6 text-center font-bold">{s.codeLetter}</td>
+
+                  {[...Array(5)].map((_, i) => {
+                    const jm = (s.judgeScores || []).find((x: any) => x.judgeNumber === i + 1);
+                    return (
+                      <td key={`v${i}`} className="border border-black px-1 py-6 text-center">
+                        {(printType === 'filled' && s.status === JudgeScoreStatus.PARTICIPATED && jm) ? jm.mark : ''}
+                      </td>
+                    );
+                  })}
+
+                  <td className="border border-black px-3 py-6 text-center">
+                    {(printType === 'filled' && s.status === JudgeScoreStatus.PARTICIPATED) ? (s.averageMark !== undefined ? s.averageMark : '') : ''}
+                  </td>
+
+                  <td className="border border-black px-3 py-6 text-left">
+                    {(printType === 'filled') ? (s.remarks || '') : ''}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Footer */}
         <div className="flex flex-col items-start mt-16 text-[15px] font-bold">
@@ -604,8 +664,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         </div>
 
         <div className="mt-6 print:hidden no-print">
-          <button onClick={() => setViewMode('enter')} className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm mr-2">← Back to Editor</button>
-          <button onClick={() => window.print()} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm">🖨 Print {printType === 'blank' ? 'Blank' : 'Filled'} Sheet</button>
+          <button onClick={handleBackFromPrint} className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm mr-2 cursor-pointer">← Back to Editor</button>
+          <button onClick={() => window.print()} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm cursor-pointer">🖨 Print {printType === 'blank' ? 'Blank' : 'Filled'} Sheet</button>
         </div>
       </div>
     );
@@ -617,15 +677,15 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         {/* Print Controls (Hidden when printing) */}
         <div className="mb-6 flex justify-between items-center print:hidden no-print border-b pb-4">
           <button
-            onClick={() => setViewMode('dashboard')}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition"
+            onClick={handleBackToDashboard}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition cursor-pointer"
           >
             ← Back to Judgment Sheets
           </button>
           <div className="flex gap-2">
             <button
               onClick={() => window.print()}
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow flex items-center gap-2"
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow flex items-center gap-2 cursor-pointer"
             >
               <Printer className="h-4 w-4" />
               Print Master Winners Sheet
@@ -658,16 +718,17 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                 No evaluated or locked competitions found with 1st, 2nd, or 3rd place winners.
               </div>
             ) : (
-              <table className="w-full text-left border-collapse text-xs border border-slate-300">
-                <thead>
-                  <tr className="bg-slate-100 border-b border-slate-300 font-mono text-[10px] uppercase font-bold text-slate-700">
-                    <th className="p-2 border-r border-slate-300 w-10 text-center">#</th>
-                    <th className="p-2 border-r border-slate-300 w-44">Competition</th>
-                    <th className="p-2 border-r border-slate-300">1st Place 🥇</th>
-                    <th className="p-2 border-r border-slate-300">2nd Place 🥈</th>
-                    <th className="p-2">3rd Place 🥉</th>
-                  </tr>
-                </thead>
+              <div className="overflow-x-auto touch-pan-x print:overflow-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <table className="w-full min-w-[650px] print:min-w-0 text-left border-collapse text-xs border border-slate-300">
+                  <thead>
+                    <tr className="bg-slate-100 border-b border-slate-300 font-mono text-[10px] uppercase font-bold text-slate-700">
+                      <th className="p-2 border-r border-slate-300 w-10 text-center">#</th>
+                      <th className="p-2 border-r border-slate-300 w-44">Competition</th>
+                      <th className="p-2 border-r border-slate-300">1st Place 🥇</th>
+                      <th className="p-2 border-r border-slate-300">2nd Place 🥈</th>
+                      <th className="p-2">3rd Place 🥉</th>
+                    </tr>
+                  </thead>
                 <tbody className="divide-y divide-slate-200">
                   {winnersData.map((item: any, idx: number) => {
                     const r1 = item.winners.filter((w: any) => w.rank === 1);
@@ -726,6 +787,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                   })}
                 </tbody>
               </table>
+            </div>
             )}
           </div>
 
@@ -765,7 +827,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
   });
 
   return (
-    <div className="space-y-6 min-w-0 w-full overflow-x-hidden">
+    <div className="space-y-6 min-w-0 w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -777,7 +839,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {viewMode !== 'dashboard' && (
-            <button onClick={() => setViewMode('dashboard')} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition">
+            <button onClick={handleBackToDashboard} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition cursor-pointer">
               ← Back to Dashboard
             </button>
           )}
@@ -805,7 +867,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
             </>
           )}
           {canGenerate && viewMode === 'dashboard' && (
-            <button onClick={() => setViewMode('generate')} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition cursor-pointer">
+            <button onClick={() => { window.history.pushState({ modalView: 'judgment-generate' }, ''); setViewMode('generate'); }} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition cursor-pointer">
               Generate New Sheet
             </button>
           )}
@@ -922,8 +984,18 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                 </select>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+
+            {/* Mobile swipe helper */}
+            <div className="md:hidden text-xs text-indigo-700 bg-indigo-50 border-b border-indigo-100 px-4 py-2 flex items-center justify-between font-medium">
+              <span className="flex items-center gap-1.5">
+                <span>👉</span>
+                <span>Swipe left & right to view all columns</span>
+              </span>
+              <span className="font-mono text-[10px] bg-indigo-100/70 text-indigo-800 px-2 py-0.5 rounded font-bold">⇄ Scrollable</span>
+            </div>
+
+            <div className="overflow-x-auto touch-pan-x" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <table className="w-full min-w-[700px] text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="text-left px-4 py-2 font-semibold text-slate-600">Competition</th>
@@ -1024,6 +1096,15 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <button
+                  onClick={handleBackToDashboard}
+                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                  title="Back to Sheet List"
+                >
+                  ← Back to Sheets
+                </button>
+              </div>
               <h2 className="text-lg font-bold text-slate-800">{currentSheet.competitionName}</h2>
               <p className="text-sm text-slate-500">{currentSheet.categoryName} • Max Marks: {currentSheet.maxMarks}</p>
             </div>
@@ -1034,12 +1115,12 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
 
               {!isJudge && (
                 <div className="relative group inline-block">
-                  <button className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium flex items-center gap-1 transition">
+                  <button className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium flex items-center gap-1 transition cursor-pointer">
                     <Printer className="h-4 w-4" /> Print Form <ChevronDown className="h-3 w-3" />
                   </button>
                   <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col overflow-hidden">
-                    <button onClick={() => { setPrintType('blank'); setViewMode('print'); }} className="px-4 py-2 text-left text-sm hover:bg-slate-50 transition">Print Blank Sheet</button>
-                    <button onClick={() => { setPrintType('filled'); setViewMode('print'); }} className="px-4 py-2 text-left text-sm hover:bg-slate-50 transition border-t border-slate-100">Print Filled Sheet</button>
+                    <button onClick={() => { window.history.pushState({ modalView: 'judgment-sheet-print' }, ''); setPrintType('blank'); setViewMode('print'); }} className="px-4 py-2 text-left text-sm hover:bg-slate-50 transition cursor-pointer">Print Blank Sheet</button>
+                    <button onClick={() => { window.history.pushState({ modalView: 'judgment-sheet-print' }, ''); setPrintType('filled'); setViewMode('print'); }} className="px-4 py-2 text-left text-sm hover:bg-slate-50 transition border-t border-slate-100 cursor-pointer">Print Filled Sheet</button>
                   </div>
                 </div>
               )}
@@ -1207,9 +1288,18 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
             </div>
           )}
 
+          {/* Mobile swipe helper */}
+          <div className="md:hidden text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-xl flex items-center justify-between font-medium">
+            <span className="flex items-center gap-1.5">
+              <span>👉</span>
+              <span>Swipe left & right to view all judges & scores</span>
+            </span>
+            <span className="font-mono text-[10px] bg-indigo-100/70 text-indigo-800 px-2 py-0.5 rounded font-bold">⇄ Scrollable</span>
+          </div>
+
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto touch-pan-x" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <table className="w-full min-w-[880px] text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="text-center px-3 py-3 font-semibold text-slate-600 w-16">Code</th>
@@ -1264,11 +1354,12 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                   {currentScores.map((s: any, sIdx: number) => {
                     const isParticipated = s.status === JudgeScoreStatus.PARTICIPATED || s.status === 'participated';
                     const isLocked = currentSheet.status === JudgmentSheetStatus.LOCKED;
-                    const isGroupCompetition = String(currentSheet?.participationType).toLowerCase() === 'group' || (currentSheet as any)?.isGroup === true;
+                    const isGroupCompetition = isCurrentGroupComp;
+                    const teamSize = currentTeamSize;
 
                     // Judge slot entry (dynamic based on activeJudgeNumber selection)
                     const judgeSlotNum = activeJudgeNumber;
-                    const activeJudgeEntry = s.judgeScores.find((x: any) => x.judgeNumber === judgeSlotNum);
+                    const activeJudgeEntry = (s.judgeScores || []).find((x: any) => x.judgeNumber === judgeSlotNum);
 
                     const nonZeroMarks = (s.judgeScores || []).filter((j: any) => typeof j.mark === 'number' && !Number.isNaN(j.mark) && j.mark > 0);
                     const sumMarks = (s.judgeScores || []).reduce((sum: number, jm: any) => sum + (typeof jm.mark === 'number' && !Number.isNaN(jm.mark) ? jm.mark : 0), 0);
@@ -1277,7 +1368,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                     const displayAvg = (s.averageMark && s.averageMark > 0) ? s.averageMark : (sumMarks > 0 ? calculatedAvg : (s.averageMark ?? 0));
 
                     const displayGrade = isParticipated && displayAvg > 0 ? computeGrade(displayAvg, isGroupCompetition, eventSettings, currentSheet?.categoryId) : (s.grade || '');
-                    const displayPoints = isParticipated && displayAvg > 0 ? computePoints(displayAvg, isGroupCompetition, eventSettings, s.rank, currentSheet?.categoryId, currentComp?.teamSize) : (s.points ?? 0);
+                    const displayPoints = isParticipated && displayAvg > 0 ? computePoints(displayAvg, isGroupCompetition, eventSettings, s.rank, currentSheet?.categoryId, teamSize) : (s.points ?? 0);
 
                     return (
                       <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
@@ -1379,8 +1470,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                           </>
                         ) : (
                           <>
-                            {[...Array(currentSheet.numJudges)].map((_, i) => {
-                              const jm = s.judgeScores.find((x: any) => x.judgeNumber === i + 1);
+                            {[...Array(currentSheet.numJudges || 2)].map((_, i) => {
+                              const jm = (s.judgeScores || []).find((x: any) => x.judgeNumber === i + 1);
                               return (
                                 <td key={`j${i}`} className="px-2 py-2 text-center">
                                   <input
@@ -1482,7 +1573,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                 </div>
               </div>
               <button 
-                onClick={() => setShowChampionsModal(false)}
+                onClick={handleCloseChampionsModal}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -1521,8 +1612,8 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                 )}
 
                 {/* Full Standings Table */}
-                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                  <table className="w-full text-xs">
+                <div className="border border-slate-200 rounded-2xl overflow-x-auto touch-pan-x shadow-sm" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  <table className="w-full min-w-[500px] text-xs">
                     <thead className="bg-slate-50 font-mono text-[10px] uppercase font-bold text-slate-600 border-b border-slate-200">
                       <tr>
                         <th className="py-2.5 px-3 text-center w-12">Rank</th>
@@ -1580,7 +1671,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
 
             <div className="pt-2 flex justify-end">
               <button
-                onClick={() => setShowChampionsModal(false)}
+                onClick={handleCloseChampionsModal}
                 className="px-5 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm"
               >
                 Close Preview

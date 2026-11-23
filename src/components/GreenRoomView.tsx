@@ -214,6 +214,52 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
     }
   }, [selectedCompetitionId]);
 
+  // Listen to browser / hardware popstate event so mobile Back exits the sheet back to dashboard instead of leaving website
+  useEffect(() => {
+    const handlePopState = () => {
+      setPrintMode(prev => {
+        if (prev) return false;
+        return prev;
+      });
+      setViewMode(prev => {
+        if (prev === 'generate') {
+          setSelectedCompetitionId('');
+          return 'dashboard';
+        }
+        return prev;
+      });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  const handleBackToDashboard = () => {
+    if (window.history.state?.modalView === 'green-room-sheet') {
+      window.history.back();
+    } else {
+      setViewMode('dashboard');
+      setSelectedCompetitionId('');
+    }
+  };
+
+  const handleBackFromPrint = () => {
+    if (window.history.state?.modalView === 'green-room-print') {
+      window.history.back();
+    } else {
+      setPrintMode(false);
+    }
+  };
+
+  const openGenerateView = (catId?: string, compId?: string) => {
+    window.history.pushState({ modalView: 'green-room-sheet' }, '');
+    if (catId) setSelectedCategoryId(catId);
+    if (compId) setSelectedCompetitionId(compId);
+    setViewMode('generate');
+  };
+
   const selectedComp = competitions.find((c: any) => c.id === selectedCompetitionId);
   const selectedCat = categories.find((c: any) => c.id === selectedCategoryId);
 
@@ -251,31 +297,33 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
         </div>
 
         {/* Table */}
-        <table className="w-full text-[15px] border-collapse border border-black">
-          <thead>
-            <tr>
-              <th className="border border-black px-4 py-3 text-left font-bold w-28">Code Letter</th>
-              <th className="border border-black px-4 py-3 text-left font-bold w-24">Chest #</th>
-              <th className="border border-black px-4 py-3 text-left font-bold">Name</th>
-              <th className="border border-black px-4 py-3 text-left font-bold w-40">Team</th>
-              <th className="border border-black px-4 py-3 text-left font-bold w-24">Sign</th>
-            </tr>
-          </thead>
-          <tbody>
-            {competitionAssignments
-              .sort((a: any, b: any) => a.codeLetter.localeCompare(b.codeLetter))
-              .map((a: any) => (
-                <tr key={a.id}>
-                  <td className="border border-black px-4 py-4">{a.codeLetter}</td>
-                  <td className="border border-black px-4 py-4">{a.chestNumber || ''}</td>
-                  <td className="border border-black px-4 py-4">{a.participantName}</td>
-                  <td className="border border-black px-4 py-4">{a.unitName}</td>
-                  <td className="border border-black px-4 py-4"></td>
-                </tr>
-              ))
-            }
-          </tbody>
-        </table>
+        <div className="overflow-x-auto touch-pan-x print:overflow-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <table className="w-full min-w-[580px] print:min-w-0 text-[15px] border-collapse border border-black">
+            <thead>
+              <tr>
+                <th className="border border-black px-4 py-3 text-left font-bold w-28">Code Letter</th>
+                <th className="border border-black px-4 py-3 text-left font-bold w-24">Chest #</th>
+                <th className="border border-black px-4 py-3 text-left font-bold">Name</th>
+                <th className="border border-black px-4 py-3 text-left font-bold w-40">Team</th>
+                <th className="border border-black px-4 py-3 text-left font-bold w-24">Sign</th>
+              </tr>
+            </thead>
+            <tbody>
+              {competitionAssignments
+                .sort((a: any, b: any) => a.codeLetter.localeCompare(b.codeLetter))
+                .map((a: any) => (
+                  <tr key={a.id}>
+                    <td className="border border-black px-4 py-4">{a.codeLetter}</td>
+                    <td className="border border-black px-4 py-4">{a.chestNumber || ''}</td>
+                    <td className="border border-black px-4 py-4">{a.participantName}</td>
+                    <td className="border border-black px-4 py-4">{a.unitName}</td>
+                    <td className="border border-black px-4 py-4"></td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
 
         {/* Footer Status */}
         <div className="flex justify-between items-start mt-6 text-[13px] font-bold">
@@ -290,8 +338,8 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
         </div>
 
         <div className="mt-6 print:hidden no-print">
-          <button onClick={() => setPrintMode(false)} className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm mr-2">← Back</button>
-          <button onClick={() => window.print()} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm">🖨 Print Sheet</button>
+          <button onClick={handleBackFromPrint} className="px-4 py-2 bg-slate-600 text-white rounded-lg text-sm mr-2 cursor-pointer">← Back</button>
+          <button onClick={() => window.print()} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm cursor-pointer">🖨 Print Sheet</button>
         </div>
       </div>
     );
@@ -300,7 +348,7 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
   const canGenerate = user.role === UserRole.SUPER_ADMIN || user.role === UserRole.SECTOR_TEAM || user.role === UserRole.GREEN_ROOM_MANAGER;
 
   return (
-    <div className="space-y-6 min-w-0 w-full overflow-x-hidden">
+    <div className="space-y-6 min-w-0 w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -310,9 +358,14 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
           </h1>
           <p className="text-sm text-slate-500 mt-1">Generate anonymous code letters before judging</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setViewMode('dashboard')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${viewMode === 'dashboard' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>Dashboard</button>
-          <button onClick={() => setViewMode('generate')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${viewMode === 'generate' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>Generate / View</button>
+        <div className="flex flex-wrap items-center gap-2">
+          {viewMode !== 'dashboard' && (
+            <button onClick={handleBackToDashboard} className="px-3 py-1.5 rounded-lg text-sm font-medium transition bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer">
+              ← Back to Dashboard
+            </button>
+          )}
+          <button onClick={handleBackToDashboard} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer ${viewMode === 'dashboard' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Dashboard</button>
+          <button onClick={() => openGenerateView()} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer ${viewMode === 'generate' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Generate / View</button>
         </div>
       </div>
 
@@ -372,8 +425,18 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
             <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
               <h3 className="text-sm font-semibold text-slate-700">Competitions Overview</h3>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+
+            {/* Mobile swipe helper */}
+            <div className="md:hidden text-xs text-purple-700 bg-purple-50 border-b border-purple-100 px-4 py-2 flex items-center justify-between font-medium">
+              <span className="flex items-center gap-1.5">
+                <span>👉</span>
+                <span>Swipe left & right to view full table</span>
+              </span>
+              <span className="font-mono text-[10px] bg-purple-100/70 text-purple-800 px-2 py-0.5 rounded font-bold">⇄ Scrollable</span>
+            </div>
+
+            <div className="overflow-x-auto touch-pan-x" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <table className="w-full min-w-[650px] text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
                     <th className="text-left px-4 py-2 font-semibold text-slate-600">Competition</th>
@@ -403,8 +466,8 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-3">
                             <button
-                              onClick={() => { setSelectedCategoryId(comp.categoryId); setSelectedCompetitionId(comp.id); setViewMode('generate'); }}
-                              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                              onClick={() => openGenerateView(comp.categoryId, comp.id)}
+                              className="text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
                             >
                               {hasAssignment ? 'View' : 'Configure'} →
                             </button>
@@ -488,10 +551,10 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
                         <Shuffle className="h-4 w-4" /> Regenerate
                       </button>
                     )}
-                    <button onClick={() => handleBulkStatusUpdate('printed')} className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700">
+                    <button onClick={() => handleBulkStatusUpdate('printed')} className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 cursor-pointer">
                       <Printer className="h-4 w-4" /> Mark All Printed
                     </button>
-                    <button onClick={() => setPrintMode(true)} className="flex items-center gap-2 px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-semibold hover:bg-slate-700">
+                    <button onClick={() => { window.history.pushState({ modalView: 'green-room-print' }, ''); setPrintMode(true); }} className="flex items-center gap-2 px-3 py-2 bg-slate-600 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 cursor-pointer">
                       <Printer className="h-4 w-4" /> Print Green Room Sheet
                     </button>
                   </>
@@ -509,8 +572,18 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
                 </h3>
                 <span className="text-xs text-slate-500">{competitionAssignments.length} entries</span>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+
+              {/* Mobile swipe helper */}
+              <div className="md:hidden text-xs text-purple-700 bg-purple-50 border-b border-purple-100 px-4 py-2 flex items-center justify-between font-medium">
+                <span className="flex items-center gap-1.5">
+                  <span>👉</span>
+                  <span>Swipe left & right to view all assignments</span>
+                </span>
+                <span className="font-mono text-[10px] bg-purple-100/70 text-purple-800 px-2 py-0.5 rounded font-bold">⇄ Scrollable</span>
+              </div>
+
+              <div className="overflow-x-auto touch-pan-x" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <table className="w-full min-w-[650px] text-sm">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
                       <th className="text-left px-4 py-2 font-semibold text-slate-600 w-24">Code Letter</th>

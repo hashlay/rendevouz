@@ -5683,6 +5683,7 @@ apiRouter.get('/judgment-sheets', authenticate, async (req, res) => {
       competitionName: competition?.name || 'Unknown',
       categoryName: category?.name || 'Unknown',
       participationType: competition?.participationType || 'unknown',
+      teamSize: competition?.teamSize,
       stageType: competition?.stageType || 'unknown',
       scoresCount: scores.length
     };
@@ -6067,6 +6068,7 @@ apiRouter.get('/judgment-sheets/:id', authenticate, async (req, res) => {
       competitionName: competition?.name || 'Unknown',
       categoryName: category?.name || 'Unknown',
       participationType: competition?.participationType,
+      teamSize: competition?.teamSize,
       stageType: competition?.stageType,
       assignedJudgeNumber,
       claimedJudges: (sheet as any).claimedJudges || {}
