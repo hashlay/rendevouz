@@ -189,10 +189,16 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
                       <div>
                         <span className="text-base font-extrabold text-amber-600 block">{row.overallPoints ?? 0}</span>
                         <span className="text-[9px] font-mono font-bold text-slate-400 uppercase">Points</span>
-                        {includeGeneralIndividual && (
+                        {includeGeneralIndividual ? (
                           <span className="text-[8px] font-mono font-bold text-purple-700 block">
                             ({row.individualPoints || 0}c + {row.generalIndividualPoints || 0}g)
                           </span>
+                        ) : (
+                          (row.generalIndividualPoints || 0) > 0 && (
+                            <span className="text-[8px] font-mono font-bold text-purple-600 block">
+                              +{row.generalIndividualPoints} gen
+                            </span>
+                          )
                         )}
                       </div>
                       <div className="border-l border-slate-200 pl-2.5">
@@ -335,34 +341,38 @@ export default function ScoreboardView({ user, token, eventSettings }: Scoreboar
             <div className="space-y-4 text-xs font-sans">
               
               {/* Overall Championship Points & Marks Summary */}
-              <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-emerald-500/10 p-3.5 rounded-2xl border border-amber-200/70 flex items-center justify-between">
+              <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-emerald-500/10 p-3.5 rounded-2xl border border-amber-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div>
-                  <span className="text-[10px] uppercase tracking-wider font-mono font-bold text-amber-900 block">
-                    {includeGeneralIndividual ? 'Combined Individual Championship Points' : 'Own Category Individual Points'}
-                  </span>
-                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wider font-mono font-bold text-amber-900">
+                      Scoreboard Individual Points
+                    </span>
+                    <span className={`text-[8px] font-mono font-bold px-1.5 py-0.2 rounded uppercase ${
+                      includeGeneralIndividual ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+                    }`}>
+                      {includeGeneralIndividual ? 'Combined Mode (Own + Gen)' : 'Own Category Mode'}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-2 mt-1 flex-wrap">
                     <span className="text-2xl font-black text-amber-600">
                       {selectedRow.overallPoints ?? 0}
                       <span className="text-xs font-mono font-bold text-slate-500 ml-1">pts</span>
                     </span>
-                    {includeGeneralIndividual ? (
-                      <span className="text-[10px] font-mono font-bold text-purple-700 bg-purple-100 border border-purple-200 px-1.5 py-0.5 rounded">
-                        Cat: {selectedRow.individualPoints || 0} + Gen: {selectedRow.generalIndividualPoints || 0}
-                      </span>
-                    ) : (
-                      (selectedRow.generalIndividualPoints || 0) > 0 && (
-                        <span className="text-[10px] font-mono text-slate-400">
-                          (+{selectedRow.generalIndividualPoints} gen available)
-                        </span>
-                      )
-                    )}
+                    <span className="text-[10px] font-mono font-bold text-purple-700 bg-purple-100/80 border border-purple-200 px-2 py-0.5 rounded-lg">
+                      Cat: {selectedRow.individualPoints || 0} pts + Gen: {selectedRow.generalIndividualPoints || 0} pts
+                    </span>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <span className="text-[10px] uppercase tracking-wider font-mono font-bold text-slate-500 block">Overall Marks</span>
-                  <span className="text-xl font-extrabold text-emerald-700">
-                    {selectedRow.overallMarks || 0}
-                  </span>
+                  <div className="flex items-baseline sm:justify-end gap-1.5">
+                    <span className="text-xl font-extrabold text-emerald-700">
+                      {selectedRow.overallMarks || 0}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      (Cat: {selectedRow.individualMarks || 0} + Gen: {selectedRow.generalIndividualMarks || 0})
+                    </span>
+                  </div>
                 </div>
               </div>
 

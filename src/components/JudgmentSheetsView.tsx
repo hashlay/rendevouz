@@ -608,7 +608,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto touch-pan-x print:overflow-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="overflow-x-auto print:overflow-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
           <table className="w-full min-w-[650px] print:min-w-0 text-[15px] border-collapse border border-black table-fixed">
             <thead>
               <tr>
@@ -718,7 +718,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                 No evaluated or locked competitions found with 1st, 2nd, or 3rd place winners.
               </div>
             ) : (
-              <div className="overflow-x-auto touch-pan-x print:overflow-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="overflow-x-auto print:overflow-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <table className="w-full min-w-[650px] print:min-w-0 text-left border-collapse text-xs border border-slate-300">
                   <thead>
                     <tr className="bg-slate-100 border-b border-slate-300 font-mono text-[10px] uppercase font-bold text-slate-700">
@@ -986,15 +986,12 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
             </div>
 
             {/* Mobile swipe helper */}
-            <div className="md:hidden text-xs text-indigo-700 bg-indigo-50 border-b border-indigo-100 px-4 py-2 flex items-center justify-between font-medium">
-              <span className="flex items-center gap-1.5">
-                <span>👉</span>
-                <span>Swipe left & right to view all columns</span>
-              </span>
-              <span className="font-mono text-[10px] bg-indigo-100/70 text-indigo-800 px-2 py-0.5 rounded font-bold">⇄ Scrollable</span>
+            <div className="md:hidden text-xs text-indigo-700 bg-indigo-50 border-b border-indigo-100 px-4 py-2 flex items-center gap-1.5 font-medium">
+              <span>👉</span>
+              <span>Swipe left & right to view all columns</span>
             </div>
 
-            <div className="overflow-x-auto touch-pan-x" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
               <table className="w-full min-w-[700px] text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
@@ -1289,16 +1286,13 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
           )}
 
           {/* Mobile swipe helper */}
-          <div className="md:hidden text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-xl flex items-center justify-between font-medium">
-            <span className="flex items-center gap-1.5">
-              <span>👉</span>
-              <span>Swipe left & right to view all judges & scores</span>
-            </span>
-            <span className="font-mono text-[10px] bg-indigo-100/70 text-indigo-800 px-2 py-0.5 rounded font-bold">⇄ Scrollable</span>
+          <div className="md:hidden text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-2 rounded-xl flex items-center gap-1.5 font-medium">
+            <span>👉</span>
+            <span>Swipe left & right to view all judges & scores</span>
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto touch-pan-x" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
               <table className="w-full min-w-[880px] text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
@@ -1612,7 +1606,7 @@ export default function JudgmentSheetsView({ user, token, eventSettings }: Judgm
                 )}
 
                 {/* Full Standings Table */}
-                <div className="border border-slate-200 rounded-2xl overflow-x-auto touch-pan-x shadow-sm" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="border border-slate-200 rounded-2xl overflow-x-auto shadow-sm" style={{ WebkitOverflowScrolling: 'touch' }}>
                   <table className="w-full min-w-[500px] text-xs">
                     <thead className="bg-slate-50 font-mono text-[10px] uppercase font-bold text-slate-600 border-b border-slate-200">
                       <tr>

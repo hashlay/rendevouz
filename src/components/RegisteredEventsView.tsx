@@ -136,17 +136,6 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {user.role === UserRole.SUPER_ADMIN && (
-            <button
-              onClick={handleClearAllEvents}
-              disabled={loading || clearingEvents}
-              className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
-              title="Clear all registered events for all participants"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span>{clearingEvents ? 'Clearing...' : 'Clear All Events'}</span>
-            </button>
-          )}
           <button 
             onClick={fetchLists}
             className="p-2.5 text-slate-500 hover:text-emerald-600 bg-slate-50 hover:bg-emerald-50 rounded-xl border border-slate-200 transition-all cursor-pointer"

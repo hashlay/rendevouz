@@ -398,13 +398,14 @@ export const CalculationService = {
       
       // Helper to identify General Category competitions
       const isGeneralComp = (r: Result) => {
-        const comp = db.competitions.find(c => c.id === r.competitionId);
+        const comp = db.competitions.find(c => c.id === r.competitionId || (c as any)._id === r.competitionId);
         if (comp) {
-          if (comp.categoryId === 'cat_general') return true;
-          const cat = db.categories.find(c => c.id === comp.categoryId);
+          if (comp.categoryId === 'cat_general' || comp.categoryId === 'General') return true;
+          const cat = db.categories.find(c => c.id === comp.categoryId || (c as any)._id === comp.categoryId);
           if (cat && cat.name.toLowerCase().includes('general')) return true;
+          if ((comp as any).isGeneral === true) return true;
         }
-        if (r.categoryId === 'cat_general') return true;
+        if (r.categoryId === 'cat_general' || r.categoryId === 'General') return true;
         if ((r as any).categoryName && (r as any).categoryName.toLowerCase().includes('general')) return true;
         return false;
       };

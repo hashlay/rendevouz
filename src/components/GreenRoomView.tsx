@@ -297,7 +297,7 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto touch-pan-x print:overflow-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="overflow-x-auto print:overflow-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
           <table className="w-full min-w-[580px] print:min-w-0 text-[15px] border-collapse border border-black">
             <thead>
               <tr>
@@ -427,15 +427,12 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
             </div>
 
             {/* Mobile swipe helper */}
-            <div className="md:hidden text-xs text-purple-700 bg-purple-50 border-b border-purple-100 px-4 py-2 flex items-center justify-between font-medium">
-              <span className="flex items-center gap-1.5">
-                <span>👉</span>
-                <span>Swipe left & right to view full table</span>
-              </span>
-              <span className="font-mono text-[10px] bg-purple-100/70 text-purple-800 px-2 py-0.5 rounded font-bold">⇄ Scrollable</span>
+            <div className="md:hidden text-xs text-purple-700 bg-purple-50 border-b border-purple-100 px-4 py-2 flex items-center gap-1.5 font-medium">
+              <span>👉</span>
+              <span>Swipe left & right to view full table</span>
             </div>
 
-            <div className="overflow-x-auto touch-pan-x" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
               <table className="w-full min-w-[650px] text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
@@ -574,15 +571,12 @@ export default function GreenRoomView({ user, token, eventSettings }: GreenRoomV
               </div>
 
               {/* Mobile swipe helper */}
-              <div className="md:hidden text-xs text-purple-700 bg-purple-50 border-b border-purple-100 px-4 py-2 flex items-center justify-between font-medium">
-                <span className="flex items-center gap-1.5">
-                  <span>👉</span>
-                  <span>Swipe left & right to view all assignments</span>
-                </span>
-                <span className="font-mono text-[10px] bg-purple-100/70 text-purple-800 px-2 py-0.5 rounded font-bold">⇄ Scrollable</span>
+              <div className="md:hidden text-xs text-purple-700 bg-purple-50 border-b border-purple-100 px-4 py-2 flex items-center gap-1.5 font-medium">
+                <span>👉</span>
+                <span>Swipe left & right to view all assignments</span>
               </div>
 
-              <div className="overflow-x-auto touch-pan-x" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <table className="w-full min-w-[650px] text-sm">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">

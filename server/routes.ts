@@ -1661,6 +1661,10 @@ apiRouter.get('/registrations', authenticate, async (req, res) => {
 
 // Clear All Registered Events (Preserves participants and competitions, wipes event assignments & group teams)
 apiRouter.post('/registrations/clear-all-events', authenticate, requireRole([UserRole.SUPER_ADMIN, UserRole.SECTOR_TEAM]), async (req, res) => {
+  const { password } = req.body || {};
+  if (password !== 'admin@qurencia') {
+    return res.status(403).json({ error: 'Security password "admin@qurencia" required to clear all registered events.' });
+  }
   try {
     const db = dbClient.get();
     const user = (req as any).user as User;
@@ -2344,7 +2348,7 @@ apiRouter.post('/participants', authenticate, async (req, res) => {
       id: `chest_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       chestNumber: finalChestVal as any,
       participantId,
-      categoryId: groupComp.categoryId || selectedCategoryId,
+      categoryId: selectedCategoryId,
       unitId: finalUnitId,
       generatedBy: user.id,
       generatedAt: new Date().toISOString()
