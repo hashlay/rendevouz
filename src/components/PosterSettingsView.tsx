@@ -118,485 +118,103 @@ export const getPosterDisplayUnitName = (
 };
 
 // Default config for a single theme
-function getDefaultThemeConfig(themeIdx: number = 0): any {
+export const DEFAULT_POSTER_THEMES = [
+  '/themes/theme_green_waves.jpg',
+  '/themes/theme_green_cards.jpg',
+  '/themes/theme_red_star.jpg'
+];
+
+const OLD_THEME_PATTERNS = [
+  'theme_brown', 'theme_blue', 'theme_yellow', 'theme_purple',
+  'theme_green.jpg', 'theme_phytolore', 'theme_white_brown', 'theme_yellow_scroll'
+];
+
+export function isOldDefaultTheme(url: string): boolean {
+  if (!url || typeof url !== 'string') return true;
+  return OLD_THEME_PATTERNS.some(pat => url.includes(pat));
+}
+
+export function getDefaultThemeConfig(themeIdx: number = 0): any {
+  // Theme 1 (Index 0) - Green Waves
   if (themeIdx === 0) {
     return {
-      titleColor: '#A94029',
-      winnerColor: '#482722',
-      unitColor: '#B36A50',
-      titleSize: 36,
-      resultLabelText: '',
-      resultLabelX: -9999,
-      resultLabelY: -9999,
-      resultLabelSize: 0,
-      resultLabelColor: '#ffffff',
-      resultNumX: 350,
-      resultNumY: 414,
-      resultNumSize: 76,
-      resultNumColor: '#8D3020',
-      resultNumFont: '600 "Sora", sans-serif',
-      categorySize: 26,
-      categoryColor: '#916C63',
-      categoryX: 450,
-      categoryY: 348,
-      categoryFont: '300 "Sora", sans-serif',
-      compNameX: 450,
-      compNameY: 414,
-      compNameSize: 52,
-      compNameColor: '#A94029',
-      compNameFont: '600 "Sora", sans-serif',
-      campusNameX: 540,
-      campusNameY: 70,
-      campusNameSize: 28,
-      campusNameColor: '#ffffff',
-      campusNameFont: 'sans-serif',
-      showCampusName: false,
-      festNameX: 540,
-      festNameY: 120,
-      festNameSize: 36,
-      festNameColor: '#fbbf24',
-      festNameFont: 'sans-serif',
-      showFestName: false,
-      winnerSize: 34,
-      unitSize: 22,
-      rankSize: 32,
-      titleX: 540,
-      titleY: 110,
-      rank1BadgeX: 416,
-      rank1BadgeY: 512,
-      rank1NameX: 450,
-      rank1NameY: 512,
-      rank1UnitX: 450,
-      rank1UnitY: 538,
-      rank2BadgeX: 416,
-      rank2BadgeY: 590,
-      rank2NameX: 450,
-      rank2NameY: 590,
-      rank2UnitX: 450,
-      rank2UnitY: 618,
-      rank3BadgeX: 416,
-      rank3BadgeY: 680,
-      rank3NameX: 450,
-      rank3NameY: 680,
-      rank3UnitX: 450,
-      rank3UnitY: 708,
-      titleFont: '500 "Fractul Alt", sans-serif',
-      resultLabelFont: '500 "Fractul Alt", sans-serif',
-      winnerFont: '500 "Fractul Alt", sans-serif',
-      unitFont: '500 "Fractul Alt", sans-serif',
-      rankFont: '500 "Fractul Alt", sans-serif',
-      fontFamily: '500 "Fractul Alt", sans-serif',
-      uppercaseNames: false,
-      rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
-      rankBadgeShapeSize: 20,
-      rank1Color: '#8D3020',
-      rank2Color: '#8D3020',
-      rank3Color: '#8D3020',
-      rankTextColor: '#482722',
-      rank1Text: 'I',
-      rank2Text: 'II',
-      rank3Text: 'III',
-      showFooter: false,
-      showFooterBg: false,
-      footerLine1: '',
-      footerLine2: '',
-      campusNameUppercase: true,
-      festNameUppercase: true,
-      resultLabelUppercase: true,
-      resultNumUppercase: false,
-      categoryUppercase: false,
-      compNameUppercase: false,
-      winnerUppercase: false,
-      unitUppercase: false,
-      useTeamColors: false,
-      unitColors: {} as Record<string, string>,
-      unitLanguage: 'en',
-      unitArabicNames: {
-        'Nexa Mirath': 'NEXA MIRATH',
-        'Nexa Faylas': 'NEXA FAYLAS',
-        'Sirafi Seafarers': 'TEAM السِّيرَافِي',
-        'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
-        'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
-      } as Record<string, string>,
-    };
-  }
-
-  if (themeIdx === 1) {
-    return {
-      titleColor: '#1268B0',
-      winnerColor: '#173C60',
-      unitColor: '#4689BC',
-      titleSize: 36,
-      resultLabelText: '',
-      resultLabelX: -9999,
-      resultLabelY: -9999,
-      resultLabelSize: 0,
-      resultLabelColor: '#ffffff',
-      resultNumX: 350,
-      resultNumY: 414,
-      resultNumSize: 76,
-      resultNumColor: '#07519C',
-      resultNumFont: '600 "Sora", sans-serif',
-      categorySize: 26,
-      categoryColor: '#637C94',
-      categoryX: 450,
-      categoryY: 348,
-      categoryFont: '300 "Sora", sans-serif',
-      compNameX: 450,
-      compNameY: 414,
-      compNameSize: 52,
-      compNameColor: '#1268B0',
-      compNameFont: '600 "Sora", sans-serif',
-      campusNameX: 540,
-      campusNameY: 70,
-      campusNameSize: 28,
-      campusNameColor: '#ffffff',
-      campusNameFont: 'sans-serif',
-      showCampusName: false,
-      festNameX: 540,
-      festNameY: 120,
-      festNameSize: 36,
-      festNameColor: '#fbbf24',
-      festNameFont: 'sans-serif',
-      showFestName: false,
-      winnerSize: 34,
-      unitSize: 22,
-      rankSize: 32,
-      titleX: 540,
-      titleY: 110,
-      rank1BadgeX: 416,
-      rank1BadgeY: 512,
-      rank1NameX: 450,
-      rank1NameY: 512,
-      rank1UnitX: 450,
-      rank1UnitY: 538,
-      rank2BadgeX: 416,
-      rank2BadgeY: 590,
-      rank2NameX: 450,
-      rank2NameY: 590,
-      rank2UnitX: 450,
-      rank2UnitY: 618,
-      rank3BadgeX: 416,
-      rank3BadgeY: 680,
-      rank3NameX: 450,
-      rank3NameY: 680,
-      rank3UnitX: 450,
-      rank3UnitY: 708,
-      titleFont: '500 "Fractul Alt", sans-serif',
-      resultLabelFont: '500 "Fractul Alt", sans-serif',
-      winnerFont: '500 "Fractul Alt", sans-serif',
-      unitFont: '500 "Fractul Alt", sans-serif',
-      rankFont: '500 "Fractul Alt", sans-serif',
-      fontFamily: '500 "Fractul Alt", sans-serif',
-      uppercaseNames: false,
-      rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
-      rankBadgeShapeSize: 20,
-      rank1Color: '#07519C',
-      rank2Color: '#07519C',
-      rank3Color: '#07519C',
-      rankTextColor: '#173C60',
-      rank1Text: 'I',
-      rank2Text: 'II',
-      rank3Text: 'III',
-      showFooter: false,
-      showFooterBg: false,
-      footerLine1: '',
-      footerLine2: '',
-      campusNameUppercase: true,
-      festNameUppercase: true,
-      resultLabelUppercase: true,
-      resultNumUppercase: false,
-      categoryUppercase: false,
-      compNameUppercase: false,
-      winnerUppercase: false,
-      unitUppercase: false,
-      useTeamColors: false,
-      unitColors: {} as Record<string, string>,
-      unitLanguage: 'en',
-      unitArabicNames: {
-        'Nexa Mirath': 'NEXA MIRATH',
-        'Nexa Faylas': 'NEXA FAYLAS',
-        'Sirafi Seafarers': 'TEAM السِّيرَافِي',
-        'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
-        'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
-      } as Record<string, string>,
-    };
-  }
-
-  // Theme 3 (Index 2) - Golden Yellow
-  if (themeIdx === 2) {
-    return {
-      titleColor: '#A07816',
-      winnerColor: '#4A3030',
-      unitColor: '#B18B42',
-      titleSize: 36,
-      resultLabelText: '',
-      resultLabelX: -9999,
-      resultLabelY: -9999,
-      resultLabelSize: 0,
-      resultLabelColor: '#ffffff',
-      resultNumX: 174,
-      resultNumY: 368,
-      resultNumSize: 76,
-      resultNumColor: '#956B12',
-      resultNumFont: '600 "Sora", sans-serif',
-      categorySize: 26,
-      categoryColor: '#80645B',
-      categoryX: 274,
-      categoryY: 304,
-      categoryFont: '300 "Sora", sans-serif',
-      compNameX: 274,
-      compNameY: 368,
-      compNameSize: 52,
-      compNameColor: '#A07816',
-      compNameFont: '600 "Sora", sans-serif',
-      campusNameX: 540,
-      campusNameY: 70,
-      campusNameSize: 28,
-      campusNameColor: '#4A3030',
-      campusNameFont: 'sans-serif',
-      showCampusName: false,
-      festNameX: 540,
-      festNameY: 120,
-      festNameSize: 36,
-      festNameColor: '#A07816',
-      festNameFont: 'sans-serif',
-      showFestName: false,
-      winnerSize: 34,
-      unitSize: 22,
-      rankSize: 32,
-      titleX: 540,
-      titleY: 110,
-      rank1BadgeX: 244,
-      rank1BadgeY: 468,
-      rank1NameX: 274,
-      rank1NameY: 468,
-      rank1UnitX: 274,
-      rank1UnitY: 494,
-      rank2BadgeX: 244,
-      rank2BadgeY: 548,
-      rank2NameX: 274,
-      rank2NameY: 548,
-      rank2UnitX: 274,
-      rank2UnitY: 574,
-      rank3BadgeX: 244,
-      rank3BadgeY: 636,
-      rank3NameX: 274,
-      rank3NameY: 636,
-      rank3UnitX: 274,
-      rank3UnitY: 662,
-      titleFont: '500 "Fractul Alt", sans-serif',
-      resultLabelFont: '500 "Fractul Alt", sans-serif',
-      winnerFont: '500 "Fractul Alt", sans-serif',
-      unitFont: '500 "Fractul Alt", sans-serif',
-      rankFont: '500 "Fractul Alt", sans-serif',
-      fontFamily: '500 "Fractul Alt", sans-serif',
-      uppercaseNames: false,
-      rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
-      rankBadgeShapeSize: 20,
-      rank1Color: '#956B12',
-      rank2Color: '#956B12',
-      rank3Color: '#956B12',
-      rankTextColor: '#4A3030',
-      rank1Text: 'I',
-      rank2Text: 'II',
-      rank3Text: 'III',
-      showFooter: false,
-      showFooterBg: false,
-      footerLine1: '',
-      footerLine2: '',
-      campusNameUppercase: true,
-      festNameUppercase: true,
-      resultLabelUppercase: true,
-      resultNumUppercase: false,
-      categoryUppercase: false,
-      compNameUppercase: false,
-      winnerUppercase: false,
-      unitUppercase: false,
-      useTeamColors: false,
-      unitColors: {} as Record<string, string>,
-      unitLanguage: 'en',
-      unitArabicNames: {
-        'Nexa Mirath': 'NEXA MIRATH',
-        'Nexa Faylas': 'NEXA FAYLAS',
-        'Sirafi Seafarers': 'TEAM السِّيرَافِي',
-        'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
-        'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
-      } as Record<string, string>,
-    };
-  }
-
-  // Theme 4 (Index 3) - Royal Purple
-  if (themeIdx === 3) {
-    return {
-      titleColor: '#7920C6',
-      winnerColor: '#39224F',
-      unitColor: '#9564B9',
-      titleSize: 36,
-      resultLabelText: '',
-      resultLabelX: -9999,
-      resultLabelY: -9999,
-      resultLabelSize: 0,
-      resultLabelColor: '#ffffff',
-      resultNumX: 449,
-      resultNumY: 425,
-      resultNumSize: 76,
-      resultNumColor: '#7012B9',
-      resultNumFont: '600 "Sora", sans-serif',
-      categorySize: 26,
-      categoryColor: '#806C94',
-      categoryX: 539,
-      categoryY: 365,
-      categoryFont: '300 "Sora", sans-serif',
-      compNameX: 539,
-      compNameY: 425,
-      compNameSize: 52,
-      compNameColor: '#7920C6',
-      compNameFont: '600 "Sora", sans-serif',
-      campusNameX: 540,
-      campusNameY: 70,
-      campusNameSize: 28,
-      campusNameColor: '#39224F',
-      campusNameFont: 'sans-serif',
-      showCampusName: false,
-      festNameX: 540,
-      festNameY: 120,
-      festNameSize: 36,
-      festNameColor: '#7920C6',
-      festNameFont: 'sans-serif',
-      showFestName: false,
-      winnerSize: 34,
-      unitSize: 22,
-      rankSize: 32,
-      titleX: 540,
-      titleY: 110,
-      rank1BadgeX: 510,
-      rank1BadgeY: 512,
-      rank1NameX: 539,
-      rank1NameY: 512,
-      rank1UnitX: 539,
-      rank1UnitY: 538,
-      rank2BadgeX: 510,
-      rank2BadgeY: 585,
-      rank2NameX: 539,
-      rank2NameY: 585,
-      rank2UnitX: 539,
-      rank2UnitY: 611,
-      rank3BadgeX: 510,
-      rank3BadgeY: 665,
-      rank3NameX: 539,
-      rank3NameY: 665,
-      rank3UnitX: 539,
-      rank3UnitY: 691,
-      titleFont: '500 "Fractul Alt", sans-serif',
-      resultLabelFont: '500 "Fractul Alt", sans-serif',
-      winnerFont: '500 "Fractul Alt", sans-serif',
-      unitFont: '500 "Fractul Alt", sans-serif',
-      rankFont: '500 "Fractul Alt", sans-serif',
-      fontFamily: '500 "Fractul Alt", sans-serif',
-      uppercaseNames: false,
-      rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
-      rankBadgeShapeSize: 20,
-      rank1Color: '#7012B9',
-      rank2Color: '#7012B9',
-      rank3Color: '#7012B9',
-      rankTextColor: '#39224F',
-      rank1Text: 'I',
-      rank2Text: 'II',
-      rank3Text: 'III',
-      showFooter: false,
-      showFooterBg: false,
-      footerLine1: '',
-      footerLine2: '',
-      campusNameUppercase: true,
-      festNameUppercase: true,
-      resultLabelUppercase: true,
-      resultNumUppercase: false,
-      categoryUppercase: false,
-      compNameUppercase: false,
-      winnerUppercase: false,
-      unitUppercase: false,
-      useTeamColors: false,
-      unitColors: {} as Record<string, string>,
-      unitLanguage: 'en',
-      unitArabicNames: {
-        'Nexa Mirath': 'NEXA MIRATH',
-        'Nexa Faylas': 'NEXA FAYLAS',
-        'Sirafi Seafarers': 'TEAM السِّيرَافِي',
-        'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
-        'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
-      } as Record<string, string>,
-    };
-  }
-
-  // Theme 5 (Index 4) - Dark Phytolore Modern (Thunder ExtraLight 01, Sora & Fractul Alt, Pink accents)
-  if (themeIdx === 4) {
-    return {
-      titleColor: '#ef066a',
+      titleColor: '#ffffff',
       winnerColor: '#ffffff',
-      unitColor: '#ef066a',
+      unitColor: '#ffffff',
       titleSize: 36,
-      resultLabelText: '',
-      resultLabelX: -9999,
-      resultLabelY: -9999,
-      resultLabelSize: 0,
-      resultLabelColor: '#ffffff',
-      resultNumX: 138,
-      resultNumY: 408,
-      resultNumSize: 105,
-      resultNumColor: '#ef066a',
-      resultNumFont: '200 "Thunder ExtraLight LC", "Thunder", sans-serif',
+      resultLabelText: 'RESULT',
+      resultLabelX: 183,
+      resultLabelY: 284,
+      resultLabelSize: 13,
+      resultLabelColor: '#84C75D',
+      resultLabelFont: '600 "Sora", sans-serif',
+      resultLabelVertical: true,
+      resultLabelLineGap: 14,
+      resultNumX: 135,
+      resultNumY: 375,
+      resultNumSize: 145,
+      resultNumColor: '#84C75D',
+      resultNumFont: '700 "Sora", sans-serif',
+      resultNumStyle: 'stroke',
+      resultNumStrokeWidth: 3.5,
       categorySize: 28,
       categoryColor: '#ffffff',
-      categoryX: 240,
+      categoryX: 296,
       categoryY: 340,
-      categoryFont: '500 "Sora", sans-serif',
-      compNameX: 240,
-      compNameY: 405,
-      compNameSize: 68,
-      compNameColor: '#ef066a',
-      compNameFont: '600 "Sora", sans-serif',
+      categoryFont: '600 "Sora", sans-serif',
+      compNameX: 296,
+      compNameY: 382,
+      compNameSize: 42,
+      compNameColor: '#FFAD03',
+      compNameFont: '700 "Sora", sans-serif',
+      compNameAlign: 'left',
+      scriptText: 'mid zone',
+      scriptX: 296,
+      scriptY: 308,
+      scriptSize: 48,
+      scriptColor: '#ffffff',
+      scriptFont: '"SignPainter", cursive',
+      showScriptText: true,
       campusNameX: 540,
       campusNameY: 70,
       campusNameSize: 28,
       campusNameColor: '#ffffff',
-      campusNameFont: 'sans-serif',
+      campusNameFont: '600 "Sora", sans-serif',
       showCampusName: false,
       festNameX: 540,
       festNameY: 120,
       festNameSize: 36,
       festNameColor: '#fbbf24',
-      festNameFont: 'sans-serif',
+      festNameFont: '700 "Sora", sans-serif',
       showFestName: false,
-      winnerSize: 34,
-      unitSize: 22,
-      rankSize: 30,
+      winnerSize: 28,
+      unitSize: 18,
+      rankSize: 40,
       titleX: 540,
       titleY: 110,
-      rank1BadgeX: 210,
-      rank1BadgeY: 498,
-      rank1NameX: 240,
-      rank1NameY: 498,
-      rank1UnitX: 240,
-      rank1UnitY: 524,
-      rank2BadgeX: 210,
-      rank2BadgeY: 578,
-      rank2NameX: 240,
-      rank2NameY: 578,
-      rank2UnitX: 240,
-      rank2UnitY: 604,
-      rank3BadgeX: 210,
-      rank3BadgeY: 663,
-      rank3NameX: 240,
-      rank3NameY: 663,
-      rank3UnitX: 240,
-      rank3UnitY: 689,
-      titleFont: '500 "Fractul Alt", sans-serif',
-      resultLabelFont: '500 "Fractul Alt", sans-serif',
-      winnerFont: '500 "Fractul Alt", sans-serif',
-      unitFont: '500 "Fractul Alt", sans-serif',
-      rankFont: '500 "Fractul Alt", sans-serif',
-      fontFamily: '500 "Fractul Alt", sans-serif',
+      rank1BadgeX: 180,
+      rank1BadgeY: 465,
+      rank1NameX: 252,
+      rank1NameY: 452,
+      rank1UnitX: 252,
+      rank1UnitY: 476,
+      rank2BadgeX: 180,
+      rank2BadgeY: 535,
+      rank2NameX: 252,
+      rank2NameY: 522,
+      rank2UnitX: 252,
+      rank2UnitY: 546,
+      rank3BadgeX: 180,
+      rank3BadgeY: 605,
+      rank3NameX: 252,
+      rank3NameY: 592,
+      rank3UnitX: 252,
+      rank3UnitY: 616,
+      titleFont: '600 "Sora", sans-serif',
+      winnerFont: '600 "Sora", sans-serif',
+      unitFont: '400 "Sora", sans-serif',
+      rankFont: '600 "Sora", sans-serif',
+      fontFamily: '500 "Sora", sans-serif',
       uppercaseNames: false,
       rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
       rankBadgeShapeSize: 20,
@@ -604,9 +222,13 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
       rank2Color: '#ffffff',
       rank3Color: '#ffffff',
       rankTextColor: '#ffffff',
-      rank1Text: 'I',
-      rank2Text: 'II',
-      rank3Text: 'III',
+      rank1Text: '01.',
+      rank2Text: '02.',
+      rank3Text: '03.',
+      showDividers: true,
+      dividerColor: 'rgba(255, 255, 255, 0.35)',
+      dividerStartX: 252,
+      dividerEndX: 530,
       showFooter: false,
       showFooterBg: false,
       footerLine1: '',
@@ -627,274 +249,193 @@ function getDefaultThemeConfig(themeIdx: number = 0): any {
         'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
-        'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
+        'Zanzibari Souqs': 'TEAM الزَّنْجَبَARِي'
       } as Record<string, string>,
     };
   }
 
-  return {
-    titleColor: '#fbbf24', // Legacy title color fallback
-    winnerColor: '#ffffff',
-    unitColor: '#34d399',
-    titleSize: 36, // Legacy title size fallback
-    resultLabelText: 'RESULT',
-    resultLabelX: 470,
-    resultLabelY: 180,
-    resultLabelSize: 28,
-    resultLabelColor: '#ffffff',
-    resultNumX: 600,
-    resultNumY: 180,
-    resultNumSize: 28,
-    resultNumColor: '#ffffff',
-
-    // Category (independent element)
-    categorySize: 32,
-    categoryColor: 'rgba(255, 255, 255, 0.7)',
-    categoryX: 540,
-    categoryY: 260,
-    categoryFont: 'sans-serif',
-
-    // Competition (independent element)
-    compNameX: 540,
-    compNameY: 330,
-    compNameFont: 'sans-serif',
-
-    // Campus Name (independent element)
-    campusNameX: 540,
-    campusNameY: 70,
-    campusNameSize: 28,
-    campusNameColor: '#ffffff',
-    campusNameFont: 'sans-serif',
-    showCampusName: true,
-
-    // Fest Name (independent element)
-    festNameX: 540,
-    festNameY: 120,
-    festNameSize: 36,
-    festNameColor: '#fbbf24',
-    festNameFont: 'sans-serif',
-    showFestName: true,
-
-    winnerSize: 44,
-    unitSize: 30,
-    rankSize: 38,
-    titleX: 540, // Legacy title position fallback
-    titleY: 110, // Legacy title position fallback
-
-    // Per-rank positions
-    rank1BadgeX: 140,
-    rank1BadgeY: 460,
-    rank1NameX: 260,
-    rank1NameY: 448,
-    rank1UnitX: 260,
-    rank1UnitY: 483,
-
-    rank2BadgeX: 140,
-    rank2BadgeY: 640,
-    rank2NameX: 260,
-    rank2NameY: 628,
-    rank2UnitX: 260,
-    rank2UnitY: 663,
-
-    rank3BadgeX: 140,
-    rank3BadgeY: 820,
-    rank3NameX: 260,
-    rank3NameY: 808,
-    rank3UnitX: 260,
-    rank3UnitY: 843,
-
-    // Per-element Font Families
-    titleFont: 'sans-serif', // Legacy title font fallback
-    resultLabelFont: 'sans-serif',
-    resultNumFont: 'sans-serif',
-    winnerFont: 'sans-serif',
-    unitFont: 'monospace',
-    rankFont: 'sans-serif',
-
-    fontFamily: 'sans-serif', // Legacy global font family fallback
-    uppercaseNames: false,
-    rankBadgeShape: 'pill' as 'pill' | 'circle' | 'rectangle' | 'none',
-    rankBadgeShapeSize: 40,
-    rank1Color: '#fbbf24',
-    rank2Color: '#e2e8f0',
-    rank3Color: '#d97706',
-    rankTextColor: '#000000',
-    rank1Text: 'Rank 1',
-    rank2Text: 'Rank 2',
-    rank3Text: 'Rank 3',
-    showFooter: true,
-    showFooterBg: false,
-    footerLine1: '',
-    footerLine2: '',
-
-    // Block Letters (Uppercase) options
-    campusNameUppercase: true,
-    festNameUppercase: true,
-    resultLabelUppercase: true,
-    resultNumUppercase: false,
-    categoryUppercase: true,
-    compNameUppercase: false,
-    winnerUppercase: false,
-    unitUppercase: true,
-
-    // Team / Unit Language & Custom Arabic Spellings (Poster Only)
-    useTeamColors: false,
-    unitColors: {} as Record<string, string>,
-    unitLanguage: 'ar', // 'en' | 'ar'
-    unitArabicNames: {
-      'Nexa Mirath': 'NEXA MIRATH',
-      'Nexa Faylas': 'NEXA FAYLAS',
-      'Sirafi Seafarers': 'TEAM السِّيرَافِي',
-      'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
-      'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
-    } as Record<string, string>,
-  };
-}
-
-// Migrate old flat config to per-theme
-function migrateOldConfig(templateConfig: any): any {
-  if (templateConfig.themeConfigs) {
-    // Add defaults to existing themeConfigs
-    const customThemes = templateConfig.customThemes || [];
-    const themeRules = templateConfig.themeRules || [];
-    const themeConfigs: any = {};
-    customThemes.forEach((_: any, idx: number) => {
-      const themeConf = templateConfig.themeConfigs?.[idx] || {};
-      themeConfigs[idx] = {
-        ...getDefaultThemeConfig(),
-        ...themeConf
-      };
-
-      // Map legacy title to campusName and festName coords if missing
-      if (themeConfigs[idx].titleX !== undefined && themeConfigs[idx].campusNameX === undefined) {
-        themeConfigs[idx].campusNameX = themeConfigs[idx].titleX;
-        themeConfigs[idx].festNameX = themeConfigs[idx].titleX;
-      }
-      if (themeConfigs[idx].titleY !== undefined && themeConfigs[idx].campusNameY === undefined) {
-        themeConfigs[idx].campusNameY = Math.max(themeConfigs[idx].titleY - 30, 30);
-        themeConfigs[idx].festNameY = themeConfigs[idx].titleY + 20;
-      }
-    });
-    return { customThemes, themeRules, themeConfigs };
+  // Theme 2 (Index 1) - Green 3D Block with 3 Horizontal Cards
+  if (themeIdx === 1) {
+    return {
+      titleColor: '#ffffff',
+      winnerColor: '#ffffff',
+      unitColor: '#ffffff',
+      titleSize: 36,
+      resultLabelText: '#Result',
+      resultLabelX: 370,
+      resultLabelY: 282,
+      resultLabelSize: 32,
+      resultLabelColor: '#ffffff',
+      resultLabelFont: '"SignPainter", cursive',
+      resultLabelVertical: false,
+      resultNumX: 450,
+      resultNumY: 282,
+      resultNumSize: 28,
+      resultNumColor: '#ffffff',
+      resultNumFont: '700 "Sora", sans-serif',
+      resultNumStyle: 'fill',
+      categorySize: 0,
+      categoryColor: '#ffffff',
+      categoryX: -9999,
+      categoryY: -9999,
+      categoryFont: '600 "Sora", sans-serif',
+      compNameX: 438,
+      compNameY: 315,
+      compNameSize: 34,
+      compNameColor: '#FFAD03',
+      compNameFont: '700 "Sora", sans-serif',
+      compNameAlign: 'center',
+      scriptText: '',
+      scriptX: -9999,
+      scriptY: -9999,
+      scriptSize: 0,
+      scriptColor: '#ffffff',
+      scriptFont: '"SignPainter", cursive',
+      showScriptText: false,
+      campusNameX: 540,
+      campusNameY: 70,
+      campusNameSize: 28,
+      campusNameColor: '#ffffff',
+      campusNameFont: '600 "Sora", sans-serif',
+      showCampusName: false,
+      festNameX: 540,
+      festNameY: 120,
+      festNameSize: 36,
+      festNameColor: '#fbbf24',
+      festNameFont: '700 "Sora", sans-serif',
+      showFestName: false,
+      winnerSize: 30,
+      unitSize: 18,
+      rankSize: 26,
+      titleX: 540,
+      titleY: 110,
+      rank1BadgeX: 220,
+      rank1BadgeY: 366,
+      rank1NameX: 220,
+      rank1NameY: 412,
+      rank1UnitX: 220,
+      rank1UnitY: 468,
+      rank2BadgeX: 440,
+      rank2BadgeY: 366,
+      rank2NameX: 440,
+      rank2NameY: 412,
+      rank2UnitX: 440,
+      rank2UnitY: 468,
+      rank3BadgeX: 660,
+      rank3BadgeY: 366,
+      rank3NameX: 660,
+      rank3NameY: 412,
+      rank3UnitX: 660,
+      rank3UnitY: 468,
+      titleFont: '600 "Sora", sans-serif',
+      winnerFont: '700 "Sora", sans-serif',
+      unitFont: '400 "Sora", sans-serif',
+      rankFont: '600 "Sora", sans-serif',
+      fontFamily: '500 "Sora", sans-serif',
+      uppercaseNames: false,
+      rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
+      rankBadgeShapeSize: 20,
+      rank1Color: '#ffffff',
+      rank2Color: '#ffffff',
+      rank3Color: '#ffffff',
+      rankTextColor: '#ffffff',
+      rank1Text: '01',
+      rank2Text: '02',
+      rank3Text: '03',
+      winnerAlign: 'center',
+      unitAlign: 'center',
+      winnerWrap: true,
+      showDividers: false,
+      showFooter: false,
+      showFooterBg: false,
+      footerLine1: '',
+      footerLine2: '',
+      campusNameUppercase: true,
+      festNameUppercase: true,
+      resultLabelUppercase: false,
+      resultNumUppercase: false,
+      categoryUppercase: false,
+      compNameUppercase: false,
+      winnerUppercase: false,
+      unitUppercase: false,
+      useTeamColors: false,
+      unitColors: {} as Record<string, string>,
+      unitLanguage: 'en',
+      unitArabicNames: {
+        'Nexa Mirath': 'NEXA MIRATH',
+        'Nexa Faylas': 'NEXA FAYLAS',
+        'Sirafi Seafarers': 'TEAM السِّيرَAFِي',
+        'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
+        'Zanzibari Souqs': 'TEAM الزَّنْجَبَARِي'
+      } as Record<string, string>,
+    };
   }
 
-  // Old flat config -> wrap as theme 0 config
+  // Theme 3 (Index 2) - Red 3D Star
+  if (themeIdx === 2) {
+    const base = getDefaultThemeConfig(0);
+    return {
+      ...base,
+      resultLabelColor: '#C4020B',
+      resultNumColor: '#C4020B',
+    };
+  }
+
+  return getDefaultThemeConfig(themeIdx % 3);
+}
+
+// Migrate old flat config to per-theme (same logic as PosterSettingsView)
+function migrateOldConfig(templateConfig: any, defaultThemes?: string[]): any {
+  const dThemes = defaultThemes || DEFAULT_POSTER_THEMES;
+  let customThemes = Array.isArray(templateConfig.customThemes) && templateConfig.customThemes.length > 0
+    ? templateConfig.customThemes
+    : dThemes;
+
+  if (customThemes.some(isOldDefaultTheme) || customThemes.length === 4) {
+    customThemes = dThemes.map((dt, idx) => {
+      const existing = customThemes[idx];
+      return existing && !isOldDefaultTheme(existing) ? existing : dt;
+    });
+  }
+
+  if (templateConfig.themeConfigs) {
+    return {
+      ...templateConfig,
+      customThemes
+    };
+  }
+
   const oldConf = { ...templateConfig };
-  const customThemes = oldConf.customThemes || [];
   const themeRules = oldConf.themeRules || [];
   delete oldConf.customThemes;
   delete oldConf.themeRules;
 
-  // Migration for old badgeX/badgeY
-  if (oldConf.badgeX !== undefined) {
-    oldConf.resultLabelX = oldConf.resultLabelX ?? (oldConf.badgeX - 60);
-    oldConf.resultLabelY = oldConf.resultLabelY ?? oldConf.badgeY;
-    oldConf.resultLabelSize = oldConf.resultLabelSize ?? (oldConf.badgeSize ?? 28);
-    oldConf.resultNumX = oldConf.resultNumX ?? (oldConf.badgeX + 60);
-    oldConf.resultNumY = oldConf.resultNumY ?? oldConf.badgeY;
-    oldConf.resultNumSize = oldConf.resultNumSize ?? (oldConf.badgeSize ?? 28);
-  }
-
-  // Build per-rank positions from old winnersStartX/Y
-  const wsx = oldConf.winnersStartX ?? 140;
-  const wsy = oldConf.winnersStartY ?? 460;
-  oldConf.rank1BadgeX = oldConf.rank1BadgeX ?? wsx;
-  oldConf.rank1BadgeY = oldConf.rank1BadgeY ?? wsy;
-  oldConf.rank1NameX = oldConf.rank1NameX ?? (wsx + 120);
-  oldConf.rank1NameY = oldConf.rank1NameY ?? (wsy - 12);
-  oldConf.rank1UnitX = oldConf.rank1UnitX ?? (wsx + 120);
-  oldConf.rank1UnitY = oldConf.rank1UnitY ?? (wsy + 23);
-  oldConf.rank2BadgeX = oldConf.rank2BadgeX ?? wsx;
-  oldConf.rank2BadgeY = oldConf.rank2BadgeY ?? (wsy + 180);
-  oldConf.rank2NameX = oldConf.rank2NameX ?? (wsx + 120);
-  oldConf.rank2NameY = oldConf.rank2NameY ?? (wsy + 168);
-  oldConf.rank2UnitX = oldConf.rank2UnitX ?? (wsx + 120);
-  oldConf.rank2UnitY = oldConf.rank2UnitY ?? (wsy + 203);
-  oldConf.rank3BadgeX = oldConf.rank3BadgeX ?? wsx;
-  oldConf.rank3BadgeY = oldConf.rank3BadgeY ?? (wsy + 360);
-  oldConf.rank3NameX = oldConf.rank3NameX ?? (wsx + 120);
-  oldConf.rank3NameY = oldConf.rank3NameY ?? (wsy + 348);
-  oldConf.rank3UnitX = oldConf.rank3UnitX ?? (wsx + 120);
-  oldConf.rank3UnitY = oldConf.rank3UnitY ?? (wsy + 383);
-  oldConf.rank1Text = oldConf.rank1Text ?? ((oldConf.rankPrefix ?? 'Rank ') + '1');
-  oldConf.rank2Text = oldConf.rank2Text ?? ((oldConf.rankPrefix ?? 'Rank ') + '2');
-  oldConf.rank3Text = oldConf.rank3Text ?? ((oldConf.rankPrefix ?? 'Rank ') + '3');
-
-  // Apply old config to all existing themes
   const themeConfigs: any = {};
   customThemes.forEach((_: any, idx: number) => {
-    themeConfigs[idx] = { ...getDefaultThemeConfig(), ...oldConf };
-
-    // Map legacy title coordinates to campusName and festName coordinates
-    if (themeConfigs[idx].titleX !== undefined && themeConfigs[idx].campusNameX === undefined) {
-      themeConfigs[idx].campusNameX = themeConfigs[idx].titleX;
-      themeConfigs[idx].festNameX = themeConfigs[idx].titleX;
-    }
-    if (themeConfigs[idx].titleY !== undefined && themeConfigs[idx].campusNameY === undefined) {
-      themeConfigs[idx].campusNameY = Math.max(themeConfigs[idx].titleY - 30, 30);
-      themeConfigs[idx].festNameY = themeConfigs[idx].titleY + 20;
-    }
+    themeConfigs[idx] = { ...getDefaultThemeConfig(idx), ...oldConf };
   });
 
   return { customThemes, themeRules, themeConfigs };
 }
 
-interface RangeControlProps {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  min: number;
-  max: number;
-  step?: number;
-}
+const defaultThemes = DEFAULT_POSTER_THEMES;
 
-const RangeControl = React.memo(({ label, value, onChange, min, max, step = 1 }: RangeControlProps) => {
-  const currentVal = value ?? 0;
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</label>
-        <div className="flex items-center gap-1">
-          <input
-            type="number"
-            value={currentVal}
-            onChange={(e) => {
-              const val = e.target.value === '' ? 0 : Number(e.target.value);
-              onChange(isNaN(val) ? 0 : val);
-            }}
-            className="w-16 px-1.5 py-0.5 text-right font-mono text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded shadow-2xs focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-          />
-          <span className="text-[10px] text-slate-400 font-mono">px</span>
-        </div>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={currentVal}
-        onChange={e => onChange(Number(e.target.value))}
-        className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer"
-      />
-    </div>
-  );
-});
-
-export default function PosterSettingsView({ user, token, eventSettings, onSettingsUpdated }: PosterSettingsViewProps) {
-  const festivalName = eventSettings?.festivalName || 'QUERENCIA';
-  const campusName = eventSettings?.campusName || eventSettings?.sectorName || 'Thwaiba Valliyad';
-
-  const defaultThemes = [
-    '/themes/theme_brown.jpg',
-    '/themes/theme_blue.jpg',
-    '/themes/theme_yellow.jpg',
-    '/themes/theme_purple.jpg'
-  ];
-
+export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
+  user,
+  token,
+  eventSettings,
+  onSettingsUpdated
+}) => {
   // Helper to ensure valid themes & configs
   const normalizeThemesAndConfigs = (themesIn: any, configsIn: any) => {
     const existing = Array.isArray(themesIn) ? themesIn : [];
     let themes = existing.length > 0 ? existing : defaultThemes;
+    if (themes.some(isOldDefaultTheme) || themes.length === 4) {
+      themes = defaultThemes.map((dt, idx) => {
+        const ext = themes[idx];
+        return ext && !isOldDefaultTheme(ext) ? ext : dt;
+      });
+    }
     const configs = { ...(configsIn || {}) };
     themes.forEach((_, i) => {
       if (!configs[i]) configs[i] = getDefaultThemeConfig(i);
@@ -978,60 +519,77 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   const getThemeConfig = (idx: number) => {
     const defaultConf = getDefaultThemeConfig(idx);
     const userConf = { ...(themeConfigs[idx] || {}) };
-    if (idx === 0) {
-      if (userConf.compNameColor === '#48205D') {
-        userConf.compNameColor = defaultConf.compNameColor;
-        userConf.resultNumColor = defaultConf.resultNumColor;
-        userConf.unitColor = defaultConf.unitColor;
-        userConf.rank1Color = defaultConf.rank1Color;
-        userConf.rank2Color = defaultConf.rank2Color;
-        userConf.rank3Color = defaultConf.rank3Color;
-      }
-      if (!userConf.resultNumFont || userConf.resultNumFont.includes('bold "Fractul Alt"')) {
-        userConf.resultNumFont = defaultConf.resultNumFont;
-      }
-      if (!userConf.categoryFont || userConf.categoryFont.includes('bold "Fractul Alt"')) {
-        userConf.categoryFont = defaultConf.categoryFont;
-      }
-      if (!userConf.compNameFont || userConf.compNameFont.includes('bold "Fractul Alt"')) {
-        userConf.compNameFont = defaultConf.compNameFont;
-      }
-      if (!userConf.winnerFont || userConf.winnerFont.includes('bold "Fractul Alt"')) {
-        userConf.winnerFont = defaultConf.winnerFont;
-      }
-      if (!userConf.rankFont || userConf.rankFont.includes('bold "Fractul Alt"')) {
-        userConf.rankFont = defaultConf.rankFont;
-      }
-      if (!userConf.unitFont || userConf.unitFont.includes('bold "Fractul Alt"')) {
-        userConf.unitFont = defaultConf.unitFont;
-      }
-      if (userConf.resultNumX === 140) {
-        userConf.resultNumX = defaultConf.resultNumX;
-        userConf.resultNumY = defaultConf.resultNumY;
-        userConf.resultNumSize = defaultConf.resultNumSize;
-        userConf.categoryX = defaultConf.categoryX;
-        userConf.categoryY = defaultConf.categoryY;
-        userConf.compNameX = defaultConf.compNameX;
-        userConf.compNameY = defaultConf.compNameY;
-        userConf.rank1BadgeX = defaultConf.rank1BadgeX;
-        userConf.rank1BadgeY = defaultConf.rank1BadgeY;
-        userConf.rank1NameX = defaultConf.rank1NameX;
-        userConf.rank1NameY = defaultConf.rank1NameY;
-        userConf.rank1UnitX = defaultConf.rank1UnitX;
-        userConf.rank1UnitY = defaultConf.rank1UnitY;
-        userConf.rank2BadgeX = defaultConf.rank2BadgeX;
-        userConf.rank2BadgeY = defaultConf.rank2BadgeY;
-        userConf.rank2NameX = defaultConf.rank2NameX;
-        userConf.rank2NameY = defaultConf.rank2NameY;
-        userConf.rank2UnitX = defaultConf.rank2UnitX;
-        userConf.rank2UnitY = defaultConf.rank2UnitY;
-        userConf.rank3BadgeX = defaultConf.rank3BadgeX;
-        userConf.rank3BadgeY = defaultConf.rank3BadgeY;
-        userConf.rank3NameX = defaultConf.rank3NameX;
-        userConf.rank3NameY = defaultConf.rank3NameY;
-        userConf.rank3UnitX = defaultConf.rank3UnitX;
-        userConf.rank3UnitY = defaultConf.rank3UnitY;
-      }
+    const oldColors = ['#A94029', '#1268B0', '#8D3020', '#07519C', '#48205D', '#9A6B2F', '#A07816', '#7920C6'];
+    if (oldColors.includes(userConf.compNameColor) || oldColors.includes(userConf.resultNumColor) || (userConf.winnerFont && userConf.winnerFont.includes('Fractul Alt')) || userConf.resultNumX === 350 || userConf.resultNumX === 140) {
+      userConf.compNameColor = defaultConf.compNameColor;
+      userConf.compNameFont = defaultConf.compNameFont;
+      userConf.compNameX = defaultConf.compNameX;
+      userConf.compNameY = defaultConf.compNameY;
+      userConf.compNameSize = defaultConf.compNameSize;
+      userConf.compNameAlign = defaultConf.compNameAlign;
+      userConf.resultNumColor = defaultConf.resultNumColor;
+      userConf.resultNumFont = defaultConf.resultNumFont;
+      userConf.resultNumX = defaultConf.resultNumX;
+      userConf.resultNumY = defaultConf.resultNumY;
+      userConf.resultNumSize = defaultConf.resultNumSize;
+      userConf.resultNumStyle = defaultConf.resultNumStyle;
+      userConf.resultNumStrokeWidth = defaultConf.resultNumStrokeWidth;
+      userConf.resultLabelColor = defaultConf.resultLabelColor;
+      userConf.resultLabelFont = defaultConf.resultLabelFont;
+      userConf.resultLabelText = defaultConf.resultLabelText;
+      userConf.resultLabelX = defaultConf.resultLabelX;
+      userConf.resultLabelY = defaultConf.resultLabelY;
+      userConf.resultLabelSize = defaultConf.resultLabelSize;
+      userConf.resultLabelVertical = defaultConf.resultLabelVertical;
+      userConf.winnerColor = defaultConf.winnerColor;
+      userConf.winnerFont = defaultConf.winnerFont;
+      userConf.winnerSize = defaultConf.winnerSize;
+      userConf.winnerAlign = defaultConf.winnerAlign;
+      userConf.winnerWrap = defaultConf.winnerWrap;
+      userConf.unitColor = defaultConf.unitColor;
+      userConf.unitFont = defaultConf.unitFont;
+      userConf.unitSize = defaultConf.unitSize;
+      userConf.unitAlign = defaultConf.unitAlign;
+      userConf.rank1Color = defaultConf.rank1Color;
+      userConf.rank2Color = defaultConf.rank2Color;
+      userConf.rank3Color = defaultConf.rank3Color;
+      userConf.rankFont = defaultConf.rankFont;
+      userConf.rankSize = defaultConf.rankSize;
+      userConf.rank1Text = defaultConf.rank1Text;
+      userConf.rank2Text = defaultConf.rank2Text;
+      userConf.rank3Text = defaultConf.rank3Text;
+      userConf.rank1BadgeX = defaultConf.rank1BadgeX;
+      userConf.rank1BadgeY = defaultConf.rank1BadgeY;
+      userConf.rank1NameX = defaultConf.rank1NameX;
+      userConf.rank1NameY = defaultConf.rank1NameY;
+      userConf.rank1UnitX = defaultConf.rank1UnitX;
+      userConf.rank1UnitY = defaultConf.rank1UnitY;
+      userConf.rank2BadgeX = defaultConf.rank2BadgeX;
+      userConf.rank2BadgeY = defaultConf.rank2BadgeY;
+      userConf.rank2NameX = defaultConf.rank2NameX;
+      userConf.rank2NameY = defaultConf.rank2NameY;
+      userConf.rank2UnitX = defaultConf.rank2UnitX;
+      userConf.rank2UnitY = defaultConf.rank2UnitY;
+      userConf.rank3BadgeX = defaultConf.rank3BadgeX;
+      userConf.rank3BadgeY = defaultConf.rank3BadgeY;
+      userConf.rank3NameX = defaultConf.rank3NameX;
+      userConf.rank3NameY = defaultConf.rank3NameY;
+      userConf.rank3UnitX = defaultConf.rank3UnitX;
+      userConf.rank3UnitY = defaultConf.rank3UnitY;
+      userConf.categoryFont = defaultConf.categoryFont;
+      userConf.categoryColor = defaultConf.categoryColor;
+      userConf.categoryX = defaultConf.categoryX;
+      userConf.categoryY = defaultConf.categoryY;
+      userConf.categorySize = defaultConf.categorySize;
+      userConf.scriptText = defaultConf.scriptText;
+      userConf.scriptX = defaultConf.scriptX;
+      userConf.scriptY = defaultConf.scriptY;
+      userConf.scriptSize = defaultConf.scriptSize;
+      userConf.scriptFont = defaultConf.scriptFont;
+      userConf.scriptColor = defaultConf.scriptColor;
+      userConf.showScriptText = defaultConf.showScriptText;
+      userConf.showDividers = defaultConf.showDividers;
+      userConf.dividerColor = defaultConf.dividerColor;
     }
     return { ...defaultConf, ...userConf };
   };
@@ -1186,7 +744,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   // Canvas
   const canvasRef = useRef<HTMLCanvasElement>(null);
   type DragTarget =
-    | 'title' | 'resultLabel' | 'resultNum' | 'category' | 'compName'
+    | 'title' | 'scriptText' | 'resultLabel' | 'resultNum' | 'category' | 'compName'
     | 'rank1Badge' | 'rank1Name' | 'rank1Unit'
     | 'rank2Badge' | 'rank2Name' | 'rank2Unit'
     | 'rank3Badge' | 'rank3Name' | 'rank3Unit'
@@ -1201,6 +759,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
   // Drag position maps
   const dragPosMap: Record<string, { xKey: string, yKey: string }> = {
     title: { xKey: 'titleX', yKey: 'titleY' },
+    scriptText: { xKey: 'scriptX', yKey: 'scriptY' },
     campusName: { xKey: 'campusNameX', yKey: 'campusNameY' },
     festName: { xKey: 'festNameX', yKey: 'festNameY' },
     resultLabel: { xKey: 'resultLabelX', yKey: 'resultLabelY' },
@@ -1450,7 +1009,15 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     const rawLbl = c.resultLabelText || 'RESULT';
     const rLblText = c.resultLabelUppercase !== false ? rawLbl.toUpperCase() : rawLbl;
     const rLblMetrics = ctx.measureText(rLblText);
-    ctx.fillText(rLblText, c.resultLabelX, c.resultLabelY);
+    if (c.resultLabelVertical) {
+      const chars = rLblText.split('');
+      const gap = c.resultLabelLineGap || ((c.resultLabelSize || 13) * 1.15);
+      chars.forEach((ch: string, i: number) => {
+        ctx.fillText(ch, c.resultLabelX, c.resultLabelY + i * gap);
+      });
+    } else {
+      ctx.fillText(rLblText, c.resultLabelX, c.resultLabelY);
+    }
     addRegion('resultLabel', c.resultLabelX - 10, c.resultLabelY - (c.resultLabelSize || 28) - 5, rLblMetrics.width + 20, (c.resultLabelSize || 28) + 20);
 
     // Result Number (Number: e.g. "00")
@@ -1459,10 +1026,39 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     ctx.fillStyle = c.resultNumColor || '#ffffff';
     const rNumText = '00';
     const rNumMetrics = ctx.measureText(rNumText);
-    ctx.fillText(rNumText, c.resultNumX, c.resultNumY);
+    if (c.resultNumStyle === 'stroke') {
+      ctx.save();
+      ctx.strokeStyle = c.resultNumColor || '#84C75D';
+      ctx.lineWidth = c.resultNumStrokeWidth || 3.5;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(rNumText, c.resultNumX, c.resultNumY);
+      ctx.restore();
+    } else {
+      ctx.fillText(rNumText, c.resultNumX, c.resultNumY);
+    }
     addRegion('resultNum', c.resultNumX - 10, c.resultNumY - (c.resultNumSize || 76) - 5, rNumMetrics.width + 20, (c.resultNumSize || 76) + 20);
 
-    // Category
+    
+    // Cursive Script Text (SignPainter) e.g. "mid zone"
+    if (c.showScriptText !== false && (c.scriptSize ?? 0) > 0) {
+      const sText = c.scriptTextOverride !== undefined && c.scriptTextOverride !== '' 
+        ? c.scriptTextOverride 
+        : (c.scriptText || 'mid zone');
+      if (sText) {
+        ctx.save();
+        ctx.textAlign = (c.scriptAlign || 'left') as CanvasTextAlign;
+        ctx.font = parseFontForCanvas(c.scriptFont || '"SignPainter", cursive', c.scriptSize ?? 48, '400');
+        ctx.fillStyle = c.scriptColor || '#ffffff';
+        const sx = c.scriptX ?? 296;
+        const sy = c.scriptY ?? 308;
+        ctx.fillText(sText, sx, sy);
+        const sMetrics = ctx.measureText(sText);
+        addRegion('scriptText', sx - 10, sy - (c.scriptSize ?? 48) - 5, sMetrics.width + 20, (c.scriptSize ?? 48) + 20);
+        ctx.restore();
+      }
+    }
+
+// Category
     ctx.textAlign = 'left';
     ctx.font = parseFontForCanvas(c.categoryFont || c.fontFamily, c.categorySize ?? 26, '400');
     ctx.fillStyle = c.categoryColor || 'rgba(255, 255, 255, 0.7)';
@@ -1474,7 +1070,8 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
 
     // Competition Name
     ctx.textAlign = 'left';
-    ctx.font = parseFontForCanvas(c.compNameFont || c.fontFamily, c.compNameSize ?? 52, '600');
+    ctx.textAlign = (c.compNameAlign || 'left') as CanvasTextAlign;
+    ctx.font = parseFontForCanvas(c.compNameFont || c.fontFamily, c.compNameSize ?? 52, '700');
     ctx.fillStyle = c.compNameColor || '#ffffff';
     const rawComp = 'Competition Name';
     const compText = c.compNameUppercase ? rawComp.toUpperCase() : rawComp;
@@ -1548,7 +1145,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       addRegion(rd.badgeId, bx - badgeW / 2 - 5, badgeCenterY - badgeH / 2 - 5, badgeW + 10, badgeH + 10);
 
       // Participant name with Auto-fit preview
-      ctx.textAlign = 'left';
+      ctx.textAlign = (c.winnerAlign || 'left') as CanvasTextAlign;
       let winnerFontSize = c.winnerSize || 34;
       const maxWinnerAllowedWidth = c.winnerMaxWidth || Math.max(Math.min(W - (c.rank1NameX ?? 260) - 60, 520), 380);
       const rawNameText = rd.sampleName || 'Participant Name';
@@ -1578,6 +1175,7 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       // Unit/Team name
       const isArabic = c.unitLanguage === 'ar';
       const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : "'Cairo', 'Amiri', sans-serif";
+      ctx.textAlign = (c.unitAlign || c.winnerAlign || 'left') as CanvasTextAlign;
       ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), c.unitSize || 22, '500');
       const sampleUnitName = rd.sampleUnit;
       const displayUnitName = getPosterDisplayUnitName(sampleUnitName, c);
@@ -1599,6 +1197,18 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
       const unitMetrics = ctx.measureText(unitText);
       addRegion(rd.unitId, ux - 5, uy - (c.unitSize || 22) - 5, unitMetrics.width + 10, (c.unitSize || 22) + 15);
     });
+      // Divider line preview
+      if (c.showDividers && rd.rank < 3) {
+        ctx.save();
+        ctx.strokeStyle = c.dividerColor || 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = c.dividerWidth || 1;
+        ctx.beginPath();
+        ctx.moveTo(c.dividerStartX ?? nx, uy + (c.unitSize || 18) + 8);
+        ctx.lineTo(c.dividerEndX ?? (nx + 280), uy + (c.unitSize || 18) + 8);
+        ctx.stroke();
+        ctx.restore();
+      }
+
 
     // Footer
     if (c.showFooter !== false) {
@@ -2297,11 +1907,42 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Result Label Text Word</label>
                   <input type="text" value={conf.resultLabelText || 'RESULT'} onChange={e => updateConf('resultLabelText', e.target.value)} className="w-full px-3 py-1.5 text-sm border rounded-lg" placeholder="RESULT" />
                 </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-1">Cursive Script Text (SignPainter, e.g. "mid zone")</label>
+                  <input type="text" value={conf.scriptText ?? 'mid zone'} onChange={e => updateConf('scriptText', e.target.value)} className="w-full px-3 py-1.5 text-sm border rounded-lg" placeholder="e.g. mid zone" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Number Style</label>
+                    <select value={conf.resultNumStyle || 'stroke'} onChange={e => updateConf('resultNumStyle', e.target.value)} className="w-full text-sm p-1.5 border rounded-lg">
+                      <option value="stroke">Outline (Stroke)</option>
+                      <option value="fill">Solid (Fill)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Label Direction</label>
+                    <select value={conf.resultLabelVertical ? 'vertical' : 'horizontal'} onChange={e => updateConf('resultLabelVertical', e.target.value === 'vertical')} className="w-full text-sm p-1.5 border rounded-lg">
+                      <option value="vertical">Vertical Letters</option>
+                      <option value="horizontal">Horizontal Line</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={conf.showDividers ?? false} onChange={e => updateConf('showDividers', e.target.checked)} className="accent-emerald-600" />
+                    <span className="text-sm font-bold text-slate-700">Winner Divider Lines</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={conf.showScriptText !== false} onChange={e => updateConf('showScriptText', e.target.checked)} className="accent-emerald-600" />
+                    <span className="text-sm font-bold text-slate-700">Cursive Script</span>
+                  </label>
+                </div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={conf.uppercaseNames} onChange={e => updateConf('uppercaseNames', e.target.checked)} className="accent-emerald-600" />
                   <span className="text-sm font-bold text-slate-700">Force Uppercase Names</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl">
+                  <RangeControl label="Script Size" value={conf.scriptSize ?? 48} onChange={v => updateConf('scriptSize', v)} min={16} max={90} />
                   <RangeControl label="Campus Size" value={conf.campusNameSize ?? 28} onChange={v => updateConf('campusNameSize', v)} min={12} max={60} />
                   <RangeControl label="Fest Size" value={conf.festNameSize ?? 36} onChange={v => updateConf('festNameSize', v)} min={16} max={80} />
                   <RangeControl label="Result Label Size" value={conf.resultLabelSize || 28} onChange={v => updateConf('resultLabelSize', v)} min={14} max={80} />
@@ -2419,6 +2060,8 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
                     <RangeControl label="Result Label Y" value={conf.resultLabelY ?? 180} onChange={v => updateConf('resultLabelY', v)} min={30} max={500} />
                     <RangeControl label="Result Number X" value={conf.resultNumX ?? 600} onChange={v => updateConf('resultNumX', v)} min={0} max={1080} />
                     <RangeControl label="Result Number Y" value={conf.resultNumY ?? 180} onChange={v => updateConf('resultNumY', v)} min={30} max={500} />
+                    <RangeControl label="Script X" value={conf.scriptX ?? 296} onChange={v => updateConf('scriptX', v)} min={0} max={1080} />
+                    <RangeControl label="Script Y" value={conf.scriptY ?? 308} onChange={v => updateConf('scriptY', v)} min={30} max={600} />
                     <RangeControl label="Category X" value={conf.categoryX} onChange={v => updateConf('categoryX', v)} min={0} max={1080} />
                     <RangeControl label="Category Y" value={conf.categoryY} onChange={v => updateConf('categoryY', v)} min={50} max={600} />
                     <RangeControl label="Comp Name X" value={conf.compNameX} onChange={v => updateConf('compNameX', v)} min={0} max={1080} />
@@ -2481,3 +2124,6 @@ export default function PosterSettingsView({ user, token, eventSettings, onSetti
     </div>
   );
 }
+
+export default PosterSettingsView;
+

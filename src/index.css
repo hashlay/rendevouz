@@ -73,6 +73,22 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'SignPainter';
+  src: url('/fonts/SignPainter-HouseScript.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SignPainter HouseScript';
+  src: url('/fonts/SignPainter-HouseScript.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 .font-hochland {
   font-family: 'Hochland', sans-serif;
   letter-spacing: 0.01em;
@@ -84,6 +100,10 @@
 
 .font-sora {
   font-family: 'Sora', sans-serif;
+}
+
+.font-signpainter {
+  font-family: 'SignPainter', 'SignPainter HouseScript', cursive;
 }
 
 .font-thunder {

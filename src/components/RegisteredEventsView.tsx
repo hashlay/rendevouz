@@ -69,32 +69,6 @@ export default function RegisteredEventsView({ user, token, eventSettings }: Reg
     fetchLists();
   }, [token]);
 
-  const [clearingEvents, setClearingEvents] = useState(false);
-
-  const handleClearAllEvents = async () => {
-    if (!window.confirm("ARE YOU ABSOLUTELY SURE?\n\nThis will remove ALL registered competitions and group teams for all participants, allowing you to register from scratch.\n\nAll 81 participants and 129 competitions will NOT be deleted.")) {
-      return;
-    }
-    setClearingEvents(true);
-    try {
-      const res = await fetch('/api/registrations/clear-all-events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to clear registered events');
-      alert('All registered events and group teams have been cleared successfully. Participants and competitions are preserved.');
-      await fetchLists();
-    } catch (err: any) {
-      alert(err.message || 'Error clearing registered events');
-    } finally {
-      setClearingEvents(false);
-    }
-  };
-
   const handlePrint = () => {
     window.print();
   };

@@ -4,12 +4,16 @@ export interface FontOption {
 }
 
 export const UNIVERSAL_FONT_OPTIONS: FontOption[] = [
-  // --- SORA FAMILY (Google Fonts - Standard for Competition & Result No.) ---
-  { label: 'Sora (Semi Bold 600 - Standard Result No. & Comp Name)', value: '600 "Sora", sans-serif' },
-  { label: 'Sora (Light 300 - Standard Category)', value: '300 "Sora", sans-serif' },
-  { label: 'Sora (Regular 400)', value: '400 "Sora", sans-serif' },
+  // --- SIGNPAINTER FAMILY (Official Cursive Script) ---
+  { label: 'SignPainter (Official Cursive Script)', value: '"SignPainter", cursive' },
+  { label: 'SignPainter HouseScript', value: '"SignPainter HouseScript", "SignPainter", cursive' },
+
+  // --- SORA FAMILY (Google Fonts - Default for Competition, Result No., Winners & Units) ---
+  { label: 'Sora (Bold 700 - Standard Headers & Comp Name)', value: 'bold "Sora", sans-serif' },
+  { label: 'Sora (Semi Bold 600 - Standard Result No. & Winners)', value: '600 "Sora", sans-serif' },
+  { label: 'Sora (Regular 400 - Standard Units & Subtitles)', value: '400 "Sora", sans-serif' },
   { label: 'Sora (Medium 500)', value: '500 "Sora", sans-serif' },
-  { label: 'Sora (Bold 700)', value: 'bold "Sora", sans-serif' },
+  { label: 'Sora (Light 300 - Standard Category)', value: '300 "Sora", sans-serif' },
   { label: 'Sora (Extra Bold 800)', value: '800 "Sora", sans-serif' },
   { label: 'Sora (Extra Light 200)', value: '200 "Sora", sans-serif' },
 
