@@ -420,6 +420,62 @@ function migrateOldConfig(templateConfig: any, defaultThemes?: string[]): any {
 
 const defaultThemes = DEFAULT_POSTER_THEMES;
 
+interface RangeControlProps {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+}
+
+const RangeControl = React.memo(({ label, value, onChange, min, max, step = 1 }: RangeControlProps) => {
+  const currentVal = value ?? 0;
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
+        <span>{label}</span>
+        <div className="flex items-center gap-1 font-mono text-[10px] text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => onChange(Math.max(min, currentVal - 5))}
+            className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
+            title="Step left (-5)"
+          >
+            -
+          </button>
+          <input
+            type="number"
+            value={currentVal}
+            onChange={(e) => {
+              const val = e.target.value === '' ? 0 : Number(e.target.value);
+              onChange(isNaN(val) ? 0 : val);
+            }}
+            className="w-14 px-1 py-0.5 text-center font-bold text-slate-800 bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded"
+          />
+          <button
+            type="button"
+            onClick={() => onChange(Math.min(max, currentVal + 5))}
+            className="w-4 h-4 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-extrabold rounded active:scale-95 transition-colors"
+            title="Step right (+5)"
+          >
+            +
+          </button>
+        </div>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={currentVal}
+        onChange={e => onChange(Number(e.target.value))}
+        className="w-full accent-emerald-600 h-2 bg-slate-200 rounded-lg cursor-pointer"
+      />
+    </div>
+  );
+});
+
 export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
   user,
   token,
