@@ -318,9 +318,9 @@ export const CalculationService = {
     const db = dbClient.get();
     const includeLocked = filters.includeLocked !== false; // Enabled by default as requested!
     
-    const lockedCompIds = new Set(
+    const publishedCompIds = new Set(
       (db.judgmentSheets || [])
-        .filter(js => !js.deletedAt && (js.status === JudgmentSheetStatus.LOCKED || js.publishedToResults))
+        .filter(js => !js.deletedAt && js.publishedToResults === true)
         .map(js => js.competitionId)
     );
 
@@ -328,6 +328,14 @@ export const CalculationService = {
       if (r.deletedAt) return false;
       const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
       if (!statusOk) return false;
+
+      const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true || publishedCompIds.has(r.competitionId);
+      if (isPub) return true;
+
+      // When includeLocked is OFF (false), strictly count ONLY published results!
+      if (!includeLocked) return false;
+
+      // When includeLocked is ON (true), count both locked/internal and published results:
       return true;
     };
 
@@ -479,6 +487,8 @@ export const CalculationService = {
       const chestNumber = cnRecord?.chestNumber?.toString() || (participant as any).chestNumber?.toString() || participant.profilePhoto || '—';
       
       // Find rankings in individual, group, & general events
+      const isResultPublished = (r: Result) => (r as any).publishedStatus === true || (r as any).isPublished === true || publishedCompIds.has(r.competitionId);
+
       const rankPlacements = [
         ...primaryIndividualResults.map(r => {
           const comp = db.competitions.find(c => c.id === r.competitionId);
@@ -490,7 +500,7 @@ export const CalculationService = {
             points: calculateResultPoints(r, comp, db.eventSettings),
             grade: (r as any).grade || calculateGrade(getNormalizedMark(r), false, db.eventSettings, r.categoryId || comp?.categoryId),
             type: 'Individual',
-            isLocked: !((r as any).publishedStatus || (r as any).isPublished)
+            isLocked: !isResultPublished(r)
           };
         }),
         ...primaryGroupResults.map(r => {
@@ -503,7 +513,7 @@ export const CalculationService = {
             points: calculateResultPoints(r, comp, db.eventSettings),
             grade: (r as any).grade || calculateGrade(getNormalizedMark(r), true, db.eventSettings, r.categoryId || comp?.categoryId),
             type: 'Group',
-            isLocked: !((r as any).publishedStatus || (r as any).isPublished)
+            isLocked: !isResultPublished(r)
           };
         }),
         ...generalIndividualResults.map(r => {
@@ -516,7 +526,7 @@ export const CalculationService = {
             points: calculateResultPoints(r, comp, db.eventSettings),
             grade: (r as any).grade || calculateGrade(getNormalizedMark(r), false, db.eventSettings, r.categoryId || comp?.categoryId),
             type: 'General Individual',
-            isLocked: !((r as any).publishedStatus || (r as any).isPublished)
+            isLocked: !isResultPublished(r)
           };
         }),
         ...generalGroupResults.map(r => {
@@ -529,7 +539,7 @@ export const CalculationService = {
             points: calculateResultPoints(r, comp, db.eventSettings),
             grade: (r as any).grade || calculateGrade(getNormalizedMark(r), true, db.eventSettings, r.categoryId || comp?.categoryId),
             type: 'General Group',
-            isLocked: !((r as any).publishedStatus || (r as any).isPublished)
+            isLocked: !isResultPublished(r)
           };
         })
       ];
@@ -611,9 +621,15 @@ export const CalculationService = {
     const db = dbClient.get();
     const includeLocked = Boolean(filters.includeLocked);
 
+    const publishedCompIds = new Set(
+      (db.judgmentSheets || [])
+        .filter(js => !js.deletedAt && js.publishedToResults === true)
+        .map(js => js.competitionId)
+    );
+
     const lockedCompIds = new Set(
       (db.judgmentSheets || [])
-        .filter(js => !js.deletedAt && (js.status === JudgmentSheetStatus.LOCKED || js.publishedToResults))
+        .filter(js => !js.deletedAt && (js.status === JudgmentSheetStatus.LOCKED || js.status === JudgmentSheetStatus.COMPLETED || js.publishedToResults))
         .map(js => js.competitionId)
     );
 
@@ -621,10 +637,10 @@ export const CalculationService = {
       if (r.deletedAt) return false;
       const statusOk = !r.status || r.status === ResultStatus.PARTICIPATED || String(r.status).toLowerCase() === 'participated';
       if (!statusOk) return false;
-      const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true;
+      const isPub = (r as any).publishedStatus === true || (r as any).isPublished === true || publishedCompIds.has(r.competitionId);
       if (isPub) return true;
       if (includeLocked) {
-        if (lockedCompIds.has(r.competitionId)) return true;
+        if (lockedCompIds.has(r.competitionId) || !r.status || r.status === ResultStatus.PARTICIPATED) return true;
       }
       return false;
     };
