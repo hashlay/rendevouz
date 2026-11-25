@@ -276,7 +276,7 @@ export default function ChestNumberPrintingView({
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedUnit, setSelectedUnit] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [gridPerSheet, setGridPerSheet] = useState<number>(6); // 4, 6, 8, 9, 12, 15, 16, 18, 20, 24 per sheet
+  const [gridPerSheet, setGridPerSheet] = useState<number | string>(6); // 4, 6, '6-3x2', 8, 9, 12, 15, 16, 18, 20, 24 per sheet
   const [paperSize, setPaperSize] = useState<'a4' | 'a3'>('a4'); // 'a4' (210x297mm) or 'a3' (297x420mm)
 
   // Individual Chest Number Customization Modal State
@@ -971,7 +971,8 @@ export default function ChestNumberPrintingView({
             <button
               onClick={() => {
                 setPaperSize('a4');
-                if (gridPerSheet > 12) setGridPerSheet(6);
+                const num = gridPerSheet === '6-3x2' ? 6 : Number(gridPerSheet);
+                if (num > 12) setGridPerSheet(6);
               }}
               className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${paperSize === 'a4' ? 'bg-white text-emerald-800 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}`}
             >
@@ -980,7 +981,7 @@ export default function ChestNumberPrintingView({
             <button
               onClick={() => {
                 setPaperSize('a3');
-                if (gridPerSheet === 6) setGridPerSheet(12);
+                if (gridPerSheet === 6 || gridPerSheet === '6' || gridPerSheet === '6-3x2') setGridPerSheet(12);
               }}
               className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${paperSize === 'a3' ? 'bg-white text-emerald-800 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900'}`}
             >
@@ -1072,7 +1073,8 @@ export default function ChestNumberPrintingView({
                     type="button"
                     onClick={() => {
                       setPaperSize('a4');
-                      if (gridPerSheet > 12) setGridPerSheet(6);
+                      const num = gridPerSheet === '6-3x2' ? 6 : Number(gridPerSheet);
+                      if (num > 12) setGridPerSheet(6);
                     }}
                     className={`flex-1 py-1.5 rounded-lg text-center transition cursor-pointer ${paperSize === 'a4' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
                   >
@@ -1082,7 +1084,7 @@ export default function ChestNumberPrintingView({
                     type="button"
                     onClick={() => {
                       setPaperSize('a3');
-                      if (gridPerSheet === 6) setGridPerSheet(12);
+                      if (gridPerSheet === 6 || gridPerSheet === '6' || gridPerSheet === '6-3x2') setGridPerSheet(12);
                     }}
                     className={`flex-1 py-1.5 rounded-lg text-center transition cursor-pointer ${paperSize === 'a3' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
                   >
@@ -1096,13 +1098,17 @@ export default function ChestNumberPrintingView({
                 <label className="text-xs font-bold text-slate-600 whitespace-nowrap">Grid:</label>
                 <select
                   value={gridPerSheet}
-                  onChange={(e) => setGridPerSheet(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-amber-50 border border-amber-200 font-bold text-amber-900 rounded-xl text-sm focus:outline-none focus:border-amber-500"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setGridPerSheet(val === '6-3x2' ? '6-3x2' : Number(val));
+                  }}
+                  className="w-full px-3 py-2 bg-amber-50 border border-amber-200 font-bold text-amber-900 rounded-xl text-sm focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
                   {paperSize === 'a4' ? (
                     <>
                       <option value={4}>4 per A4 sheet (2×2 Grid)</option>
                       <option value={6}>6 per A4 sheet (2×3 Grid) — Default</option>
+                      <option value="6-3x2">6 per A4 sheet (3×2 Grid)</option>
                       <option value={8}>8 per A4 sheet (2×4 Grid)</option>
                       <option value={9}>9 per A4 sheet (3×3 Grid)</option>
                       <option value={12}>12 per A4 sheet (3×4 Grid)</option>
@@ -1110,6 +1116,7 @@ export default function ChestNumberPrintingView({
                   ) : (
                     <>
                       <option value={6}>6 per A3 sheet (2×3 Grid — Extra Large)</option>
+                      <option value="6-3x2">6 per A3 sheet (3×2 Grid)</option>
                       <option value={8}>8 per A3 sheet (2×4 Grid — Large)</option>
                       <option value={12}>12 per A3 sheet (3×4 Grid — Standard)</option>
                       <option value={15}>15 per A3 sheet (3×5 Grid)</option>
@@ -1251,20 +1258,22 @@ export default function ChestNumberPrintingView({
               `}</style>
 
               {/* Render into Sheets (A4 or A3) */}
-              {Array.from({ length: Math.ceil(selectedChestNumbers.length / gridPerSheet) }).map((_, pageIdx) => {
-                const pageItems = selectedChestNumbers.slice(pageIdx * gridPerSheet, (pageIdx + 1) * gridPerSheet);
+              {Array.from({ length: Math.ceil(selectedChestNumbers.length / (gridPerSheet === '6-3x2' ? 6 : Number(gridPerSheet))) }).map((_, pageIdx) => {
+                const cardsPerPage = gridPerSheet === '6-3x2' ? 6 : Number(gridPerSheet);
+                const pageItems = selectedChestNumbers.slice(pageIdx * cardsPerPage, (pageIdx + 1) * cardsPerPage);
 
-                let gridClass = 'grid-cols-2 grid-rows-3 gap-4'; // 6 default
-                if (gridPerSheet === 4) gridClass = 'grid-cols-2 grid-rows-2 gap-4';
-                else if (gridPerSheet === 6) gridClass = paperSize === 'a3' ? 'grid-cols-2 grid-rows-3 gap-6' : 'grid-cols-2 grid-rows-3 gap-4';
-                else if (gridPerSheet === 8) gridClass = paperSize === 'a3' ? 'grid-cols-2 grid-rows-4 gap-4' : 'grid-cols-2 grid-rows-4 gap-2';
-                else if (gridPerSheet === 9) gridClass = 'grid-cols-3 grid-rows-3 gap-3';
-                else if (gridPerSheet === 12) gridClass = paperSize === 'a3' ? 'grid-cols-3 grid-rows-4 gap-4' : 'grid-cols-3 grid-rows-4 gap-1.5';
-                else if (gridPerSheet === 15) gridClass = 'grid-cols-3 grid-rows-5 gap-3';
-                else if (gridPerSheet === 16) gridClass = 'grid-cols-4 grid-rows-4 gap-3';
-                else if (gridPerSheet === 18) gridClass = 'grid-cols-3 grid-rows-6 gap-2';
-                else if (gridPerSheet === 20) gridClass = 'grid-cols-4 grid-rows-5 gap-2';
-                else if (gridPerSheet === 24) gridClass = 'grid-cols-4 grid-rows-6 gap-1.5';
+                let gridClass = 'grid-cols-2 grid-rows-3 gap-4'; // 6 (2x3) default
+                if (gridPerSheet === 4 || gridPerSheet === '4') gridClass = 'grid-cols-2 grid-rows-2 gap-4';
+                else if (gridPerSheet === '6-3x2') gridClass = paperSize === 'a3' ? 'grid-cols-3 grid-rows-2 gap-6' : 'grid-cols-3 grid-rows-2 gap-3';
+                else if (gridPerSheet === 6 || gridPerSheet === '6') gridClass = paperSize === 'a3' ? 'grid-cols-2 grid-rows-3 gap-6' : 'grid-cols-2 grid-rows-3 gap-4';
+                else if (gridPerSheet === 8 || gridPerSheet === '8') gridClass = paperSize === 'a3' ? 'grid-cols-2 grid-rows-4 gap-4' : 'grid-cols-2 grid-rows-4 gap-2';
+                else if (gridPerSheet === 9 || gridPerSheet === '9') gridClass = 'grid-cols-3 grid-rows-3 gap-3';
+                else if (gridPerSheet === 12 || gridPerSheet === '12') gridClass = paperSize === 'a3' ? 'grid-cols-3 grid-rows-4 gap-4' : 'grid-cols-3 grid-rows-4 gap-1.5';
+                else if (gridPerSheet === 15 || gridPerSheet === '15') gridClass = 'grid-cols-3 grid-rows-5 gap-3';
+                else if (gridPerSheet === 16 || gridPerSheet === '16') gridClass = 'grid-cols-4 grid-rows-4 gap-3';
+                else if (gridPerSheet === 18 || gridPerSheet === '18') gridClass = 'grid-cols-3 grid-rows-6 gap-2';
+                else if (gridPerSheet === 20 || gridPerSheet === '20') gridClass = 'grid-cols-4 grid-rows-5 gap-2';
+                else if (gridPerSheet === 24 || gridPerSheet === '24') gridClass = 'grid-cols-4 grid-rows-6 gap-1.5';
 
                 const pW = paperSize === 'a3' ? 297 : 210;
                 const pH = paperSize === 'a3' ? 420 : 297;
