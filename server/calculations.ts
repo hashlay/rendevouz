@@ -349,8 +349,13 @@ export const CalculationService = {
     // Map participants to their scores
     const scoreboardEntries = participants.map(participant => {
       // Find all eligible individual results for this participant:
+      const pId = String(participant.id);
+      const pMongoId = (participant as any)._id ? String((participant as any)._id) : '';
+
       const rawIndResults = db.results.filter(r => {
-        if (r.participantId !== participant.id) return false;
+        if (!r.participantId) return false;
+        const rPid = String(r.participantId);
+        if (rPid !== pId && (!pMongoId || rPid !== pMongoId)) return false;
         return isResultEligible(r);
       });
 
@@ -364,11 +369,19 @@ export const CalculationService = {
       const individualResults = Array.from(uniqueIndMap.values());
       
       // Group results: find teams where this participant is a member
-      const teams = db.teams.filter(t => t.memberIds.includes(participant.id) && !t.deletedAt);
-      const teamIds = teams.map(t => t.id);
+      const teams = (db.teams || []).filter(t => {
+        if (t.deletedAt) return false;
+        if (!Array.isArray(t.memberIds)) return false;
+        return t.memberIds.some((m: any) => {
+          const mStr = String(m);
+          return mStr === pId || (pMongoId && mStr === pMongoId);
+        });
+      });
+      const teamIdSet = new Set(teams.flatMap(t => [String(t.id), (t as any)._id ? String((t as any)._id) : ''].filter(Boolean)));
       
-      const rawGroupResults = db.results.filter(r => {
-        if (!r.teamId || !teamIds.includes(r.teamId)) return false;
+      const rawGroupResults = (db.results || []).filter(r => {
+        if (!r.teamId) return false;
+        if (!teamIdSet.has(String(r.teamId))) return false;
         return isResultEligible(r);
       });
 
@@ -452,10 +465,12 @@ export const CalculationService = {
       const combinedIndividualPoints = individualPoints + generalIndividualPoints;
       const combinedIndividualMarks = Math.round((individualMarks + generalIndividualMarks) * 100) / 100;
 
+      const totalFestivalPoints = individualPoints + groupPoints + generalIndividualPoints + generalGroupPoints;
+      const totalFestivalMarks = Math.round((individualMarks + groupMarks + generalIndividualMarks + generalGroupMarks) * 100) / 100;
+
       const includeGeneralIndividual = filters.includeGeneralIndividual === true;
       const overallPoints = includeGeneralIndividual ? combinedIndividualPoints : individualPoints;
       const overallMarks = includeGeneralIndividual ? combinedIndividualMarks : individualMarks;
-      const totalEvents = (includeGeneralIndividual ? [...primaryIndividualResults, ...generalIndividualResults] : primaryIndividualResults).length;
       
       const unit = db.units.find(u => u.id === participant.unitId);
       const category = db.categories.find(c => c.id === participant.selectedCategoryId);
@@ -518,6 +533,9 @@ export const CalculationService = {
           };
         })
       ];
+
+      const totalEvents = rankPlacements.length;
+      const individualEventsCount = (includeGeneralIndividual ? [...primaryIndividualResults, ...generalIndividualResults] : primaryIndividualResults).length;
       
       return {
         participantId: participant.id,
@@ -527,6 +545,7 @@ export const CalculationService = {
         categoryId: participant.selectedCategoryId,
         categoryName: category ? category.name : 'Unknown',
         totalEvents,
+        individualEventsCount,
         individualMarks,
         individualPoints,
         groupMarks,
@@ -539,6 +558,8 @@ export const CalculationService = {
         generalPoints,
         combinedIndividualMarks,
         combinedIndividualPoints,
+        totalFestivalPoints,
+        totalFestivalMarks,
         overallPoints,
         overallMarks,
         placements: rankPlacements,
