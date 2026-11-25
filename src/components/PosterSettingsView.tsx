@@ -1252,7 +1252,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
       }
       const unitMetrics = ctx.measureText(unitText);
       addRegion(rd.unitId, ux - 5, uy - (c.unitSize || 22) - 5, unitMetrics.width + 10, (c.unitSize || 22) + 15);
-    });
+
       // Divider line preview
       if (c.showDividers && rd.rank < 3) {
         ctx.save();
@@ -1264,6 +1264,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
         ctx.stroke();
         ctx.restore();
       }
+    });
 
 
     // Footer
