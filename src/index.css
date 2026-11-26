@@ -102,12 +102,12 @@
   font-family: 'Sora', sans-serif;
 }
 
-.font-signpainter {
-  font-family: 'SignPainter', 'SignPainter HouseScript', cursive;
-}
-
 .font-thunder {
   font-family: 'Thunder ExtraLight LC', 'Thunder', sans-serif;
+}
+
+.font-signpainter {
+  font-family: 'SignPainter', 'SignPainter HouseScript', cursive;
 }
 
 @theme {

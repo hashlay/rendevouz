@@ -904,13 +904,23 @@ const DEFAULT_PHOTO_HUB_DRIVE_LINK = 'https://drive.google.com/drive/folders/1Py
 function ensureFestivalThemes(cfg: any) {
   if (!cfg || typeof cfg !== 'object') return;
   const defaultThemes = [
-    '/themes/theme_brown.jpg',
-    '/themes/theme_blue.jpg',
-    '/themes/theme_yellow.jpg',
-    '/themes/theme_purple.jpg'
+    '/themes/theme_green_waves.jpg',
+    '/themes/theme_green_cards.jpg',
+    '/themes/theme_red_star.jpg'
   ];
+  const oldThemePatterns = [
+    'theme_brown', 'theme_blue', 'theme_yellow', 'theme_purple',
+    'theme_green.jpg', 'theme_phytolore', 'theme_white_brown', 'theme_yellow_scroll'
+  ];
+  const isOldTheme = (url: string) => !url || typeof url !== 'string' || oldThemePatterns.some(p => url.includes(p));
+
   const existing = Array.isArray(cfg.customThemes) ? cfg.customThemes : [];
-  cfg.customThemes = defaultThemes.map((dt, idx) => existing[idx] || dt);
+  if (existing.length === 0 || existing.some(isOldTheme) || existing.length > 3) {
+    const valid = existing.filter((t: string) => !isOldTheme(t));
+    cfg.customThemes = defaultThemes.map((dt, idx) => valid[idx] || dt);
+  } else {
+    cfg.customThemes = existing;
+  }
   if (!cfg.themeConfigs) cfg.themeConfigs = {};
 }
 const ensureTwoThemes = ensureFestivalThemes;

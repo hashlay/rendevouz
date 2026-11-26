@@ -391,7 +391,7 @@ function migrateOldConfig(templateConfig: any, defaultThemes?: string[]): any {
     ? templateConfig.customThemes
     : dThemes;
 
-  if (customThemes.some(isOldDefaultTheme) || customThemes.length === 4) {
+  if (customThemes.some(isOldDefaultTheme) || customThemes.length > 3 || customThemes.length === 4) {
     customThemes = dThemes.map((dt, idx) => {
       const existing = customThemes[idx];
       return existing && !isOldDefaultTheme(existing) ? existing : dt;
@@ -486,7 +486,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
   const normalizeThemesAndConfigs = (themesIn: any, configsIn: any) => {
     const existing = Array.isArray(themesIn) ? themesIn : [];
     let themes = existing.length > 0 ? existing : defaultThemes;
-    if (themes.some(isOldDefaultTheme) || themes.length === 4) {
+    if (themes.some(isOldDefaultTheme) || themes.length > 3 || themes.length === 4) {
       themes = defaultThemes.map((dt, idx) => {
         const ext = themes[idx];
         return ext && !isOldDefaultTheme(ext) ? ext : dt;
@@ -1306,6 +1306,9 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
 
   useEffect(() => {
     renderCanvas();
+    if ((document as any).fonts?.ready) {
+      (document as any).fonts.ready.then(() => renderCanvas());
+    }
   }, [selectedThemeIndex, customThemes, themeConfigs, hoveredElement, dragging, imgLoaded]);
 
   // Sidebar sections collapse

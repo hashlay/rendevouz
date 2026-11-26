@@ -389,7 +389,7 @@ function migrateOldConfig(templateConfig: any, defaultThemes: string[]): any {
     ? templateConfig.customThemes
     : defaultThemes;
 
-  if (customThemes.some(isOldDefaultTheme) || customThemes.length === 4) {
+  if (customThemes.some(isOldDefaultTheme) || customThemes.length > 3 || customThemes.length === 4) {
     customThemes = defaultThemes.map((dt, idx) => {
       const existing = customThemes[idx];
       return existing && !isOldDefaultTheme(existing) ? existing : dt;
@@ -495,9 +495,12 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
 
   const rawTemplateConfig = eventSettings?.posterTemplateConfig || {};
   const existingThemes = Array.isArray(rawTemplateConfig.customThemes) ? rawTemplateConfig.customThemes : [];
+  const validThemes = existingThemes.length > 0 && !existingThemes.some(isOldDefaultTheme) && existingThemes.length <= 3
+    ? existingThemes
+    : defaultThemes;
   const migratedConfig = migrateOldConfig({
     ...rawTemplateConfig,
-    customThemes: defaultThemes.map((dt, idx) => existingThemes[idx] || dt)
+    customThemes: defaultThemes.map((dt, idx) => validThemes[idx] || dt)
   }, defaultThemes);
 
   const customThemes: string[] = migratedConfig.customThemes || defaultThemes;
@@ -1589,6 +1592,11 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
   useEffect(() => {
     if (!loading && selectedCompId) {
       renderCanvas();
+    }
+    if ((document as any).fonts?.ready) {
+      (document as any).fonts.ready.then(() => {
+        if (!loading && selectedCompId) renderCanvas();
+      });
     }
   }, [
     selectedCompId, isModalOpen, customThemes, themeRules, themeConfigs,

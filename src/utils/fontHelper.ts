@@ -4,16 +4,12 @@ export interface FontOption {
 }
 
 export const UNIVERSAL_FONT_OPTIONS: FontOption[] = [
-  // --- SIGNPAINTER FAMILY (Official Cursive Script) ---
-  { label: 'SignPainter (Official Cursive Script)', value: '"SignPainter", cursive' },
-  { label: 'SignPainter HouseScript', value: '"SignPainter HouseScript", "SignPainter", cursive' },
-
-  // --- SORA FAMILY (Google Fonts - Default for Competition, Result No., Winners & Units) ---
-  { label: 'Sora (Bold 700 - Standard Headers & Comp Name)', value: 'bold "Sora", sans-serif' },
-  { label: 'Sora (Semi Bold 600 - Standard Result No. & Winners)', value: '600 "Sora", sans-serif' },
-  { label: 'Sora (Regular 400 - Standard Units & Subtitles)', value: '400 "Sora", sans-serif' },
-  { label: 'Sora (Medium 500)', value: '500 "Sora", sans-serif' },
+  // --- SORA FAMILY (Google Fonts - Standard for Competition & Result No.) ---
+  { label: 'Sora (Semi Bold 600 - Standard Result No. & Comp Name)', value: '600 "Sora", sans-serif' },
   { label: 'Sora (Light 300 - Standard Category)', value: '300 "Sora", sans-serif' },
+  { label: 'Sora (Regular 400)', value: '400 "Sora", sans-serif' },
+  { label: 'Sora (Medium 500)', value: '500 "Sora", sans-serif' },
+  { label: 'Sora (Bold 700)', value: 'bold "Sora", sans-serif' },
   { label: 'Sora (Extra Bold 800)', value: '800 "Sora", sans-serif' },
   { label: 'Sora (Extra Light 200)', value: '200 "Sora", sans-serif' },
 
@@ -24,6 +20,10 @@ export const UNIVERSAL_FONT_OPTIONS: FontOption[] = [
   { label: 'Fractul Alt (Bold 700 - Strong Display)', value: '700 "Fractul Alt", sans-serif' },
   { label: 'Fractul Alt (Extra Bold 800 - Heavy Block)', value: '800 "Fractul Alt", sans-serif' },
   { label: 'Fractul Alt (Light / Hairline 200)', value: '200 "Fractul Alt", sans-serif' },
+
+  // --- SIGNPAINTER FAMILY (Festival Official Script & Cursive Display) ---
+  { label: 'SignPainter (HouseScript - Cursive Display)', value: '"SignPainter", cursive' },
+  { label: 'SignPainter Bold (HouseScript)', value: 'bold "SignPainter", cursive' },
 
   // --- THUNDER FAMILY ---
   { label: 'Thunder ExtraLight LC', value: '200 "Thunder ExtraLight LC", "Thunder", sans-serif' },
