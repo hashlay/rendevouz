@@ -159,6 +159,7 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       resultNumColor: '#84C75D',
       resultNumFont: '700 "Sora", sans-serif',
       resultNumStyle: 'fill',
+      resultNumAlign: 'left',
       resultNumStrokeWidth: 3.5,
       categorySize: 28,
       categoryColor: '#ffffff',
@@ -277,6 +278,7 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       resultNumColor: '#ffffff',
       resultNumFont: '700 "Sora", sans-serif',
       resultNumStyle: 'fill',
+      resultNumAlign: 'left',
       categorySize: 0,
       categoryColor: '#ffffff',
       categoryX: -9999,
@@ -406,6 +408,7 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       resultNumColor: '#B01B1B',
       resultNumFont: '700 "Bebas Neue", "Sora", sans-serif',
       resultNumStyle: 'fill',
+      resultNumAlign: 'left',
       categorySize: 26,
       categoryColor: '#B01B1B',
       categoryX: 525,
@@ -1225,7 +1228,8 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
     }
 
     // Result Number (Number: e.g. "01", "100", "101" - Normal Solid Font by default)
-    ctx.textAlign = 'left';
+    const rNumAlign = (c.resultNumAlign || 'left') as CanvasTextAlign;
+    ctx.textAlign = rNumAlign;
     ctx.font = parseFontForCanvas(c.resultNumFont || c.fontFamily, c.resultNumSize || 145, '700');
     const rNumX = (c.resultNumX !== undefined && !isNaN(c.resultNumX)) ? c.resultNumX : 135;
     const rNumY = (c.resultNumY !== undefined && !isNaN(c.resultNumY)) ? c.resultNumY : 375;
@@ -1258,7 +1262,12 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
     if (hasNumRot) {
       ctx.restore();
     }
-    addRegion('resultNum', rNumX - 10, rNumY - (c.resultNumSize || 145) - 5, rNumMetrics.width + 20, (c.resultNumSize || 145) + 20);
+    const rNumHitX = rNumAlign === 'center'
+      ? rNumX - rNumMetrics.width / 2
+      : rNumAlign === 'right'
+      ? rNumX - rNumMetrics.width
+      : rNumX;
+    addRegion('resultNum', rNumHitX - 10, rNumY - (c.resultNumSize || 145) - 5, rNumMetrics.width + 20, (c.resultNumSize || 145) + 20);
 
     // Cursive Script Text (SignPainter) e.g. "mid zone"
     if (c.showScriptText !== false && (c.scriptSize ?? 0) > 0) {
@@ -2147,7 +2156,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Script Text Alignment */}
+                  {/* Cursive Script Text Alignment */}
                   <div className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-800">Cursive Script (e.g. mid zone)</span>
                     <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
@@ -2158,6 +2167,27 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
                           onClick={() => updateConf('scriptAlign', align)}
                           className={`px-2.5 py-1 text-[11px] font-bold rounded-md capitalize transition ${
                             (conf.scriptAlign || 'left') === align
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {align}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Result Number Alignment */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800">Result Number</span>
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      {(['left', 'center', 'right'] as const).map(align => (
+                        <button
+                          key={align}
+                          type="button"
+                          onClick={() => updateConf('resultNumAlign', align)}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-md capitalize transition ${
+                            (conf.resultNumAlign || 'left') === align
                               ? 'bg-emerald-600 text-white shadow-xs'
                               : 'text-slate-600 hover:text-slate-900'
                           }`}
