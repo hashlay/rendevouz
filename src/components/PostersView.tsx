@@ -145,17 +145,18 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       resultLabelText: 'RESULT',
       resultLabelX: 183,
       resultLabelY: 284,
-      resultLabelSize: 13,
+      resultLabelSize: 22,
       resultLabelColor: '#84C75D',
-      resultLabelFont: '600 "Sora", sans-serif',
+      resultLabelFont: '700 "Sora", sans-serif',
       resultLabelVertical: true,
-      resultLabelLineGap: 14,
+      resultLabelLineGap: 20,
+      showResultLabel: true,
       resultNumX: 135,
       resultNumY: 375,
       resultNumSize: 145,
       resultNumColor: '#84C75D',
       resultNumFont: '700 "Sora", sans-serif',
-      resultNumStyle: 'stroke',
+      resultNumStyle: 'fill',
       resultNumStrokeWidth: 3.5,
       categorySize: 28,
       categoryColor: '#ffffff',
@@ -1198,45 +1199,60 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
     const formattedNum = compIdx < 10 ? compIdx.toString().padStart(2, '0') : compIdx.toString();
 
     // Result Label Word (e.g. "RESULT")
-    ctx.textAlign = 'left';
-    ctx.font = parseFontForCanvas(c.resultLabelFont || c.fontFamily, c.resultLabelSize || 28, '800');
-    ctx.fillStyle = c.resultLabelColor || '#ffffff';
-    const rawLbl = c.resultLabelText || 'RESULT';
-    const rLblText = c.resultLabelUppercase !== false ? rawLbl.toUpperCase() : rawLbl;
-    const rLblMetrics = ctx.measureText(rLblText);
-    const rx = c.resultLabelX ?? 470;
-    const ry = c.resultLabelY ?? 180;
-    if (c.resultLabelVertical) {
-      const chars = rLblText.split('');
-      const gap = c.resultLabelLineGap || Math.max((c.resultLabelSize || 13) * 1.2, 16);
-      chars.forEach((ch: string, i: number) => {
-        ctx.fillText(ch, rx, ry + i * gap);
-      });
-      const verticalHeight = (chars.length - 1) * gap + (c.resultLabelSize || 13);
-      addRegion('resultLabel', rx - 10, ry - (c.resultLabelSize || 13) - 5, (c.resultLabelSize || 13) + 20, verticalHeight + 20);
-    } else {
-      ctx.fillText(rLblText, rx, ry);
-      addRegion('resultLabel', rx - 10, ry - (c.resultLabelSize || 28) - 5, rLblMetrics.width + 20, (c.resultLabelSize || 28) + 20);
+    if (c.showResultLabel !== false) {
+      const rx = (c.resultLabelX !== undefined && !isNaN(c.resultLabelX))
+        ? c.resultLabelX
+        : (c.resultNumX !== undefined ? c.resultNumX + 48 : 183);
+      const ry = (c.resultLabelY !== undefined && !isNaN(c.resultLabelY))
+        ? c.resultLabelY
+        : (c.resultNumY !== undefined ? Math.max(c.resultNumY - 90, 80) : 284);
+      const rawLbl = c.resultLabelText || 'RESULT';
+      const rLblText = c.resultLabelUppercase !== false ? rawLbl.toUpperCase() : rawLbl;
+      const lblSize = c.resultLabelSize || 22;
+
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.font = parseFontForCanvas(c.resultLabelFont || c.fontFamily, lblSize, '800');
+      const lblColor = (!c.resultLabelColor || c.resultLabelColor === '#000000' || c.resultLabelColor === 'black')
+        ? (c.resultNumColor || '#84C75D')
+        : c.resultLabelColor;
+      ctx.fillStyle = lblColor;
+
+      const rLblMetrics = ctx.measureText(rLblText);
+      if (c.resultLabelVertical) {
+        const chars = rLblText.split('');
+        const gap = c.resultLabelLineGap || Math.max(lblSize * 1.25, 18);
+        chars.forEach((ch: string, i: number) => {
+          ctx.fillText(ch, rx, ry + i * gap);
+        });
+        const verticalHeight = (chars.length - 1) * gap + lblSize;
+        addRegion('resultLabel', rx - 10, ry - lblSize - 5, lblSize + 20, verticalHeight + 20);
+      } else {
+        ctx.fillText(rLblText, rx, ry);
+        addRegion('resultLabel', rx - 10, ry - lblSize - 5, rLblMetrics.width + 20, lblSize + 20);
+      }
+      ctx.restore();
     }
 
-    // Result Number (e.g. "01", "10", "105")
+    // Result Number (e.g. "01", "10", "105" - Normal Solid Font by default)
     ctx.textAlign = 'left';
-    ctx.font = parseFontForCanvas(c.resultNumFont || c.fontFamily, c.resultNumSize || 28, '800');
-    const rNumX = c.resultNumX ?? 600;
-    const rNumY = c.resultNumY ?? 180;
+    ctx.font = parseFontForCanvas(c.resultNumFont || c.fontFamily, c.resultNumSize || 145, '700');
+    const rNumX = (c.resultNumX !== undefined && !isNaN(c.resultNumX)) ? c.resultNumX : 135;
+    const rNumY = (c.resultNumY !== undefined && !isNaN(c.resultNumY)) ? c.resultNumY : 375;
+    const rNumColor = (!c.resultNumColor || c.resultNumColor === '#000000') ? '#84C75D' : c.resultNumColor;
     if (c.resultNumStyle === 'stroke') {
       ctx.save();
-      ctx.strokeStyle = c.resultNumColor || '#84C75D';
+      ctx.strokeStyle = rNumColor;
       ctx.lineWidth = c.resultNumStrokeWidth || 3.5;
       ctx.lineJoin = 'round';
       ctx.strokeText(formattedNum, rNumX, rNumY);
       ctx.restore();
     } else {
-      ctx.fillStyle = c.resultNumColor || '#ffffff';
+      ctx.fillStyle = rNumColor;
       ctx.fillText(formattedNum, rNumX, rNumY);
     }
     const rNumMetrics = ctx.measureText(formattedNum);
-    addRegion('resultNum', rNumX - 10, rNumY - (c.resultNumSize || 28) - 5, rNumMetrics.width + 20, (c.resultNumSize || 28) + 20);
+    addRegion('resultNum', rNumX - 10, rNumY - (c.resultNumSize || 145) - 5, rNumMetrics.width + 20, (c.resultNumSize || 145) + 20);
 
     
     // Cursive Script Text (SignPainter) e.g. "mid zone"
@@ -2002,18 +2018,71 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
                       <div>
                         <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2.5">Result Style & Orientation</h4>
                         <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-500 mb-1">Number Style</label>
-                              <select
-                                value={c.resultNumStyle || 'stroke'}
-                                onChange={e => updateLocalConf('resultNumStyle', e.target.value)}
-                                className="w-full text-xs p-1.5 border rounded-lg bg-white"
+                          <div className="space-y-2">
+                            <label className="block text-[10px] font-bold text-slate-500">Result Number Style</label>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => updateLocalConf('resultNumStyle', 'fill')}
+                                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                                  c.resultNumStyle !== 'stroke'
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                }`}
                               >
-                                <option value="stroke">Outline</option>
-                                <option value="fill">Solid</option>
-                              </select>
+                                Normal Solid Font
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateLocalConf('resultNumStyle', 'stroke')}
+                                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                                  c.resultNumStyle === 'stroke'
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                }`}
+                              >
+                                Outline Stroke (2-Line)
+                              </button>
                             </div>
+                          </div>
+
+                          <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={c.showResultLabel !== false}
+                                onChange={e => updateLocalConf('showResultLabel', e.target.checked)}
+                                className="accent-emerald-600"
+                              />
+                              <span className="text-xs font-bold text-slate-700">Show Result Label (e.g. RESULT)</span>
+                            </label>
+
+                            {c.showResultLabel !== false && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const numX = c.resultNumX ?? 135;
+                                  const numY = c.resultNumY ?? 375;
+                                  setLocalThemeConfigs(prev => ({
+                                    ...prev,
+                                    [selectedThemeIndex]: {
+                                      ...prev[selectedThemeIndex],
+                                      resultLabelX: numX + 48,
+                                      resultLabelY: Math.max(numY - 90, 80),
+                                      resultLabelColor: c.resultNumColor || '#84C75D',
+                                      resultLabelVertical: true,
+                                      resultLabelSize: 22
+                                    }
+                                  }));
+                                }}
+                                className="w-full py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] rounded-lg border border-emerald-200 transition cursor-pointer"
+                              >
+                                Reset / Snap Label to Number Position
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/80">
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 mb-1">Label Direction</label>
                               <select
@@ -2025,16 +2094,16 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
                                 <option value="horizontal">Horizontal</option>
                               </select>
                             </div>
+                            {c.resultLabelVertical && (
+                              <RangeControl
+                                label="Vertical Spacing"
+                                value={c.resultLabelLineGap || Math.round((c.resultLabelSize || 13) * 1.2)}
+                                onChange={v => updateLocalConf('resultLabelLineGap', v)}
+                                min={8}
+                                max={50}
+                              />
+                            )}
                           </div>
-                          {c.resultLabelVertical && (
-                            <RangeControl
-                              label="Vertical Letter Spacing"
-                              value={c.resultLabelLineGap || Math.round((c.resultLabelSize || 13) * 1.2)}
-                              onChange={v => updateLocalConf('resultLabelLineGap', v)}
-                              min={8}
-                              max={50}
-                            />
-                          )}
                         </div>
                       </div>
 

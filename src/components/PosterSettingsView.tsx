@@ -146,17 +146,18 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       resultLabelText: 'RESULT',
       resultLabelX: 183,
       resultLabelY: 284,
-      resultLabelSize: 13,
+      resultLabelSize: 22,
       resultLabelColor: '#84C75D',
-      resultLabelFont: '600 "Sora", sans-serif',
+      resultLabelFont: '700 "Sora", sans-serif',
       resultLabelVertical: true,
-      resultLabelLineGap: 14,
+      resultLabelLineGap: 20,
+      showResultLabel: true,
       resultNumX: 135,
       resultNumY: 375,
       resultNumSize: 145,
       resultNumColor: '#84C75D',
       resultNumFont: '700 "Sora", sans-serif',
-      resultNumStyle: 'stroke',
+      resultNumStyle: 'fill',
       resultNumStrokeWidth: 3.5,
       categorySize: 28,
       categoryColor: '#ffffff',
@@ -1028,42 +1029,63 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
     }
 
     // Result Label (Word: e.g. "RESULT")
-    ctx.textAlign = 'left';
-    ctx.font = parseFontForCanvas(c.resultLabelFont || c.fontFamily, c.resultLabelSize || 28, '800');
-    ctx.fillStyle = c.resultLabelColor || '#ffffff';
-    const rawLbl = c.resultLabelText || 'RESULT';
-    const rLblText = c.resultLabelUppercase !== false ? rawLbl.toUpperCase() : rawLbl;
-    const rLblMetrics = ctx.measureText(rLblText);
-    if (c.resultLabelVertical) {
-      const chars = rLblText.split('');
-      const gap = c.resultLabelLineGap || Math.max((c.resultLabelSize || 13) * 1.2, 16);
-      chars.forEach((ch: string, i: number) => {
-        ctx.fillText(ch, c.resultLabelX, c.resultLabelY + i * gap);
-      });
-      const verticalHeight = (chars.length - 1) * gap + (c.resultLabelSize || 13);
-      addRegion('resultLabel', c.resultLabelX - 10, c.resultLabelY - (c.resultLabelSize || 13) - 5, (c.resultLabelSize || 13) + 20, verticalHeight + 20);
-    } else {
-      ctx.fillText(rLblText, c.resultLabelX, c.resultLabelY);
-      addRegion('resultLabel', c.resultLabelX - 10, c.resultLabelY - (c.resultLabelSize || 28) - 5, rLblMetrics.width + 20, (c.resultLabelSize || 28) + 20);
+    if (c.showResultLabel !== false) {
+      const rx = (c.resultLabelX !== undefined && !isNaN(c.resultLabelX))
+        ? c.resultLabelX
+        : (c.resultNumX !== undefined ? c.resultNumX + 48 : 183);
+      const ry = (c.resultLabelY !== undefined && !isNaN(c.resultLabelY))
+        ? c.resultLabelY
+        : (c.resultNumY !== undefined ? Math.max(c.resultNumY - 90, 80) : 284);
+      const rawLbl = c.resultLabelText || 'RESULT';
+      const rLblText = c.resultLabelUppercase !== false ? rawLbl.toUpperCase() : rawLbl;
+      const lblSize = c.resultLabelSize || 24;
+
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.font = parseFontForCanvas(c.resultLabelFont || c.fontFamily, lblSize, '800');
+      const lblColor = (!c.resultLabelColor || c.resultLabelColor === '#000000' || c.resultLabelColor === 'black')
+        ? (c.resultNumColor || '#84C75D')
+        : c.resultLabelColor;
+      ctx.fillStyle = lblColor;
+
+      const rLblMetrics = ctx.measureText(rLblText);
+      if (c.resultLabelVertical) {
+        const chars = rLblText.split('');
+        const gap = c.resultLabelLineGap || Math.max(lblSize * 1.25, 18);
+        chars.forEach((ch: string, i: number) => {
+          ctx.fillText(ch, rx, ry + i * gap);
+        });
+        const verticalHeight = (chars.length - 1) * gap + lblSize;
+        addRegion('resultLabel', rx - 10, ry - lblSize - 5, lblSize + 20, verticalHeight + 20);
+      } else {
+        ctx.fillText(rLblText, rx, ry);
+        addRegion('resultLabel', rx - 10, ry - lblSize - 5, rLblMetrics.width + 20, lblSize + 20);
+      }
+      ctx.restore();
     }
 
-    // Result Number (Number: e.g. "00")
+    // Result Number (Number: e.g. "00" - Normal Solid Font by default)
     ctx.textAlign = 'left';
-    ctx.font = parseFontForCanvas(c.resultNumFont || c.fontFamily, c.resultNumSize || 76, '600');
-    ctx.fillStyle = c.resultNumColor || '#ffffff';
+    ctx.font = parseFontForCanvas(c.resultNumFont || c.fontFamily, c.resultNumSize || 145, '700');
+    const rNumX = (c.resultNumX !== undefined && !isNaN(c.resultNumX)) ? c.resultNumX : 135;
+    const rNumY = (c.resultNumY !== undefined && !isNaN(c.resultNumY)) ? c.resultNumY : 375;
+    const rNumColor = (!c.resultNumColor || c.resultNumColor === '#000000') ? '#84C75D' : c.resultNumColor;
     const rNumText = '00';
     const rNumMetrics = ctx.measureText(rNumText);
+
     if (c.resultNumStyle === 'stroke') {
       ctx.save();
-      ctx.strokeStyle = c.resultNumColor || '#84C75D';
+      ctx.strokeStyle = rNumColor;
       ctx.lineWidth = c.resultNumStrokeWidth || 3.5;
       ctx.lineJoin = 'round';
-      ctx.strokeText(rNumText, c.resultNumX, c.resultNumY);
+      ctx.strokeText(rNumText, rNumX, rNumY);
       ctx.restore();
     } else {
-      ctx.fillText(rNumText, c.resultNumX, c.resultNumY);
+      // Normal solid font (Clean, filled font glyphs without 2-line stroke)
+      ctx.fillStyle = rNumColor;
+      ctx.fillText(rNumText, rNumX, rNumY);
     }
-    addRegion('resultNum', c.resultNumX - 10, c.resultNumY - (c.resultNumSize || 76) - 5, rNumMetrics.width + 20, (c.resultNumSize || 76) + 20);
+    addRegion('resultNum', rNumX - 10, rNumY - (c.resultNumSize || 145) - 5, rNumMetrics.width + 20, (c.resultNumSize || 145) + 20);
 
 
     // Cursive Script Text (SignPainter) e.g. "mid zone"
@@ -1957,41 +1979,131 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-1">Result Label Text Word</label>
-                  <input type="text" value={conf.resultLabelText || 'RESULT'} onChange={e => updateConf('resultLabelText', e.target.value)} className="w-full px-3 py-1.5 text-sm border rounded-lg" placeholder="RESULT" />
+                {/* Result Label Controls */}
+                <div className="p-3 bg-slate-50 rounded-xl space-y-3 border border-slate-200/70">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800">Result Label ("RESULT")</span>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={conf.showResultLabel !== false}
+                        onChange={e => updateConf('showResultLabel', e.target.checked)}
+                        className="accent-emerald-600"
+                      />
+                      <span className="text-xs font-bold text-slate-700">Show Label</span>
+                    </label>
+                  </div>
+
+                  {conf.showResultLabel !== false && (
+                    <div className="space-y-2.5 pt-1 border-t border-slate-200/60">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1">Result Label Text Word</label>
+                        <input
+                          type="text"
+                          value={conf.resultLabelText ?? 'RESULT'}
+                          onChange={e => updateConf('resultLabelText', e.target.value)}
+                          className="w-full px-3 py-1.5 text-sm border rounded-lg bg-white"
+                          placeholder="RESULT"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Label Direction</label>
+                          <select
+                            value={conf.resultLabelVertical ? 'vertical' : 'horizontal'}
+                            onChange={e => updateConf('resultLabelVertical', e.target.value === 'vertical')}
+                            className="w-full text-xs p-1.5 border rounded-lg bg-white font-semibold"
+                          >
+                            <option value="vertical">Vertical Letters</option>
+                            <option value="horizontal">Horizontal Line</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Label Color</label>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="color"
+                              value={conf.resultLabelColor || '#84C75D'}
+                              onChange={e => updateConf('resultLabelColor', e.target.value)}
+                              className="w-7 h-7 rounded border cursor-pointer"
+                            />
+                            <span className="text-[10px] font-mono text-slate-500">{conf.resultLabelColor || '#84C75D'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {conf.resultLabelVertical && (
+                        <RangeControl
+                          label="Vertical Letter Spacing"
+                          value={conf.resultLabelLineGap || Math.round((conf.resultLabelSize || 24) * 1.25)}
+                          onChange={v => updateConf('resultLabelLineGap', v)}
+                          min={8}
+                          max={50}
+                        />
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const rX = conf.resultNumX ?? 135;
+                          const rY = conf.resultNumY ?? 375;
+                          updateConfMultiple({
+                            showResultLabel: true,
+                            resultLabelX: rX + 48,
+                            resultLabelY: Math.max(rY - 90, 80),
+                            resultLabelColor: conf.resultNumColor || '#84C75D',
+                            resultLabelVertical: true,
+                            resultLabelSize: 22
+                          });
+                        }}
+                        className="w-full py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] rounded-lg border border-emerald-200 transition cursor-pointer"
+                      >
+                        Reset / Snap Label to Number Position
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                {/* Result Number Controls (Normal Solid Font vs Outline) */}
+                <div className="p-3 bg-slate-50 rounded-xl space-y-3 border border-slate-200/70">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Result Number Style</span>
+                      <span className="text-[10px] text-slate-400 block">Choose normal solid font or outline stroke</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => updateConf('resultNumStyle', 'fill')}
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                        conf.resultNumStyle !== 'stroke'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                      }`}
+                    >
+                      Normal Solid Font
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateConf('resultNumStyle', 'stroke')}
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                        conf.resultNumStyle === 'stroke'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                      }`}
+                    >
+                      Outline Stroke (2-Line)
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Cursive Script Text (SignPainter, e.g. "mid zone")</label>
                   <input type="text" value={conf.scriptText ?? 'mid zone'} onChange={e => updateConf('scriptText', e.target.value)} className="w-full px-3 py-1.5 text-sm border rounded-lg" placeholder="e.g. mid zone" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Number Style</label>
-                    <select value={conf.resultNumStyle || 'stroke'} onChange={e => updateConf('resultNumStyle', e.target.value)} className="w-full text-sm p-1.5 border rounded-lg">
-                      <option value="stroke">Outline (Stroke)</option>
-                      <option value="fill">Solid (Fill)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Label Direction</label>
-                    <select value={conf.resultLabelVertical ? 'vertical' : 'horizontal'} onChange={e => updateConf('resultLabelVertical', e.target.value === 'vertical')} className="w-full text-sm p-1.5 border rounded-lg">
-                      <option value="vertical">Vertical Letters</option>
-                      <option value="horizontal">Horizontal Line</option>
-                    </select>
-                  </div>
-                </div>
-                {conf.resultLabelVertical && (
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
-                    <RangeControl
-                      label="Vertical Letter Spacing"
-                      value={conf.resultLabelLineGap || Math.round((conf.resultLabelSize || 13) * 1.2)}
-                      onChange={v => updateConf('resultLabelLineGap', v)}
-                      min={8}
-                      max={50}
-                    />
-                  </div>
-                )}
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={conf.showDividers ?? false} onChange={e => updateConf('showDividers', e.target.checked)} className="accent-emerald-600" />
