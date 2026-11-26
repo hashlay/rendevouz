@@ -906,16 +906,17 @@ function ensureFestivalThemes(cfg: any) {
   const defaultThemes = [
     '/themes/theme_green_waves.jpg',
     '/themes/theme_green_cards.jpg',
-    '/themes/theme_red_star.jpg'
+    '/themes/theme_red_star.jpg',
+    '/themes/theme_yellow_curve.jpg'
   ];
   const oldThemePatterns = [
-    'theme_brown', 'theme_blue', 'theme_yellow', 'theme_purple',
+    'theme_brown', 'theme_blue', 'theme_yellow.jpg', 'theme_purple',
     'theme_green.jpg', 'theme_phytolore', 'theme_white_brown', 'theme_yellow_scroll'
   ];
   const isOldTheme = (url: string) => !url || typeof url !== 'string' || oldThemePatterns.some(p => url.includes(p));
 
   const existing = Array.isArray(cfg.customThemes) ? cfg.customThemes : [];
-  if (existing.length === 0 || existing.some(isOldTheme) || existing.length > 3) {
+  if (existing.length === 0 || existing.some(isOldTheme) || existing.length < 4 || existing.length > 4) {
     const valid = existing.filter((t: string) => !isOldTheme(t));
     cfg.customThemes = defaultThemes.map((dt, idx) => valid[idx] || dt);
   } else {

@@ -120,11 +120,12 @@ export const getPosterDisplayUnitName = (
 export const DEFAULT_POSTER_THEMES = [
   '/themes/theme_green_waves.jpg',
   '/themes/theme_green_cards.jpg',
-  '/themes/theme_red_star.jpg'
+  '/themes/theme_red_star.jpg',
+  '/themes/theme_yellow_curve.jpg'
 ];
 
 const OLD_THEME_PATTERNS = [
-  'theme_brown', 'theme_blue', 'theme_yellow', 'theme_purple',
+  'theme_brown', 'theme_blue', 'theme_yellow.jpg', 'theme_purple',
   'theme_green.jpg', 'theme_phytolore', 'theme_white_brown', 'theme_yellow_scroll'
 ];
 
@@ -380,7 +381,17 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
     };
   }
 
-  return getDefaultThemeConfig(themeIdx % 3);
+  // Theme 4 (Index 3) - Yellow/Orange Curve
+  if (themeIdx === 3) {
+    const base = getDefaultThemeConfig(0);
+    return {
+      ...base,
+      resultLabelColor: '#FFAE00',
+      resultNumColor: '#FFAE00',
+    };
+  }
+
+  return getDefaultThemeConfig(themeIdx % 4);
 }
 
 // Migrate old flat config to per-theme (same logic as PosterSettingsView)
@@ -389,7 +400,7 @@ function migrateOldConfig(templateConfig: any, defaultThemes: string[]): any {
     ? templateConfig.customThemes
     : defaultThemes;
 
-  if (customThemes.some(isOldDefaultTheme) || customThemes.length > 3 || customThemes.length === 4) {
+  if (customThemes.some(isOldDefaultTheme) || customThemes.length < defaultThemes.length || customThemes.length > 4) {
     customThemes = defaultThemes.map((dt, idx) => {
       const existing = customThemes[idx];
       return existing && !isOldDefaultTheme(existing) ? existing : dt;
@@ -495,7 +506,7 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
 
   const rawTemplateConfig = eventSettings?.posterTemplateConfig || {};
   const existingThemes = Array.isArray(rawTemplateConfig.customThemes) ? rawTemplateConfig.customThemes : [];
-  const validThemes = existingThemes.length > 0 && !existingThemes.some(isOldDefaultTheme) && existingThemes.length <= 3
+  const validThemes = existingThemes.length >= 4 && !existingThemes.some(isOldDefaultTheme) && existingThemes.length <= 4
     ? existingThemes
     : defaultThemes;
   const migratedConfig = migrateOldConfig({

@@ -121,11 +121,12 @@ export const getPosterDisplayUnitName = (
 export const DEFAULT_POSTER_THEMES = [
   '/themes/theme_green_waves.jpg',
   '/themes/theme_green_cards.jpg',
-  '/themes/theme_red_star.jpg'
+  '/themes/theme_red_star.jpg',
+  '/themes/theme_yellow_curve.jpg'
 ];
 
 const OLD_THEME_PATTERNS = [
-  'theme_brown', 'theme_blue', 'theme_yellow', 'theme_purple',
+  'theme_brown', 'theme_blue', 'theme_yellow.jpg', 'theme_purple',
   'theme_green.jpg', 'theme_phytolore', 'theme_white_brown', 'theme_yellow_scroll'
 ];
 
@@ -381,7 +382,17 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
     };
   }
 
-  return getDefaultThemeConfig(themeIdx % 3);
+  // Theme 4 (Index 3) - Yellow/Orange Curve
+  if (themeIdx === 3) {
+    const base = getDefaultThemeConfig(0);
+    return {
+      ...base,
+      resultLabelColor: '#FFAE00',
+      resultNumColor: '#FFAE00',
+    };
+  }
+
+  return getDefaultThemeConfig(themeIdx % 4);
 }
 
 // Migrate old flat config to per-theme (same logic as PosterSettingsView)
@@ -391,7 +402,7 @@ function migrateOldConfig(templateConfig: any, defaultThemes?: string[]): any {
     ? templateConfig.customThemes
     : dThemes;
 
-  if (customThemes.some(isOldDefaultTheme) || customThemes.length > 3 || customThemes.length === 4) {
+  if (customThemes.some(isOldDefaultTheme) || customThemes.length < dThemes.length || customThemes.length > 4) {
     customThemes = dThemes.map((dt, idx) => {
       const existing = customThemes[idx];
       return existing && !isOldDefaultTheme(existing) ? existing : dt;
@@ -486,7 +497,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
   const normalizeThemesAndConfigs = (themesIn: any, configsIn: any) => {
     const existing = Array.isArray(themesIn) ? themesIn : [];
     let themes = existing.length > 0 ? existing : defaultThemes;
-    if (themes.some(isOldDefaultTheme) || themes.length > 3 || themes.length === 4) {
+    if (themes.some(isOldDefaultTheme) || themes.length < defaultThemes.length || themes.length > 4) {
       themes = defaultThemes.map((dt, idx) => {
         const ext = themes[idx];
         return ext && !isOldDefaultTheme(ext) ? ext : dt;
@@ -1094,11 +1105,11 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
     }
     addRegion('resultNum', c.resultNumX - 10, c.resultNumY - (c.resultNumSize || 76) - 5, rNumMetrics.width + 20, (c.resultNumSize || 76) + 20);
 
-    
+
     // Cursive Script Text (SignPainter) e.g. "mid zone"
     if (c.showScriptText !== false && (c.scriptSize ?? 0) > 0) {
-      const sText = c.scriptTextOverride !== undefined && c.scriptTextOverride !== '' 
-        ? c.scriptTextOverride 
+      const sText = c.scriptTextOverride !== undefined && c.scriptTextOverride !== ''
+        ? c.scriptTextOverride
         : (c.scriptText || 'mid zone');
       if (sText) {
         ctx.save();
@@ -1114,7 +1125,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
       }
     }
 
-// Category
+    // Category
     ctx.textAlign = 'left';
     ctx.font = parseFontForCanvas(c.categoryFont || c.fontFamily, c.categorySize ?? 26, '400');
     ctx.fillStyle = c.categoryColor || 'rgba(255, 255, 255, 0.7)';
@@ -1306,9 +1317,6 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
 
   useEffect(() => {
     renderCanvas();
-    if ((document as any).fonts?.ready) {
-      (document as any).fonts.ready.then(() => renderCanvas());
-    }
   }, [selectedThemeIndex, customThemes, themeConfigs, hoveredElement, dragging, imgLoaded]);
 
   // Sidebar sections collapse
@@ -1888,8 +1896,8 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
                       type="button"
                       onClick={() => updateConf('unitLanguage', 'en')}
                       className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-xs transition border cursor-pointer ${conf.unitLanguage !== 'ar'
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                         }`}
                     >
                       English
@@ -1903,8 +1911,8 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
                         }
                       }}
                       className={`flex-1 py-1.5 px-3 rounded-xl font-bold text-xs transition border cursor-pointer ${conf.unitLanguage === 'ar'
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                         }`}
                     >
                       Arabic (العربية)
