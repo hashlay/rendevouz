@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Award, Trophy, Image as ImageIcon, Download, Upload,
-  Sparkles, RefreshCw, Palette, Layers, CheckCircle2, ChevronDown, Save, X, Plus, Trash2, Move, GripVertical, Copy
+  Sparkles, RefreshCw, Palette, Layers, CheckCircle2, ChevronDown, Save, X, Plus, Trash2, Move, GripVertical, Copy, Minus
 } from 'lucide-react';
 import { User, Category, Unit, Participant, Competition, Result, Team, UserRole } from '../types';
 import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper';
@@ -585,92 +585,31 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
   // Get current theme's config (with defaults)
   const getThemeConfig = (idx: number) => {
     const defaultConf = getDefaultThemeConfig(idx);
-    const userConf = { ...(themeConfigs[idx] || {}) };
-    const oldColors = ['#A94029', '#1268B0', '#8D3020', '#07519C', '#48205D', '#9A6B2F', '#A07816', '#7920C6'];
-    if (oldColors.includes(userConf.compNameColor) || oldColors.includes(userConf.resultNumColor) || (userConf.winnerFont && userConf.winnerFont.includes('Fractul Alt')) || userConf.resultNumX === 350 || userConf.resultNumX === 140) {
-      userConf.compNameColor = defaultConf.compNameColor;
-      userConf.compNameFont = defaultConf.compNameFont;
-      userConf.compNameX = defaultConf.compNameX;
-      userConf.compNameY = defaultConf.compNameY;
-      userConf.compNameSize = defaultConf.compNameSize;
-      userConf.compNameAlign = defaultConf.compNameAlign;
-      userConf.resultNumColor = defaultConf.resultNumColor;
-      userConf.resultNumFont = defaultConf.resultNumFont;
-      userConf.resultNumX = defaultConf.resultNumX;
-      userConf.resultNumY = defaultConf.resultNumY;
-      userConf.resultNumSize = defaultConf.resultNumSize;
-      userConf.resultNumStyle = defaultConf.resultNumStyle;
-      userConf.resultNumStrokeWidth = defaultConf.resultNumStrokeWidth;
-      userConf.resultLabelColor = defaultConf.resultLabelColor;
-      userConf.resultLabelFont = defaultConf.resultLabelFont;
-      userConf.resultLabelText = defaultConf.resultLabelText;
-      userConf.resultLabelX = defaultConf.resultLabelX;
-      userConf.resultLabelY = defaultConf.resultLabelY;
-      userConf.resultLabelSize = defaultConf.resultLabelSize;
-      userConf.resultLabelVertical = defaultConf.resultLabelVertical;
-      userConf.winnerColor = defaultConf.winnerColor;
-      userConf.winnerFont = defaultConf.winnerFont;
-      userConf.winnerSize = defaultConf.winnerSize;
-      userConf.winnerAlign = defaultConf.winnerAlign;
-      userConf.winnerWrap = defaultConf.winnerWrap;
-      userConf.unitColor = defaultConf.unitColor;
-      userConf.unitFont = defaultConf.unitFont;
-      userConf.unitSize = defaultConf.unitSize;
-      userConf.unitAlign = defaultConf.unitAlign;
-      userConf.rank1Color = defaultConf.rank1Color;
-      userConf.rank2Color = defaultConf.rank2Color;
-      userConf.rank3Color = defaultConf.rank3Color;
-      userConf.rankFont = defaultConf.rankFont;
-      userConf.rankSize = defaultConf.rankSize;
-      userConf.rank1Text = defaultConf.rank1Text;
-      userConf.rank2Text = defaultConf.rank2Text;
-      userConf.rank3Text = defaultConf.rank3Text;
-      userConf.rank1BadgeX = defaultConf.rank1BadgeX;
-      userConf.rank1BadgeY = defaultConf.rank1BadgeY;
-      userConf.rank1NameX = defaultConf.rank1NameX;
-      userConf.rank1NameY = defaultConf.rank1NameY;
-      userConf.rank1UnitX = defaultConf.rank1UnitX;
-      userConf.rank1UnitY = defaultConf.rank1UnitY;
-      userConf.rank2BadgeX = defaultConf.rank2BadgeX;
-      userConf.rank2BadgeY = defaultConf.rank2BadgeY;
-      userConf.rank2NameX = defaultConf.rank2NameX;
-      userConf.rank2NameY = defaultConf.rank2NameY;
-      userConf.rank2UnitX = defaultConf.rank2UnitX;
-      userConf.rank2UnitY = defaultConf.rank2UnitY;
-      userConf.rank3BadgeX = defaultConf.rank3BadgeX;
-      userConf.rank3BadgeY = defaultConf.rank3BadgeY;
-      userConf.rank3NameX = defaultConf.rank3NameX;
-      userConf.rank3NameY = defaultConf.rank3NameY;
-      userConf.rank3UnitX = defaultConf.rank3UnitX;
-      userConf.rank3UnitY = defaultConf.rank3UnitY;
-      userConf.categoryFont = defaultConf.categoryFont;
-      userConf.categoryColor = defaultConf.categoryColor;
-      userConf.categoryX = defaultConf.categoryX;
-      userConf.categoryY = defaultConf.categoryY;
-      userConf.categorySize = defaultConf.categorySize;
-      userConf.scriptText = defaultConf.scriptText;
-      userConf.scriptX = defaultConf.scriptX;
-      userConf.scriptY = defaultConf.scriptY;
-      userConf.scriptSize = defaultConf.scriptSize;
-      userConf.scriptFont = defaultConf.scriptFont;
-      userConf.scriptColor = defaultConf.scriptColor;
-      userConf.showScriptText = defaultConf.showScriptText;
-      userConf.showDividers = defaultConf.showDividers;
-      userConf.dividerColor = defaultConf.dividerColor;
-    }
+    const userConf = themeConfigs[idx] || {};
     return { ...defaultConf, ...userConf };
   };
 
   const conf = getThemeConfig(selectedThemeIndex);
+  const confRef = useRef<any>(conf);
+  confRef.current = conf;
 
   // Update a single property for the current theme
   const updateConf = (key: string, value: any) => {
     setThemeConfigs((prev: any) => ({
       ...prev,
       [selectedThemeIndex]: {
-        ...getThemeConfig(selectedThemeIndex),
         ...(prev[selectedThemeIndex] || {}),
         [key]: value
+      }
+    }));
+  };
+
+  const updateConfMultiple = (updates: Record<string, any>) => {
+    setThemeConfigs((prev: any) => ({
+      ...prev,
+      [selectedThemeIndex]: {
+        ...(prev[selectedThemeIndex] || {}),
+        ...updates
       }
     }));
   };
@@ -816,6 +755,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
     | 'rank2Badge' | 'rank2Name' | 'rank2Unit'
     | 'rank3Badge' | 'rank3Name' | 'rank3Unit'
     | 'campusName' | 'festName'
+    | string
     | null;
   const [dragging, setDragging] = useState<DragTarget>(null);
   const lastMousePos = useRef<{ x: number, y: number } | null>(null);
@@ -943,10 +883,28 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
       const dy = deltaClientY * scaleY;
 
       if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
-        const posMap = dragPosMap[dragging];
+        if (typeof dragging === 'string' && dragging.startsWith('customDivider_')) {
+          const divIdx = parseInt(dragging.replace('customDivider_', ''), 10);
+          const currentDividers = [...(confRef.current.customDividers || [])];
+          if (currentDividers[divIdx]) {
+            currentDividers[divIdx] = {
+              ...currentDividers[divIdx],
+              x: Math.round((currentDividers[divIdx].x ?? 260) + dx),
+              y: Math.round((currentDividers[divIdx].y ?? 420) + dy)
+            };
+            updateConf('customDividers', currentDividers);
+          }
+          lastMousePos.current = { x: clientX, y: clientY };
+          return;
+        }
+
+        const posMap = dragPosMap[dragging as string];
         if (posMap) {
-          updateConf(posMap.xKey, Math.round(conf[posMap.xKey] + dx));
-          updateConf(posMap.yKey, Math.round(conf[posMap.yKey] + dy));
+          const currentConf = confRef.current;
+          updateConfMultiple({
+            [posMap.xKey]: Math.round((currentConf[posMap.xKey] ?? 0) + dx),
+            [posMap.yKey]: Math.round((currentConf[posMap.yKey] ?? 0) + dy)
+          });
         }
         lastMousePos.current = { x: clientX, y: clientY };
       }
@@ -1078,14 +1036,16 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
     const rLblMetrics = ctx.measureText(rLblText);
     if (c.resultLabelVertical) {
       const chars = rLblText.split('');
-      const gap = c.resultLabelLineGap || ((c.resultLabelSize || 13) * 1.15);
+      const gap = c.resultLabelLineGap || Math.max((c.resultLabelSize || 13) * 1.2, 16);
       chars.forEach((ch: string, i: number) => {
         ctx.fillText(ch, c.resultLabelX, c.resultLabelY + i * gap);
       });
+      const verticalHeight = (chars.length - 1) * gap + (c.resultLabelSize || 13);
+      addRegion('resultLabel', c.resultLabelX - 10, c.resultLabelY - (c.resultLabelSize || 13) - 5, (c.resultLabelSize || 13) + 20, verticalHeight + 20);
     } else {
       ctx.fillText(rLblText, c.resultLabelX, c.resultLabelY);
+      addRegion('resultLabel', c.resultLabelX - 10, c.resultLabelY - (c.resultLabelSize || 28) - 5, rLblMetrics.width + 20, (c.resultLabelSize || 28) + 20);
     }
-    addRegion('resultLabel', c.resultLabelX - 10, c.resultLabelY - (c.resultLabelSize || 28) - 5, rLblMetrics.width + 20, (c.resultLabelSize || 28) + 20);
 
     // Result Number (Number: e.g. "00")
     ctx.textAlign = 'left';
@@ -1269,13 +1229,39 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
         ctx.save();
         ctx.strokeStyle = c.dividerColor || 'rgba(255, 255, 255, 0.35)';
         ctx.lineWidth = c.dividerWidth || 1;
+        const dLen = c.dividerLength ?? 280;
+        const dYOffset = c.dividerYOffset ?? 8;
+        const divStartX = c.dividerStartX ?? nx;
+        const divY = uy + (c.unitSize || 18) + dYOffset;
         ctx.beginPath();
-        ctx.moveTo(c.dividerStartX ?? nx, uy + (c.unitSize || 18) + 8);
-        ctx.lineTo(c.dividerEndX ?? (nx + 280), uy + (c.unitSize || 18) + 8);
+        ctx.moveTo(divStartX, divY);
+        ctx.lineTo(divStartX + dLen, divY);
         ctx.stroke();
         ctx.restore();
       }
     });
+
+    // Custom standalone divider lines (User-added & fully editable)
+    if (c.customDividers && Array.isArray(c.customDividers)) {
+      c.customDividers.forEach((div: any, i: number) => {
+        const dx = div.x ?? 260;
+        const dy = div.y ?? 420;
+        const dLen = div.length ?? 300;
+        const dThick = div.thickness ?? 2;
+        const dCol = div.color || 'rgba(255, 255, 255, 0.4)';
+
+        ctx.save();
+        ctx.strokeStyle = dCol;
+        ctx.lineWidth = dThick;
+        ctx.beginPath();
+        ctx.moveTo(dx, dy);
+        ctx.lineTo(dx + dLen, dy);
+        ctx.stroke();
+        ctx.restore();
+
+        addRegion(`customDivider_${i}`, dx - 5, dy - Math.max(dThick, 16) / 2, dLen + 10, Math.max(dThick, 16));
+      });
+    }
 
 
     // Footer
@@ -1700,7 +1686,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
 
           {/* Colors */}
           <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-            <SectionHeader id="colors" title={`Colors \u2014 Theme ${selectedThemeIndex + 1}`} icon={Palette} />
+            <SectionHeader id="colors" title={`Colors — Theme ${selectedThemeIndex + 1}`} icon={Palette} />
             {expandedSection === 'colors' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -1762,7 +1748,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
 
           {/* Typography */}
           <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-            <SectionHeader id="typography" title={`Typography \u2014 Theme ${selectedThemeIndex + 1}`} icon={Layers} />
+            <SectionHeader id="typography" title={`Typography — Theme ${selectedThemeIndex + 1}`} icon={Layers} />
             {expandedSection === 'typography' && (
               <div className="space-y-4">
                 <div className="p-3 bg-slate-50 rounded-xl space-y-3">
@@ -1995,6 +1981,17 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
                     </select>
                   </div>
                 </div>
+                {conf.resultLabelVertical && (
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                    <RangeControl
+                      label="Vertical Letter Spacing"
+                      value={conf.resultLabelLineGap || Math.round((conf.resultLabelSize || 13) * 1.2)}
+                      onChange={v => updateConf('resultLabelLineGap', v)}
+                      min={8}
+                      max={50}
+                    />
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={conf.showDividers ?? false} onChange={e => updateConf('showDividers', e.target.checked)} className="accent-emerald-600" />
@@ -2025,9 +2022,224 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
             )}
           </div>
 
+          {/* Divider Lines (Automatic Winner Row Separators & Standalone Custom Lines) */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+            <SectionHeader id="dividers" title={`Divider Lines — Theme ${selectedThemeIndex + 1}`} icon={Minus} />
+            {expandedSection === 'dividers' && (
+              <div className="space-y-4">
+                {/* Automatic Winner Dividers */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Winner Row Dividers</span>
+                      <span className="text-[10px] text-slate-400 block">Horizontal separator lines between Rank 1, Rank 2 & Rank 3</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={conf.showDividers ?? false}
+                        onChange={e => updateConf('showDividers', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                  </div>
+
+                  {conf.showDividers && (
+                    <div className="pt-2 border-t border-slate-200 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Line Color</label>
+                        <input
+                          type="color"
+                          value={conf.dividerColor || '#ffffff'}
+                          onChange={e => updateConf('dividerColor', e.target.value)}
+                          className="w-8 h-7 rounded border border-slate-200 cursor-pointer"
+                        />
+                        <span className="text-xs font-mono text-slate-500">{conf.dividerColor || '#ffffff'}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <RangeControl
+                          label="Line Thickness"
+                          value={conf.dividerWidth ?? 1}
+                          onChange={v => updateConf('dividerWidth', v)}
+                          min={1}
+                          max={10}
+                        />
+                        <RangeControl
+                          label="Line Length"
+                          value={conf.dividerLength ?? 280}
+                          onChange={v => updateConf('dividerLength', v)}
+                          min={50}
+                          max={800}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Standalone Custom Divider Lines */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Custom Standalone Divider Lines</span>
+                      <span className="text-[10px] text-slate-400 block">Add custom divider lines anywhere. Drag & drop directly on preview!</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const current = [...(conf.customDividers || [])];
+                        current.push({
+                          id: 'div_' + Date.now(),
+                          x: 260,
+                          y: 530,
+                          length: 300,
+                          thickness: 2,
+                          color: '#ffffff'
+                        });
+                        updateConf('customDividers', current);
+                      }}
+                      className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg border border-emerald-300 transition shadow-2xs cursor-pointer shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Line</span>
+                    </button>
+                  </div>
+
+                  {(!conf.customDividers || conf.customDividers.length === 0) ? (
+                    <div className="text-center py-4 text-xs text-slate-400 italic bg-white rounded-xl border border-dashed border-slate-200">
+                      No custom divider lines added yet. Click "+ Add Line" to add one.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {conf.customDividers.map((div: any, i: number) => (
+                        <div key={div.id || i} className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs space-y-2.5">
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                              Divider Line #{i + 1}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                title="Duplicate Line"
+                                onClick={() => {
+                                  const current = [...(conf.customDividers || [])];
+                                  current.push({
+                                    ...div,
+                                    id: 'div_' + Date.now(),
+                                    y: (div.y || 530) + 40
+                                  });
+                                  updateConf('customDividers', current);
+                                }}
+                                className="p-1 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Delete Line"
+                                onClick={() => {
+                                  const current = (conf.customDividers || []).filter((_: any, idx: number) => idx !== i);
+                                  updateConf('customDividers', current);
+                                }}
+                                className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Color and Presets */}
+                          <div className="flex items-center gap-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase">Color</label>
+                            <input
+                              type="color"
+                              value={div.color || '#ffffff'}
+                              onChange={e => {
+                                const current = [...(conf.customDividers || [])];
+                                current[i] = { ...current[i], color: e.target.value };
+                                updateConf('customDividers', current);
+                              }}
+                              className="w-7 h-6 rounded border cursor-pointer"
+                            />
+                            <div className="flex items-center gap-1">
+                              {['#ffffff', '#84C75D', '#FFAE00', '#C4020B', '#1e293b'].map(c => (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => {
+                                    const current = [...(conf.customDividers || [])];
+                                    current[i] = { ...current[i], color: c };
+                                    updateConf('customDividers', current);
+                                  }}
+                                  className="w-4 h-4 rounded-full border border-slate-300 shadow-2xs hover:scale-110 transition cursor-pointer"
+                                  style={{ backgroundColor: c }}
+                                  title={c}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[10px] font-mono text-slate-500 ml-auto">{div.color || '#ffffff'}</span>
+                          </div>
+
+                          {/* Position & Dimensions */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <RangeControl
+                              label="Position X"
+                              value={div.x ?? 260}
+                              onChange={v => {
+                                const current = [...(conf.customDividers || [])];
+                                current[i] = { ...current[i], x: v };
+                                updateConf('customDividers', current);
+                              }}
+                              min={0}
+                              max={1080}
+                            />
+                            <RangeControl
+                              label="Position Y"
+                              value={div.y ?? 530}
+                              onChange={v => {
+                                const current = [...(conf.customDividers || [])];
+                                current[i] = { ...current[i], y: v };
+                                updateConf('customDividers', current);
+                              }}
+                              min={50}
+                              max={1300}
+                            />
+                            <RangeControl
+                              label="Length (px)"
+                              value={div.length ?? 300}
+                              onChange={v => {
+                                const current = [...(conf.customDividers || [])];
+                                current[i] = { ...current[i], length: v };
+                                updateConf('customDividers', current);
+                              }}
+                              min={20}
+                              max={1000}
+                            />
+                            <RangeControl
+                              label="Thickness (px)"
+                              value={div.thickness ?? 2}
+                              onChange={v => {
+                                const current = [...(conf.customDividers || [])];
+                                current[i] = { ...current[i], thickness: v };
+                                updateConf('customDividers', current);
+                              }}
+                              min={1}
+                              max={20}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Rank Badges */}
           <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-            <SectionHeader id="ranks" title={`Rank Badges \u2014 Theme ${selectedThemeIndex + 1}`} icon={Award} />
+            <SectionHeader id="ranks" title={`Rank Badges — Theme ${selectedThemeIndex + 1}`} icon={Award} />
             {expandedSection === 'ranks' && (
               <div className="space-y-4">
                 <div>
@@ -2087,7 +2299,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
 
           {/* Footer Options */}
           <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-            <SectionHeader id="footer" title={`Footer Options \u2014 Theme ${selectedThemeIndex + 1}`} icon={Layers} />
+            <SectionHeader id="footer" title={`Footer Options — Theme ${selectedThemeIndex + 1}`} icon={Layers} />
             {expandedSection === 'footer' && (
               <div className="space-y-3">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -2112,7 +2324,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
 
           {/* Position Fine-Tuning */}
           <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-            <SectionHeader id="positions" title={`Positions \u2014 Theme ${selectedThemeIndex + 1}`} icon={Move} />
+            <SectionHeader id="positions" title={`Positions — Theme ${selectedThemeIndex + 1}`} icon={Move} />
             {expandedSection === 'positions' && (
               <div className="space-y-4">
                 <p className="text-[10px] text-slate-500">You can also drag elements directly on the preview canvas.</p>
@@ -2172,7 +2384,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
           <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-lg w-full flex flex-col items-center">
             <div className="flex items-center justify-between w-full pb-3 border-b border-slate-100 mb-4 px-2">
               <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider font-mono">
-                Default Template Preview \u2014 Theme {selectedThemeIndex + 1}
+                Default Template Preview — Theme {selectedThemeIndex + 1}
               </span>
               <span className="text-[10px] text-slate-400 font-mono">Drag any element to reposition</span>
             </div>

@@ -608,78 +608,6 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
 
     const defaultConf = getDefaultThemeConfig(idx);
     const userConf = { ...(themeConfigs[idx] || {}) };
-    const oldColors = ['#A94029', '#1268B0', '#8D3020', '#07519C', '#48205D', '#9A6B2F', '#A07816', '#7920C6'];
-    if (oldColors.includes(userConf.compNameColor) || oldColors.includes(userConf.resultNumColor) || (userConf.winnerFont && userConf.winnerFont.includes('Fractul Alt')) || userConf.resultNumX === 350 || userConf.resultNumX === 140) {
-      userConf.compNameColor = defaultConf.compNameColor;
-      userConf.compNameFont = defaultConf.compNameFont;
-      userConf.compNameX = defaultConf.compNameX;
-      userConf.compNameY = defaultConf.compNameY;
-      userConf.compNameSize = defaultConf.compNameSize;
-      userConf.compNameAlign = defaultConf.compNameAlign;
-      userConf.resultNumColor = defaultConf.resultNumColor;
-      userConf.resultNumFont = defaultConf.resultNumFont;
-      userConf.resultNumX = defaultConf.resultNumX;
-      userConf.resultNumY = defaultConf.resultNumY;
-      userConf.resultNumSize = defaultConf.resultNumSize;
-      userConf.resultNumStyle = defaultConf.resultNumStyle;
-      userConf.resultNumStrokeWidth = defaultConf.resultNumStrokeWidth;
-      userConf.resultLabelColor = defaultConf.resultLabelColor;
-      userConf.resultLabelFont = defaultConf.resultLabelFont;
-      userConf.resultLabelText = defaultConf.resultLabelText;
-      userConf.resultLabelX = defaultConf.resultLabelX;
-      userConf.resultLabelY = defaultConf.resultLabelY;
-      userConf.resultLabelSize = defaultConf.resultLabelSize;
-      userConf.resultLabelVertical = defaultConf.resultLabelVertical;
-      userConf.winnerColor = defaultConf.winnerColor;
-      userConf.winnerFont = defaultConf.winnerFont;
-      userConf.winnerSize = defaultConf.winnerSize;
-      userConf.winnerAlign = defaultConf.winnerAlign;
-      userConf.winnerWrap = defaultConf.winnerWrap;
-      userConf.unitColor = defaultConf.unitColor;
-      userConf.unitFont = defaultConf.unitFont;
-      userConf.unitSize = defaultConf.unitSize;
-      userConf.unitAlign = defaultConf.unitAlign;
-      userConf.rank1Color = defaultConf.rank1Color;
-      userConf.rank2Color = defaultConf.rank2Color;
-      userConf.rank3Color = defaultConf.rank3Color;
-      userConf.rankFont = defaultConf.rankFont;
-      userConf.rankSize = defaultConf.rankSize;
-      userConf.rank1Text = defaultConf.rank1Text;
-      userConf.rank2Text = defaultConf.rank2Text;
-      userConf.rank3Text = defaultConf.rank3Text;
-      userConf.rank1BadgeX = defaultConf.rank1BadgeX;
-      userConf.rank1BadgeY = defaultConf.rank1BadgeY;
-      userConf.rank1NameX = defaultConf.rank1NameX;
-      userConf.rank1NameY = defaultConf.rank1NameY;
-      userConf.rank1UnitX = defaultConf.rank1UnitX;
-      userConf.rank1UnitY = defaultConf.rank1UnitY;
-      userConf.rank2BadgeX = defaultConf.rank2BadgeX;
-      userConf.rank2BadgeY = defaultConf.rank2BadgeY;
-      userConf.rank2NameX = defaultConf.rank2NameX;
-      userConf.rank2NameY = defaultConf.rank2NameY;
-      userConf.rank2UnitX = defaultConf.rank2UnitX;
-      userConf.rank2UnitY = defaultConf.rank2UnitY;
-      userConf.rank3BadgeX = defaultConf.rank3BadgeX;
-      userConf.rank3BadgeY = defaultConf.rank3BadgeY;
-      userConf.rank3NameX = defaultConf.rank3NameX;
-      userConf.rank3NameY = defaultConf.rank3NameY;
-      userConf.rank3UnitX = defaultConf.rank3UnitX;
-      userConf.rank3UnitY = defaultConf.rank3UnitY;
-      userConf.categoryFont = defaultConf.categoryFont;
-      userConf.categoryColor = defaultConf.categoryColor;
-      userConf.categoryX = defaultConf.categoryX;
-      userConf.categoryY = defaultConf.categoryY;
-      userConf.categorySize = defaultConf.categorySize;
-      userConf.scriptText = defaultConf.scriptText;
-      userConf.scriptX = defaultConf.scriptX;
-      userConf.scriptY = defaultConf.scriptY;
-      userConf.scriptSize = defaultConf.scriptSize;
-      userConf.scriptFont = defaultConf.scriptFont;
-      userConf.scriptColor = defaultConf.scriptColor;
-      userConf.showScriptText = defaultConf.showScriptText;
-      userConf.showDividers = defaultConf.showDividers;
-      userConf.dividerColor = defaultConf.dividerColor;
-    }
     // Theme configs must NEVER supply winner name or unit overrides
     Object.keys(userConf).forEach(k => {
       if (k.toLowerCase().includes('override') && (k.toLowerCase().includes('name') || k.toLowerCase().includes('unit'))) {
@@ -703,6 +631,20 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
       [themeIdx]: {
         ...(prev[themeIdx] || {}),
         [key]: value
+      }
+    }));
+  };
+
+  const updateLocalConfMultiple = (updates: Record<string, any>) => {
+    const compIdx = getAnnouncementIndex(selectedCompId);
+    const aComp = competitions.find(c => c.id === selectedCompId);
+    const aCat = aComp ? categories.find(cat => cat.id === aComp.categoryId) : null;
+    const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
+    setLocalThemeConfigs((prev: any) => ({
+      ...prev,
+      [themeIdx]: {
+        ...(prev[themeIdx] || {}),
+        ...updates
       }
     }));
   };
@@ -810,6 +752,7 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
     | 'rank2_2_Badge' | 'rank2_2_Name' | 'rank2_2_Unit'
     | 'rank3_2_Badge' | 'rank3_2_Name' | 'rank3_2_Unit'
     | 'campusName' | 'festName'
+    | string
     | null;
   const [dragging, setDragging] = useState<DragTarget>(null);
   const lastMousePos = useRef<{ x: number, y: number } | null>(null);
@@ -998,12 +941,29 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
         const themeIdx = getThemeIndexForResult(compIdx, aCat?.name, aCat?.id);
         const c = getThemeConfig(themeIdx);
 
-        const posMap = dragPosMap[dragging];
+        if (typeof dragging === 'string' && dragging.startsWith('customDivider_')) {
+          const divIdx = parseInt(dragging.replace('customDivider_', ''), 10);
+          const currentDividers = [...(c.customDividers || [])];
+          if (currentDividers[divIdx]) {
+            currentDividers[divIdx] = {
+              ...currentDividers[divIdx],
+              x: Math.round((currentDividers[divIdx].x ?? 260) + dx),
+              y: Math.round((currentDividers[divIdx].y ?? 420) + dy)
+            };
+            updateLocalConf('customDividers', currentDividers);
+          }
+          lastMousePos.current = { x: clientX, y: clientY };
+          return;
+        }
+
+        const posMap = dragPosMap[dragging as string];
         if (posMap) {
           const currentX = c[posMap.xKey] !== undefined ? c[posMap.xKey] : getInitialPosValue(posMap.xKey, c);
           const currentY = c[posMap.yKey] !== undefined ? c[posMap.yKey] : getInitialPosValue(posMap.yKey, c);
-          updateLocalConf(posMap.xKey, Math.round(currentX + dx));
-          updateLocalConf(posMap.yKey, Math.round(currentY + dy));
+          updateLocalConfMultiple({
+            [posMap.xKey]: Math.round(currentX + dx),
+            [posMap.yKey]: Math.round(currentY + dy)
+          });
         }
         lastMousePos.current = { x: clientX, y: clientY };
       }
@@ -1248,14 +1208,16 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
     const ry = c.resultLabelY ?? 180;
     if (c.resultLabelVertical) {
       const chars = rLblText.split('');
-      const gap = c.resultLabelLineGap || ((c.resultLabelSize || 13) * 1.15);
+      const gap = c.resultLabelLineGap || Math.max((c.resultLabelSize || 13) * 1.2, 16);
       chars.forEach((ch: string, i: number) => {
         ctx.fillText(ch, rx, ry + i * gap);
       });
+      const verticalHeight = (chars.length - 1) * gap + (c.resultLabelSize || 13);
+      addRegion('resultLabel', rx - 10, ry - (c.resultLabelSize || 13) - 5, (c.resultLabelSize || 13) + 20, verticalHeight + 20);
     } else {
       ctx.fillText(rLblText, rx, ry);
+      addRegion('resultLabel', rx - 10, ry - (c.resultLabelSize || 28) - 5, rLblMetrics.width + 20, (c.resultLabelSize || 28) + 20);
     }
-    addRegion('resultLabel', rx - 10, ry - (c.resultLabelSize || 28) - 5, rLblMetrics.width + 20, (c.resultLabelSize || 28) + 20);
 
     // Result Number (e.g. "01", "10", "105")
     ctx.textAlign = 'left';
@@ -1559,13 +1521,16 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
 
         // Horizontal divider line under winner row (for stacked themes like Theme 0 & Theme 2)
         if (c.showDividers && rank < 3) {
-          const divY = (uy ?? calcUy) + (unitLines.length * unitGap) + 8;
+          const dLen = c.dividerLength ?? 280;
+          const dYOffset = c.dividerYOffset ?? 8;
+          const divStartX = c.dividerStartX ?? nx;
+          const divY = (uy ?? calcUy) + (unitLines.length * unitGap) + dYOffset;
           ctx.save();
           ctx.strokeStyle = c.dividerColor || 'rgba(255, 255, 255, 0.35)';
           ctx.lineWidth = c.dividerWidth || 1;
           ctx.beginPath();
-          ctx.moveTo(c.dividerStartX ?? nx, divY);
-          ctx.lineTo(c.dividerEndX ?? (nx + 280), divY);
+          ctx.moveTo(divStartX, divY);
+          ctx.lineTo(divStartX + dLen, divY);
           ctx.stroke();
           ctx.restore();
         }
@@ -1577,6 +1542,28 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
         cumulativeShiftY += (c.tiedWinnerRowGap || 72);
       }
     });
+
+    // Custom standalone divider lines (User-added & fully editable)
+    if (c.customDividers && Array.isArray(c.customDividers)) {
+      c.customDividers.forEach((div: any, i: number) => {
+        const dx = div.x ?? 260;
+        const dy = div.y ?? 420;
+        const dLen = div.length ?? 300;
+        const dThick = div.thickness ?? 2;
+        const dCol = div.color || 'rgba(255, 255, 255, 0.4)';
+
+        ctx.save();
+        ctx.strokeStyle = dCol;
+        ctx.lineWidth = dThick;
+        ctx.beginPath();
+        ctx.moveTo(dx, dy);
+        ctx.lineTo(dx + dLen, dy);
+        ctx.stroke();
+        ctx.restore();
+
+        addRegion(`customDivider_${i}`, dx - 5, dy - Math.max(dThick, 16) / 2, dLen + 10, Math.max(dThick, 16));
+      });
+    }
 
     // Footer
     if (c.showFooter !== false) {
@@ -2013,6 +2000,45 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
                       </div>
 
                       <div>
+                        <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2.5">Result Style & Orientation</h4>
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-1">Number Style</label>
+                              <select
+                                value={c.resultNumStyle || 'stroke'}
+                                onChange={e => updateLocalConf('resultNumStyle', e.target.value)}
+                                className="w-full text-xs p-1.5 border rounded-lg bg-white"
+                              >
+                                <option value="stroke">Outline</option>
+                                <option value="fill">Solid</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-1">Label Direction</label>
+                              <select
+                                value={c.resultLabelVertical ? 'vertical' : 'horizontal'}
+                                onChange={e => updateLocalConf('resultLabelVertical', e.target.value === 'vertical')}
+                                className="w-full text-xs p-1.5 border rounded-lg bg-white"
+                              >
+                                <option value="vertical">Vertical</option>
+                                <option value="horizontal">Horizontal</option>
+                              </select>
+                            </div>
+                          </div>
+                          {c.resultLabelVertical && (
+                            <RangeControl
+                              label="Vertical Letter Spacing"
+                              value={c.resultLabelLineGap || Math.round((c.resultLabelSize || 13) * 1.2)}
+                              onChange={v => updateLocalConf('resultLabelLineGap', v)}
+                              min={8}
+                              max={50}
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
                         <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2.5">Block Letters</h4>
                         <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-2.5">
                           <label className="flex items-center gap-2 cursor-pointer">
@@ -2061,6 +2087,118 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
                           <RangeControl label="Unit Y" value={c[`rank${rank}UnitY`] ?? (483 + (rank - 1) * 180)} onChange={v => updateLocalConf(`rank${rank}UnitY`, v)} min={100} max={1200} />
                         </div>
                       ))}
+
+                      <div>
+                        <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-2.5">Divider Lines</h4>
+                        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-700">Winner Row Dividers</span>
+                            <input
+                              type="checkbox"
+                              checked={c.showDividers ?? false}
+                              onChange={e => updateLocalConf('showDividers', e.target.checked)}
+                              className="accent-emerald-600"
+                            />
+                          </div>
+                          {c.showDividers && (
+                            <div className="pt-2 border-t border-slate-200 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-bold text-slate-500">Color</label>
+                                <input
+                                  type="color"
+                                  value={c.dividerColor || '#ffffff'}
+                                  onChange={e => updateLocalConf('dividerColor', e.target.value)}
+                                  className="w-6 h-6 rounded border cursor-pointer"
+                                />
+                                <span className="text-[10px] font-mono text-slate-500">{c.dividerColor || '#ffffff'}</span>
+                              </div>
+                              <RangeControl label="Thickness" value={c.dividerWidth ?? 1} onChange={v => updateLocalConf('dividerWidth', v)} min={1} max={10} />
+                              <RangeControl label="Length" value={c.dividerLength ?? 280} onChange={v => updateLocalConf('dividerLength', v)} min={50} max={800} />
+                            </div>
+                          )}
+
+                          <div className="pt-2 border-t border-slate-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[10px] font-extrabold uppercase text-slate-600">Custom Divider Lines</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = [...(c.customDividers || [])];
+                                  current.push({
+                                    id: 'div_' + Date.now(),
+                                    x: 260,
+                                    y: 530,
+                                    length: 300,
+                                    thickness: 2,
+                                    color: '#ffffff'
+                                  });
+                                  updateLocalConf('customDividers', current);
+                                }}
+                                className="text-[10px] font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded transition cursor-pointer"
+                              >
+                                + Add Line
+                              </button>
+                            </div>
+
+                            {(!c.customDividers || c.customDividers.length === 0) ? (
+                              <p className="text-[10px] text-slate-400 italic">No custom divider lines added.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {c.customDividers.map((div: any, i: number) => (
+                                  <div key={div.id || i} className="bg-white p-2.5 rounded-xl border border-slate-200 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] font-bold text-slate-700">Line #{i + 1}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const current = (c.customDividers || []).filter((_: any, idx: number) => idx !== i);
+                                          updateLocalConf('customDividers', current);
+                                        }}
+                                        className="text-red-500 hover:text-red-700 text-[10px] font-bold"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="color"
+                                        value={div.color || '#ffffff'}
+                                        onChange={e => {
+                                          const current = [...(c.customDividers || [])];
+                                          current[i] = { ...current[i], color: e.target.value };
+                                          updateLocalConf('customDividers', current);
+                                        }}
+                                        className="w-5 h-5 rounded cursor-pointer border"
+                                      />
+                                      <span className="text-[10px] font-mono text-slate-500">{div.color || '#ffffff'}</span>
+                                    </div>
+                                    <RangeControl label="X" value={div.x ?? 260} onChange={v => {
+                                      const current = [...(c.customDividers || [])];
+                                      current[i] = { ...current[i], x: v };
+                                      updateLocalConf('customDividers', current);
+                                    }} min={0} max={1080} />
+                                    <RangeControl label="Y" value={div.y ?? 530} onChange={v => {
+                                      const current = [...(c.customDividers || [])];
+                                      current[i] = { ...current[i], y: v };
+                                      updateLocalConf('customDividers', current);
+                                    }} min={50} max={1300} />
+                                    <RangeControl label="Length" value={div.length ?? 300} onChange={v => {
+                                      const current = [...(c.customDividers || [])];
+                                      current[i] = { ...current[i], length: v };
+                                      updateLocalConf('customDividers', current);
+                                    }} min={20} max={1000} />
+                                    <RangeControl label="Thickness" value={div.thickness ?? 2} onChange={v => {
+                                      const current = [...(c.customDividers || [])];
+                                      current[i] = { ...current[i], thickness: v };
+                                      updateLocalConf('customDividers', current);
+                                    }} min={1} max={20} />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="mt-6 space-y-2 pt-4 border-t border-slate-100">
