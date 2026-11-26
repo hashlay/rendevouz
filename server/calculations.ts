@@ -745,10 +745,11 @@ export const CalculationService = {
       
       const countPlacements = (resultsList: Result[]) => {
         resultsList.forEach(r => {
-          if (r.rank === 1) firstPlaceCount++;
-          else if (r.rank === 2) secondPlaceCount++;
-          else if (r.rank === 3) thirdPlaceCount++;
-          else if (r.rank !== undefined && r.rank >= 4 && r.rank <= 7) fourthToSeventhPlaceCount++;
+          const numRank = Number(r.rank);
+          if (numRank === 1) firstPlaceCount++;
+          else if (numRank === 2) secondPlaceCount++;
+          else if (numRank === 3) thirdPlaceCount++;
+          else if (numRank >= 4 && numRank <= 7) fourthToSeventhPlaceCount++;
         });
       };
       

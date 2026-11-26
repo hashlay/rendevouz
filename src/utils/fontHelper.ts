@@ -13,6 +13,18 @@ export const UNIVERSAL_FONT_OPTIONS: FontOption[] = [
   { label: 'Sora (Extra Bold 800)', value: '800 "Sora", sans-serif' },
   { label: 'Sora (Extra Light 200)', value: '200 "Sora", sans-serif' },
 
+  // --- BEBAS NEUE FAMILY (Display for Result Numbers) ---
+  { label: 'Bebas Neue (Regular - Bold Display for Result No.)', value: '400 "Bebas Neue", sans-serif' },
+  { label: 'Bebas Neue Light / Thin Style (Result Number)', value: '300 "Bebas Neue", sans-serif' },
+
+  // --- JOSEFIN SANS FAMILY (Geometric Display for Rank Badges & Numbers) ---
+  { label: 'Josefin Sans (Light 300 - Ideal for Rank Number / Roman Badges)', value: '300 "Josefin Sans", sans-serif' },
+  { label: 'Josefin Sans (Thin 100 - Ultra Hairline Rank)', value: '100 "Josefin Sans", sans-serif' },
+  { label: 'Josefin Sans (Extra Light 200 - Delicate Rank)', value: '200 "Josefin Sans", sans-serif' },
+  { label: 'Josefin Sans (Regular 400)', value: '400 "Josefin Sans", sans-serif' },
+  { label: 'Josefin Sans (Semi Bold 600)', value: '600 "Josefin Sans", sans-serif' },
+  { label: 'Josefin Sans (Bold 700)', value: '700 "Josefin Sans", sans-serif' },
+
   // --- FRACTUL ALT FAMILY (Standard for Winners, Units & Ranks) ---
   { label: 'Fractul Alt (Medium 500 - Official Poster Winners & Teams)', value: '500 "Fractul Alt", sans-serif' },
   { label: 'Fractul Alt (Semi Bold 600 - Prominent Title/Winner)', value: '600 "Fractul Alt", sans-serif' },

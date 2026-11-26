@@ -1324,7 +1324,7 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
 
     // Draw each rank with per-rank positions (supports multiple tied winners per rank)
     [1, 2, 3].forEach((rank) => {
-      const rankWinners = compResults.filter(r => r.rank === rank);
+      const rankWinners = compResults.filter(r => Number(r.rank) === rank || String(r.rank).trim() === String(rank));
       const hasRank1Override = !!(c[`rank${rank}NameOverride`] || c[`rank${rank}UnitOverride`]);
       const hasRank2Override = !!(c[`rank${rank}_2_NameOverride`] || c[`rank${rank}_2_UnitOverride`]);
       
@@ -1809,7 +1809,7 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
                           </div>
 
                           {[1, 2, 3].map(rank => {
-                            const rankWinners = compResults.filter(r => r.rank === rank);
+                            const rankWinners = compResults.filter(r => Number(r.rank) === rank || String(r.rank).trim() === String(rank));
                             const defaultWinnerName1 = rankWinners[0] ? (rankWinners[0].participantName || '') : '';
                             const defaultUnitName1 = rankWinners[0] ? (rankWinners[0].unitName || '') : '';
                             
@@ -1988,6 +1988,36 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
                             <select
                               value={c.campusNameFont || c.fontFamily || 'Inter, sans-serif'}
                               onChange={e => updateLocalConf('campusNameFont', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                            >
+                              {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Result Number Font (Bebas Neue / Sora)</label>
+                            <select
+                              value={c.resultNumFont || c.fontFamily || '600 "Sora", sans-serif'}
+                              onChange={e => updateLocalConf('resultNumFont', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                            >
+                              {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Result Label Font</label>
+                            <select
+                              value={c.resultLabelFont || c.fontFamily || '700 "Sora", sans-serif'}
+                              onChange={e => updateLocalConf('resultLabelFont', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                            >
+                              {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-1">Rank Number / Badge Font (Josefin Sans / Sora)</label>
+                            <select
+                              value={c.rankFont || c.fontFamily || '600 "Sora", sans-serif'}
+                              onChange={e => updateLocalConf('rankFont', e.target.value)}
                               className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
                             >
                               {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
