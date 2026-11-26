@@ -263,14 +263,14 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColor: '#ffffff',
       titleSize: 36,
       resultLabelText: '#Result',
-      resultLabelX: 370,
-      resultLabelY: 282,
+      resultLabelX: 470,
+      resultLabelY: 275,
       resultLabelSize: 32,
       resultLabelColor: '#ffffff',
       resultLabelFont: '"SignPainter", cursive',
       resultLabelVertical: false,
-      resultNumX: 450,
-      resultNumY: 282,
+      resultNumX: 555,
+      resultNumY: 275,
       resultNumSize: 28,
       resultNumColor: '#ffffff',
       resultNumFont: '700 "Sora", sans-serif',
@@ -280,9 +280,9 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       categoryX: -9999,
       categoryY: -9999,
       categoryFont: '600 "Sora", sans-serif',
-      compNameX: 438,
-      compNameY: 315,
-      compNameSize: 34,
+      compNameX: 540,
+      compNameY: 318,
+      compNameSize: 36,
       compNameColor: '#FFAD03',
       compNameFont: '700 "Sora", sans-serif',
       compNameAlign: 'center',
@@ -305,40 +305,40 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       festNameColor: '#fbbf24',
       festNameFont: '700 "Sora", sans-serif',
       showFestName: false,
-      winnerSize: 30,
-      unitSize: 18,
-      rankSize: 26,
+      winnerSize: 34,
+      unitSize: 20,
+      rankSize: 24,
       titleX: 540,
       titleY: 110,
-      rank1BadgeX: 220,
-      rank1BadgeY: 366,
-      rank1NameX: 220,
-      rank1NameY: 412,
-      rank1UnitX: 220,
-      rank1UnitY: 468,
-      rank2BadgeX: 440,
-      rank2BadgeY: 366,
-      rank2NameX: 440,
-      rank2NameY: 412,
-      rank2UnitX: 440,
-      rank2UnitY: 468,
-      rank3BadgeX: 660,
-      rank3BadgeY: 366,
-      rank3NameX: 660,
-      rank3NameY: 412,
-      rank3UnitX: 660,
-      rank3UnitY: 468,
+      rank1BadgeX: 250,
+      rank1BadgeY: 360,
+      rank1NameX: 250,
+      rank1NameY: 430,
+      rank1UnitX: 250,
+      rank1UnitY: 495,
+      rank2BadgeX: 540,
+      rank2BadgeY: 360,
+      rank2NameX: 540,
+      rank2NameY: 430,
+      rank2UnitX: 540,
+      rank2UnitY: 495,
+      rank3BadgeX: 830,
+      rank3BadgeY: 360,
+      rank3NameX: 830,
+      rank3NameY: 430,
+      rank3UnitX: 830,
+      rank3UnitY: 495,
       titleFont: '600 "Sora", sans-serif',
       winnerFont: '700 "Sora", sans-serif',
       unitFont: '400 "Sora", sans-serif',
       rankFont: '600 "Sora", sans-serif',
       fontFamily: '500 "Sora", sans-serif',
       uppercaseNames: false,
-      rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
-      rankBadgeShapeSize: 20,
-      rank1Color: '#ffffff',
-      rank2Color: '#ffffff',
-      rank3Color: '#ffffff',
+      rankBadgeShape: 'circle' as 'pill' | 'circle' | 'rectangle' | 'none',
+      rankBadgeShapeSize: 24,
+      rank1Color: 'rgba(255, 255, 255, 0.2)',
+      rank2Color: 'rgba(255, 255, 255, 0.2)',
+      rank3Color: 'rgba(255, 255, 255, 0.2)',
       rankTextColor: '#ffffff',
       rank1Text: '01',
       rank2Text: '02',
@@ -362,12 +362,13 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       useTeamColors: false,
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
+      contentRotation: 0,
       unitArabicNames: {
         'Nexa Mirath': 'NEXA MIRATH',
         'Nexa Faylas': 'NEXA FAYLAS',
         'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
-        'Zanzibari Souqs': 'TEAM الزَّنْجَبَARِي'
+        'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
       } as Record<string, string>,
     };
   }
@@ -382,13 +383,130 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
     };
   }
 
-  // Theme 4 (Index 3) - Yellow/Orange Curve
+  // Theme 4 (Index 3) - Yellow/Orange Curve Dome
   if (themeIdx === 3) {
-    const base = getDefaultThemeConfig(0);
     return {
-      ...base,
-      resultLabelColor: '#FFAE00',
-      resultNumColor: '#FFAE00',
+      titleColor: '#111827',
+      winnerColor: '#111827',
+      unitColor: '#111827',
+      titleSize: 36,
+      resultLabelText: 'RESULT',
+      resultLabelX: 420,
+      resultLabelY: 260,
+      resultLabelSize: 16,
+      resultLabelColor: '#B01B1B',
+      resultLabelFont: '800 "Sora", sans-serif',
+      resultLabelVertical: true,
+      resultLabelLineGap: 18,
+      resultNumX: 350,
+      resultNumY: 365,
+      resultNumSize: 130,
+      resultNumColor: '#B01B1B',
+      resultNumFont: '700 "Bebas Neue", "Sora", sans-serif',
+      resultNumStyle: 'fill',
+      categorySize: 26,
+      categoryColor: '#B01B1B',
+      categoryX: 525,
+      categoryY: 325,
+      categoryFont: '700 "Sora", sans-serif',
+      compNameX: 510,
+      compNameY: 375,
+      compNameSize: 46,
+      compNameColor: '#B01B1B',
+      compNameFont: '800 "Sora", sans-serif',
+      compNameAlign: 'left',
+      scriptText: 'mid zone',
+      scriptX: 525,
+      scriptY: 285,
+      scriptSize: 42,
+      scriptColor: '#111827',
+      scriptFont: '"SignPainter", cursive',
+      showScriptText: true,
+      scriptAlign: 'left',
+      campusNameX: 540,
+      campusNameY: 70,
+      campusNameSize: 28,
+      campusNameColor: '#111827',
+      campusNameFont: '600 "Sora", sans-serif',
+      showCampusName: false,
+      festNameX: 540,
+      festNameY: 120,
+      festNameSize: 36,
+      festNameColor: '#B01B1B',
+      festNameFont: '700 "Sora", sans-serif',
+      showFestName: false,
+      winnerSize: 34,
+      unitSize: 22,
+      rankSize: 32,
+      titleX: 540,
+      titleY: 110,
+      rank1BadgeX: 320,
+      rank1BadgeY: 460,
+      rank1NameX: 450,
+      rank1NameY: 448,
+      rank1UnitX: 450,
+      rank1UnitY: 478,
+      rank2BadgeX: 320,
+      rank2BadgeY: 535,
+      rank2NameX: 450,
+      rank2NameY: 523,
+      rank2UnitX: 450,
+      rank2UnitY: 553,
+      rank3BadgeX: 320,
+      rank3BadgeY: 610,
+      rank3NameX: 450,
+      rank3NameY: 598,
+      rank3UnitX: 450,
+      rank3UnitY: 628,
+      titleFont: '600 "Sora", sans-serif',
+      winnerFont: '700 "Sora", sans-serif',
+      unitFont: '400 "Sora", sans-serif',
+      rankFont: '700 "Sora", sans-serif',
+      fontFamily: '500 "Sora", sans-serif',
+      uppercaseNames: false,
+      rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
+      rankBadgeShapeSize: 20,
+      rank1Color: '#111827',
+      rank2Color: '#111827',
+      rank3Color: '#111827',
+      rankTextColor: '#111827',
+      rank1Text: '01.',
+      rank2Text: '02.',
+      rank3Text: '03.',
+      winnerAlign: 'left',
+      unitAlign: 'left',
+      winnerWrap: false,
+      showDividers: true,
+      dividerStartX: 450,
+      dividerLength: 350,
+      dividerColor: 'rgba(0, 0, 0, 0.45)',
+      dividerWidth: 1.5,
+      dividerYOffset: 8,
+      showFooter: false,
+      showFooterBg: false,
+      footerLine1: '',
+      footerLine2: '',
+      campusNameUppercase: true,
+      festNameUppercase: true,
+      resultLabelUppercase: true,
+      resultNumUppercase: false,
+      categoryUppercase: false,
+      compNameUppercase: false,
+      winnerUppercase: false,
+      unitUppercase: false,
+      useTeamColors: false,
+      unitColors: {} as Record<string, string>,
+      unitLanguage: 'en',
+      contentRotation: -7.5,
+      rotationOriginX: 540,
+      rotationOriginY: 520,
+      unitArabicNames: {
+        'Nexa Mirath': 'NEXA MIRATH',
+        'Nexa Faylas': 'NEXA FAYLAS',
+        'Sirafi Seafarers': 'TEAM السِّيرَافِي',
+        'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
+        'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
+      } as Record<string, string>,
     };
   }
 
@@ -1198,6 +1316,18 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
     // Formatted result number: 1 -> 01, 9 -> 09, 10 -> 10, 105 -> 105 (without #)
     const formattedNum = compIdx < 10 ? compIdx.toString().padStart(2, '0') : compIdx.toString();
 
+    // Apply Content Rotation / Tilt Angle (e.g. -7.5 deg for Theme 4 Slope)
+    const rotDeg = Number(c.contentRotation ?? c.rotationAngle ?? 0);
+    const hasRot = !isNaN(rotDeg) && rotDeg !== 0;
+    if (hasRot) {
+      ctx.save();
+      const originX = c.rotationOriginX ?? 540;
+      const originY = c.rotationOriginY ?? 520;
+      ctx.translate(originX, originY);
+      ctx.rotate((rotDeg * Math.PI) / 180);
+      ctx.translate(-originX, -originY);
+    }
+
     // Result Label Word (e.g. "RESULT")
     if (c.showResultLabel !== false) {
       const rx = (c.resultLabelX !== undefined && !isNaN(c.resultLabelX))
@@ -1240,6 +1370,16 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
     const rNumX = (c.resultNumX !== undefined && !isNaN(c.resultNumX)) ? c.resultNumX : 135;
     const rNumY = (c.resultNumY !== undefined && !isNaN(c.resultNumY)) ? c.resultNumY : 375;
     const rNumColor = (!c.resultNumColor || c.resultNumColor === '#000000') ? '#84C75D' : c.resultNumColor;
+
+    const rNumRot = Number(c.resultNumRotation || 0);
+    const hasNumRot = !isNaN(rNumRot) && rNumRot !== 0;
+    if (hasNumRot) {
+      ctx.save();
+      ctx.translate(rNumX, rNumY);
+      ctx.rotate((rNumRot * Math.PI) / 180);
+      ctx.translate(-rNumX, -rNumY);
+    }
+
     if (c.resultNumStyle === 'stroke') {
       ctx.save();
       ctx.strokeStyle = rNumColor;
@@ -1250,6 +1390,9 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
     } else {
       ctx.fillStyle = rNumColor;
       ctx.fillText(formattedNum, rNumX, rNumY);
+    }
+    if (hasNumRot) {
+      ctx.restore();
     }
     const rNumMetrics = ctx.measureText(formattedNum);
     addRegion('resultNum', rNumX - 10, rNumY - (c.resultNumSize || 145) - 5, rNumMetrics.width + 20, (c.resultNumSize || 145) + 20);
@@ -1296,6 +1439,15 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
     const compLines = compText.split('\n').filter(Boolean);
     ctx.textAlign = (c.compNameAlign || 'left') as CanvasTextAlign;
 
+    const compRot = Number(c.compNameRotation || 0);
+    const hasCompRot = !isNaN(compRot) && compRot !== 0;
+    if (hasCompRot) {
+      ctx.save();
+      ctx.translate(compX, compY);
+      ctx.rotate((compRot * Math.PI) / 180);
+      ctx.translate(-compX, -compY);
+    }
+
     // Auto-fit competition name so long multi-word or 2-line titles scale down cleanly
     let compNameSize = c.compNameSize ?? 52;
     const maxCompAllowedWidth = c.compNameMaxWidth || Math.max(W - compX - 60, 420);
@@ -1315,7 +1467,12 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
       const w = ctx.measureText(line).width;
       if (w > maxCompW) maxCompW = w;
     });
-    addRegion('compName', compX - 10, compY - compNameSize - 5, maxCompW + 20, (compLines.length * compLineGap) + 15);
+
+    if (hasCompRot) {
+      ctx.restore();
+    }
+    const compHitX = c.compNameAlign === 'center' ? compX - maxCompW / 2 : compX;
+    addRegion('compName', compHitX - 10, compY - compNameSize - 5, maxCompW + 20, (compLines.length * compLineGap) + 15);
 
     // Dynamic vertical shift to prevent tied winners from overlapping downstream ranks
     let cumulativeShiftY = 0;
@@ -1579,6 +1736,11 @@ const defaultThemes = DEFAULT_POSTER_THEMES;
 
         addRegion(`customDivider_${i}`, dx - 5, dy - Math.max(dThick, 16) / 2, dLen + 10, Math.max(dThick, 16));
       });
+    }
+
+    // End Content Rotation before drawing footer
+    if (hasRot) {
+      ctx.restore();
     }
 
     // Footer

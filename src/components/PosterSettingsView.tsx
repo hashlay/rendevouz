@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Award, Trophy, Image as ImageIcon, Download, Upload,
-  Sparkles, RefreshCw, Palette, Layers, CheckCircle2, ChevronDown, Save, X, Plus, Trash2, Move, GripVertical, Copy, Minus
+  Sparkles, RefreshCw, Palette, Layers, CheckCircle2, ChevronDown, Save, X, Plus, Trash2, Move, GripVertical, Copy, Minus,
+  RotateCw, AlignLeft, AlignCenter, AlignRight, Eye
 } from 'lucide-react';
 import { User, Category, Unit, Participant, Competition, Result, Team, UserRole } from '../types';
 import { UNIVERSAL_FONT_OPTIONS, parseFontForCanvas } from '../utils/fontHelper';
@@ -264,14 +265,14 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       unitColor: '#ffffff',
       titleSize: 36,
       resultLabelText: '#Result',
-      resultLabelX: 370,
-      resultLabelY: 282,
+      resultLabelX: 470,
+      resultLabelY: 275,
       resultLabelSize: 32,
       resultLabelColor: '#ffffff',
       resultLabelFont: '"SignPainter", cursive',
       resultLabelVertical: false,
-      resultNumX: 450,
-      resultNumY: 282,
+      resultNumX: 555,
+      resultNumY: 275,
       resultNumSize: 28,
       resultNumColor: '#ffffff',
       resultNumFont: '700 "Sora", sans-serif',
@@ -281,9 +282,9 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       categoryX: -9999,
       categoryY: -9999,
       categoryFont: '600 "Sora", sans-serif',
-      compNameX: 438,
-      compNameY: 315,
-      compNameSize: 34,
+      compNameX: 540,
+      compNameY: 318,
+      compNameSize: 36,
       compNameColor: '#FFAD03',
       compNameFont: '700 "Sora", sans-serif',
       compNameAlign: 'center',
@@ -306,40 +307,40 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       festNameColor: '#fbbf24',
       festNameFont: '700 "Sora", sans-serif',
       showFestName: false,
-      winnerSize: 30,
-      unitSize: 18,
-      rankSize: 26,
+      winnerSize: 34,
+      unitSize: 20,
+      rankSize: 24,
       titleX: 540,
       titleY: 110,
-      rank1BadgeX: 220,
-      rank1BadgeY: 366,
-      rank1NameX: 220,
-      rank1NameY: 412,
-      rank1UnitX: 220,
-      rank1UnitY: 468,
-      rank2BadgeX: 440,
-      rank2BadgeY: 366,
-      rank2NameX: 440,
-      rank2NameY: 412,
-      rank2UnitX: 440,
-      rank2UnitY: 468,
-      rank3BadgeX: 660,
-      rank3BadgeY: 366,
-      rank3NameX: 660,
-      rank3NameY: 412,
-      rank3UnitX: 660,
-      rank3UnitY: 468,
+      rank1BadgeX: 250,
+      rank1BadgeY: 360,
+      rank1NameX: 250,
+      rank1NameY: 430,
+      rank1UnitX: 250,
+      rank1UnitY: 495,
+      rank2BadgeX: 540,
+      rank2BadgeY: 360,
+      rank2NameX: 540,
+      rank2NameY: 430,
+      rank2UnitX: 540,
+      rank2UnitY: 495,
+      rank3BadgeX: 830,
+      rank3BadgeY: 360,
+      rank3NameX: 830,
+      rank3NameY: 430,
+      rank3UnitX: 830,
+      rank3UnitY: 495,
       titleFont: '600 "Sora", sans-serif',
       winnerFont: '700 "Sora", sans-serif',
       unitFont: '400 "Sora", sans-serif',
       rankFont: '600 "Sora", sans-serif',
       fontFamily: '500 "Sora", sans-serif',
       uppercaseNames: false,
-      rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
-      rankBadgeShapeSize: 20,
-      rank1Color: '#ffffff',
-      rank2Color: '#ffffff',
-      rank3Color: '#ffffff',
+      rankBadgeShape: 'circle' as 'pill' | 'circle' | 'rectangle' | 'none',
+      rankBadgeShapeSize: 24,
+      rank1Color: 'rgba(255, 255, 255, 0.2)',
+      rank2Color: 'rgba(255, 255, 255, 0.2)',
+      rank3Color: 'rgba(255, 255, 255, 0.2)',
       rankTextColor: '#ffffff',
       rank1Text: '01',
       rank2Text: '02',
@@ -363,12 +364,13 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
       useTeamColors: false,
       unitColors: {} as Record<string, string>,
       unitLanguage: 'en',
+      contentRotation: 0,
       unitArabicNames: {
         'Nexa Mirath': 'NEXA MIRATH',
         'Nexa Faylas': 'NEXA FAYLAS',
-        'Sirafi Seafarers': 'TEAM السِّيرَAFِي',
+        'Sirafi Seafarers': 'TEAM السِّيرَافِي',
         'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
-        'Zanzibari Souqs': 'TEAM الزَّنْجَبَARِي'
+        'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
       } as Record<string, string>,
     };
   }
@@ -383,13 +385,130 @@ export function getDefaultThemeConfig(themeIdx: number = 0): any {
     };
   }
 
-  // Theme 4 (Index 3) - Yellow/Orange Curve
+  // Theme 4 (Index 3) - Yellow/Orange Curve Dome
   if (themeIdx === 3) {
-    const base = getDefaultThemeConfig(0);
     return {
-      ...base,
-      resultLabelColor: '#FFAE00',
-      resultNumColor: '#FFAE00',
+      titleColor: '#111827',
+      winnerColor: '#111827',
+      unitColor: '#111827',
+      titleSize: 36,
+      resultLabelText: 'RESULT',
+      resultLabelX: 420,
+      resultLabelY: 260,
+      resultLabelSize: 16,
+      resultLabelColor: '#B01B1B',
+      resultLabelFont: '800 "Sora", sans-serif',
+      resultLabelVertical: true,
+      resultLabelLineGap: 18,
+      resultNumX: 350,
+      resultNumY: 365,
+      resultNumSize: 130,
+      resultNumColor: '#B01B1B',
+      resultNumFont: '700 "Bebas Neue", "Sora", sans-serif',
+      resultNumStyle: 'fill',
+      categorySize: 26,
+      categoryColor: '#B01B1B',
+      categoryX: 525,
+      categoryY: 325,
+      categoryFont: '700 "Sora", sans-serif',
+      compNameX: 510,
+      compNameY: 375,
+      compNameSize: 46,
+      compNameColor: '#B01B1B',
+      compNameFont: '800 "Sora", sans-serif',
+      compNameAlign: 'left',
+      scriptText: 'mid zone',
+      scriptX: 525,
+      scriptY: 285,
+      scriptSize: 42,
+      scriptColor: '#111827',
+      scriptFont: '"SignPainter", cursive',
+      showScriptText: true,
+      scriptAlign: 'left',
+      campusNameX: 540,
+      campusNameY: 70,
+      campusNameSize: 28,
+      campusNameColor: '#111827',
+      campusNameFont: '600 "Sora", sans-serif',
+      showCampusName: false,
+      festNameX: 540,
+      festNameY: 120,
+      festNameSize: 36,
+      festNameColor: '#B01B1B',
+      festNameFont: '700 "Sora", sans-serif',
+      showFestName: false,
+      winnerSize: 34,
+      unitSize: 22,
+      rankSize: 32,
+      titleX: 540,
+      titleY: 110,
+      rank1BadgeX: 320,
+      rank1BadgeY: 460,
+      rank1NameX: 450,
+      rank1NameY: 448,
+      rank1UnitX: 450,
+      rank1UnitY: 478,
+      rank2BadgeX: 320,
+      rank2BadgeY: 535,
+      rank2NameX: 450,
+      rank2NameY: 523,
+      rank2UnitX: 450,
+      rank2UnitY: 553,
+      rank3BadgeX: 320,
+      rank3BadgeY: 610,
+      rank3NameX: 450,
+      rank3NameY: 598,
+      rank3UnitX: 450,
+      rank3UnitY: 628,
+      titleFont: '600 "Sora", sans-serif',
+      winnerFont: '700 "Sora", sans-serif',
+      unitFont: '400 "Sora", sans-serif',
+      rankFont: '700 "Sora", sans-serif',
+      fontFamily: '500 "Sora", sans-serif',
+      uppercaseNames: false,
+      rankBadgeShape: 'none' as 'pill' | 'circle' | 'rectangle' | 'none',
+      rankBadgeShapeSize: 20,
+      rank1Color: '#111827',
+      rank2Color: '#111827',
+      rank3Color: '#111827',
+      rankTextColor: '#111827',
+      rank1Text: '01.',
+      rank2Text: '02.',
+      rank3Text: '03.',
+      winnerAlign: 'left',
+      unitAlign: 'left',
+      winnerWrap: false,
+      showDividers: true,
+      dividerStartX: 450,
+      dividerLength: 350,
+      dividerColor: 'rgba(0, 0, 0, 0.45)',
+      dividerWidth: 1.5,
+      dividerYOffset: 8,
+      showFooter: false,
+      showFooterBg: false,
+      footerLine1: '',
+      footerLine2: '',
+      campusNameUppercase: true,
+      festNameUppercase: true,
+      resultLabelUppercase: true,
+      resultNumUppercase: false,
+      categoryUppercase: false,
+      compNameUppercase: false,
+      winnerUppercase: false,
+      unitUppercase: false,
+      useTeamColors: false,
+      unitColors: {} as Record<string, string>,
+      unitLanguage: 'en',
+      contentRotation: -7.5,
+      rotationOriginX: 540,
+      rotationOriginY: 520,
+      unitArabicNames: {
+        'Nexa Mirath': 'NEXA MIRATH',
+        'Nexa Faylas': 'NEXA FAYLAS',
+        'Sirafi Seafarers': 'TEAM السِّيرَافِي',
+        'Tabrizi Taraz': 'TEAM التَّبْرِيزِي',
+        'Zanzibari Souqs': 'TEAM الزَّنْجَبَارِي'
+      } as Record<string, string>,
     };
   }
 
@@ -526,6 +645,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
   const [selectedThemeIndex, setSelectedThemeIndex] = useState<number>(0);
   const [categories, setCategories] = useState<any[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [sampleResultNum, setSampleResultNum] = useState<string>('01');
 
   const isInitialSyncRef = useRef(true);
 
@@ -820,6 +940,21 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
     };
   };
 
+  // Helper to reverse canvas rotation for accurate pointer hit-testing and dragging
+  const getRotatedCoords = (canvasX: number, canvasY: number, cfg: any) => {
+    const rotDeg = Number(cfg.contentRotation ?? cfg.rotationAngle ?? 0);
+    if (isNaN(rotDeg) || rotDeg === 0) return { x: canvasX, y: canvasY };
+    const originX = cfg.rotationOriginX ?? 540;
+    const originY = cfg.rotationOriginY ?? 520;
+    const rad = (-rotDeg * Math.PI) / 180;
+    const cdx = canvasX - originX;
+    const cdy = canvasY - originY;
+    return {
+      x: originX + cdx * Math.cos(rad) - cdy * Math.sin(rad),
+      y: originY + cdx * Math.sin(rad) + cdy * Math.cos(rad)
+    };
+  };
+
   const handleDragStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     const coords = getCanvasCoords(e);
     if (!coords) return;
@@ -829,12 +964,14 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
       try { e.preventDefault(); } catch (_) { }
     }
 
+    const { x: hitX, y: hitY } = getRotatedCoords(canvasX, canvasY, confRef.current);
+
     // Find the most specific (smallest) hit region
     let bestHit: string | null = null;
     let bestArea = Infinity;
     for (const region of hitRegions.current) {
-      if (canvasX >= region.x && canvasX <= region.x + region.w &&
-        canvasY >= region.y && canvasY <= region.y + region.h) {
+      if (hitX >= region.x && hitX <= region.x + region.w &&
+        hitY >= region.y && hitY <= region.y + region.h) {
         const area = region.w * region.h;
         if (area < bestArea) {
           bestArea = area;
@@ -884,14 +1021,24 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
       const dy = deltaClientY * scaleY;
 
       if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
+        // Adjust drag deltas for content rotation so elements move along visual mouse direction
+        const rotDeg = Number(confRef.current.contentRotation ?? confRef.current.rotationAngle ?? 0);
+        let effDx = dx;
+        let effDy = dy;
+        if (!isNaN(rotDeg) && rotDeg !== 0) {
+          const rad = (-rotDeg * Math.PI) / 180;
+          effDx = dx * Math.cos(rad) - dy * Math.sin(rad);
+          effDy = dx * Math.sin(rad) + dy * Math.cos(rad);
+        }
+
         if (typeof dragging === 'string' && dragging.startsWith('customDivider_')) {
           const divIdx = parseInt(dragging.replace('customDivider_', ''), 10);
           const currentDividers = [...(confRef.current.customDividers || [])];
           if (currentDividers[divIdx]) {
             currentDividers[divIdx] = {
               ...currentDividers[divIdx],
-              x: Math.round((currentDividers[divIdx].x ?? 260) + dx),
-              y: Math.round((currentDividers[divIdx].y ?? 420) + dy)
+              x: Math.round((currentDividers[divIdx].x ?? 260) + effDx),
+              y: Math.round((currentDividers[divIdx].y ?? 420) + effDy)
             };
             updateConf('customDividers', currentDividers);
           }
@@ -903,8 +1050,8 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
         if (posMap) {
           const currentConf = confRef.current;
           updateConfMultiple({
-            [posMap.xKey]: Math.round((currentConf[posMap.xKey] ?? 0) + dx),
-            [posMap.yKey]: Math.round((currentConf[posMap.yKey] ?? 0) + dy)
+            [posMap.xKey]: Math.round((currentConf[posMap.xKey] ?? 0) + effDx),
+            [posMap.yKey]: Math.round((currentConf[posMap.yKey] ?? 0) + effDy)
           });
         }
         lastMousePos.current = { x: clientX, y: clientY };
@@ -940,11 +1087,12 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
     const coords = getCanvasCoords(e);
     if (!coords) return;
     const { canvasX, canvasY } = coords;
+    const { x: hitX, y: hitY } = getRotatedCoords(canvasX, canvasY, confRef.current);
 
     let hovered: string | null = null;
     for (const region of hitRegions.current) {
-      if (canvasX >= region.x && canvasX <= region.x + region.w &&
-        canvasY >= region.y && canvasY <= region.y + region.h) {
+      if (hitX >= region.x && hitX <= region.x + region.w &&
+        hitY >= region.y && hitY <= region.y + region.h) {
         hovered = region.id;
       }
     }
@@ -1028,6 +1176,18 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
       addRegion('festName', fx - 10, fy - (c.festNameSize ?? 36) - 5, festMetrics.width + 20, (c.festNameSize ?? 36) + 20);
     }
 
+    // Apply Content Rotation / Tilt Angle (e.g. -7.5 deg for Theme 4 Slope)
+    const rotDeg = Number(c.contentRotation ?? c.rotationAngle ?? 0);
+    const hasRot = !isNaN(rotDeg) && rotDeg !== 0;
+    if (hasRot) {
+      ctx.save();
+      const originX = c.rotationOriginX ?? 540;
+      const originY = c.rotationOriginY ?? 520;
+      ctx.translate(originX, originY);
+      ctx.rotate((rotDeg * Math.PI) / 180);
+      ctx.translate(-originX, -originY);
+    }
+
     // Result Label (Word: e.g. "RESULT")
     if (c.showResultLabel !== false) {
       const rx = (c.resultLabelX !== undefined && !isNaN(c.resultLabelX))
@@ -1064,14 +1224,23 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
       ctx.restore();
     }
 
-    // Result Number (Number: e.g. "00" - Normal Solid Font by default)
+    // Result Number (Number: e.g. "01", "100", "101" - Normal Solid Font by default)
     ctx.textAlign = 'left';
     ctx.font = parseFontForCanvas(c.resultNumFont || c.fontFamily, c.resultNumSize || 145, '700');
     const rNumX = (c.resultNumX !== undefined && !isNaN(c.resultNumX)) ? c.resultNumX : 135;
     const rNumY = (c.resultNumY !== undefined && !isNaN(c.resultNumY)) ? c.resultNumY : 375;
     const rNumColor = (!c.resultNumColor || c.resultNumColor === '#000000') ? '#84C75D' : c.resultNumColor;
-    const rNumText = '00';
+    const rNumText = sampleResultNum || '01';
     const rNumMetrics = ctx.measureText(rNumText);
+
+    const rNumRot = Number(c.resultNumRotation || 0);
+    const hasNumRot = !isNaN(rNumRot) && rNumRot !== 0;
+    if (hasNumRot) {
+      ctx.save();
+      ctx.translate(rNumX, rNumY);
+      ctx.rotate((rNumRot * Math.PI) / 180);
+      ctx.translate(-rNumX, -rNumY);
+    }
 
     if (c.resultNumStyle === 'stroke') {
       ctx.save();
@@ -1085,8 +1254,11 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
       ctx.fillStyle = rNumColor;
       ctx.fillText(rNumText, rNumX, rNumY);
     }
-    addRegion('resultNum', rNumX - 10, rNumY - (c.resultNumSize || 145) - 5, rNumMetrics.width + 20, (c.resultNumSize || 145) + 20);
 
+    if (hasNumRot) {
+      ctx.restore();
+    }
+    addRegion('resultNum', rNumX - 10, rNumY - (c.resultNumSize || 145) - 5, rNumMetrics.width + 20, (c.resultNumSize || 145) + 20);
 
     // Cursive Script Text (SignPainter) e.g. "mid zone"
     if (c.showScriptText !== false && (c.scriptSize ?? 0) > 0) {
@@ -1102,7 +1274,9 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
         const sy = c.scriptY ?? 308;
         ctx.fillText(sText, sx, sy);
         const sMetrics = ctx.measureText(sText);
-        addRegion('scriptText', sx - 10, sy - (c.scriptSize ?? 48) - 5, sMetrics.width + 20, (c.scriptSize ?? 48) + 20);
+        const sW = sMetrics.width;
+        const scriptHitX = c.scriptAlign === 'center' ? sx - sW / 2 : sx;
+        addRegion('scriptText', scriptHitX - 10, sy - (c.scriptSize ?? 48) - 5, sW + 20, (c.scriptSize ?? 48) + 20);
         ctx.restore();
       }
     }
@@ -1111,28 +1285,61 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
     ctx.textAlign = 'left';
     ctx.font = parseFontForCanvas(c.categoryFont || c.fontFamily, c.categorySize ?? 26, '400');
     ctx.fillStyle = c.categoryColor || 'rgba(255, 255, 255, 0.7)';
-    const rawCat = 'Category';
+    const rawCat = selectedThemeIndex === 3 ? 'Junior' : 'Category';
     const catText = c.categoryUppercase ? rawCat.toUpperCase() : rawCat;
     const catMetrics = ctx.measureText(catText);
     ctx.fillText(catText, c.categoryX ?? 540, c.categoryY ?? 260);
     addRegion('category', (c.categoryX ?? 540) - 10, (c.categoryY ?? 260) - (c.categorySize ?? 26) - 5, catMetrics.width + 20, (c.categorySize ?? 26) + 20);
 
-    // Competition Name
-    ctx.textAlign = 'left';
+    // Competition Name with auto-fit and alignment
     ctx.textAlign = (c.compNameAlign || 'left') as CanvasTextAlign;
-    ctx.font = parseFontForCanvas(c.compNameFont || c.fontFamily, c.compNameSize ?? 52, '700');
-    ctx.fillStyle = c.compNameColor || '#ffffff';
-    const rawComp = 'Competition Name';
+    let compNameSize = c.compNameSize ?? 52;
+    const rawComp = selectedThemeIndex === 1 ? 'Senior Speech english' : (selectedThemeIndex === 3 ? 'Madh Song' : 'Competition Name');
     const compText = c.compNameUppercase ? rawComp.toUpperCase() : rawComp;
-    const compMetrics = ctx.measureText(compText);
-    ctx.fillText(compText, c.compNameX ?? 540, c.compNameY ?? 330);
-    addRegion('compName', (c.compNameX ?? 540) - 10, (c.compNameY ?? 330) - (c.compNameSize ?? 52) - 5, compMetrics.width + 20, (c.compNameSize ?? 52) + 20);
+    const compLines = compText.split('\n').filter(Boolean);
+    const compX = c.compNameX ?? 540;
+    const compY = c.compNameY ?? 330;
+
+    const compRot = Number(c.compNameRotation || 0);
+    const hasCompRot = !isNaN(compRot) && compRot !== 0;
+    if (hasCompRot) {
+      ctx.save();
+      ctx.translate(compX, compY);
+      ctx.rotate((compRot * Math.PI) / 180);
+      ctx.translate(-compX, -compY);
+    }
+
+    ctx.font = parseFontForCanvas(c.compNameFont || c.fontFamily, compNameSize, '700');
+    ctx.fillStyle = c.compNameColor || '#ffffff';
+    let maxCompW = 0;
+    const compGap = compNameSize * 1.15;
+    compLines.forEach((line: string, i: number) => {
+      ctx.fillText(line, compX, compY + i * compGap);
+      const w = ctx.measureText(line).width;
+      if (w > maxCompW) maxCompW = w;
+    });
+
+    if (hasCompRot) {
+      ctx.restore();
+    }
+    const compHitX = c.compNameAlign === 'center' ? compX - maxCompW / 2 : compX;
+    addRegion('compName', compHitX - 10, compY - compNameSize - 5, maxCompW + 20, (compLines.length * compGap) + 10);
+
+    // Sample data tailored for active theme
+    const sampleNames = selectedThemeIndex === 1
+      ? ['Sayyid Sinan', 'Sayyid Sinan', 'Sayyid Sinan']
+      : selectedThemeIndex === 3
+        ? ['FASIL FARHAN', 'MUHAMMED RAYYAN', 'MUHAMMED SINAN']
+        : ['Participant Name 1', 'Participant Name 2', 'Participant Name 3'];
+    const sampleUnits = selectedThemeIndex === 1 || selectedThemeIndex === 3
+      ? ['sanaviyya', 'sanaviyya', 'sanaviyya']
+      : ['Team Name', 'Team Name', 'Team Name'];
 
     // Draw each rank separately
     const rankData = [
-      { rank: 1, badgeXKey: 'rank1BadgeX', badgeYKey: 'rank1BadgeY', nameXKey: 'rank1NameX', nameYKey: 'rank1NameY', unitXKey: 'rank1UnitX', unitYKey: 'rank1UnitY', color: c.rank1Color, text: c.rank1Text, badgeId: 'rank1Badge', nameId: 'rank1Name', unitId: 'rank1Unit', sampleName: 'Participant Name 1', sampleUnit: 'Team Name' },
-      { rank: 2, badgeXKey: 'rank2BadgeX', badgeYKey: 'rank2BadgeY', nameXKey: 'rank2NameX', nameYKey: 'rank2NameY', unitXKey: 'rank2UnitX', unitYKey: 'rank2UnitY', color: c.rank2Color, text: c.rank2Text, badgeId: 'rank2Badge', nameId: 'rank2Name', unitId: 'rank2Unit', sampleName: 'Participant Name 2', sampleUnit: 'Team Name' },
-      { rank: 3, badgeXKey: 'rank3BadgeX', badgeYKey: 'rank3BadgeY', nameXKey: 'rank3NameX', nameYKey: 'rank3NameY', unitXKey: 'rank3UnitX', unitYKey: 'rank3UnitY', color: c.rank3Color, text: c.rank3Text, badgeId: 'rank3Badge', nameId: 'rank3Name', unitId: 'rank3Unit', sampleName: 'Participant Name 3', sampleUnit: 'Team Name' },
+      { rank: 1, badgeXKey: 'rank1BadgeX', badgeYKey: 'rank1BadgeY', nameXKey: 'rank1NameX', nameYKey: 'rank1NameY', unitXKey: 'rank1UnitX', unitYKey: 'rank1UnitY', color: c.rank1Color, text: c.rank1Text, badgeId: 'rank1Badge', nameId: 'rank1Name', unitId: 'rank1Unit', sampleName: sampleNames[0], sampleUnit: sampleUnits[0] },
+      { rank: 2, badgeXKey: 'rank2BadgeX', badgeYKey: 'rank2BadgeY', nameXKey: 'rank2NameX', nameYKey: 'rank2NameY', unitXKey: 'rank2UnitX', unitYKey: 'rank2UnitY', color: c.rank2Color, text: c.rank2Text, badgeId: 'rank2Badge', nameId: 'rank2Name', unitId: 'rank2Unit', sampleName: sampleNames[1], sampleUnit: sampleUnits[1] },
+      { rank: 3, badgeXKey: 'rank3BadgeX', badgeYKey: 'rank3BadgeY', nameXKey: 'rank3NameX', nameYKey: 'rank3NameY', unitXKey: 'rank3UnitX', unitYKey: 'rank3UnitY', color: c.rank3Color, text: c.rank3Text, badgeId: 'rank3Badge', nameId: 'rank3Name', unitId: 'rank3Unit', sampleName: sampleNames[2], sampleUnit: sampleUnits[2] },
     ];
 
     rankData.forEach(rd => {
@@ -1193,58 +1400,88 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
       }
       addRegion(rd.badgeId, bx - badgeW / 2 - 5, badgeCenterY - badgeH / 2 - 5, badgeW + 10, badgeH + 10);
 
-      // Participant name with Auto-fit preview
+      // Participant name with Auto-fit preview and 2-line wrap
       ctx.textAlign = (c.winnerAlign || 'left') as CanvasTextAlign;
       let winnerFontSize = c.winnerSize || 34;
       const maxWinnerAllowedWidth = c.winnerMaxWidth || Math.max(Math.min(W - (c.rank1NameX ?? 260) - 60, 520), 380);
       const rawNameText = rd.sampleName || 'Participant Name';
       const nameText = (c.winnerUppercase || c.uppercaseNames) ? rawNameText.toUpperCase() : rawNameText;
+      let nameLines = nameText.split('\n').filter(Boolean);
+      if (c.winnerWrap && nameLines.length === 1 && nameText.includes(' ')) {
+        const words = nameText.split(' ');
+        if (words.length >= 2) {
+          const mid = Math.ceil(words.length / 2);
+          nameLines = [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
+        }
+      }
       ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, winnerFontSize, '500');
-      while (ctx.measureText(nameText).width > maxWinnerAllowedWidth && winnerFontSize > 14) {
+      let longestNameLine = nameLines.length > 0 ? Math.max(...nameLines.map((l: string) => ctx.measureText(l).width)) : 0;
+      while (longestNameLine > maxWinnerAllowedWidth && winnerFontSize > 14) {
         winnerFontSize -= 1;
         ctx.font = parseFontForCanvas(c.winnerFont || c.fontFamily, winnerFontSize, '500');
+        longestNameLine = Math.max(...nameLines.map((l: string) => ctx.measureText(l).width));
       }
       const winnerFill = c.winnerColor || '#ffffff';
       ctx.fillStyle = winnerFill;
+      const nameGap = winnerFontSize * 1.15;
+      let maxNameW = 0;
       const isWinnerFractul = (c.winnerFont || c.fontFamily || '').includes('Fractul Alt');
-      if (isWinnerFractul) {
-        ctx.save();
-        ctx.strokeStyle = winnerFill;
-        ctx.lineWidth = 0.9;
-        ctx.lineJoin = 'round';
-        ctx.strokeText(nameText, nx, ny);
-        ctx.fillText(nameText, nx, ny);
-        ctx.restore();
-      } else {
-        ctx.fillText(nameText, nx, ny);
-      }
-      const nameMetrics = ctx.measureText(nameText);
-      addRegion(rd.nameId, nx - 5, ny - winnerFontSize - 5, nameMetrics.width + 10, winnerFontSize + 15);
+      nameLines.forEach((line: string, i: number) => {
+        if (isWinnerFractul) {
+          ctx.save();
+          ctx.strokeStyle = winnerFill;
+          ctx.lineWidth = 0.9;
+          ctx.lineJoin = 'round';
+          ctx.strokeText(line, nx, ny + i * nameGap);
+          ctx.fillText(line, nx, ny + i * nameGap);
+          ctx.restore();
+        } else {
+          ctx.fillText(line, nx, ny + i * nameGap);
+        }
+        const w = ctx.measureText(line).width;
+        if (w > maxNameW) maxNameW = w;
+      });
+      const nameHitX = c.winnerAlign === 'center' ? nx - maxNameW / 2 : nx;
+      addRegion(rd.nameId, nameHitX - 5, ny - winnerFontSize - 5, maxNameW + 10, (nameLines.length * nameGap) + 10);
 
-      // Unit/Team name
+      // Unit/Team name with multi-line and alignment
       const isArabic = c.unitLanguage === 'ar';
       const arabicFont = (c.unitFont && c.unitFont !== 'monospace') ? c.unitFont : "'Cairo', 'Amiri', sans-serif";
       ctx.textAlign = (c.unitAlign || c.winnerAlign || 'left') as CanvasTextAlign;
-      ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), c.unitSize || 22, '500');
+      let unitFontSize = c.unitSize || 22;
+      ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), unitFontSize, '500');
       const sampleUnitName = rd.sampleUnit;
       const displayUnitName = getPosterDisplayUnitName(sampleUnitName, c);
       const unitText = isArabic ? displayUnitName : (c.unitUppercase ? displayUnitName.toUpperCase() : displayUnitName);
+      const unitLines = unitText.split('\n').filter(Boolean);
+      let longestUnitLine = unitLines.length > 0 ? Math.max(...unitLines.map((l: string) => ctx.measureText(l).width)) : 0;
+      while (longestUnitLine > maxWinnerAllowedWidth && unitFontSize > 12) {
+        unitFontSize -= 1;
+        ctx.font = parseFontForCanvas(isArabic ? arabicFont : (c.unitFont || 'monospace'), unitFontSize, '500');
+        longestUnitLine = Math.max(...unitLines.map((l: string) => ctx.measureText(l).width));
+      }
       const unitFill = getPosterTeamColor(sampleUnitName, c.unitColor, c);
       ctx.fillStyle = unitFill;
+      const unitGap = unitFontSize * 1.15;
+      let maxUnitW = 0;
       const isUnitFractul = (c.unitFont || c.fontFamily || '').includes('Fractul Alt');
-      if (isUnitFractul) {
-        ctx.save();
-        ctx.strokeStyle = unitFill;
-        ctx.lineWidth = 0.65;
-        ctx.lineJoin = 'round';
-        ctx.strokeText(unitText, ux, uy);
-        ctx.fillText(unitText, ux, uy);
-        ctx.restore();
-      } else {
-        ctx.fillText(unitText, ux, uy);
-      }
-      const unitMetrics = ctx.measureText(unitText);
-      addRegion(rd.unitId, ux - 5, uy - (c.unitSize || 22) - 5, unitMetrics.width + 10, (c.unitSize || 22) + 15);
+      unitLines.forEach((line: string, i: number) => {
+        if (isUnitFractul) {
+          ctx.save();
+          ctx.strokeStyle = unitFill;
+          ctx.lineWidth = 0.65;
+          ctx.lineJoin = 'round';
+          ctx.strokeText(line, ux, uy + i * unitGap);
+          ctx.fillText(line, ux, uy + i * unitGap);
+          ctx.restore();
+        } else {
+          ctx.fillText(line, ux, uy + i * unitGap);
+        }
+        const w = ctx.measureText(line).width;
+        if (w > maxUnitW) maxUnitW = w;
+      });
+      const unitHitX = (c.unitAlign || c.winnerAlign) === 'center' ? ux - maxUnitW / 2 : ux;
+      addRegion(rd.unitId, unitHitX - 5, uy - unitFontSize - 5, maxUnitW + 10, (unitLines.length * unitGap) + 10);
 
       // Divider line preview
       if (c.showDividers && rd.rank < 3) {
@@ -1283,6 +1520,11 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
 
         addRegion(`customDivider_${i}`, dx - 5, dy - Math.max(dThick, 16) / 2, dLen + 10, Math.max(dThick, 16));
       });
+    }
+
+    // End Content Rotation before drawing footer
+    if (hasRot) {
+      ctx.restore();
     }
 
 
@@ -1325,7 +1567,7 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
 
   useEffect(() => {
     renderCanvas();
-  }, [selectedThemeIndex, customThemes, themeConfigs, hoveredElement, dragging, imgLoaded]);
+  }, [selectedThemeIndex, customThemes, themeConfigs, hoveredElement, dragging, imgLoaded, sampleResultNum]);
 
   // Sidebar sections collapse
   const [expandedSection, setExpandedSection] = useState<string>('themes');
@@ -1822,6 +2064,108 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
                       <input type="checkbox" checked={conf.unitUppercase !== false} onChange={e => updateConf('unitUppercase', e.target.checked)} className="accent-emerald-600" />
                       <span className="text-xs font-bold text-slate-700">Unit Names</span>
                     </label>
+                  </div>
+                </div>
+
+                {/* Text Alignment & Multi-Line Controls */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                    Text Alignments & Multi-Line Wrapping
+                  </span>
+
+                  {/* Participant Name Alignment & Wrap */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Participant / Winner Names</span>
+                      <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                        {(['left', 'center', 'right'] as const).map(align => (
+                          <button
+                            key={align}
+                            type="button"
+                            onClick={() => updateConf('winnerAlign', align)}
+                            className={`px-2.5 py-1 text-[11px] font-bold rounded-md capitalize transition ${
+                              (conf.winnerAlign || 'left') === align
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            {align}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer pt-1 border-t border-slate-100">
+                      <input
+                        type="checkbox"
+                        checked={conf.winnerWrap ?? false}
+                        onChange={e => updateConf('winnerWrap', e.target.checked)}
+                        className="accent-emerald-600"
+                      />
+                      <span className="text-xs font-bold text-slate-700">Wrap Names into 2 Lines (e.g. Sayyid Sinan)</span>
+                    </label>
+                  </div>
+
+                  {/* Unit / Team Name Alignment */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800">Unit / Team Names</span>
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      {(['left', 'center', 'right'] as const).map(align => (
+                        <button
+                          key={align}
+                          type="button"
+                          onClick={() => updateConf('unitAlign', align)}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-md capitalize transition ${
+                            (conf.unitAlign || conf.winnerAlign || 'left') === align
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {align}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Competition Name Alignment */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800">Competition Name</span>
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      {(['left', 'center', 'right'] as const).map(align => (
+                        <button
+                          key={align}
+                          type="button"
+                          onClick={() => updateConf('compNameAlign', align)}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-md capitalize transition ${
+                            (conf.compNameAlign || 'left') === align
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {align}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Script Text Alignment */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800">Cursive Script (e.g. mid zone)</span>
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      {(['left', 'center', 'right'] as const).map(align => (
+                        <button
+                          key={align}
+                          type="button"
+                          onClick={() => updateConf('scriptAlign', align)}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-md capitalize transition ${
+                            (conf.scriptAlign || 'left') === align
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {align}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -2349,6 +2693,90 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
             )}
           </div>
 
+          {/* Tilt & Rotation */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+            <SectionHeader id="rotation" title={`Tilt & Rotation — Theme ${selectedThemeIndex + 1}`} icon={RotateCw} />
+            {expandedSection === 'rotation' && (
+              <div className="space-y-4">
+                <p className="text-[10px] text-slate-500">
+                  Rotate the entire content layout or individual elements in degrees.
+                </p>
+
+                {/* Overall Content Tilt */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Overall Content Tilt / Angle</span>
+                      <span className="text-[10px] text-slate-500 block">Slants all elements together (Theme 4 slope is -7.5°)</span>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                      {conf.contentRotation ?? 0}°
+                    </span>
+                  </div>
+
+                  <RangeControl
+                    label="Rotation Angle (Degrees)"
+                    value={conf.contentRotation ?? 0}
+                    onChange={v => updateConf('contentRotation', v)}
+                    min={-30}
+                    max={30}
+                    step={0.5}
+                  />
+
+                  {/* Preset Slant Buttons */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] font-bold text-slate-400 mr-1">Presets:</span>
+                    {[
+                      { label: '0° Flat', val: 0 },
+                      { label: '-7.5° (Theme 4 Slope)', val: -7.5 },
+                      { label: '+7.5°', val: 7.5 },
+                      { label: '-15°', val: -15 },
+                      { label: '+15°', val: 15 },
+                    ].map(p => (
+                      <button
+                        key={p.val}
+                        type="button"
+                        onClick={() => updateConf('contentRotation', p.val)}
+                        className={`px-2 py-1 text-[10px] font-bold rounded-lg transition border cursor-pointer ${
+                          (conf.contentRotation ?? 0) === p.val
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Individual Element Rotations */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
+                    Individual Element Tilt
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <RangeControl
+                      label="Result Number Tilt"
+                      value={conf.resultNumRotation ?? 0}
+                      onChange={v => updateConf('resultNumRotation', v)}
+                      min={-45}
+                      max={45}
+                      step={1}
+                    />
+                    <RangeControl
+                      label="Competition Title Tilt"
+                      value={conf.compNameRotation ?? 0}
+                      onChange={v => updateConf('compNameRotation', v)}
+                      min={-45}
+                      max={45}
+                      step={1}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Rank Badges */}
           <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
             <SectionHeader id="ranks" title={`Rank Badges — Theme ${selectedThemeIndex + 1}`} icon={Award} />
@@ -2494,11 +2922,45 @@ export const PosterSettingsView: React.FC<PosterSettingsViewProps> = ({
         {/* Preview Canvas */}
         <div className="lg:col-span-7 flex flex-col items-center">
           <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-lg w-full flex flex-col items-center">
-            <div className="flex items-center justify-between w-full pb-3 border-b border-slate-100 mb-4 px-2">
+            <div className="flex items-center justify-between w-full pb-3 border-b border-slate-100 mb-3 px-2">
               <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider font-mono">
                 Default Template Preview — Theme {selectedThemeIndex + 1}
               </span>
               <span className="text-[10px] text-slate-400 font-mono">Drag any element to reposition</span>
+            </div>
+
+            {/* 3-Digit Result Number Preview Switcher */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 bg-slate-900 text-white rounded-2xl border border-slate-700/80 mb-3 shadow-md w-full">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-extrabold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider font-mono">
+                  <Eye className="w-4 h-4 text-cyan-400" /> Preview Result No:
+                </span>
+                {['01', '09', '10', '99', '100', '101', '125'].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setSampleResultNum(num)}
+                    className={`px-2 py-0.5 rounded-md font-mono text-xs font-black transition-all cursor-pointer ${
+                      sampleResultNum === num
+                        ? 'bg-cyan-400 text-slate-950 shadow-md scale-105'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-slate-400 font-semibold">Custom:</span>
+                <input
+                  type="text"
+                  value={sampleResultNum}
+                  onChange={(e) => setSampleResultNum(e.target.value)}
+                  maxLength={6}
+                  placeholder="e.g. 101"
+                  className="w-16 px-1.5 py-0.5 rounded-lg bg-slate-800 text-cyan-300 font-mono text-center text-xs font-bold border border-slate-700 focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
             </div>
 
             <canvas
